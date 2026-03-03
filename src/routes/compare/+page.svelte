@@ -365,4 +365,10 @@
     border-top: 1px solid var(--border);
     z-index: 100;
   }
+
+  /* 換一組按鈕在 loading 時保持原本外觀，避免 opacity 閃爍 */
+  .compare-footer :global(.btn:disabled) {
+    opacity: 1;
+    cursor: pointer;
+  }
 </style>

@@ -1,16 +1,18 @@
-/* ─── Google Fonts ──────────────────────────────────────────────────────────── */
+/* ─── Import ──────────────────────────────────────────────────────────── */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap");
+@import "./app-basic.css";
 
-/* ─── Partials ──────────────────────────────────────────────────────────────── */
-@import "./animations.css";
-@import "./buttons.css";
-@import "./inputs.css";
-@import "./chips.css";
-@import "./modal.css";
-@import "./rating.css";
-@import "./utils.css";
+/* ─── Accessibility (global, not component-scoped) ─────────────────────────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
 
 /* ─── CSS Reset ────────────────────────────────────────────────────────────── */
 *,
@@ -92,4 +94,56 @@ a {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ─── Keyframes ────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ─── Utility classes ──────────────────────────────────────────────────────── */
+.fade-in {
+  animation: fadeIn 0.2s ease-out both;
+}
+.slide-up {
+  animation: slideUp 0.3s ease-out both;
+}
+.scale-in {
+  animation: scaleIn 0.2s ease-out both;
 }
