@@ -43,6 +43,11 @@ async function request<T>(
         : res.statusText;
     return { ok: false, error, status: res.status };
   }
+
+  // Unwrap the server's { ok, data } envelope so callers receive the inner payload directly.
+  if (typeof data === "object" && data !== null && "data" in data) {
+    return { ok: true, data: (data as Record<string, unknown>).data as T, status: res.status };
+  }
   return { ok: true, data: data as T, status: res.status };
 }
 

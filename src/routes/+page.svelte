@@ -1,13 +1,6 @@
 <script lang="ts">
-  import {
-    IconTag,
-    IconPencil,
-    IconPlayerPlay,
-    IconLayoutList,
-    IconArrowsLeftRight,
-    IconChevronRight,
-    IconSettings,
-  } from "@tabler/icons-svelte";
+  import { IconTag, IconPencil, IconPlayerPlay, IconLayoutList } from "@tabler/icons-svelte";
+  import { IconArrowsLeftRight, IconChevronRight, IconSettings } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
   let { data }: { data: PageData } = $props();
   const stats = $derived(data.stats);
