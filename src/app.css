@@ -458,8 +458,9 @@ a {
 }
 
 /* ─── Autocomplete Dropdown ────────────────────────────────────────────────── */
+/* portalled to body by float action; position:fixed so it never contributes to document scrollWidth */
 .ac-dropdown {
-  position: absolute;
+  position: fixed;
   z-index: 9999;
   max-height: 14rem;
   overflow-y: auto;
@@ -478,7 +479,8 @@ a {
     transform 0.12s ease-out;
 }
 
-.ac-dropdown.ac-visible {
+/* data-open driven by the float action — no extra class needed */
+.ac-dropdown[data-open="true"] {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;

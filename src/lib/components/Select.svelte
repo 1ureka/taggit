@@ -73,7 +73,6 @@
 <div
   bind:this={listEl}
   class="select-list"
-  class:select-list-visible={open}
   role="listbox"
   use:float={{ reference: triggerEl, open, placement: "bottom-start", matchWidth: false, matchMinWidth: true }}
 >
@@ -155,9 +154,10 @@
     transform: rotate(180deg);
   }
 
-  /* ── Dropdown list (portalled to body by float action) ── */
+  /* ── Dropdown list (portalled to body by float action, position:fixed so it
+        never contributes to document scrollWidth) ── */
   .select-list {
-    position: absolute;
+    position: fixed;
     z-index: 9999;
     max-height: 14rem;
     overflow-y: auto;
@@ -167,17 +167,18 @@
     border-radius: var(--radius);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
     padding: 0.25rem 0;
+    left: 0;
+    top: 0;
     opacity: 0;
     transform: translateY(-4px);
     pointer-events: none;
     transition:
       opacity 0.12s ease-out,
       transform 0.12s ease-out;
-    left: 0;
-    top: 0;
   }
 
-  .select-list-visible {
+  /* data-open driven by the float action — no extra class needed */
+  :global(.select-list[data-open="true"]) {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;

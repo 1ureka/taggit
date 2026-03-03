@@ -116,12 +116,7 @@
     autocomplete="off"
   />
 
-  <div
-    bind:this={dropdownEl}
-    class="ac-dropdown"
-    class:ac-visible={dropdownVisible}
-    use:float={{ reference: inputEl, open: dropdownVisible }}
-  >
+  <div bind:this={dropdownEl} class="ac-dropdown" use:float={{ reference: inputEl, open: dropdownVisible }}>
     {#each filtered as tag, i}
       <div
         class="ac-item"
