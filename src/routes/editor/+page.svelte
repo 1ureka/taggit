@@ -1,8 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
   import { IconArrowLeft, IconDeviceFloppy, IconTrash } from "@tabler/icons-svelte";
-  import { addToast } from "$lib/stores/toast.js";
+  import { addToast } from "$lib/client/toast.js";
   import { api } from "$lib/client/api.js";
   import { debounce } from "$lib/utils.js";
   import { untrack } from "svelte";

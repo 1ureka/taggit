@@ -4,7 +4,6 @@
   import type { TagInfo, ImageWithId, QueryResult } from "$lib/types.js";
   import type { PageData } from "./$types.js";
   import { api } from "$lib/client/api.js";
-  import { addToast } from "$lib/stores/toast.js";
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
   import Rating from "$lib/components/Rating.svelte";
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconRefresh, IconUpload } from "@tabler/icons-svelte";
-  import { addToast } from "$lib/stores/toast.js";
+  import { addToast } from "$lib/client/toast.js";
 
   let {
     stagedFiles,

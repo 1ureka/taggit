@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { TagInfo } from "$lib/types.js";
-  import { float } from "$lib/actions/float.js";
+  import { float } from "$lib/client/float.js";
 
   let {
     allTags = [],
@@ -136,3 +136,7 @@
     {/each}
   </div>
 </div>
+
+<style>
+  @import "../styles/TagAutocomplete.css";
+</style>

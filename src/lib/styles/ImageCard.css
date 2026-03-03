@@ -1,0 +1,33 @@
+.image-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: default;
+  transition: border-color 0.15s;
+}
+
+.image-card-clickable {
+  cursor: pointer;
+}
+
+.image-card-clickable:hover {
+  border-color: var(--border-hover);
+}
+
+.image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.image-card-footer {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

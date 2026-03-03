@@ -2,7 +2,7 @@
   import { IconClipboard, IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import { addToast } from "$lib/stores/toast.js";
+  import { addToast } from "$lib/client/toast.js";
   import type { TagInfo } from "$lib/types.js";
 
   let {

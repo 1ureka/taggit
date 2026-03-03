@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { toasts } from "$lib/stores/toast.js";
-  import type { ToastItem } from "$lib/stores/toast.js";
+  import { toasts } from "$lib/client/toast.js";
+  import type { ToastItem } from "$lib/client/toast.js";
 
   let items: ToastItem[] = $state([]);
   let fading = $state(new Set<number>());
@@ -42,3 +42,7 @@
     {/each}
   </div>
 {/if}
+
+<style>
+  @import "../styles/Toast.css";
+</style>

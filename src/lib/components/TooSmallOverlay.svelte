@@ -26,45 +26,5 @@
 </div>
 
 <style>
-  .too-small-overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    z-index: 9999;
-  }
-
-  .too-small-card {
-    text-align: center;
-    padding: 2.5rem;
-    max-width: 24rem;
-  }
-
-  .too-small-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.6;
-  }
-
-  .too-small-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text);
-  }
-
-  .too-small-desc {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-
-  .too-small-current {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-dim);
-  }
+  @import "../styles/TooSmallOverlay.css";
 </style>

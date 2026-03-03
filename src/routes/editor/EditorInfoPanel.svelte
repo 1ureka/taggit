@@ -1,7 +1,7 @@
 <script lang="ts">
   import Rating from "$lib/components/Rating.svelte";
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import { addToast } from "$lib/stores/toast.js";
+  import { addToast } from "$lib/client/toast.js";
   import { formatDate, formatSize } from "$lib/utils.js";
   import type { TagInfo, ImageWithId } from "$lib/types.js";
 

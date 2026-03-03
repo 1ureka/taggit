@@ -2,7 +2,7 @@
   import { untrack } from "svelte";
 
   import { api } from "$lib/client/api.js";
-  import { addToast } from "$lib/stores/toast.js";
+  import { addToast } from "$lib/client/toast.js";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
 

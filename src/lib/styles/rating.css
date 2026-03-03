@@ -1,0 +1,24 @@
+/* ─── Rating Stars ─────────────────────────────────────────────────────────── */
+.rating {
+  display: inline-flex;
+  gap: 0.125rem;
+  user-select: none;
+}
+
+.rating-star {
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition:
+    color 0.1s,
+    transform 0.1s;
+  line-height: 1;
+}
+
+.rating-star:hover {
+  transform: scale(1.15);
+}
+
+.rating-star.active {
+  color: var(--text);
+}
