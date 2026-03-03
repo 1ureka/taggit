@@ -2,7 +2,7 @@
 
 export interface ImageRecord {
   ext: string; // '.png', '.jpg', etc.
-  originalName: string; // original filename
+  originalName: string; // original filename (before commit rename)
   tags: string[]; // tag list
   rating: number; // 0-5
   committedAt: number; // Unix ms
@@ -12,15 +12,7 @@ export interface ImageRecord {
   height: number; // px, 0 = unknown
 }
 
-export interface TrashedImageRecord extends ImageRecord {
-  trashedAt: number; // Unix ms
-}
-
 export interface ImageWithId extends ImageRecord {
-  id: string;
-}
-
-export interface TrashedImageWithId extends TrashedImageRecord {
   id: string;
 }
 
@@ -42,10 +34,12 @@ export interface CollectionPaths {
 
 // ─── DB ──────────────────────────────────────────────────────────────────────
 
+/**
+ * db.json structure
+ */
 export interface DBData {
   version: number;
   images: Record<string, ImageRecord>;
-  trashedImages: Record<string, TrashedImageRecord>;
 }
 
 // ─── Query ───────────────────────────────────────────────────────────────────

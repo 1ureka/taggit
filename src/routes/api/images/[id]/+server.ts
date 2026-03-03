@@ -4,7 +4,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
 import { isValidId, isValidTags, isValidRating } from "$lib/server/validation.js";
-import { guardLoaded, getPaths, parseBody } from "$lib/server/helpers.js";
+import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
 
 /** GET /api/images/[id] */
 export const GET: RequestHandler = ({ params }) => {
@@ -51,7 +51,9 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   }
 };
 
-/** DELETE /api/images/[id] — move image to trash */
+/**
+ * DELETE /api/images/[id] — delete committed image.
+ */
 export const DELETE: RequestHandler = ({ params }) => {
   const err = guardLoaded();
   if (err) return err;
@@ -64,9 +66,16 @@ export const DELETE: RequestHandler = ({ params }) => {
 
   const paths = getPaths();
   const src = path.join(paths.committed, id + image.ext);
-  const dest = path.join(paths.trash, id + image.ext);
-  if (fs.existsSync(src)) fs.renameSync(src, dest);
 
-  db.moveToTrash(id);
+  // Move file to trash with original name (auto-rename on collision)
+  if (fs.existsSync(src)) {
+    const trashName = uniqueFilename(paths.trash, image.originalName);
+    const dest = path.join(paths.trash, trashName);
+    fs.renameSync(src, dest);
+  }
+
+  // Remove DB record — metadata is lost after this point
+  db.removeImage(id);
+
   return json({ ok: true });
 };

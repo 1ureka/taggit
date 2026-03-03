@@ -19,3 +19,24 @@ export const GET: RequestHandler = () => {
 
   return json({ ok: true, data: { missing } });
 };
+
+/**
+ * DELETE /api/maintenance/missing
+ * Removes all DB records whose committed file no longer exists on disk.
+ */
+export const DELETE: RequestHandler = () => {
+  const err = guardLoaded();
+  if (err) return err;
+
+  const committed = getPaths().committed;
+  const removed: string[] = [];
+
+  for (const [id, rec] of db.allImageEntries()) {
+    if (!fs.existsSync(path.join(committed, id + rec.ext))) {
+      db.removeImage(id);
+      removed.push(id);
+    }
+  }
+
+  return json({ ok: true, data: { removed } });
+};

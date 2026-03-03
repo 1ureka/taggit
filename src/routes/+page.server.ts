@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types.js";
 import * as db from "$lib/server/db.js";
-import { getStagedFiles } from "$lib/server/helpers.js";
+import { getStagedFiles, getTrashFiles } from "$lib/server/helpers.js";
 
 export const load: PageServerLoad = () => {
   return {
@@ -8,7 +8,7 @@ export const load: PageServerLoad = () => {
       totalImages: db.getImageCount(),
       totalTags: db.getTagCount(),
       stagedCount: getStagedFiles().length,
-      trashCount: db.getTrashCount(),
+      trashCount: getTrashFiles().length,
     },
   };
 };

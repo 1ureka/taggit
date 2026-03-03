@@ -2,10 +2,12 @@
  * Shared route helpers — eliminate boilerplate across API routes.
  *
  * Provides:
- * - guardLoaded()   — returns 503 Response if DB not loaded, otherwise null
- * - getPaths()      — shorthand for getCollectionPaths(getCurrentRoot()!)
+ * - guardLoaded()    — returns 503 Response if DB not loaded, otherwise null
+ * - getPaths()       — shorthand for getCollectionPaths(getCurrentRoot()!)
  * - getStagedFiles() — reads staged/ directory and returns sorted image filenames
- * - parseBody<T>()  — parses JSON body or returns [null, 400 Response]
+ * - getTrashFiles()  — reads trash/ directory and returns sorted image filenames
+ * - uniqueFilename() — find a unique filename in a directory (auto-append _1, _2, …)
+ * - parseBody<T>()   — parses JSON body or returns [null, 400 Response]
  */
 
 import fs from "fs";
@@ -33,7 +35,6 @@ export function getPaths(): CollectionPaths {
 
 /**
  * List image filenames in the staged/ directory, sorted alphabetically.
- * Returns an empty array if the directory doesn't exist or can't be read.
  */
 export function getStagedFiles(): string[] {
   try {
@@ -48,15 +49,46 @@ export function getStagedFiles(): string[] {
 }
 
 /**
+ * List image filenames in the trash/ directory, sorted alphabetically.
+ * Trash is purely file-based — no DB records involved.
+ */
+export function getTrashFiles(): string[] {
+  try {
+    const trash = getPaths().trash;
+    return fs
+      .readdirSync(trash)
+      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Find a unique filename in `dir` for the desired `name`.
+ * If `name` already exists, appends `_1`, `_2`, … before the extension.
+ *
+ * Example: `photo.png` → `photo_1.png` → `photo_2.png` → …
+ *
+ * Returns only the filename (not the full path).
+ */
+export function uniqueFilename(dir: string, name: string): string {
+  const ext = path.extname(name);
+  const stem = path.basename(name, ext);
+
+  if (!fs.existsSync(path.join(dir, name))) return name;
+
+  let i = 1;
+  while (true) {
+    const candidate = `${stem}_${i}${ext}`;
+    if (!fs.existsSync(path.join(dir, candidate))) return candidate;
+    i++;
+  }
+}
+
+/**
  * Parse JSON body from a Request.
  * Returns `[body, null]` on success, or `[null, errorResponse]` on failure.
- *
- * Usage:
- * ```
- * const [body, err] = await parseBody<{ filename: string }>(request);
- * if (err) return err;
- * // body is typed as { filename: string }
- * ```
  */
 export async function parseBody<T = Record<string, unknown>>(request: Request): Promise<[T, null] | [null, Response]> {
   try {

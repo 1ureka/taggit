@@ -3,14 +3,13 @@ import path from "path";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import { isValidFilename } from "$lib/server/validation.js";
-import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
+import { guardLoaded, getPaths, parseBody } from "$lib/server/helpers.js";
 
 /**
- * POST /api/staged/trash
+ * POST /api/trash/delete
  * Body: { filename }
  *
- * Moves a staged file to trash/ (auto-rename on collision).
- * No DB record involved — purely filesystem operation.
+ * Permanently delete a single file from trash/.
  */
 export const POST: RequestHandler = async ({ request }) => {
   const err = guardLoaded();
@@ -23,13 +22,14 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
   const paths = getPaths();
-  const src = path.join(paths.staged, filename as string);
+  const fp = path.join(paths.trash, filename as string);
 
-  if (!fs.existsSync(src)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+  if (!fs.existsSync(fp)) return json({ ok: false, error: "Trash file not found" }, { status: 404 });
 
-  const trashName = uniqueFilename(paths.trash, filename as string);
-  const dest = path.join(paths.trash, trashName);
-  fs.renameSync(src, dest);
-
-  return json({ ok: true, data: { trashName } });
+  try {
+    fs.unlinkSync(fp);
+    return json({ ok: true });
+  } catch (e) {
+    return json({ ok: false, error: (e as Error).message }, { status: 500 });
+  }
 };

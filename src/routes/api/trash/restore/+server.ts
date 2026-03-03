@@ -6,11 +6,9 @@ import { isValidFilename } from "$lib/server/validation.js";
 import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
 
 /**
- * POST /api/staged/trash
+ * POST /api/trash/restore
  * Body: { filename }
  *
- * Moves a staged file to trash/ (auto-rename on collision).
- * No DB record involved — purely filesystem operation.
  */
 export const POST: RequestHandler = async ({ request }) => {
   const err = guardLoaded();
@@ -23,13 +21,13 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
   const paths = getPaths();
-  const src = path.join(paths.staged, filename as string);
+  const src = path.join(paths.trash, filename as string);
 
-  if (!fs.existsSync(src)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+  if (!fs.existsSync(src)) return json({ ok: false, error: "Trash file not found" }, { status: 404 });
 
-  const trashName = uniqueFilename(paths.trash, filename as string);
-  const dest = path.join(paths.trash, trashName);
+  const stagedName = uniqueFilename(paths.staged, filename as string);
+  const dest = path.join(paths.staged, stagedName);
   fs.renameSync(src, dest);
 
-  return json({ ok: true, data: { trashName } });
+  return json({ ok: true, data: { stagedName } });
 };
