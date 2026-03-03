@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { IconRefresh } from "@tabler/icons-svelte";
+  import { IconRefresh, IconUpload } from "@tabler/icons-svelte";
+  import { addToast } from "$lib/stores/toast.js";
 
   let {
     stagedFiles,
@@ -16,6 +17,8 @@
   } = $props();
 
   let sidebarListEl: HTMLDivElement | undefined = $state();
+  let fileInputEl: HTMLInputElement | undefined = $state();
+  let uploading = $state(false);
 
   /** Scroll the active thumbnail into view. */
   export function scrollToActive(idx: number) {
@@ -23,6 +26,41 @@
       const thumbs = sidebarListEl?.querySelectorAll(".tagger-thumb");
       thumbs?.[idx]?.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
+  }
+
+  async function handleFileSelect(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    uploading = true;
+    try {
+      const formData = new FormData();
+      for (const f of files) {
+        formData.append("files", f);
+      }
+
+      const res = await fetch("/api/staged", { method: "POST", body: formData });
+      const json = await res.json();
+
+      if (json.ok && json.data) {
+        const { added, errors } = json.data as { added: string[]; errors: string[] };
+        if (added.length > 0) {
+          addToast(`已加入 ${added.length} 張圖片`, "success");
+          onrefresh();
+        }
+        if (errors.length > 0) {
+          addToast(`${errors.length} 個檔案失敗`, "error");
+        }
+      } else {
+        addToast(json.error || "上傳失敗", "error");
+      }
+    } catch {
+      addToast("上傳請求失敗", "error");
+    } finally {
+      uploading = false;
+      input.value = "";
+    }
   }
 </script>
 
@@ -56,6 +94,20 @@
         </button>
       {/each}
     {/if}
+  </div>
+  <div class="tagger-sidebar-footer">
+    <input
+      bind:this={fileInputEl}
+      type="file"
+      accept="image/*"
+      multiple
+      class="visually-hidden"
+      onchange={handleFileSelect}
+    />
+    <button class="btn btn-sm tagger-upload-btn" onclick={() => fileInputEl?.click()} disabled={uploading}>
+      <IconUpload size={14} />
+      {uploading ? "上傳中..." : "加入圖片"}
+    </button>
   </div>
 </aside>
 
