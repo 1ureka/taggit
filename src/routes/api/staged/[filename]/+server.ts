@@ -5,26 +5,29 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
 import { IMG_EXTS } from "$lib/server/config.js";
-import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
-import { guardLoaded, getPaths, parseBody } from "$lib/server/helpers.js";
+import { isValidTags, isValidRating } from "$lib/server/validation.js";
+import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
 import type { ImageRecord } from "$lib/types.js";
 
 /**
- * POST /api/staged/commit
- * Body: { filename, tags, rating, width?, height? }
+ * POST /api/staged/[filename] — commit a staged file.
+ * Body: { tags, rating, width?, height? }
+ * filename comes from URL param.
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ params, request }) => {
   const err = guardLoaded();
   if (err) return err;
+
+  const filename = params.filename!;
+
+  if (!IMG_EXTS.has(path.extname(filename).toLowerCase()))
+    return json({ ok: false, error: "Not an image file" }, { status: 400 });
 
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const { filename, tags, rating, width, height } = body;
+  const { tags, rating, width, height } = body;
 
-  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
-  if (!IMG_EXTS.has(path.extname(filename as string).toLowerCase()))
-    return json({ ok: false, error: "Not an image file" }, { status: 400 });
   if (!isValidTags(tags)) return json({ ok: false, error: "Invalid tags" }, { status: 400 });
   if (!isValidRating(rating))
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
@@ -33,8 +36,8 @@ export const POST: RequestHandler = async ({ request }) => {
   if (trimmedTags.length === 0) return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
 
   const paths = getPaths();
-  const ext = path.extname(filename as string).toLowerCase();
-  const srcPath = path.join(paths.staged, filename as string);
+  const ext = path.extname(filename).toLowerCase();
+  const srcPath = path.join(paths.staged, filename);
 
   let id: string;
   do {
@@ -50,7 +53,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const now = Date.now();
     const record: ImageRecord = {
       ext,
-      originalName: filename as string,
+      originalName: filename,
       tags: trimmedTags,
       rating: rating as number,
       committedAt: now,
@@ -67,4 +70,23 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ ok: false, error: "Staged file not found" }, { status: 404 });
     throw e;
   }
+};
+
+/**
+ * DELETE /api/staged/[filename] — move staged file to trash (no body needed).
+ */
+export const DELETE: RequestHandler = ({ params }) => {
+  const err = guardLoaded();
+  if (err) return err;
+
+  const filename = params.filename!;
+  const paths = getPaths();
+  const src = path.join(paths.staged, filename);
+
+  if (!fs.existsSync(src)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+
+  const trashName = uniqueFilename(paths.trash, filename);
+  fs.renameSync(src, path.join(paths.trash, trashName));
+
+  return json({ ok: true, data: { trashName } });
 };
