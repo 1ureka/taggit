@@ -1,5 +1,13 @@
 <script lang="ts">
-  let { currentFilename, previewSrc }: { currentFilename: string | null; previewSrc: string } = $props();
+  let {
+    currentFilename,
+    previewSrc,
+    selectedCount = 1,
+  }: {
+    currentFilename: string | null;
+    previewSrc: string;
+    selectedCount?: number;
+  } = $props();
 
   // ─── Internal zoom / pan state ──────────────────────────────────────
   let scale = $state(1);
@@ -76,7 +84,12 @@
         style="transform:translate({panX}px,{panY}px) scale({scale})"
       />
     </div>
-    <div class="tagger-preview-info">{currentFilename}</div>
+    <div class="tagger-preview-info">
+      {currentFilename}
+      {#if selectedCount > 1}
+        <span class="selection-hint">已選 {selectedCount} 張</span>
+      {/if}
+    </div>
   {:else}
     <div class="tagger-preview-container">
       <div class="tagger-empty">所有圖片皆已處理，沒有新圖片</div>
@@ -133,6 +146,15 @@
     border-top: 1px solid var(--border);
     background: var(--bg-card);
     min-height: 1.75rem;
+  }
+
+  .selection-hint {
+    padding: 0.0625rem 0.375rem;
+    border-radius: 9999px;
+    background: var(--bg-active);
+    color: var(--text-muted);
+    font-size: 0.625rem;
+    font-weight: 500;
   }
 
   .tagger-empty {

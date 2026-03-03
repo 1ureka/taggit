@@ -20,7 +20,9 @@
   // ─── State ────────────────────────────────────────────────────────────
   let stagedFiles = $state<string[]>(untrack(() => [...data.stagedFiles]));
   let allTags = $state<TagInfo[]>(untrack(() => [...data.allTags]));
-  let currentIndex = $state(-1);
+  let activeIndex = $state(-1);
+  let selectedIndices = $state<Set<number>>(new Set());
+  let anchorIndex = $state(0);
   let currentTags = $state<string[]>([]);
   let currentRating = $state(0);
   let previousTags = $state<string[]>([]);
@@ -28,6 +30,7 @@
   let processedCount = $state(0);
   let showToolsModal = $state(false);
   let confirmModal = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
+  let committing = $state(false);
 
   // Component refs
   let sidebarRef = $state<TaggerSidebar>();
@@ -43,16 +46,17 @@
 
   // ─── Derived ──────────────────────────────────────────────────────────
   let currentFilename = $derived(
-    currentIndex >= 0 && currentIndex < stagedFiles.length ? stagedFiles[currentIndex] : null,
+    activeIndex >= 0 && activeIndex < stagedFiles.length ? stagedFiles[activeIndex] : null,
   );
   let previewSrc = $derived(currentFilename ? `/img/staged/${encodeURIComponent(currentFilename)}` : "");
   let progressPct = $derived(totalInitial > 0 ? Math.round((processedCount / totalInitial) * 100) : 0);
   let progressLabel = $derived(`${processedCount}/${totalInitial} (${stagedFiles.length} 剩餘)`);
+  let selectedCount = $derived(selectedIndices.size);
 
   // ─── Init on mount ────────────────────────────────────────────────────
   $effect(() => {
-    if (stagedFiles.length > 0 && currentIndex < 0) {
-      selectImage(0);
+    if (stagedFiles.length > 0 && activeIndex < 0) {
+      selectImage(0, "single");
     }
   });
 
@@ -84,12 +88,13 @@
         const oldLen = stagedFiles.length;
         stagedFiles = res.data.files;
         if (totalInitial === 0) totalInitial = stagedFiles.length;
+        selectedIndices = new Set();
         if (stagedFiles.length === 0) {
-          currentIndex = -1;
-        } else if (currentIndex >= stagedFiles.length) {
-          selectImage(Math.max(0, stagedFiles.length - 1));
+          activeIndex = -1;
+        } else if (activeIndex >= stagedFiles.length) {
+          selectImage(Math.max(0, stagedFiles.length - 1), "single");
         } else if (oldLen === 0 && stagedFiles.length > 0) {
-          selectImage(0);
+          selectImage(0, "single");
         }
         const diff = stagedFiles.length - oldLen;
         if (diff > 0) {
@@ -113,12 +118,38 @@
   }
 
   // ─── Image selection ──────────────────────────────────────────────────
-  function selectImage(idx: number) {
+  function selectImage(idx: number, mode: "single" | "ctrl" | "shift" = "single") {
     if (idx < 0 || idx >= stagedFiles.length) return;
-    currentIndex = idx;
-    currentTags = [];
-    currentRating = 0;
-    previewRef?.resetZoom();
+
+    if (mode === "single") {
+      activeIndex = idx;
+      selectedIndices = new Set([idx]);
+      anchorIndex = idx;
+      currentTags = [];
+      currentRating = 0;
+      previewRef?.resetZoom();
+    } else if (mode === "ctrl") {
+      const next = new Set(selectedIndices);
+      if (next.has(idx)) {
+        next.delete(idx);
+        if (next.size === 0) next.add(idx);
+      } else {
+        next.add(idx);
+      }
+      activeIndex = idx;
+      selectedIndices = next;
+      anchorIndex = idx;
+      previewRef?.resetZoom();
+    } else if (mode === "shift") {
+      const start = Math.min(anchorIndex, idx);
+      const end = Math.max(anchorIndex, idx);
+      const next = new Set<number>();
+      for (let i = start; i <= end; i++) next.add(i);
+      activeIndex = idx;
+      selectedIndices = next;
+      previewRef?.resetZoom();
+    }
+
     sidebarRef?.scrollToActive(idx);
 
     // Preload next image
@@ -130,67 +161,112 @@
   }
 
   // ─── Commit ───────────────────────────────────────────────────────────
-  async function commitCurrent() {
-    if (currentIndex < 0 || currentIndex >= stagedFiles.length) return;
+  async function commitSelected() {
+    if (selectedIndices.size === 0 || activeIndex < 0) return;
+    if (committing) return;
 
     if (currentTags.length === 0) {
       addToast("請至少加入一個標籤才能提交", "error");
       return;
     }
 
-    const filename = stagedFiles[currentIndex];
+    committing = true;
+    const activeFilename = currentFilename;
     const { width: w, height: h } = previewRef?.getImageDimensions() ?? { width: 0, height: 0 };
+    const indicesToRemove = new Set(selectedIndices);
+    const filenames = [...indicesToRemove].sort((a, b) => a - b).map((i) => stagedFiles[i]);
 
-    const res = await api.post<{ id: string }>(`/api/staged/${encodeURIComponent(filename)}`, {
-      tags: currentTags,
-      rating: currentRating,
-      width: w,
-      height: h,
-    });
+    const BATCH_SIZE = 5;
+    let successCount = 0;
+    let failCount = 0;
 
-    if (!res.ok) {
-      addToast("提交失敗: " + (res.error || "未知錯誤"), "error");
-      return;
+    try {
+      for (let i = 0; i < filenames.length; i += BATCH_SIZE) {
+        const batch = filenames.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map((fn) =>
+            api.post<{ id: string }>(`/api/staged/${encodeURIComponent(fn)}`, {
+              tags: currentTags,
+              rating: currentRating,
+              width: fn === activeFilename ? w : 0,
+              height: fn === activeFilename ? h : 0,
+            }),
+          ),
+        );
+        for (const res of results) {
+          if (res.ok) successCount++;
+          else failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        previousTags = [...currentTags];
+        processedCount += successCount;
+        addToast(successCount === 1 ? `已提交: ${filenames[0]}` : `已提交 ${successCount} 張圖片`, "success");
+      }
+      if (failCount > 0) {
+        addToast(`${failCount} 張提交失敗`, "error");
+      }
+
+      stagedFiles = stagedFiles.filter((_, i) => !indicesToRemove.has(i));
+      afterRemove();
+      refreshTags();
+    } finally {
+      committing = false;
     }
-
-    previousTags = [...currentTags];
-    processedCount++;
-    addToast("已提交: " + filename, "success");
-
-    stagedFiles = stagedFiles.filter((_, i) => i !== currentIndex);
-    afterRemove();
-    refreshTags();
   }
 
   // ─── Trash ────────────────────────────────────────────────────────────
-  async function trashCurrent() {
-    if (currentIndex < 0 || currentIndex >= stagedFiles.length) return;
+  async function trashSelected() {
+    if (selectedIndices.size === 0 || activeIndex < 0) return;
 
-    const filename = stagedFiles[currentIndex];
-    const ok = await confirmDialog(`確定要將「${filename}」移至垃圾桶？`);
+    const count = selectedIndices.size;
+    const message =
+      count === 1
+        ? `確定要將「${stagedFiles[activeIndex]}」移至垃圾桶？`
+        : `確定要將選取的 ${count} 張圖片移至垃圾桶？`;
+    const ok = await confirmDialog(message);
     if (!ok) return;
 
-    const res = await api.del<{ trashName: string }>(`/api/staged/${encodeURIComponent(filename)}`);
-    if (!res.ok) {
-      addToast("刪除失敗: " + (res.error || "未知錯誤"), "error");
-      return;
+    const indicesToRemove = new Set(selectedIndices);
+    const filenames = [...indicesToRemove].sort((a, b) => a - b).map((i) => stagedFiles[i]);
+
+    const BATCH_SIZE = 5;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < filenames.length; i += BATCH_SIZE) {
+      const batch = filenames.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map((fn) => api.del<{ trashName: string }>(`/api/staged/${encodeURIComponent(fn)}`)),
+      );
+      for (const res of results) {
+        if (res.ok) successCount++;
+        else failCount++;
+      }
     }
 
-    processedCount++;
-    addToast("已移至垃圾桶: " + filename, "info");
+    if (successCount > 0) {
+      processedCount += successCount;
+      addToast(successCount === 1 ? `已移至垃圾桶: ${filenames[0]}` : `已將 ${successCount} 張圖片移至垃圾桶`, "info");
+    }
+    if (failCount > 0) {
+      addToast(`${failCount} 張刪除失敗`, "error");
+    }
 
-    stagedFiles = stagedFiles.filter((_, i) => i !== currentIndex);
+    stagedFiles = stagedFiles.filter((_, i) => !indicesToRemove.has(i));
     afterRemove();
   }
 
   // ─── After Remove ─────────────────────────────────────────────────────
   function afterRemove() {
+    selectedIndices = new Set();
     if (stagedFiles.length === 0) {
-      currentIndex = -1;
+      activeIndex = -1;
       return;
     }
-    const nextIdx = Math.min(currentIndex, stagedFiles.length - 1);
-    selectImage(nextIdx);
+    const nextIdx = Math.min(activeIndex, stagedFiles.length - 1);
+    selectImage(nextIdx, "single");
   }
 
   // ─── Copy Previous Tags ──────────────────────────────────────────────
@@ -216,11 +292,11 @@
     switch (e.key) {
       case "ArrowLeft":
         e.preventDefault();
-        if (currentIndex > 0) selectImage(currentIndex - 1);
+        if (activeIndex > 0) selectImage(activeIndex - 1, "single");
         break;
       case "ArrowRight":
         e.preventDefault();
-        if (currentIndex < stagedFiles.length - 1) selectImage(currentIndex + 1);
+        if (activeIndex < stagedFiles.length - 1) selectImage(activeIndex + 1, "single");
         break;
       case "1":
       case "2":
@@ -249,11 +325,11 @@
         break;
       case "Enter":
         e.preventDefault();
-        commitCurrent();
+        commitSelected();
         break;
       case "Delete":
         e.preventDefault();
-        trashCurrent();
+        trashSelected();
         break;
       case "Escape":
         e.preventDefault();
@@ -284,21 +360,24 @@
     <TaggerSidebar
       bind:this={sidebarRef}
       {stagedFiles}
-      {currentIndex}
+      {activeIndex}
+      {selectedIndices}
       {refreshing}
       onselect={selectImage}
       onrefresh={refreshStaged}
     />
 
-    <TaggerPreview bind:this={previewRef} {currentFilename} {previewSrc} />
+    <TaggerPreview bind:this={previewRef} {currentFilename} {previewSrc} {selectedCount} />
 
     <TaggerTagPanel
       bind:this={tagPanelRef}
       {allTags}
       bind:currentTags
       bind:currentRating
-      oncommit={commitCurrent}
-      ontrash={trashCurrent}
+      {selectedCount}
+      {committing}
+      oncommit={commitSelected}
+      ontrash={trashSelected}
       oncopyprevious={copyPreviousTags}
     />
   </main>

@@ -4,28 +4,83 @@
 
   let {
     stagedFiles,
-    currentIndex,
+    activeIndex,
+    selectedIndices,
     refreshing = false,
     onselect,
     onrefresh,
   }: {
     stagedFiles: string[];
-    currentIndex: number;
+    activeIndex: number;
+    selectedIndices: Set<number>;
     refreshing?: boolean;
-    onselect: (idx: number) => void;
+    onselect: (idx: number, mode: "single" | "ctrl" | "shift") => void;
     onrefresh: () => void;
   } = $props();
+
+  // ─── Virtual list constants ─────────────────────────────────────────
+  const ITEM_HEIGHT = 72;
+  const BUFFER = 5;
 
   let sidebarListEl: HTMLDivElement | undefined = $state();
   let fileInputEl: HTMLInputElement | undefined = $state();
   let uploading = $state(false);
+  let scrollTop = $state(0);
+  let containerHeight = $state(400);
 
-  /** Scroll the active thumbnail into view. */
-  export function scrollToActive(idx: number) {
-    requestAnimationFrame(() => {
-      const thumbs = sidebarListEl?.querySelectorAll(".tagger-thumb");
-      thumbs?.[idx]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  // ─── Virtual list derived ───────────────────────────────────────────
+  let totalHeight = $derived(stagedFiles.length * ITEM_HEIGHT);
+  let startIdx = $derived(Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER));
+  let endIdx = $derived(Math.min(stagedFiles.length, Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + BUFFER));
+  let visibleItems = $derived(
+    stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+      filename,
+      index: startIdx + i,
+    })),
+  );
+
+  let selectedCount = $derived(selectedIndices.size);
+
+  function handleScroll() {
+    if (sidebarListEl) {
+      scrollTop = sidebarListEl.scrollTop;
+    }
+  }
+
+  // Observe container resize for accurate viewport calculation
+  $effect(() => {
+    if (!sidebarListEl) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        containerHeight = entry.contentRect.height;
+      }
     });
+    ro.observe(sidebarListEl);
+    return () => ro.disconnect();
+  });
+
+  /** Scroll so that the given index is visible. */
+  export function scrollToActive(idx: number) {
+    if (!sidebarListEl) return;
+    const itemTop = idx * ITEM_HEIGHT;
+    const itemBottom = itemTop + ITEM_HEIGHT;
+    const viewTop = sidebarListEl.scrollTop;
+    const viewBottom = viewTop + containerHeight;
+    if (itemTop < viewTop) {
+      sidebarListEl.scrollTop = itemTop;
+    } else if (itemBottom > viewBottom) {
+      sidebarListEl.scrollTop = itemBottom - containerHeight;
+    }
+  }
+
+  function handleClick(e: MouseEvent, idx: number) {
+    if (e.ctrlKey || e.metaKey) {
+      onselect(idx, "ctrl");
+    } else if (e.shiftKey) {
+      onselect(idx, "shift");
+    } else {
+      onselect(idx, "single");
+    }
   }
 
   async function handleFileSelect(e: Event) {
@@ -68,6 +123,9 @@
   <div class="tagger-sidebar-header">
     <span class="tagger-sidebar-title">待審查</span>
     <span class="badge">{stagedFiles.length}</span>
+    {#if selectedCount > 1}
+      <span class="badge badge-selection">{selectedCount} 選</span>
+    {/if}
     <button
       class="btn-refresh"
       class:spinning={refreshing}
@@ -78,21 +136,30 @@
       <IconRefresh size={14} />
     </button>
   </div>
-  <div class="tagger-sidebar-list" bind:this={sidebarListEl}>
+  <div class="tagger-sidebar-list" bind:this={sidebarListEl} onscroll={handleScroll}>
     {#if stagedFiles.length === 0}
       <div class="tagger-empty">沒有待審查的圖片</div>
     {:else}
-      {#each stagedFiles as filename, idx}
-        <button type="button" class="tagger-thumb" class:active={idx === currentIndex} onclick={() => onselect(idx)}>
-          <img
-            class="tagger-thumb-img"
-            src="/img/staged/{encodeURIComponent(filename)}"
-            alt={filename}
-            loading="lazy"
-          />
-          <span class="tagger-thumb-name">{filename}</span>
-        </button>
-      {/each}
+      <div class="virtual-scroll-content" style="height:{totalHeight}px">
+        {#each visibleItems as item (item.filename)}
+          <button
+            type="button"
+            class="tagger-thumb"
+            class:active={item.index === activeIndex}
+            class:selected={selectedIndices.has(item.index)}
+            style="top:{item.index * ITEM_HEIGHT}px"
+            onclick={(e) => handleClick(e, item.index)}
+          >
+            <img
+              class="tagger-thumb-img"
+              src="/img/staged/{encodeURIComponent(item.filename)}"
+              alt={item.filename}
+              loading="lazy"
+            />
+            <span class="tagger-thumb-name">{item.filename}</span>
+          </button>
+        {/each}
+      </div>
     {/if}
   </div>
   <div class="tagger-sidebar-footer">
@@ -177,13 +244,30 @@
     color: var(--text-muted);
   }
 
+  .badge-selection {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 9999px;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
   .tagger-sidebar-list {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
   }
 
+  .virtual-scroll-content {
+    position: relative;
+  }
+
   .tagger-thumb {
+    position: absolute;
+    left: 0;
+    height: 72px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -204,6 +288,11 @@
 
   .tagger-thumb:hover {
     background: var(--bg-hover);
+  }
+
+  .tagger-thumb.selected {
+    background: var(--bg-active);
+    border-left-color: var(--text-dim);
   }
 
   .tagger-thumb.active {

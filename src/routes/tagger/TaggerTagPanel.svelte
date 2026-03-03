@@ -9,6 +9,8 @@
     allTags,
     currentTags = $bindable([]),
     currentRating = $bindable(0),
+    selectedCount = 1,
+    committing = false,
     oncommit,
     ontrash,
     oncopyprevious,
@@ -16,6 +18,8 @@
     allTags: TagInfo[];
     currentTags: string[];
     currentRating: number;
+    selectedCount?: number;
+    committing?: boolean;
     oncommit: () => void;
     ontrash: () => void;
     oncopyprevious: () => void;
@@ -83,13 +87,13 @@
       <IconClipboard size={16} />
       複製上一張
     </button>
-    <button class="btn btn-primary btn-sm" onclick={oncommit}>
+    <button class="btn btn-primary btn-sm" onclick={oncommit} disabled={committing}>
       <IconCheck size={16} />
-      提交
+      {committing ? "提交中…" : selectedCount > 1 ? `提交 ${selectedCount} 張` : "提交"}
     </button>
-    <button class="btn btn-destructive btn-sm" onclick={ontrash}>
+    <button class="btn btn-destructive btn-sm" onclick={ontrash} disabled={committing}>
       <IconTrash size={16} />
-      刪除
+      {selectedCount > 1 ? `刪除 ${selectedCount} 張` : "刪除"}
     </button>
   </div>
 
