@@ -87,7 +87,6 @@
       if (res.ok && res.data) {
         const oldLen = stagedFiles.length;
         stagedFiles = res.data.files;
-        if (totalInitial === 0) totalInitial = stagedFiles.length;
         selectedIndices = new Set();
         if (stagedFiles.length === 0) {
           activeIndex = -1;
@@ -98,6 +97,13 @@
         }
         const diff = stagedFiles.length - oldLen;
         if (diff > 0) {
+          if (totalInitial === 0) {
+            // 首次從空白載入：直接設為總數
+            totalInitial = stagedFiles.length;
+          } else {
+            // 已有進度中途新增：只累加新增量
+            totalInitial += diff;
+          }
           addToast(`發現 ${diff} 張新圖片`, "success");
         } else if (diff === 0) {
           addToast("沒有發現新圖片", "info");
@@ -160,6 +166,16 @@
     }
   }
 
+  // ─── Image dimensions helper ─────────────────────────────────────────
+  function loadImageDimensions(src: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: 0, height: 0 });
+      img.src = src;
+    });
+  }
+
   // ─── Commit ───────────────────────────────────────────────────────────
   async function commitSelected() {
     if (selectedIndices.size === 0 || activeIndex < 0) return;
@@ -171,8 +187,6 @@
     }
 
     committing = true;
-    const activeFilename = currentFilename;
-    const { width: w, height: h } = previewRef?.getImageDimensions() ?? { width: 0, height: 0 };
     const indicesToRemove = new Set(selectedIndices);
     const filenames = [...indicesToRemove].sort((a, b) => a - b).map((i) => stagedFiles[i]);
 
@@ -183,13 +197,14 @@
     try {
       for (let i = 0; i < filenames.length; i += BATCH_SIZE) {
         const batch = filenames.slice(i, i + BATCH_SIZE);
+        const dims = await Promise.all(batch.map((fn) => loadImageDimensions(`/img/staged/${encodeURIComponent(fn)}`)));
         const results = await Promise.all(
-          batch.map((fn) =>
+          batch.map((fn, j) =>
             api.post<{ id: string }>(`/api/staged/${encodeURIComponent(fn)}`, {
               tags: currentTags,
               rating: currentRating,
-              width: fn === activeFilename ? w : 0,
-              height: fn === activeFilename ? h : 0,
+              width: dims[j].width,
+              height: dims[j].height,
             }),
           ),
         );
