@@ -23,15 +23,13 @@ export const POST: RequestHandler = async ({ request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const { oldName, newName } = body;
+  const oldName = body.oldName?.toString().trim();
+  const newName = body.newName?.toString().trim();
 
-  if (typeof oldName !== "string" || oldName.trim() === "")
-    return json({ ok: false, error: "oldName is required" }, { status: 400 });
-  if (typeof newName !== "string" || newName.trim() === "")
-    return json({ ok: false, error: "newName is required" }, { status: 400 });
-  if (oldName.trim() === newName.trim())
-    return json({ ok: false, error: "oldName and newName must differ" }, { status: 400 });
+  if (!oldName) return json({ ok: false, error: "oldName is required" }, { status: 400 });
+  if (!newName) return json({ ok: false, error: "newName is required" }, { status: 400 });
+  if (oldName === newName) return json({ ok: false, error: "oldName and newName must differ" }, { status: 400 });
 
-  const affected = renameTag(getDB(), oldName.trim(), newName.trim());
+  const affected = renameTag(getDB(), oldName, newName);
   return json({ ok: true, data: { affected } });
 };
