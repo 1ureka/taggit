@@ -186,8 +186,6 @@ export async function commit() {
 /** Move selected images to trash. */
 export async function trash() {
   if (selectionStore.selected.size === 0 || selectionStore.cursor < 0) {
-    console.log(selectionStore.selected.size);
-
     addToast("沒有選取任何圖片", "info");
     return;
   }
