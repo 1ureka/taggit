@@ -1,12 +1,15 @@
 <script lang="ts">
   import { IconArrowLeft, IconArrowUp } from "@tabler/icons-svelte";
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { TagInfo, ImageWithId, QueryResult } from "$lib/types.js";
   import type { PageData } from "./$types.js";
   import { api } from "$lib/client/api.js";
   import { addToast } from "$lib/client/toast.js";
   import FilterBar from "$lib/components/FilterBar.svelte";
+  import Select from "$lib/components/Select.svelte";
   import { throttle } from "$lib/utils.js";
+  import { createWeightBasedLayout } from "./masonry.js";
+  import { createVirtualizer } from "./virtualizer.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -24,8 +27,32 @@
   let loading = $state(false);
   let noMore = $state(false);
   let showFab = $state(false);
+  let columns = $state(3);
 
   const PAGE_SIZE = 30;
+  const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
+
+  // ─── Masonry layout ───────────────────────────────────────────────────
+  let containerEl = $state<HTMLElement | null>(null);
+  let layout = $derived(createWeightBasedLayout(items, columns));
+
+  onMount(() => {
+    const breakpoints = [
+      { width: 1600, cols: 6 },
+      { width: 1200, cols: 5 },
+      { width: 900, cols: 4 },
+      { width: 600, cols: 2 },
+      { width: 0, cols: 1 },
+    ];
+
+    const width = window.innerWidth;
+    columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
+  });
+
+  const virtualizer = createVirtualizer(
+    () => layout,
+    () => containerEl,
+  );
 
   // ─── Init ─────────────────────────────────────────────────────────────
   $effect(() => {
@@ -82,6 +109,12 @@
       addToast("載入失敗", "error");
     } finally {
       loading = false;
+      // 載入後檢查視窗是否仍未填滿，若是則繼續載入
+      requestAnimationFrame(() => {
+        if (!noMore && document.documentElement.scrollHeight <= window.innerHeight) {
+          loadMore();
+        }
+      });
     }
   }
 
@@ -115,6 +148,9 @@
     首頁
   </a>
   <span class="scroll-title">垂直瀏覽</span>
+  <div class="scroll-header-right">
+    <Select bind:value={columns} options={COLUMN_OPTIONS} />
+  </div>
 </header>
 
 <main class="scroll-main slide-up">
@@ -134,21 +170,28 @@
     </div>
   </div>
 
-  <!-- Image stream -->
+  <!-- Masonry wall -->
   {#if items.length === 0 && !loading}
     <div class="scroll-empty">找不到符合的圖片</div>
   {/if}
 
-  <div class="scroll-images">
-    {#each items as img (img.id)}
-      <img
-        class="scroll-img"
-        src="/img/committed/{img.id}{img.ext}"
-        alt={img.originalName || img.id}
-        loading="lazy"
-        draggable="false"
-        ondblclick={() => handleImageDblClick(img)}
-      />
+  <div class="masonry-container" bind:this={containerEl} style:height="{virtualizer.totalHeight}px">
+    {#each virtualizer.visibleItems as item (item.id)}
+      <div
+        class="masonry-item"
+        style:transform="translate3d({item.pixelX}px, {item.pixelY}px, 0)"
+        style:width="{item.pixelW}px"
+        style:height="{item.pixelH}px"
+      >
+        <img
+          class="masonry-img"
+          src="/img/committed/{item.id}{item.ext}"
+          alt={item.originalName || item.id}
+          loading="lazy"
+          draggable="false"
+          ondblclick={() => handleImageDblClick(item)}
+        />
+      </div>
     {/each}
   </div>
 
@@ -186,9 +229,15 @@
     font-weight: 600;
   }
 
+  .scroll-header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   /* ─── Main ────────────────────────────────────────────── */
   .scroll-main {
-    max-width: 640px;
     margin: 0 auto;
     padding-top: 3rem; /* header height */
   }
@@ -207,20 +256,38 @@
     font-family: var(--font-mono);
   }
 
-  /* ─── Image stream ────────────────────────────────────── */
-  .scroll-images {
-    display: flex;
-    flex-direction: column;
+  /* ─── Masonry ───────────────────────────────────────────── */
+  .masonry-container {
+    position: relative;
     margin-top: 0.75rem;
+    overflow-x: hidden;
   }
 
-  .scroll-img {
+  .masonry-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 3px;
+  }
+
+  .masonry-img {
     width: 100%;
+    height: 100%;
     display: block;
-    object-fit: contain;
-    background: #000;
+    object-fit: cover;
+    border-radius: 4px;
     -webkit-user-select: none;
     user-select: none;
+    animation: masonry-fade-in 0.25s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes masonry-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   /* ─── States ──────────────────────────────────────────── */
