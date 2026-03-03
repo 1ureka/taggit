@@ -110,7 +110,6 @@
 | `POST /api/images/:id/restore` | `src/routes/api/images/[id]/restore/+server.ts` → POST |
 | `GET /api/staged` | `src/routes/api/staged/+server.ts` → GET |
 | `POST /api/staged/commit` | `src/routes/api/staged/commit/+server.ts` → POST |
-| `POST /api/staged/commit-batch` | `src/routes/api/staged/commit-batch/+server.ts` → POST |
 | `POST /api/staged/trash` | `src/routes/api/staged/trash/+server.ts` → POST |
 | `GET /api/tags` | `src/routes/api/tags/+server.ts` → GET |
 | `POST /api/tags/rename` | `src/routes/api/tags/rename/+server.ts` → POST |
@@ -410,3 +409,67 @@ Week 5: Phase 3.6 + Phase 4 (Browse + 收尾)
 8. **server.json 與 db.json 的區別**：`server.json` 是 machine-scope（專案根目錄，不同步）；`db.json` 是 collection-scope（在圖片集內，隨 OneDrive 同步）
 9. **Collection 切換**：切換時必須先 `flush()` 當前 DB，再 `loadCollection()` 新路徑；hooks.server.ts 中的 redirect guard 需在每次 request 檢查 config 有效性
 10. **多圖片集未來擴展**：`server.json` 目前只存 `collectionRoot`，未來可擴展為 `collections: [{ name, root }]` + `activeCollection` 欄位，但 Phase 1 不需要
+
+---
+
+## 八、給後續 AI Agent 的強制規範（Phase 2+ 必讀）
+
+### ⚠ 規範 A：實作前必先閱讀 old-ref
+
+**每個頁面的實作，必須先閱讀 `old-ref/public/<頁面名>/app.js` 和對應的 HTML/CSS。** 不可僅依賴 docs 描述。
+
+具體要求：
+- **樣式 & 布局**：色彩、間距、字型、元件排列方式，必須與 old-ref 一致或有明確理由改動
+- **使用者流程（UX flow）**：按鈕位置、操作順序、提示訊息文字（中文），必須與 old-ref 一致
+- **鍵盤快捷鍵**：tagger 的 `←→` 切換、`1-5` 評等、`T` 聚焦、`C` 複製、`Enter` 提交、`Delete` 刪除，必須完整保留
+- **Toast 訊息文字**：保留原文（例如：「請至少加入一個標籤才能提交」、「已提交: {filename}」）
+- **Empty state**：每個頁面的空狀態提示必須與 old-ref 一致
+
+### ⚠ 規範 B：API response format 已改變，不可使用舊格式
+
+新版所有 API 回傳格式為 `{ ok: boolean, data: {...} }` 或 `{ ok: false, error: "..." }`。
+舊版各 endpoint 直接回傳 `res.data = array` 或物件；**新版資料一律在 `res.data` 的子鍵中**：
+
+| Endpoint | 舊版 `res.data` | 新版 `res.data` 的子鍵 |
+|----------|-----------------|---------------------|
+| `GET /api/staged` | `string[]`（陣列） | `{ files: string[] }` → 取 `res.data.files` |
+| `GET /api/tags` | `TagInfo[]`（陣列） | `{ tags: TagInfo[] }` → 取 `res.data.tags` |
+| `GET /api/random-pair` | `[ImageWithId, ImageWithId]` | `{ pair: [ImageWithId, ImageWithId] }` → 取 `res.data.pair` |
+| `GET /api/trash` | `TrashedImageWithId[]` | `{ items: TrashedImageWithId[] }` → 取 `res.data.items` |
+| `GET /api/maintenance/orphans` | `string[]` | `{ orphans: string[] }` → 取 `res.data.orphans` |
+| `GET /api/maintenance/missing` | `string[]` | `{ missing: string[] }` → 取 `res.data.missing` |
+| `DELETE /api/trash` | `{ deleted: number }` | `{ deleted: number }` → 取 `res.data.deleted` |
+| `POST /api/maintenance/backup` | `{ path: "db.backup.xxx.json" }` | `{ backupPath: "/full/path/..." }` → 取 `res.data.backupPath` |
+
+### ⚠ 規範 C：部分 API 欄位名已變更
+
+| Endpoint | 舊版請求欄位 | 新版請求欄位 |
+|----------|------------|------------|
+| `POST /api/tags/rename` | `{ from, to }` | `{ oldName, newName }` |
+
+**Tagger 頁面**的 tools modal 呼叫 rename 時，必須使用 `{ oldName, newName }`，**不可使用** `{ from, to }`。
+
+### ⚠ 規範 D：Editor 的 PATCH 必須帶 expectedUpdatedAt
+
+舊版 editor `saveChanges()` 直接 `PATCH { tags, rating }`（無衝突偵測）。
+**新版 `PATCH /api/images/:id` 必須帶 `expectedUpdatedAt: number`**，否則回傳 400。
+
+Editor 實作規範：
+- 載入圖片時記住 `currentImage.updatedAt`
+- 每次 PATCH 帶 `expectedUpdatedAt: currentImage.updatedAt`
+- 收到 200 後更新 `currentImage.updatedAt = res.data.updatedAt`
+- 收到 409 時顯示 toast「此圖片已被修改，請重新整理」（不可 auto-overwrite）
+
+### ⚠ 規範 E：commit 限制與已移除端點
+
+- `POST /api/staged/commit` **至少需要一個 tag**，空陣列回傳 400
+- `POST /api/staged/commit-batch` 端點**已刪除**（確認為死代碼，從未被任何前端調用）
+- `GET /api/random-pair` 支援 `?tags=xxx,yyy&rating=3&ratingOp=gte` 等篩選參數（與 old-ref 行為一致）
+
+### ⚠ 規範 F：old-ref 的部分行為已刻意改動
+
+| 行為 | old-ref | 新版（刻意改動） |
+|------|---------|----------------|
+| staged trash 的檔名 | 保留原始檔名移至 trash/ | 加前綴 `staged_{timestamp}_` 避免與 committed 的 ID 衝突 |
+| tags/rename 欄位 | `from`, `to` | `oldName`, `newName`（避免 `from` 保留字混淆） |
+| backup 回傳路徑 | `{ path: "db.backup.xxx.json" }` 僅 basename | `{ backupPath: "/full/path/..." }` 完整路徑 |

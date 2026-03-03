@@ -2,6 +2,8 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
 import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { IMG_EXTS } from "$lib/server/config.js";
+import path from "path";
 
 /**
  * POST /api/staged/commit
@@ -22,6 +24,10 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!isValidFilename(filename)) {
     return json({ ok: false, error: "Invalid filename" }, { status: 400 });
   }
+  const ext = path.extname(filename as string).toLowerCase();
+  if (!IMG_EXTS.has(ext)) {
+    return json({ ok: false, error: "Not an image file" }, { status: 400 });
+  }
   if (!isValidTags(tags)) {
     return json({ ok: false, error: "Invalid tags" }, { status: 400 });
   }
@@ -29,10 +35,16 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
   }
 
+  // Trim tags (defensive: UI should already trim, but guard server-side)
+  const trimmedTags = tags.map((t) => t.trim());
+  if (trimmedTags.length === 0) {
+    return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
+  }
+
   try {
     const result = db.commitImage(
       filename as string,
-      tags as string[],
+      trimmedTags,
       rating as number,
       typeof width === "number" ? width : 0,
       typeof height === "number" ? height : 0,
