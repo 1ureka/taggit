@@ -11,26 +11,22 @@ import { isValidId } from "$lib/server/validation.js";
 export const POST: RequestHandler = async ({ request }) => {
   if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  let body: unknown;
+  let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
     return json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { id } = body as Record<string, unknown>;
-  if (!isValidId(id)) {
-    return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
-  }
+  const { id } = body;
+  if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
   try {
-    db.removeMissing(id as string);
+    db.removeImage(id);
     return json({ ok: true });
   } catch (e) {
-    const err = e as Error;
-    if (err.message?.includes("not found")) {
+    if ((e as Error).message?.includes("not found"))
       return json({ ok: false, error: "Image not found" }, { status: 404 });
-    }
     throw e;
   }
 };

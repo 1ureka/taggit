@@ -1,7 +1,15 @@
+/**
+ * In-memory DB — pure data layer.
+ *
+ * All file-system operations (rename, delete, readdir etc.) are handled
+ * by the route that calls these functions.  db.ts only manages:
+ *   - Record CRUD (images / trashedImages)
+ *   - Tag & rating indexes
+ *   - Dirty-flag + 500 ms debounce flush to db.json
+ */
+
 import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { getCollectionPaths, IMG_EXTS } from "./config.js";
+import { getCollectionPaths } from "./config.js";
 import type {
   DBData,
   ImageRecord,
@@ -11,11 +19,9 @@ import type {
   ListOptions,
   ListResult,
   TagInfo,
-  Stats,
 } from "$lib/types.js";
 
-// ─── HMR Guard ────────────────────────────────────────────────────────────────
-// Prevents hot-reload from re-initialising the in-memory state in dev mode.
+// ─── HMR Guard ──────────────────────────────────────────────────────────────
 
 declare global {
   // eslint-disable-next-line no-var
@@ -32,7 +38,7 @@ declare global {
     | undefined;
 }
 
-function getStore() {
+function store() {
   if (!globalThis.__db) {
     globalThis.__db = {
       data: { version: 1, images: {}, trashedImages: {} },
@@ -47,45 +53,36 @@ function getStore() {
   return globalThis.__db;
 }
 
-// ─── Index Helpers ────────────────────────────────────────────────────────────
+// ─── Index helpers ──────────────────────────────────────────────────────────
 
 function buildIndexes(): void {
-  const s = getStore();
+  const s = store();
   s.tagIndex.clear();
   s.ratingIndex.clear();
-
-  for (const [id, record] of Object.entries(s.data.images)) {
-    for (const tag of record.tags) {
-      if (!s.tagIndex.has(tag)) s.tagIndex.set(tag, new Set());
-      s.tagIndex.get(tag)!.add(id);
-    }
-    const r = record.rating ?? 0;
-    if (!s.ratingIndex.has(r)) s.ratingIndex.set(r, new Set());
-    s.ratingIndex.get(r)!.add(id);
+  for (const [id, rec] of Object.entries(s.data.images)) {
+    indexAdd(id, rec, s);
   }
 }
 
-function addToIndexes(id: string, record: ImageRecord): void {
-  const s = getStore();
-  for (const tag of record.tags) {
+function indexAdd(id: string, rec: ImageRecord, s = store()): void {
+  for (const tag of rec.tags) {
     if (!s.tagIndex.has(tag)) s.tagIndex.set(tag, new Set());
     s.tagIndex.get(tag)!.add(id);
   }
-  const r = record.rating ?? 0;
+  const r = rec.rating ?? 0;
   if (!s.ratingIndex.has(r)) s.ratingIndex.set(r, new Set());
   s.ratingIndex.get(r)!.add(id);
 }
 
-function removeFromIndexes(id: string, record: ImageRecord): void {
-  const s = getStore();
-  for (const tag of record.tags) {
+function indexRemove(id: string, rec: ImageRecord, s = store()): void {
+  for (const tag of rec.tags) {
     const set = s.tagIndex.get(tag);
     if (set) {
       set.delete(id);
       if (set.size === 0) s.tagIndex.delete(tag);
     }
   }
-  const r = record.rating ?? 0;
+  const r = rec.rating ?? 0;
   const rSet = s.ratingIndex.get(r);
   if (rSet) {
     rSet.delete(id);
@@ -93,28 +90,28 @@ function removeFromIndexes(id: string, record: ImageRecord): void {
   }
 }
 
-// ─── Persistence ──────────────────────────────────────────────────────────────
+// ─── Persistence ────────────────────────────────────────────────────────────
 
 function markDirty(): void {
-  const s = getStore();
+  const s = store();
   s.dirty = true;
   if (s.flushTimer) clearTimeout(s.flushTimer);
-  s.flushTimer = setTimeout(() => flush(), 500);
+  s.flushTimer = setTimeout(flush, 500);
 }
 
 export function flush(): void {
-  const s = getStore();
+  const s = store();
   if (s.flushTimer) {
     clearTimeout(s.flushTimer);
     s.flushTimer = null;
   }
   if (!s.dirty || !s.currentRoot) return;
 
-  const paths = getCollectionPaths(s.currentRoot);
-  const tmpPath = paths.db + ".tmp";
+  const dbPath = getCollectionPaths(s.currentRoot).db;
+  const tmp = dbPath + ".tmp";
   try {
-    fs.writeFileSync(tmpPath, JSON.stringify(s.data, null, 2), "utf8");
-    fs.renameSync(tmpPath, paths.db);
+    fs.writeFileSync(tmp, JSON.stringify(s.data, null, 2), "utf8");
+    fs.renameSync(tmp, dbPath);
     s.dirty = false;
     console.log("[db] Flushed");
   } catch (e) {
@@ -122,36 +119,28 @@ export function flush(): void {
   }
 }
 
-// ─── Load / Switch ────────────────────────────────────────────────────────────
+// ─── Load / Switch ──────────────────────────────────────────────────────────
 
-/**
- * Flush current DB state, then load a new collection from rootPath.
- * Rebuilds indexes after loading.
- */
 export function loadCollection(rootPath: string): void {
-  const s = getStore();
-
-  // Flush existing state first
+  const s = store();
   flush();
 
   s.currentRoot = rootPath;
   s.loaded = false;
   s.data = { version: 1, images: {}, trashedImages: {} };
 
-  const paths = getCollectionPaths(rootPath);
-  const dbPath = paths.db;
-  const tmpPath = dbPath + ".tmp";
+  const dbPath = getCollectionPaths(rootPath).db;
+  const tmp = dbPath + ".tmp";
 
   // Recovery: prefer .tmp if main db is missing
-  if (!fs.existsSync(dbPath) && fs.existsSync(tmpPath)) {
+  if (!fs.existsSync(dbPath) && fs.existsSync(tmp)) {
     console.log("[db] Recovering from tmp file");
-    fs.renameSync(tmpPath, dbPath);
+    fs.renameSync(tmp, dbPath);
   }
 
   if (fs.existsSync(dbPath)) {
     try {
-      const raw = fs.readFileSync(dbPath, "utf8");
-      const parsed: Partial<DBData> = JSON.parse(raw);
+      const parsed: Partial<DBData> = JSON.parse(fs.readFileSync(dbPath, "utf8"));
       s.data.version = parsed.version ?? 1;
       s.data.images = parsed.images ?? {};
       s.data.trashedImages = parsed.trashedImages ?? {};
@@ -169,19 +158,16 @@ export function loadCollection(rootPath: string): void {
     markDirty();
   }
 
-  // ── Migration: backfill updatedAt for records from old db format ─────────
-  // Old app had no updatedAt. Without it, PATCH /api/images/[id] (which
-  // requires `expectedUpdatedAt: number`) would always return 400 for those
-  // records. Set updatedAt = committedAt as a sensible default.
+  // Migration: backfill updatedAt for legacy records
   let migrated = false;
-  for (const record of Object.values(s.data.images)) {
-    if ((record.updatedAt as number | undefined) === undefined) {
-      record.updatedAt = record.committedAt ?? Date.now();
+  for (const rec of Object.values(s.data.images)) {
+    if ((rec.updatedAt as number | undefined) === undefined) {
+      rec.updatedAt = rec.committedAt ?? Date.now();
       migrated = true;
     }
   }
   if (migrated) {
-    console.log("[db] Migration: backfilled updatedAt for legacy records");
+    console.log("[db] Migration: backfilled updatedAt");
     markDirty();
   }
 
@@ -190,73 +176,70 @@ export function loadCollection(rootPath: string): void {
 }
 
 export function isLoaded(): boolean {
-  return getStore().loaded;
+  return store().loaded;
 }
 
 export function getCurrentRoot(): string | null {
-  return getStore().currentRoot;
+  return store().currentRoot;
 }
 
-// ─── CRUD ─────────────────────────────────────────────────────────────────────
+// ─── Single-record access ───────────────────────────────────────────────────
 
 export function getImage(id: string): ImageWithId | null {
-  const record = getStore().data.images[id];
-  if (!record) return null;
-  return { id, ...record };
+  const rec = store().data.images[id];
+  return rec ? { id, ...rec } : null;
 }
 
+export function hasImage(id: string): boolean {
+  return id in store().data.images;
+}
+
+export function getTrashedImage(id: string): TrashedImageWithId | null {
+  const rec = store().data.trashedImages[id];
+  return rec ? { id, ...rec } : null;
+}
+
+/** All image entries — for routes that need to iterate (e.g. find-missing). */
+export function allImageEntries(): [string, ImageRecord][] {
+  return Object.entries(store().data.images);
+}
+
+export function listTrash(): TrashedImageWithId[] {
+  return Object.entries(store().data.trashedImages).map(([id, rec]) => ({
+    id,
+    ...rec,
+  }));
+}
+
+// ─── Query ──────────────────────────────────────────────────────────────────
+
 export function listImages(opts: ListOptions = {}): ListResult {
-  const s = getStore();
+  const s = store();
   const tags = opts.tags ?? [];
-  const rating = opts.rating !== undefined ? Number(opts.rating) : undefined;
+  const rating = opts.rating;
   const ratingOp = opts.ratingOp ?? "gte";
   const sort = opts.sort ?? "committedAt";
   const order = opts.order ?? "desc";
   const page = Math.max(1, opts.page ?? 1);
   const limit = Math.min(200, Math.max(1, opts.limit ?? 50));
 
-  let ids: Set<string>;
+  let ids = filterIds(s, tags, rating, ratingOp);
 
-  if (tags.length > 0) {
-    const sets = tags.map((t) => s.tagIndex.get(t) ?? new Set<string>());
-    if (sets.some((set) => set.size === 0)) {
-      return { items: [], total: 0, page, pages: 0 };
-    }
-    ids = new Set(sets[0]);
-    for (let i = 1; i < sets.length; i++) {
-      for (const id of ids) {
-        if (!sets[i].has(id)) ids.delete(id);
-      }
-    }
-  } else {
-    ids = new Set(Object.keys(s.data.images));
-  }
-
-  if (rating !== undefined) {
-    const filtered = new Set<string>();
-    for (const id of ids) {
-      const r = s.data.images[id].rating ?? 0;
-      if (ratingOp === "gte" && r >= rating) filtered.add(id);
-      else if (ratingOp === "lte" && r <= rating) filtered.add(id);
-      else if (ratingOp === "eq" && r === rating) filtered.add(id);
-    }
-    ids = filtered;
-  }
-
-  let items: ImageWithId[] = Array.from(ids).map((id) => ({ id, ...s.data.images[id] }));
-
+  // Sort
+  let items: ImageWithId[] = [...ids].map((id) => ({ id, ...s.data.images[id] }));
   items.sort((a, b) => {
-    let va: string | number, vb: string | number;
-    if (sort === "rating") {
-      va = a.rating ?? 0;
-      vb = b.rating ?? 0;
-    } else if (sort === "originalName") {
-      va = (a.originalName ?? "").toLowerCase();
-      vb = (b.originalName ?? "").toLowerCase();
-    } else {
-      va = a.committedAt ?? 0;
-      vb = b.committedAt ?? 0;
-    }
+    const va =
+      sort === "rating"
+        ? (a.rating ?? 0)
+        : sort === "originalName"
+          ? (a.originalName ?? "").toLowerCase()
+          : (a.committedAt ?? 0);
+    const vb =
+      sort === "rating"
+        ? (b.rating ?? 0)
+        : sort === "originalName"
+          ? (b.originalName ?? "").toLowerCase()
+          : (b.committedAt ?? 0);
     if (va < vb) return order === "asc" ? -1 : 1;
     if (va > vb) return order === "asc" ? 1 : -1;
     return 0;
@@ -264,150 +247,175 @@ export function listImages(opts: ListOptions = {}): ListResult {
 
   const total = items.length;
   const pages = Math.ceil(total / limit);
-  const start = (page - 1) * limit;
-  items = items.slice(start, start + limit);
+  items = items.slice((page - 1) * limit, (page - 1) * limit + limit);
 
   return { items, total, page, pages };
 }
 
-// ─── Commit ───────────────────────────────────────────────────────────────────
-
-export function commitImage(
-  stagedFilename: string,
-  tags: string[],
-  rating: number,
-  width: number,
-  height: number,
-): { id: string; record: ImageRecord } {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-
-  let id: string;
-  do {
-    id = crypto.randomBytes(8).toString("hex");
-  } while (s.data.images[id]);
-
-  const ext = path.extname(stagedFilename).toLowerCase();
-  const srcPath = path.join(paths.staged, stagedFilename);
-  const destPath = path.join(paths.committed, id + ext);
-
-  const stat = fs.statSync(srcPath);
-  fs.renameSync(srcPath, destPath);
-
-  const now = Date.now();
-  const record: ImageRecord = {
-    ext,
-    originalName: stagedFilename,
-    tags: tags ?? [],
-    rating: rating ?? 0,
-    committedAt: now,
-    updatedAt: now,
-    fileSize: stat.size,
-    width: Number.isFinite(width) && width > 0 ? width : 0,
-    height: Number.isFinite(height) && height > 0 ? height : 0,
-  };
-
-  s.data.images[id] = record;
-  addToIndexes(id, record);
-  markDirty();
-
-  return { id, record };
+/**
+ * All images matching filter (no pagination cap).
+ * Used by random-pair so the selection is uniform over the full set.
+ */
+export function listAllMatching(
+  opts: { tags?: string[]; rating?: number; ratingOp?: "gte" | "lte" | "eq" } = {},
+): ImageWithId[] {
+  const s = store();
+  const ids = filterIds(s, opts.tags ?? [], opts.rating, opts.ratingOp ?? "gte");
+  return [...ids].map((id) => ({ id, ...s.data.images[id] }));
 }
 
-// ─── Update Tags / Rating ─────────────────────────────────────────────────────
+/** Shared tag + rating filter for listImages / listAllMatching. */
+function filterIds(
+  s: NonNullable<typeof globalThis.__db>,
+  tags: string[],
+  rating: number | undefined,
+  ratingOp: "gte" | "lte" | "eq",
+): Set<string> {
+  let ids: Set<string>;
 
+  if (tags.length > 0) {
+    const tagSets = tags.map((t) => s.tagIndex.get(t) ?? new Set<string>());
+    if (tagSets.some((ts) => ts.size === 0)) return new Set();
+    ids = new Set(tagSets[0]);
+    for (let i = 1; i < tagSets.length; i++) {
+      for (const id of ids) {
+        if (!tagSets[i].has(id)) ids.delete(id);
+      }
+    }
+  } else {
+    ids = new Set(Object.keys(s.data.images));
+  }
+
+  if (rating !== undefined) {
+    for (const id of ids) {
+      const r = s.data.images[id].rating ?? 0;
+      const keep = ratingOp === "gte" ? r >= rating : ratingOp === "lte" ? r <= rating : r === rating;
+      if (!keep) ids.delete(id);
+    }
+  }
+
+  return ids;
+}
+
+// ─── Mutations (data only — no file I/O) ────────────────────────────────────
+
+/** Add a new image record. */
+export function addImage(id: string, record: ImageRecord): void {
+  const s = store();
+  s.data.images[id] = record;
+  indexAdd(id, record, s);
+  markDirty();
+}
+
+/** Remove an image record. Returns the removed record. */
+export function removeImage(id: string): ImageRecord {
+  const s = store();
+  const rec = s.data.images[id];
+  if (!rec) throw new Error("Image not found: " + id);
+  indexRemove(id, rec, s);
+  delete s.data.images[id];
+  markDirty();
+  return rec;
+}
+
+/** Update tags / rating with optimistic-concurrency check. */
 export function updateImage(
   id: string,
   patch: { tags?: string[]; rating?: number },
   expectedUpdatedAt: number,
 ): ImageWithId {
-  const s = getStore();
-  const record = s.data.images[id];
-  if (!record) throw new Error("Image not found: " + id);
+  const s = store();
+  const rec = s.data.images[id];
+  if (!rec) throw new Error("Image not found: " + id);
 
-  if (record.updatedAt !== expectedUpdatedAt) {
-    const err = Object.assign(new Error("Conflict"), { status: 409, record });
-    throw err;
+  if (rec.updatedAt !== expectedUpdatedAt) {
+    throw Object.assign(new Error("Conflict"), { status: 409, record: { id, ...rec } });
   }
 
-  removeFromIndexes(id, record);
-
-  if (patch.tags !== undefined) record.tags = patch.tags;
-  if (patch.rating !== undefined) record.rating = patch.rating;
-  record.updatedAt = Date.now();
-
-  addToIndexes(id, record);
+  indexRemove(id, rec, s);
+  if (patch.tags !== undefined) rec.tags = patch.tags;
+  if (patch.rating !== undefined) rec.rating = patch.rating;
+  rec.updatedAt = Date.now();
+  indexAdd(id, rec, s);
   markDirty();
 
-  return { id, ...record };
+  return { id, ...rec };
 }
 
-// ─── Trash / Restore ─────────────────────────────────────────────────────────
+/** Move image record from images → trashedImages (data only). */
+export function moveToTrash(id: string): TrashedImageRecord {
+  const s = store();
+  const rec = s.data.images[id];
+  if (!rec) throw new Error("Image not found: " + id);
 
-export function trashImage(id: string): void {
-  const s = getStore();
-  const record = s.data.images[id];
-  if (!record) throw new Error("Image not found: " + id);
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const srcPath = path.join(paths.committed, id + record.ext);
-  const destPath = path.join(paths.trash, id + record.ext);
-  if (fs.existsSync(srcPath)) fs.renameSync(srcPath, destPath);
-
-  removeFromIndexes(id, record);
+  indexRemove(id, rec, s);
   delete s.data.images[id];
-  s.data.trashedImages[id] = { ...record, trashedAt: Date.now() };
+
+  const trashed: TrashedImageRecord = { ...rec, trashedAt: Date.now() };
+  s.data.trashedImages[id] = trashed;
   markDirty();
+  return trashed;
 }
 
-export function restoreImage(id: string): ImageWithId {
-  const s = getStore();
-  const record = s.data.trashedImages[id];
-  if (!record) throw new Error("Trashed image not found: " + id);
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const srcPath = path.join(paths.trash, id + record.ext);
-  const destPath = path.join(paths.committed, id + record.ext);
-  if (fs.existsSync(srcPath)) fs.renameSync(srcPath, destPath);
+/** Move trashed record back to images (data only). */
+export function restoreFromTrash(id: string): ImageWithId {
+  const s = store();
+  const rec = s.data.trashedImages[id];
+  if (!rec) throw new Error("Trashed image not found: " + id);
 
   delete s.data.trashedImages[id];
-  const { trashedAt: _t, ...restored } = record;
+  const { trashedAt: _, ...restored } = rec;
   s.data.images[id] = restored;
-  addToIndexes(id, restored);
+  indexAdd(id, restored, s);
   markDirty();
 
   return { id, ...restored };
 }
 
-// ─── Tag Operations ───────────────────────────────────────────────────────────
+/** Remove a single trashed record (data only). Returns removed record. */
+export function removeTrashedRecord(id: string): TrashedImageRecord {
+  const s = store();
+  const rec = s.data.trashedImages[id];
+  if (!rec) throw new Error("Trashed image not found: " + id);
+  delete s.data.trashedImages[id];
+  markDirty();
+  return rec;
+}
+
+/** Clear all trash records (data only). Returns entries for file cleanup. */
+export function clearTrashRecords(): [string, TrashedImageRecord][] {
+  const s = store();
+  const entries = Object.entries(s.data.trashedImages);
+  s.data.trashedImages = {};
+  markDirty();
+  return entries;
+}
+
+// ─── Tags ───────────────────────────────────────────────────────────────────
 
 export function getAllTags(): TagInfo[] {
   const result: TagInfo[] = [];
-  for (const [name, ids] of getStore().tagIndex) {
+  for (const [name, ids] of store().tagIndex) {
     result.push({ name, count: ids.size });
   }
-  result.sort((a, b) => b.count - a.count);
-  return result;
+  return result.sort((a, b) => b.count - a.count);
 }
 
 export function renameTag(oldName: string, newName: string): number {
-  const s = getStore();
+  const s = store();
   const ids = s.tagIndex.get(oldName);
   if (!ids || ids.size === 0) return 0;
 
   let affected = 0;
   for (const id of ids) {
-    const record = s.data.images[id];
-    if (!record) continue;
-    const idx = record.tags.indexOf(oldName);
+    const rec = s.data.images[id];
+    if (!rec) continue;
+    const idx = rec.tags.indexOf(oldName);
     if (idx !== -1) {
-      record.tags[idx] = newName;
-      if (record.tags.filter((t) => t === newName).length > 1) {
-        record.tags = [...new Set(record.tags)];
+      rec.tags[idx] = newName;
+      // Deduplicate if the record already had newName
+      if (rec.tags.filter((t) => t === newName).length > 1) {
+        rec.tags = [...new Set(rec.tags)];
       }
       affected++;
     }
@@ -415,223 +423,17 @@ export function renameTag(oldName: string, newName: string): number {
 
   buildIndexes();
   markDirty();
-
   return affected;
 }
 
-// ─── Trash Operations ─────────────────────────────────────────────────────────
+// ─── Stats (data only — no file I/O) ───────────────────────────────────────
 
-export function getTrash(): TrashedImageWithId[] {
-  const s = getStore();
-  return Object.entries(s.data.trashedImages).map(([id, record]) => ({ id, ...record }));
+export function getImageCount(): number {
+  return Object.keys(store().data.images).length;
 }
-
-export function emptyTrash(): number {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  let count = 0;
-
-  for (const [id, record] of Object.entries(s.data.trashedImages)) {
-    const filePath = path.join(paths.trash, id + record.ext);
-    try {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch (e) {
-      console.error(`[db] Failed to delete trash file ${id}:`, (e as Error).message);
-    }
-    count++;
-  }
-
-  s.data.trashedImages = {};
-  markDirty();
-  return count;
+export function getTagCount(): number {
+  return store().tagIndex.size;
 }
-
-export function deleteTrashedImage(id: string): void {
-  const s = getStore();
-  const record = s.data.trashedImages[id];
-  if (!record) throw new Error("Trashed image not found: " + id);
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const filePath = path.join(paths.trash, id + record.ext);
-  try {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  } catch (e) {
-    console.error(`[db] Failed to delete trash file ${id}:`, (e as Error).message);
-  }
-
-  delete s.data.trashedImages[id];
-  markDirty();
-}
-
-// ─── Maintenance ──────────────────────────────────────────────────────────────
-
-export function findOrphans(): string[] {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const files = fs.readdirSync(paths.committed);
-  const orphans: string[] = [];
-
-  for (const file of files) {
-    const ext = path.extname(file).toLowerCase();
-    const base = path.basename(file, ext);
-    if (IMG_EXTS.has(ext) && !s.data.images[base]) {
-      orphans.push(file);
-    }
-  }
-  return orphans;
-}
-
-export function findMissing(): string[] {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const missing: string[] = [];
-
-  for (const [id, record] of Object.entries(s.data.images)) {
-    const filePath = path.join(paths.committed, id + record.ext);
-    if (!fs.existsSync(filePath)) {
-      missing.push(id);
-    }
-  }
-  return missing;
-}
-
-export function importOrphan(filename: string): { id: string; record: ImageRecord } {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const ext = path.extname(filename).toLowerCase();
-  const base = path.basename(filename, ext);
-
-  let id: string;
-  if (/^[0-9a-f]{16}$/.test(base) && !s.data.images[base]) {
-    id = base;
-  } else {
-    do {
-      id = crypto.randomBytes(8).toString("hex");
-    } while (s.data.images[id]);
-
-    const srcPath = path.join(paths.committed, filename);
-    const destPath = path.join(paths.committed, id + ext);
-    fs.renameSync(srcPath, destPath);
-  }
-
-  const filePath = path.join(paths.committed, id + ext);
-  const stat = fs.statSync(filePath);
-  const now = Date.now();
-
-  const record: ImageRecord = {
-    ext,
-    originalName: filename,
-    tags: [],
-    rating: 0,
-    committedAt: now,
-    updatedAt: now,
-    fileSize: stat.size,
-    width: 0,
-    height: 0,
-  };
-
-  s.data.images[id] = record;
-  addToIndexes(id, record);
-  markDirty();
-
-  return { id, record };
-}
-
-export function removeMissing(id: string): void {
-  const s = getStore();
-  const record = s.data.images[id];
-  if (!record) throw new Error("Image not found: " + id);
-
-  removeFromIndexes(id, record);
-  delete s.data.images[id];
-  markDirty();
-}
-
-export function backupDb(): string {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  flush(); // Make sure we have the latest
-  const paths = getCollectionPaths(s.currentRoot);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupPath = path.join(s.currentRoot, `db.backup.${timestamp}.json`);
-
-  fs.copyFileSync(paths.db, backupPath);
-  console.log(`[db] Backup created: ${backupPath}`);
-  return backupPath;
-}
-
-// ─── Stats ────────────────────────────────────────────────────────────────────
-
-export function getStats(): Stats {
-  const s = getStore();
-  let stagedCount = 0;
-
-  if (s.currentRoot) {
-    const paths = getCollectionPaths(s.currentRoot);
-    try {
-      const files = fs.readdirSync(paths.staged);
-      stagedCount = files.filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase())).length;
-    } catch {
-      /* ignore */
-    }
-  }
-
-  return {
-    totalImages: Object.keys(s.data.images).length,
-    totalTags: s.tagIndex.size,
-    stagedCount,
-    trashCount: Object.keys(s.data.trashedImages).length,
-  };
-}
-
-// ─── Staged Files ─────────────────────────────────────────────────────────────
-
-export function listStaged(): string[] {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  try {
-    return fs.readdirSync(paths.staged).filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()));
-  } catch {
-    return [];
-  }
-}
-
-export function trashStagedFile(filename: string): void {
-  const s = getStore();
-  if (!s.currentRoot) throw new Error("No collection loaded");
-
-  const paths = getCollectionPaths(s.currentRoot);
-  const srcPath = path.join(paths.staged, filename);
-  const destPath = path.join(paths.trash, `staged_${Date.now()}_${filename}`);
-  if (fs.existsSync(srcPath)) {
-    fs.renameSync(srcPath, destPath);
-  } else {
-    throw new Error("Staged file not found: " + filename);
-  }
-}
-
-// ─── Random Pair ─────────────────────────────────────────────────────────────
-
-export function getRandomPair(): [ImageWithId, ImageWithId] | null {
-  const ids = Object.keys(getStore().data.images);
-  if (ids.length < 2) return null;
-
-  const shuffled = ids.sort(() => Math.random() - 0.5);
-  const [id1, id2] = shuffled.slice(0, 2);
-  return [
-    { id: id1, ...getStore().data.images[id1] },
-    { id: id2, ...getStore().data.images[id2] },
-  ];
+export function getTrashCount(): number {
+  return Object.keys(store().data.trashedImages).length;
 }
