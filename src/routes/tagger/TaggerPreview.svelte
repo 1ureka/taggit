@@ -18,21 +18,12 @@
   let dragStartY = 0;
   let dragStartPanX = 0;
   let dragStartPanY = 0;
-  let previewImg: HTMLImageElement | undefined = $state();
 
   /** Reset zoom and pan to default. */
   export function resetZoom() {
     scale = 1;
     panX = 0;
     panY = 0;
-  }
-
-  /** Get the natural dimensions of the loaded image. */
-  export function getImageDimensions(): { width: number; height: number } {
-    return {
-      width: previewImg?.naturalWidth || 0,
-      height: previewImg?.naturalHeight || 0,
-    };
   }
 
   function handleWheel(e: WheelEvent) {
@@ -77,7 +68,6 @@
       role="img"
     >
       <img
-        bind:this={previewImg}
         src={previewSrc}
         alt={currentFilename}
         draggable="false"

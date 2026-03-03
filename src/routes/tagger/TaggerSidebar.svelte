@@ -1,112 +1,76 @@
 <script lang="ts">
   import { IconRefresh, IconUpload } from "@tabler/icons-svelte";
   import { addToast } from "$lib/client/toast.js";
+  import type { TaggerState } from "./tagger-state.svelte.js";
 
-  let {
-    stagedFiles,
-    activeIndex,
-    selectedIndices,
-    refreshing = false,
-    onselect,
-    onrefresh,
-  }: {
-    stagedFiles: string[];
-    activeIndex: number;
-    selectedIndices: Set<number>;
-    refreshing?: boolean;
-    onselect: (idx: number, mode: "single" | "ctrl" | "shift") => void;
-    onrefresh: () => void;
-  } = $props();
+  let { tagger }: { tagger: TaggerState } = $props();
 
-  // ─── Virtual list constants ─────────────────────────────────────────
-  const ITEM_HEIGHT = 72;
+  // ── Virtual list ──────────────────────────────────────────
+  const ITEM_H = 72;
   const BUFFER = 5;
 
-  let sidebarListEl: HTMLDivElement | undefined = $state();
+  let listEl: HTMLDivElement | undefined = $state();
   let fileInputEl: HTMLInputElement | undefined = $state();
   let uploading = $state(false);
   let scrollTop = $state(0);
-  let containerHeight = $state(400);
+  let viewH = $state(400);
 
-  // ─── Virtual list derived ───────────────────────────────────────────
-  let totalHeight = $derived(stagedFiles.length * ITEM_HEIGHT);
-  let startIdx = $derived(Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER));
-  let endIdx = $derived(Math.min(stagedFiles.length, Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + BUFFER));
-  let visibleItems = $derived(
-    stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+  let totalH = $derived(tagger.files.length * ITEM_H);
+  let startIdx = $derived(Math.max(0, Math.floor(scrollTop / ITEM_H) - BUFFER));
+  let endIdx = $derived(Math.min(tagger.files.length, Math.ceil((scrollTop + viewH) / ITEM_H) + BUFFER));
+  let visible = $derived(
+    tagger.files.slice(startIdx, endIdx).map((filename, i) => ({
       filename,
       index: startIdx + i,
     })),
   );
 
-  let selectedCount = $derived(selectedIndices.size);
-
-  function handleScroll() {
-    if (sidebarListEl) {
-      scrollTop = sidebarListEl.scrollTop;
-    }
-  }
-
-  // Observe container resize for accurate viewport calculation
+  // Track container height via ResizeObserver
   $effect(() => {
-    if (!sidebarListEl) return;
+    if (!listEl) return;
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        containerHeight = entry.contentRect.height;
-      }
+      for (const e of entries) viewH = e.contentRect.height;
     });
-    ro.observe(sidebarListEl);
+    ro.observe(listEl);
     return () => ro.disconnect();
   });
 
-  /** Scroll so that the given index is visible. */
+  /** Ensure the given index is scrolled into view. */
   export function scrollToActive(idx: number) {
-    if (!sidebarListEl) return;
-    const itemTop = idx * ITEM_HEIGHT;
-    const itemBottom = itemTop + ITEM_HEIGHT;
-    const viewTop = sidebarListEl.scrollTop;
-    const viewBottom = viewTop + containerHeight;
-    if (itemTop < viewTop) {
-      sidebarListEl.scrollTop = itemTop;
-    } else if (itemBottom > viewBottom) {
-      sidebarListEl.scrollTop = itemBottom - containerHeight;
+    if (!listEl) return;
+    const top = idx * ITEM_H;
+    const bottom = top + ITEM_H;
+    if (top < listEl.scrollTop) {
+      listEl.scrollTop = top;
+    } else if (bottom > listEl.scrollTop + viewH) {
+      listEl.scrollTop = bottom - viewH;
     }
   }
 
   function handleClick(e: MouseEvent, idx: number) {
-    if (e.ctrlKey || e.metaKey) {
-      onselect(idx, "ctrl");
-    } else if (e.shiftKey) {
-      onselect(idx, "shift");
-    } else {
-      onselect(idx, "single");
-    }
+    const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
+    tagger.select(idx, mode);
   }
 
-  async function handleFileSelect(e: Event) {
+  async function handleUpload(e: Event) {
     const input = e.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) return;
+    if (!input.files?.length) return;
 
     uploading = true;
     try {
-      const formData = new FormData();
-      for (const f of files) {
-        formData.append("files", f);
-      }
+      const body = new FormData();
+      for (const f of input.files) body.append("files", f);
 
-      const res = await fetch("/api/staged", { method: "POST", body: formData });
+      const res = await fetch("/api/staged", { method: "POST", body });
       const json = await res.json();
 
       if (json.ok && json.data) {
         const { added, errors } = json.data as { added: string[]; errors: string[] };
-        if (added.length > 0) {
+        if (added.length) {
           addToast(`已加入 ${added.length} 張圖片`, "success");
-          onrefresh();
+          tagger.refresh();
         }
-        if (errors.length > 0) {
-          addToast(`${errors.length} 個檔案失敗`, "error");
-        }
+        if (errors.length) addToast(`${errors.length} 個檔案失敗`, "error");
       } else {
         addToast(json.error || "上傳失敗", "error");
       }
@@ -122,29 +86,30 @@
 <aside class="tagger-sidebar">
   <div class="tagger-sidebar-header">
     <span class="tagger-sidebar-title">待審查</span>
-    <span class="badge">{selectedCount > 1 ? `${selectedCount}/` : ""}{stagedFiles.length}</span>
+    <span class="badge">{tagger.selectedCount > 1 ? `${tagger.selectedCount}/` : ""}{tagger.files.length}</span>
     <button
       class="btn-refresh"
-      class:spinning={refreshing}
+      class:spinning={tagger.refreshing}
       title="重新掃描 staged 資料夾"
-      onclick={onrefresh}
-      disabled={refreshing}
+      onclick={() => tagger.refresh()}
+      disabled={tagger.refreshing}
     >
       <IconRefresh size={14} />
     </button>
   </div>
-  <div class="tagger-sidebar-list" bind:this={sidebarListEl} onscroll={handleScroll}>
-    {#if stagedFiles.length === 0}
+
+  <div class="tagger-sidebar-list" bind:this={listEl} onscroll={() => listEl && (scrollTop = listEl.scrollTop)}>
+    {#if tagger.files.length === 0}
       <div class="tagger-empty">沒有待審查的圖片</div>
     {:else}
-      <div class="virtual-scroll-content" style="height:{totalHeight}px">
-        {#each visibleItems as item (item.filename)}
+      <div class="virtual-scroll-content" style="height:{totalH}px">
+        {#each visible as item (item.filename)}
           <button
             type="button"
             class="tagger-thumb"
-            class:active={item.index === activeIndex}
-            class:selected={selectedIndices.has(item.index)}
-            style="top:{item.index * ITEM_HEIGHT}px"
+            class:active={item.index === tagger.cursor}
+            class:selected={tagger.selected.has(item.index)}
+            style="top:{item.index * ITEM_H}px"
             onclick={(e) => handleClick(e, item.index)}
           >
             <img
@@ -159,6 +124,7 @@
       </div>
     {/if}
   </div>
+
   <div class="tagger-sidebar-footer">
     <input
       bind:this={fileInputEl}
@@ -166,7 +132,7 @@
       accept="image/*"
       multiple
       class="visually-hidden"
-      onchange={handleFileSelect}
+      onchange={handleUpload}
     />
     <button class="btn btn-sm tagger-upload-btn" onclick={() => fileInputEl?.click()} disabled={uploading}>
       <IconUpload size={14} />
