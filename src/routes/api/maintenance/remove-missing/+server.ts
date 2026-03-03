@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
 import { isValidId } from "$lib/server/validation.js";
+import { guardLoaded, parseBody } from "$lib/server/helpers.js";
 
 /**
  * POST /api/maintenance/remove-missing
@@ -9,14 +10,11 @@ import { isValidId } from "$lib/server/validation.js";
  * Removes a DB record for an image whose file no longer exists on disk.
  */
 export const POST: RequestHandler = async ({ request }) => {
-  if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const err = guardLoaded();
+  if (err) return err;
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
-  }
+  const [body, parseErr] = await parseBody(request);
+  if (parseErr) return parseErr;
 
   const { id } = body;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });

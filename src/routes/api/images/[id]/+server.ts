@@ -3,12 +3,13 @@ import path from "path";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
-import { getCollectionPaths } from "$lib/server/config.js";
 import { isValidId, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { guardLoaded, getPaths, parseBody } from "$lib/server/helpers.js";
 
 /** GET /api/images/[id] */
 export const GET: RequestHandler = ({ params }) => {
-  if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const err = guardLoaded();
+  if (err) return err;
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
@@ -21,17 +22,14 @@ export const GET: RequestHandler = ({ params }) => {
 
 /** PATCH /api/images/[id] — update tags and/or rating (conflict-safe) */
 export const PATCH: RequestHandler = async ({ params, request }) => {
-  if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const err = guardLoaded();
+  if (err) return err;
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
-  }
+  const [body, parseErr] = await parseBody(request);
+  if (parseErr) return parseErr;
 
   const { tags, rating, expectedUpdatedAt } = body;
 
@@ -55,7 +53,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 /** DELETE /api/images/[id] — move image to trash */
 export const DELETE: RequestHandler = ({ params }) => {
-  if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const err = guardLoaded();
+  if (err) return err;
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
@@ -63,8 +62,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   const image = db.getImage(id);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
-  // Move file from committed → trash
-  const paths = getCollectionPaths(db.getCurrentRoot()!);
+  const paths = getPaths();
   const src = path.join(paths.committed, id + image.ext);
   const dest = path.join(paths.trash, id + image.ext);
   if (fs.existsSync(src)) fs.renameSync(src, dest);

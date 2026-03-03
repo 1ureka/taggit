@@ -3,6 +3,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import * as config from "$lib/server/config.js";
 import * as db from "$lib/server/db.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
+import { parseBody } from "$lib/server/helpers.js";
 
 /** GET /api/setup — return current collectionRoot */
 export const GET: RequestHandler = () => {
@@ -12,14 +13,10 @@ export const GET: RequestHandler = () => {
 
 /** POST /api/setup — set a new collectionRoot */
 export const POST: RequestHandler = async ({ request }) => {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
-  }
+  const [body, parseErr] = await parseBody(request);
+  if (parseErr) return parseErr;
 
-  const { collectionRoot } = body as Record<string, unknown>;
+  const { collectionRoot } = body;
 
   if (!isValidAbsPath(collectionRoot)) {
     return json({ ok: false, error: "collectionRoot is required and must be a non-empty string" }, { status: 400 });

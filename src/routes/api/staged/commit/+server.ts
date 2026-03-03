@@ -4,8 +4,9 @@ import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as db from "$lib/server/db.js";
-import { getCollectionPaths, IMG_EXTS } from "$lib/server/config.js";
+import { IMG_EXTS } from "$lib/server/config.js";
 import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { guardLoaded, getPaths, parseBody } from "$lib/server/helpers.js";
 import type { ImageRecord } from "$lib/types.js";
 
 /**
@@ -13,14 +14,11 @@ import type { ImageRecord } from "$lib/types.js";
  * Body: { filename, tags, rating, width?, height? }
  */
 export const POST: RequestHandler = async ({ request }) => {
-  if (!db.isLoaded()) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const err = guardLoaded();
+  if (err) return err;
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
-  }
+  const [body, parseErr] = await parseBody(request);
+  if (parseErr) return parseErr;
 
   const { filename, tags, rating, width, height } = body;
 
@@ -34,8 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const trimmedTags = (tags as string[]).map((t) => t.trim());
   if (trimmedTags.length === 0) return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
 
-  // Generate unique ID
-  const paths = getCollectionPaths(db.getCurrentRoot()!);
+  const paths = getPaths();
   const ext = path.extname(filename as string).toLowerCase();
   const srcPath = path.join(paths.staged, filename as string);
 

@@ -50,17 +50,22 @@ export interface DBData {
 
 // ─── Query ───────────────────────────────────────────────────────────────────
 
-export interface ListOptions {
+/**
+ * Unified query options for image listing.
+ * - If `limit` is set (> 0), results are paginated.
+ * - If `limit` is omitted or 0, ALL matching results are returned (no pagination).
+ */
+export interface QueryOptions {
   tags?: string[];
   rating?: number;
   ratingOp?: "gte" | "lte" | "eq";
-  sort?: "committedAt" | "rating" | "originalName";
+  sort?: "committedAt" | "rating" | "originalName" | "random";
   order?: "asc" | "desc";
   page?: number;
-  limit?: number;
+  limit?: number; // 0 or undefined = return all
 }
 
-export interface ListResult {
+export interface QueryResult {
   items: ImageWithId[];
   total: number;
   page: number;

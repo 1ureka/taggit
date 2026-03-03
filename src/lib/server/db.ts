@@ -16,8 +16,8 @@ import type {
   TrashedImageRecord,
   ImageWithId,
   TrashedImageWithId,
-  ListOptions,
-  ListResult,
+  QueryOptions,
+  QueryResult,
   TagInfo,
 } from "$lib/types.js";
 
@@ -213,58 +213,69 @@ export function listTrash(): TrashedImageWithId[] {
 
 // ─── Query ──────────────────────────────────────────────────────────────────
 
-export function listImages(opts: ListOptions = {}): ListResult {
+/**
+ * Unified image query — replaces both listImages and listAllMatching.
+ *
+ * - If `opts.limit` > 0 → paginated (page/pages populated).
+ * - If `opts.limit` is 0 or undefined → returns ALL matching items (page=1, pages=1).
+ *
+ * Always sorts by the chosen key (default: committedAt desc).
+ */
+export function queryImages(opts: QueryOptions = {}): QueryResult {
   const s = store();
   const tags = opts.tags ?? [];
   const rating = opts.rating;
   const ratingOp = opts.ratingOp ?? "gte";
   const sort = opts.sort ?? "committedAt";
   const order = opts.order ?? "desc";
+  const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
   const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(200, Math.max(1, opts.limit ?? 50));
 
-  let ids = filterIds(s, tags, rating, ratingOp);
+  const ids = filterIds(s, tags, rating, ratingOp);
 
-  // Sort
+  // Build & sort
   let items: ImageWithId[] = [...ids].map((id) => ({ id, ...s.data.images[id] }));
-  items.sort((a, b) => {
-    const va =
-      sort === "rating"
-        ? (a.rating ?? 0)
-        : sort === "originalName"
-          ? (a.originalName ?? "").toLowerCase()
-          : (a.committedAt ?? 0);
-    const vb =
-      sort === "rating"
-        ? (b.rating ?? 0)
-        : sort === "originalName"
-          ? (b.originalName ?? "").toLowerCase()
-          : (b.committedAt ?? 0);
-    if (va < vb) return order === "asc" ? -1 : 1;
-    if (va > vb) return order === "asc" ? 1 : -1;
-    return 0;
-  });
+
+  if (sort === "random") {
+    // Fisher-Yates shuffle
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+  } else {
+    items.sort((a, b) => {
+      const va =
+        sort === "rating"
+          ? (a.rating ?? 0)
+          : sort === "originalName"
+            ? (a.originalName ?? "").toLowerCase()
+            : (a.committedAt ?? 0);
+      const vb =
+        sort === "rating"
+          ? (b.rating ?? 0)
+          : sort === "originalName"
+            ? (b.originalName ?? "").toLowerCase()
+            : (b.committedAt ?? 0);
+      if (va < vb) return order === "asc" ? -1 : 1;
+      if (va > vb) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
 
   const total = items.length;
-  const pages = Math.ceil(total / limit);
-  items = items.slice((page - 1) * limit, (page - 1) * limit + limit);
 
-  return { items, total, page, pages };
+  if (limit > 0) {
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    items = items.slice(start, start + limit);
+    return { items, total, page, pages };
+  }
+
+  // No limit → return everything
+  return { items, total, page: 1, pages: 1 };
 }
 
-/**
- * All images matching filter (no pagination cap).
- * Used by random-pair so the selection is uniform over the full set.
- */
-export function listAllMatching(
-  opts: { tags?: string[]; rating?: number; ratingOp?: "gte" | "lte" | "eq" } = {},
-): ImageWithId[] {
-  const s = store();
-  const ids = filterIds(s, opts.tags ?? [], opts.rating, opts.ratingOp ?? "gte");
-  return [...ids].map((id) => ({ id, ...s.data.images[id] }));
-}
-
-/** Shared tag + rating filter for listImages / listAllMatching. */
+/** Shared tag + rating filter for queryImages. */
 function filterIds(
   s: NonNullable<typeof globalThis.__db>,
   tags: string[],
