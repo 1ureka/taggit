@@ -122,10 +122,7 @@
 <aside class="tagger-sidebar">
   <div class="tagger-sidebar-header">
     <span class="tagger-sidebar-title">待審查</span>
-    <span class="badge">{stagedFiles.length}</span>
-    {#if selectedCount > 1}
-      <span class="badge badge-selection">{selectedCount} 選</span>
-    {/if}
+    <span class="badge">{selectedCount > 1 ? `${selectedCount}/` : ""}{stagedFiles.length}</span>
     <button
       class="btn-refresh"
       class:spinning={refreshing}
@@ -242,16 +239,6 @@
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--text-muted);
-  }
-
-  .badge-selection {
-    font-size: 0.625rem;
-    padding: 0.0625rem 0.375rem;
-    border-radius: 9999px;
-    background: var(--accent);
-    color: var(--bg);
-    font-weight: 600;
-    line-height: 1.4;
   }
 
   .tagger-sidebar-list {
