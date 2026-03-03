@@ -41,9 +41,11 @@
     }
   }
 
+  let tagInputWrapEl: HTMLDivElement | undefined = $state();
+
   /** Focus the tag input programmatically (called from parent keyboard handler). */
   export function focusInput() {
-    (document.querySelector(".tagger-tags-input-wrap input") as HTMLInputElement)?.focus();
+    tagInputWrapEl?.querySelector("input")?.focus();
   }
 </script>
 
@@ -62,7 +64,7 @@
         </button>
       {/each}
     </div>
-    <div class="tagger-tags-input-wrap">
+    <div class="tagger-tags-input-wrap" bind:this={tagInputWrapEl}>
       <TagAutocomplete
         {allTags}
         excludedTags={currentTags}

@@ -236,6 +236,7 @@
         const d = data as any;
         return d.mode === "search" && d.recent ? d.recent.items : [];
       })()}
+      {allTags}
       onselect={selectImage}
     />
   </main>

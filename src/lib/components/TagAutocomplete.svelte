@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import type { TagInfo } from "$lib/types.js";
 
   let {
@@ -30,6 +31,19 @@
     const available = allTags.filter((t) => !excluded.has(t.name.toLowerCase()));
     if (!query) return available;
     return available.filter((t) => t.name.toLowerCase().includes(query));
+  });
+
+  /* ── Portal: mount dropdown on document.body to escape transform ancestors ── */
+  onMount(() => {
+    if (dropdownEl) {
+      document.body.appendChild(dropdownEl);
+    }
+  });
+
+  onDestroy(() => {
+    if (dropdownEl && dropdownEl.parentNode === document.body) {
+      document.body.removeChild(dropdownEl);
+    }
   });
 
   function positionDropdown() {
@@ -133,6 +147,7 @@
     autocomplete="off"
   />
 
+  <!-- Portal: rendered here initially, moved to body on mount -->
   <div bind:this={dropdownEl} class="ac-dropdown" class:ac-visible={showDropdown && filtered.length > 0}>
     {#each filtered as tag, i}
       <div

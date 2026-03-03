@@ -1,64 +1,128 @@
 <script lang="ts">
-  import type { ImageWithId, QueryResult } from "$lib/types.js";
+  import { IconSearch } from "@tabler/icons-svelte";
+  import type { ImageWithId, TagInfo, QueryResult } from "$lib/types.js";
   import { api } from "$lib/client/api.js";
+  import FilterBar from "$lib/components/FilterBar.svelte";
 
   let {
     initialItems = [],
+    allTags = [],
     onselect,
   }: {
     initialItems?: ImageWithId[];
+    allTags?: TagInfo[];
     onselect: (id: string) => void;
   } = $props();
 
-  let query = $state("");
+  // ─── State ────────────────────────────────────────────────────────────
+  let searchText = $state("");
+  let selectedTags = $state<string[]>([]);
+  let rating = $state<number | undefined>(undefined);
+  let ratingOp = $state<"gte" | "lte" | "eq">("gte");
+  let sort = $state("committedAt");
+  let order = $state("desc");
   let items = $state<ImageWithId[]>([]);
+  let total = $state(0);
+  let page = $state(1);
+  let pages = $state(1);
   let loading = $state(false);
   let searchTimer: ReturnType<typeof setTimeout> | null = null;
+  let initialised = $state(false);
 
-  // Sync with initialItems when they change
+  const PAGE_SIZE = 60;
+
+  // Initialise from SSR data
   $effect(() => {
-    if (initialItems.length > 0 && items.length === 0) {
+    if (!initialised && initialItems.length > 0) {
       items = initialItems;
+      total = initialItems.length;
+      initialised = true;
     }
   });
 
-  async function doSearch(q: string) {
+  // ─── Server query ─────────────────────────────────────────────────────
+  async function doSearch(resetPage = true) {
+    if (resetPage) page = 1;
     loading = true;
     try {
-      const res = await api.get<QueryResult>(`/api/images?limit=60&sort=committedAt&order=desc`);
+      const params = new URLSearchParams();
+      params.set("limit", String(PAGE_SIZE));
+      params.set("page", String(page));
+      params.set("sort", sort);
+      params.set("order", order);
+      if (searchText.trim()) params.set("search", searchText.trim());
+      if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
+      if (rating !== undefined) {
+        params.set("rating", String(rating));
+        params.set("ratingOp", ratingOp);
+      }
+
+      const res = await api.get<QueryResult>(`/api/images?${params.toString()}`);
       if (res.ok && res.data) {
-        const all = res.data.items;
-        const needle = q.trim().toLowerCase();
-        items = needle
-          ? all.filter(
-              (img) =>
-                img.id.toLowerCase().includes(needle) ||
-                (img.originalName && img.originalName.toLowerCase().includes(needle)) ||
-                img.tags.some((t) => t.toLowerCase().includes(needle)),
-            )
-          : all;
+        items = res.data.items;
+        total = res.data.total;
+        pages = res.data.pages;
       }
     } finally {
       loading = false;
     }
   }
 
-  function handleInput() {
+  function handleSearchInput() {
     if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => doSearch(query), 250);
+    searchTimer = setTimeout(() => doSearch(), 300);
+  }
+
+  function handleFilterChange() {
+    doSearch();
+  }
+
+  function goToPage(p: number) {
+    if (p < 1 || p > pages) return;
+    page = p;
+    doSearch(false);
   }
 </script>
 
 <div class="editor-search slide-up">
-  <div class="editor-search-box">
-    <input
-      class="input input-search"
-      bind:value={query}
-      placeholder="搜尋圖片 ID、檔名或標籤..."
-      oninput={handleInput}
-      autocomplete="off"
-    />
+  <!-- Unified search grid: search input + filter bar share the same width -->
+  <div class="editor-search-grid">
+    <div class="search-input-wrap">
+      <span class="search-adornment">
+        <IconSearch size={16} />
+      </span>
+      <input
+        class="input search-input"
+        bind:value={searchText}
+        placeholder="搜尋檔名..."
+        oninput={handleSearchInput}
+        autocomplete="off"
+      />
+    </div>
+    <div class="editor-filters">
+      <FilterBar
+        {allTags}
+        bind:selectedTags
+        bind:rating
+        bind:ratingOp
+        bind:sort
+        bind:order
+        onchange={handleFilterChange}
+      />
+    </div>
   </div>
+
+  <!-- Results info -->
+  {#if total > 0}
+    <div class="editor-search-info">
+      <span>{total} 張圖片</span>
+      {#if pages > 1}
+        <span class="editor-search-pager">
+          第 {page} / {pages} 頁
+        </span>
+      {/if}
+    </div>
+  {/if}
 
   {#if loading}
     <div class="editor-search-status">搜尋中...</div>
@@ -78,15 +142,34 @@
             <div class="editor-search-card-name">{img.originalName || img.id + img.ext}</div>
             <div class="editor-search-card-meta">
               {img.id}
-              {#if img.tags.length > 0}
-                <span class="editor-search-card-tags">
-                  {img.tags.slice(0, 4).join(", ")}{img.tags.length > 4 ? ` +${img.tags.length - 4}` : ""}
-                </span>
+              {#if img.rating}
+                <span class="editor-search-card-rating">{"★".repeat(img.rating)}</span>
               {/if}
             </div>
+            {#if img.tags.length > 0}
+              <div class="editor-search-card-tags">
+                {img.tags.slice(0, 4).join(", ")}{img.tags.length > 4 ? ` +${img.tags.length - 4}` : ""}
+              </div>
+            {/if}
           </div>
         </button>
       {/each}
+    </div>
+  {/if}
+
+  <!-- Pagination -->
+  {#if pages > 1}
+    <div class="editor-pagination">
+      <button class="btn btn-sm" disabled={page <= 1} onclick={() => goToPage(page - 1)}>上一頁</button>
+      {#each Array.from({ length: Math.min(pages, 7) }, (_, i) => {
+        if (pages <= 7) return i + 1;
+        if (page <= 4) return i + 1;
+        if (page >= pages - 3) return pages - 6 + i;
+        return page - 3 + i;
+      }) as p}
+        <button class="btn btn-sm" class:btn-primary={p === page} onclick={() => goToPage(p)}>{p}</button>
+      {/each}
+      <button class="btn btn-sm" disabled={page >= pages} onclick={() => goToPage(page + 1)}>下一頁</button>
     </div>
   {/if}
 </div>
@@ -98,13 +181,50 @@
     padding: 1.5rem;
   }
 
-  .editor-search-box {
-    margin-bottom: 1.25rem;
+  .editor-search-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
   }
 
-  .input-search {
-    font-size: 1rem;
-    padding: 0.75rem 1rem;
+  .search-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-adornment {
+    position: absolute;
+    left: 0.75rem;
+    display: flex;
+    align-items: center;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  .search-input {
+    padding-left: 2.375rem;
+    font-size: 0.875rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .editor-filters {
+    width: 100%;
+  }
+
+  .editor-search-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+  }
+
+  .editor-search-pager {
+    font-family: var(--font-mono);
   }
 
   .editor-search-status {
@@ -116,7 +236,7 @@
 
   .editor-search-results {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 0.75rem;
   }
 
@@ -174,11 +294,32 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-top: 0.125rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .editor-search-card-rating {
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 0.625rem;
+    letter-spacing: -0.05em;
   }
 
   .editor-search-card-tags {
+    font-size: 0.6875rem;
     color: var(--text-muted);
-    font-family: var(--font);
-    margin-left: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 0.125rem;
+  }
+
+  .editor-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.375rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
   }
 </style>

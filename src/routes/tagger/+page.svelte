@@ -1,8 +1,11 @@
 <script lang="ts">
-  import { addToast } from "$lib/stores/toast.js";
-  import { api } from "$lib/client/api.js";
-  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import { untrack } from "svelte";
+
+  import { api } from "$lib/client/api.js";
+  import { addToast } from "$lib/stores/toast.js";
+  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
+  import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
+
   import type { TagInfo } from "$lib/types.js";
   import type { PageData } from "./$types.js";
 
@@ -269,16 +272,13 @@
 <TaggerHeader {progressPct} {progressLabel} onopentools={() => (showToolsModal = true)} />
 
 {#if tooSmall}
-  <div class="too-small-overlay">
-    <div class="too-small-card">
-      <div class="too-small-icon">⚠</div>
-      <h2 class="too-small-title">視窗過小</h2>
-      <p class="too-small-desc">
-        Tagger 需要至少 {MIN_WIDTH}×{MIN_HEIGHT} 的視窗大小才能正常使用。<br />請放大您的瀏覽器視窗。
-      </p>
-      <span class="too-small-current">{windowWidth} × {windowHeight}</span>
-    </div>
-  </div>
+  <TooSmallOverlay
+    minWidth={MIN_WIDTH}
+    minHeight={MIN_HEIGHT}
+    currentWidth={windowWidth}
+    currentHeight={windowHeight}
+    label="Tagger"
+  />
 {:else}
   <main class="tagger-main">
     <TaggerSidebar
@@ -315,47 +315,5 @@
     display: flex;
     height: calc(100vh - 3rem);
     margin-top: 3rem;
-  }
-
-  .too-small-overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    z-index: 9999;
-  }
-
-  .too-small-card {
-    text-align: center;
-    padding: 2.5rem;
-    max-width: 24rem;
-  }
-
-  .too-small-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.6;
-  }
-
-  .too-small-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text);
-  }
-
-  .too-small-desc {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-
-  .too-small-current {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-dim);
   }
 </style>
