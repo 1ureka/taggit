@@ -26,10 +26,13 @@
   let page = $state(1);
   let pages = $state(1);
   let loading = $state(false);
+  let showLoading = $state(false);
+  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
   let searchTimer: ReturnType<typeof setTimeout> | null = null;
   let initialised = $state(false);
 
   const PAGE_SIZE = 60;
+  const LOADING_DELAY = 200; // ms – don't flash "搜尋中" for fast queries
 
   // Initialise from SSR data
   $effect(() => {
@@ -44,6 +47,13 @@
   async function doSearch(resetPage = true) {
     if (resetPage) page = 1;
     loading = true;
+
+    // Only show loading indicator after a short delay – avoids flicker for fast queries
+    if (loadingTimer) clearTimeout(loadingTimer);
+    loadingTimer = setTimeout(() => {
+      if (loading) showLoading = true;
+    }, LOADING_DELAY);
+
     try {
       const params = new URLSearchParams();
       params.set("limit", String(PAGE_SIZE));
@@ -65,6 +75,8 @@
       }
     } finally {
       loading = false;
+      if (loadingTimer) clearTimeout(loadingTimer);
+      showLoading = false;
     }
   }
 
@@ -124,7 +136,7 @@
     </div>
   {/if}
 
-  {#if loading}
+  {#if showLoading}
     <div class="editor-search-status">搜尋中...</div>
   {:else if items.length === 0}
     <div class="editor-search-status">找不到符合的圖片</div>

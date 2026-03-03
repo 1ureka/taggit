@@ -459,7 +459,7 @@ a {
 
 /* ─── Autocomplete Dropdown ────────────────────────────────────────────────── */
 .ac-dropdown {
-  position: fixed;
+  position: absolute;
   z-index: 9999;
   max-height: 14rem;
   overflow-y: auto;
@@ -468,12 +468,20 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  display: none;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease-out,
+    transform 0.12s ease-out;
 }
 
 .ac-dropdown.ac-visible {
-  display: block;
-  animation: fadeIn 0.1s ease-out;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .ac-item {

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import type { TagInfo } from "$lib/types.js";
+  import { float } from "$lib/actions/float.js";
 
   let {
     allTags = [],
@@ -23,7 +23,6 @@
   let activeIndex = $state(-1);
   let inputEl: HTMLInputElement | undefined = $state();
   let dropdownEl: HTMLDivElement | undefined = $state();
-  let flipUp = $state(false);
 
   let filtered = $derived.by(() => {
     const query = inputValue.trim().toLowerCase();
@@ -33,41 +32,11 @@
     return available.filter((t) => t.name.toLowerCase().includes(query));
   });
 
-  /* ── Portal: mount dropdown on document.body to escape transform ancestors ── */
-  onMount(() => {
-    if (dropdownEl) {
-      document.body.appendChild(dropdownEl);
-    }
-  });
-
-  onDestroy(() => {
-    if (dropdownEl && dropdownEl.parentNode === document.body) {
-      document.body.removeChild(dropdownEl);
-    }
-  });
-
-  function positionDropdown() {
-    if (!inputEl || !dropdownEl) return;
-    const rect = inputEl.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    flipUp = spaceBelow < 224; // 14rem
-
-    dropdownEl.style.left = `${rect.left}px`;
-    dropdownEl.style.width = `${rect.width}px`;
-
-    if (flipUp) {
-      dropdownEl.style.bottom = `${window.innerHeight - rect.top}px`;
-      dropdownEl.style.top = "auto";
-    } else {
-      dropdownEl.style.top = `${rect.bottom}px`;
-      dropdownEl.style.bottom = "auto";
-    }
-  }
+  let dropdownVisible = $derived(showDropdown && filtered.length > 0);
 
   function open() {
     showDropdown = true;
     activeIndex = -1;
-    requestAnimationFrame(positionDropdown);
   }
 
   function close() {
@@ -147,8 +116,12 @@
     autocomplete="off"
   />
 
-  <!-- Portal: rendered here initially, moved to body on mount -->
-  <div bind:this={dropdownEl} class="ac-dropdown" class:ac-visible={showDropdown && filtered.length > 0}>
+  <div
+    bind:this={dropdownEl}
+    class="ac-dropdown"
+    class:ac-visible={dropdownVisible}
+    use:float={{ reference: inputEl, open: dropdownVisible }}
+  >
     {#each filtered as tag, i}
       <div
         class="ac-item"

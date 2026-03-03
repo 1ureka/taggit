@@ -18,7 +18,11 @@
   let pairA = $state<ImageWithId | null>(null);
   let pairB = $state<ImageWithId | null>(null);
   let loading = $state(false);
+  let showLoading = $state(false);
+  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
   let errorMsg = $state("");
+
+  const LOADING_DELAY = 200; // ms – don't flash "載入中" for fast loads
 
   // ─── Init ─────────────────────────────────────────────────────────────
   $effect(() => {
@@ -50,6 +54,13 @@
   async function loadPair() {
     loading = true;
     errorMsg = "";
+
+    // Delay showing the loading state to prevent flicker on fast loads
+    if (loadingTimer) clearTimeout(loadingTimer);
+    loadingTimer = setTimeout(() => {
+      if (loading) showLoading = true;
+    }, LOADING_DELAY);
+
     try {
       const params = new URLSearchParams();
       params.set("sort", "random");
@@ -86,6 +97,8 @@
       pairB = null;
     } finally {
       loading = false;
+      if (loadingTimer) clearTimeout(loadingTimer);
+      showLoading = false;
     }
   }
 
@@ -148,7 +161,7 @@
 </header>
 
 <main class="compare-main">
-  {#if loading}
+  {#if showLoading}
     <div class="compare-empty">載入中…</div>
   {:else if errorMsg}
     <div class="compare-empty">{errorMsg}</div>

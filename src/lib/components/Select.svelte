@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconChevronDown } from "@tabler/icons-svelte";
+  import { float } from "$lib/actions/float.js";
 
   type Option = { value: string | number | undefined; label: string };
 
@@ -25,33 +26,12 @@
 
   function toggle() {
     open = !open;
-    if (open) {
-      requestAnimationFrame(positionList);
-    }
   }
 
   function select(opt: Option) {
     value = opt.value as typeof value;
     open = false;
     onchange?.();
-  }
-
-  function positionList() {
-    if (!triggerEl || !listEl) return;
-    const rect = triggerEl.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const flipUp = spaceBelow < 180;
-
-    listEl.style.left = `${rect.left}px`;
-    listEl.style.minWidth = `${rect.width}px`;
-
-    if (flipUp) {
-      listEl.style.bottom = `${window.innerHeight - rect.top}px`;
-      listEl.style.top = "auto";
-    } else {
-      listEl.style.top = `${rect.bottom + 2}px`;
-      listEl.style.bottom = "auto";
-    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -67,25 +47,12 @@
   }
 
   function handleBlur(e: FocusEvent) {
-    /* Delay to allow click on list option */
     setTimeout(() => {
       if (!triggerEl?.contains(document.activeElement) && !listEl?.contains(document.activeElement)) {
         open = false;
       }
     }, 120);
   }
-
-  import { onMount, onDestroy } from "svelte";
-
-  onMount(() => {
-    if (listEl) document.body.appendChild(listEl);
-  });
-
-  onDestroy(() => {
-    if (listEl && listEl.parentNode === document.body) {
-      document.body.removeChild(listEl);
-    }
-  });
 </script>
 
 <button
@@ -103,7 +70,13 @@
   </span>
 </button>
 
-<div bind:this={listEl} class="select-list" class:select-list-visible={open} role="listbox">
+<div
+  bind:this={listEl}
+  class="select-list"
+  class:select-list-visible={open}
+  role="listbox"
+  use:float={{ reference: triggerEl, open, placement: "bottom-start", matchWidth: false, matchMinWidth: true }}
+>
   {#each options as opt}
     <button
       type="button"
@@ -182,9 +155,9 @@
     transform: rotate(180deg);
   }
 
-  /* ── Dropdown list (portalled to body) ── */
+  /* ── Dropdown list (portalled to body by float action) ── */
   .select-list {
-    position: fixed;
+    position: absolute;
     z-index: 9999;
     max-height: 14rem;
     overflow-y: auto;
@@ -193,13 +166,21 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    display: none;
     padding: 0.25rem 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition:
+      opacity 0.12s ease-out,
+      transform 0.12s ease-out;
+    left: 0;
+    top: 0;
   }
 
   .select-list-visible {
-    display: block;
-    animation: fadeIn 0.1s ease-out;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   .select-option {
@@ -224,14 +205,5 @@
   .select-option-active {
     color: var(--accent);
     background: var(--bg-active);
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 </style>
