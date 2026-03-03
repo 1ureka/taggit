@@ -1,9 +1,19 @@
 <script lang="ts">
+  import { IconRefresh } from "@tabler/icons-svelte";
+
   let {
     stagedFiles,
     currentIndex,
+    refreshing = false,
     onselect,
-  }: { stagedFiles: string[]; currentIndex: number; onselect: (idx: number) => void } = $props();
+    onrefresh,
+  }: {
+    stagedFiles: string[];
+    currentIndex: number;
+    refreshing?: boolean;
+    onselect: (idx: number) => void;
+    onrefresh: () => void;
+  } = $props();
 
   let sidebarListEl: HTMLDivElement | undefined = $state();
 
@@ -20,6 +30,15 @@
   <div class="tagger-sidebar-header">
     <span class="tagger-sidebar-title">待審查</span>
     <span class="badge">{stagedFiles.length}</span>
+    <button
+      class="btn-refresh"
+      class:spinning={refreshing}
+      title="重新掃描 staged 資料夾"
+      onclick={onrefresh}
+      disabled={refreshing}
+    >
+      <IconRefresh size={14} />
+    </button>
   </div>
   <div class="tagger-sidebar-list" bind:this={sidebarListEl}>
     {#if stagedFiles.length === 0}
@@ -54,9 +73,50 @@
   .tagger-sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.625rem 0.75rem;
     border-bottom: 1px solid var(--border);
+  }
+
+  .btn-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-left: auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+
+  .btn-refresh:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  .btn-refresh:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .btn-refresh.spinning :global(svg) {
+    animation: spin 0.8s linear infinite;
   }
 
   .tagger-sidebar-title {

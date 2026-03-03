@@ -64,16 +64,34 @@
   }
 
   // ─── Fetch helpers ────────────────────────────────────────────────────
+  let refreshing = $state(false);
+
   async function refreshStaged() {
-    const res = await api.get<{ files: string[] }>("/api/staged");
-    if (res.ok && res.data) {
-      stagedFiles = res.data.files;
-      if (totalInitial === 0) totalInitial = stagedFiles.length;
-      if (stagedFiles.length === 0) {
-        currentIndex = -1;
-      } else if (currentIndex >= stagedFiles.length) {
-        selectImage(Math.max(0, stagedFiles.length - 1));
+    refreshing = true;
+    try {
+      const res = await api.get<{ files: string[] }>("/api/staged");
+      if (res.ok && res.data) {
+        const oldLen = stagedFiles.length;
+        stagedFiles = res.data.files;
+        if (totalInitial === 0) totalInitial = stagedFiles.length;
+        if (stagedFiles.length === 0) {
+          currentIndex = -1;
+        } else if (currentIndex >= stagedFiles.length) {
+          selectImage(Math.max(0, stagedFiles.length - 1));
+        } else if (oldLen === 0 && stagedFiles.length > 0) {
+          selectImage(0);
+        }
+        const diff = stagedFiles.length - oldLen;
+        if (diff > 0) {
+          addToast(`發現 ${diff} 張新圖片`, "success");
+        } else if (diff === 0) {
+          addToast("沒有發現新圖片", "info");
+        } else {
+          addToast(`列表已更新（減少 ${-diff} 張）`, "info");
+        }
       }
+    } finally {
+      refreshing = false;
     }
   }
 
@@ -241,25 +259,19 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<TaggerHeader
-  {progressPct}
-  {progressLabel}
-  onopentools={() => (showToolsModal = true)}
-/>
+<TaggerHeader {progressPct} {progressLabel} onopentools={() => (showToolsModal = true)} />
 
 <main class="tagger-main">
   <TaggerSidebar
     bind:this={sidebarRef}
     {stagedFiles}
     {currentIndex}
+    {refreshing}
     onselect={selectImage}
+    onrefresh={refreshStaged}
   />
 
-  <TaggerPreview
-    bind:this={previewRef}
-    {currentFilename}
-    {previewSrc}
-  />
+  <TaggerPreview bind:this={previewRef} {currentFilename} {previewSrc} />
 
   <TaggerTagPanel
     bind:this={tagPanelRef}
@@ -272,7 +284,7 @@
   />
 </main>
 
-<TaggerToolsModal bind:show={showToolsModal} ontagschanged={refreshTags} />
+<TaggerToolsModal bind:show={showToolsModal} {allTags} ontagschanged={refreshTags} />
 
 {#if confirmModal}
   <ConfirmModal message={confirmModal.message} onconfirm={handleConfirm} oncancel={handleCancel} />

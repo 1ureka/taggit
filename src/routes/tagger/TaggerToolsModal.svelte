@@ -2,9 +2,20 @@
   import { IconFileSearch, IconFileAlert, IconTag, IconDatabase, IconTrashX } from "@tabler/icons-svelte";
   import { api } from "$lib/client/api.js";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
+  import RenameTagModal from "./RenameTagModal.svelte";
   import type { TagInfo } from "$lib/types.js";
 
-  let { show = $bindable(false), ontagschanged }: { show: boolean; ontagschanged?: () => void } = $props();
+  let {
+    show = $bindable(false),
+    allTags,
+    ontagschanged,
+  }: {
+    show: boolean;
+    allTags: TagInfo[];
+    ontagschanged?: () => void;
+  } = $props();
+
+  let showRenameModal = $state(false);
 
   let toolResult = $state("");
   let confirmModal = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
@@ -64,19 +75,18 @@
     }
   }
 
-  async function renameTag() {
-    const from = prompt("舊標籤名稱:");
-    if (!from) return;
-    const to = prompt("新標籤名稱:");
-    if (!to) return;
+  function openRenameModal() {
+    showRenameModal = true;
+  }
 
+  async function handleRename(oldName: string, newName: string) {
     toolResult = "重命名中...";
     const res = await api.post<{ affected: number }>("/api/metadata/tags", {
-      oldName: from.trim(),
-      newName: to.trim(),
+      oldName,
+      newName,
     });
     if (res.ok && res.data) {
-      toolResult = `✓ 已將「${from.trim()}」重命名為「${to.trim()}」，影響 ${res.data.affected} 張圖片`;
+      toolResult = `✓ 已將「${oldName}」重命名為「${newName}」，影響 ${res.data.affected} 張圖片`;
       ontagschanged?.();
     } else {
       toolResult = "錯誤: " + (res.error || "未知");
@@ -127,7 +137,7 @@
           <IconFileAlert size={16} />
           檢查缺失檔案
         </button>
-        <button class="btn" onclick={renameTag}>
+        <button class="btn" onclick={openRenameModal}>
           <IconTag size={16} />
           標籤重命名
         </button>
@@ -155,6 +165,8 @@
 {#if confirmModal}
   <ConfirmModal message={confirmModal.message} onconfirm={handleConfirmOk} oncancel={handleConfirmCancel} />
 {/if}
+
+<RenameTagModal bind:show={showRenameModal} {allTags} onrename={handleRename} />
 
 <style>
   .tools-result {
