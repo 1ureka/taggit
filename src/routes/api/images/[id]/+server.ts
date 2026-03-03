@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
+import { getImage } from "$lib/server/db-query.js";
+import { updateImage, removeImage } from "$lib/server/db-mutation.js";
 import { isValidId, isValidTags, isValidRating } from "$lib/server/validation.js";
 import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
 
@@ -14,7 +16,7 @@ export const GET: RequestHandler = ({ params }) => {
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
-  const image = db.getImage(id);
+  const image = getImage(getDB(), id);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
   return json({ ok: true, data: image });
@@ -40,7 +42,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
 
   try {
-    const updated = db.updateImage(id, { tags: tags as string[], rating: rating as number }, expectedUpdatedAt);
+    const updated = updateImage(getDB(), id, { tags: tags as string[], rating: rating as number }, expectedUpdatedAt);
     return json({ ok: true, data: updated });
   } catch (e) {
     if ((e as any).status === 409)
@@ -61,7 +63,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
-  const image = db.getImage(id);
+  const image = getImage(getDB(), id);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
   const paths = getPaths();
@@ -75,7 +77,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   // Remove DB record — metadata is lost after this point
-  db.removeImage(id);
+  removeImage(getDB(), id);
 
   return json({ ok: true });
 };

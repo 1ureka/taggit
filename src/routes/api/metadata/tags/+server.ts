@@ -1,13 +1,15 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
+import { getAllTags } from "$lib/server/db-query.js";
+import { renameTag } from "$lib/server/db-mutation.js";
 import { guardLoaded, parseBody } from "$lib/server/helpers.js";
 
 /** GET /api/metadata/tags — list all tags with counts, sorted by count desc */
 export const GET: RequestHandler = () => {
   const err = guardLoaded();
   if (err) return err;
-  return json({ ok: true, data: { tags: db.getAllTags() } });
+  return json({ ok: true, data: { tags: getAllTags(getDB()) } });
 };
 
 /**
@@ -30,6 +32,6 @@ export const POST: RequestHandler = async ({ request }) => {
   if (oldName.trim() === newName.trim())
     return json({ ok: false, error: "oldName and newName must differ" }, { status: 400 });
 
-  const affected = db.renameTag(oldName.trim(), newName.trim());
+  const affected = renameTag(getDB(), oldName.trim(), newName.trim());
   return json({ ok: true, data: { affected } });
 };

@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
 import type { RequestHandler } from "@sveltejs/kit";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
 import { MIME_TYPES } from "$lib/server/config.js";
 import { getPaths } from "$lib/server/helpers.js";
 
 const VALID_AREAS = new Set(["committed", "staged", "trash"]);
 
 export const GET: RequestHandler = ({ params }) => {
-  if (!db.isLoaded()) {
+  if (!getDB().isLoaded()) {
     return new Response("No collection loaded", { status: 503 });
   }
 

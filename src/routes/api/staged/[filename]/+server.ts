@@ -3,7 +3,9 @@ import path from "path";
 import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
+import { hasImage } from "$lib/server/db-query.js";
+import { addImage } from "$lib/server/db-mutation.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 import { isValidTags, isValidRating } from "$lib/server/validation.js";
 import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
@@ -42,7 +44,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   let id: string;
   do {
     id = crypto.randomBytes(8).toString("hex");
-  } while (db.hasImage(id));
+  } while (hasImage(getDB(), id));
 
   const destPath = path.join(paths.committed, id + ext);
 
@@ -63,7 +65,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       height: typeof height === "number" && height > 0 ? height : 0,
     };
 
-    db.addImage(id, record);
+    addImage(getDB(), id, record);
     return json({ ok: true, data: { id, record } }, { status: 201 });
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT")

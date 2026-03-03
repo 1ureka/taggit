@@ -2,7 +2,8 @@ import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
+import { hasImage } from "$lib/server/db-query.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 import { guardLoaded, getPaths } from "$lib/server/helpers.js";
 
@@ -17,7 +18,7 @@ export const GET: RequestHandler = () => {
   for (const file of fs.readdirSync(committed)) {
     const ext = path.extname(file).toLowerCase();
     const base = path.basename(file, ext);
-    if (IMG_EXTS.has(ext) && !db.hasImage(base)) orphans.push(file);
+    if (IMG_EXTS.has(ext) && !hasImage(getDB(), base)) orphans.push(file);
   }
 
   return json({ ok: true, data: { orphans } });
@@ -37,7 +38,7 @@ export const DELETE: RequestHandler = () => {
   for (const file of fs.readdirSync(committed)) {
     const ext = path.extname(file).toLowerCase();
     const base = path.basename(file, ext);
-    if (IMG_EXTS.has(ext) && !db.hasImage(base)) {
+    if (IMG_EXTS.has(ext) && !hasImage(getDB(), base)) {
       try {
         fs.unlinkSync(path.join(committed, file));
         deleted.push(file);

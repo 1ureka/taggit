@@ -3,7 +3,7 @@
  *
  * Provides:
  * - guardLoaded()    — returns 503 Response if DB not loaded, otherwise null
- * - getPaths()       — shorthand for getCollectionPaths(getCurrentRoot()!)
+ * - getPaths()       — shorthand for getCollectionPaths(getDB().getCurrentRoot()!)
  * - getStagedFiles() — reads staged/ directory and returns sorted image filenames
  * - getTrashFiles()  — reads trash/ directory and returns sorted image filenames
  * - uniqueFilename() — find a unique filename in a directory (auto-append _1, _2, …)
@@ -13,7 +13,7 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import * as db from "./db.js";
+import { getDB } from "./db.js";
 import { getCollectionPaths, IMG_EXTS } from "./config.js";
 import type { CollectionPaths } from "$lib/types.js";
 
@@ -22,15 +22,15 @@ import type { CollectionPaths } from "$lib/types.js";
  * Usage: `const err = guardLoaded(); if (err) return err;`
  */
 export function guardLoaded(): Response | null {
-  if (!db.isLoaded()) {
+  if (!getDB().isLoaded()) {
     return json({ ok: false, error: "No collection loaded" }, { status: 503 });
   }
   return null;
 }
 
-/** Shorthand for `getCollectionPaths(db.getCurrentRoot()!)`. */
+/** Shorthand for `getCollectionPaths(getDB().getCurrentRoot()!)`. */
 export function getPaths(): CollectionPaths {
-  return getCollectionPaths(db.getCurrentRoot()!);
+  return getCollectionPaths(getDB().getCurrentRoot()!);
 }
 
 /**

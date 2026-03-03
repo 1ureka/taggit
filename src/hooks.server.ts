@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { Handle } from "@sveltejs/kit";
 import * as config from "$lib/server/config.js";
-import * as db from "$lib/server/db.js";
+import { getDB } from "$lib/server/db.js";
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────
 // Flush the in-memory DB to disk when the process receives SIGINT (Ctrl-C).
@@ -16,13 +16,13 @@ if (!globalThis.__sigintRegistered) {
   globalThis.__sigintRegistered = true;
   process.on("SIGINT", () => {
     console.log("\n[hooks] SIGINT received – flushing DB…");
-    db.flush();
+    getDB().flush();
     console.log("[hooks] DB flushed, exiting.");
     process.exit(0);
   });
   process.on("SIGTERM", () => {
-    console.log("\n[hooks] SIGTERM received – flushing DB…");
-    db.flush();
+    console.log("\n[hooks] SIGTERM received \u2013 flushing DB\u2026");
+    getDB().flush();
     console.log("[hooks] DB flushed, exiting.");
     process.exit(0);
   });
@@ -62,8 +62,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   // Ensure DB is loaded (or reload if collection was switched)
-  if (!db.isLoaded() || db.getCurrentRoot() !== root) {
-    db.loadCollection(root);
+  const jsonDB = getDB();
+  if (!jsonDB.isLoaded() || jsonDB.getCurrentRoot() !== root) {
+    jsonDB.loadCollection(root);
   }
 
   return resolve(event);
