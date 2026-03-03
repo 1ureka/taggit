@@ -1,15 +1,10 @@
 <script lang="ts">
   import { IconArrowLeft, IconTool } from "@tabler/icons-svelte";
+  import { fileStore } from "./stores.svelte.js";
+  import { openTools } from "./actions.js";
 
-  let {
-    progressPct,
-    progressLabel,
-    onopentools,
-  }: {
-    progressPct: number;
-    progressLabel: string;
-    onopentools: () => void;
-  } = $props();
+  let progressPct = $derived(fileStore.total > 0 ? Math.round((fileStore.processed / fileStore.total) * 100) : 0);
+  let progressLabel = $derived(`${fileStore.processed}/${fileStore.total} (${fileStore.list.length} 剩餘)`);
 </script>
 
 <header class="tagger-header">
@@ -24,7 +19,7 @@
     <span class="tagger-progress-text">{progressLabel}</span>
   </div>
   <div class="tagger-header-actions">
-    <button class="btn btn-sm" onclick={onopentools}>
+    <button class="btn btn-sm" onclick={openTools}>
       <IconTool size={16} />
       工具
     </button>

@@ -1,70 +1,61 @@
 <script lang="ts">
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import type { TagInfo } from "$lib/types.js";
+  import { toolStore, tagCatalogStore } from "./stores.svelte.js";
+  import { closeRenameModal, renameTag } from "./actions.js";
 
-  let {
-    show = $bindable(false),
-    allTags,
-    onrename,
-  }: {
-    show: boolean;
-    allTags: TagInfo[];
-    onrename: (oldName: string, newName: string) => void;
-  } = $props();
-
+  // ── Local form state ──────────────────────────────────────
   let oldName = $state("");
   let newName = $state("");
   let newInputEl: HTMLInputElement | undefined = $state();
 
   // Reset fields whenever the modal opens
   $effect(() => {
-    if (show) {
+    if (toolStore.showRename) {
       oldName = "";
       newName = "";
     }
   });
 
-  function close() {
-    show = false;
-  }
-
   function handleSelectOld(tag: string) {
     oldName = tag.trim().toLowerCase();
-    // Focus the new name input after selecting old tag
     requestAnimationFrame(() => newInputEl?.focus());
   }
 
   function handleSubmit() {
     const trimOld = oldName.trim().toLowerCase();
     const trimNew = newName.trim().toLowerCase();
-    if (!trimOld || !trimNew) return;
-    if (trimOld === trimNew) return;
-    onrename(trimOld, trimNew);
-    close();
-  }
-
-  function handleOverlayClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) close();
+    if (!trimOld || !trimNew || trimOld === trimNew) return;
+    renameTag(trimOld, trimNew);
+    closeRenameModal();
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") close();
+    if (e.key === "Escape") closeRenameModal();
   }
 </script>
 
-<svelte:window onkeydown={show ? handleKeydown : undefined} />
+<svelte:window onkeydown={toolStore.showRename ? handleKeydown : undefined} />
 
-{#if show}
+{#if toolStore.showRename}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="modal-overlay" onclick={handleOverlayClick}>
+  <div
+    class="modal-overlay"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) closeRenameModal();
+    }}
+  >
     <div class="modal scale-in" style="max-width:28rem">
       <div class="modal-title">標籤重命名</div>
       <div class="modal-body">
         <div class="rename-field">
           <label class="rename-label" for="rename-old">舊標籤名稱</label>
           <div class="rename-ac-wrap">
-            <TagAutocomplete {allTags} placeholder="選擇要重命名的標籤..." onselect={handleSelectOld} />
+            <TagAutocomplete
+              allTags={tagCatalogStore.known}
+              placeholder="選擇要重命名的標籤..."
+              onselect={handleSelectOld}
+            />
           </div>
           {#if oldName}
             <div class="rename-selected">
@@ -92,7 +83,7 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button class="btn" onclick={close}>取消</button>
+        <button class="btn" onclick={closeRenameModal}>取消</button>
         <button
           class="btn btn-primary"
           onclick={handleSubmit}

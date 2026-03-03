@@ -2,28 +2,32 @@
   import { IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import type { TaggerState } from "./tagger-state.svelte.js";
-
-  let { tagger }: { tagger: TaggerState } = $props();
+  import { editStore, tagCatalogStore, selectionStore, uiStore } from "./stores.svelte.js";
+  import { addTag, removeTag, popTag, commit, trash } from "./actions.js";
 
   let tagInputWrapEl: HTMLDivElement | undefined = $state();
 
-  /** Focus the tag input (called by keyboard shortcut via page). */
-  export function focusInput() {
+  // Derived
+  let selectedCount = $derived(selectionStore.selected.size);
+
+  // React to focus-input signal
+  $effect(() => {
+    const tick = uiStore.focusInputTick;
+    if (tick === 0) return;
     tagInputWrapEl?.querySelector("input")?.focus();
-  }
+  });
 </script>
 
 <aside class="tagger-panel">
   <div class="tagger-rating">
-    <Rating bind:value={tagger.rating} size="1.5rem" />
+    <Rating bind:value={editStore.rating} size="1.5rem" />
   </div>
   <div class="separator"></div>
 
   <div class="tagger-tags">
     <div class="tagger-tags-list">
-      {#each tagger.tags as tag}
-        <button type="button" class="chip chip-removable" onclick={() => tagger.removeTag(tag)}>
+      {#each editStore.tags as tag}
+        <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
           <span>{tag}</span>
           <span class="chip-remove">x</span>
         </button>
@@ -31,12 +35,12 @@
     </div>
     <div class="tagger-tags-input-wrap" bind:this={tagInputWrapEl}>
       <TagAutocomplete
-        allTags={tagger.knownTags}
-        excludedTags={tagger.tags}
+        allTags={tagCatalogStore.known}
+        excludedTags={editStore.tags}
         placeholder="輸入標籤..."
-        onselect={(tag) => tagger.addTag(tag)}
-        oncommit={() => tagger.commit()}
-        onbackspace={() => tagger.popTag()}
+        onselect={(tag) => addTag(tag)}
+        oncommit={() => commit()}
+        onbackspace={() => popTag()}
       />
     </div>
   </div>
@@ -44,13 +48,13 @@
   <div class="separator"></div>
 
   <div class="tagger-actions">
-    <button class="btn btn-primary btn-sm" onclick={() => tagger.commit()} disabled={tagger.busy}>
+    <button class="btn btn-primary btn-sm" onclick={commit} disabled={editStore.busy}>
       <IconCheck size={16} />
-      {tagger.busy ? "提交中…" : tagger.selectedCount > 1 ? `提交 ${tagger.selectedCount} 張` : "提交"}
+      {editStore.busy ? "提交中…" : selectedCount > 1 ? `提交 ${selectedCount} 張` : "提交"}
     </button>
-    <button class="btn btn-destructive btn-sm" onclick={() => tagger.trash()} disabled={tagger.busy}>
+    <button class="btn btn-destructive btn-sm" onclick={trash} disabled={editStore.busy}>
       <IconTrash size={16} />
-      {tagger.selectedCount > 1 ? `刪除 ${tagger.selectedCount} 張` : "刪除"}
+      {selectedCount > 1 ? `刪除 ${selectedCount} 張` : "刪除"}
     </button>
   </div>
 

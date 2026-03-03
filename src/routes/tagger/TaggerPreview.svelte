@@ -1,15 +1,17 @@
 <script lang="ts">
-  let {
-    currentFilename,
-    previewSrc,
-    selectedCount = 1,
-  }: {
-    currentFilename: string | null;
-    previewSrc: string;
-    selectedCount?: number;
-  } = $props();
+  import { fileStore, selectionStore, uiStore } from "./stores.svelte.js";
+  import { stagedUrl } from "./helpers.js";
 
-  // ─── Internal zoom / pan state ──────────────────────────────────────
+  // ── Derived from stores ───────────────────────────────────
+  let currentFile = $derived(
+    selectionStore.cursor >= 0 && selectionStore.cursor < fileStore.list.length
+      ? fileStore.list[selectionStore.cursor]
+      : null,
+  );
+  let previewSrc = $derived(currentFile ? stagedUrl(currentFile) : "");
+  let selectedCount = $derived(selectionStore.selected.size);
+
+  // ── Local zoom / pan state ────────────────────────────────
   let scale = $state(1);
   let panX = $state(0);
   let panY = $state(0);
@@ -19,12 +21,18 @@
   let dragStartPanX = 0;
   let dragStartPanY = 0;
 
-  /** Reset zoom and pan to default. */
-  export function resetZoom() {
+  function resetZoom() {
     scale = 1;
     panX = 0;
     panY = 0;
   }
+
+  // React to navigation: reset zoom
+  $effect(() => {
+    const tick = uiStore.navigationTick;
+    if (tick === 0) return;
+    resetZoom();
+  });
 
   function handleWheel(e: WheelEvent) {
     e.preventDefault();
@@ -56,7 +64,7 @@
 <svelte:window onmousemove={handleWindowMousemove} onmouseup={handleWindowMouseup} />
 
 <section class="tagger-preview">
-  {#if currentFilename}
+  {#if currentFile}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -69,13 +77,13 @@
     >
       <img
         src={previewSrc}
-        alt={currentFilename}
+        alt={currentFile}
         draggable="false"
         style="transform:translate({panX}px,{panY}px) scale({scale})"
       />
     </div>
     <div class="tagger-preview-info">
-      {currentFilename}
+      {currentFile}
       {#if selectedCount > 1}
         <span class="selection-hint">已選 {selectedCount} 張</span>
       {/if}

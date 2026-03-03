@@ -1,25 +1,26 @@
 <script lang="ts">
   import { IconRefresh, IconUpload } from "@tabler/icons-svelte";
-  import { addToast } from "$lib/client/toast.js";
-  import type { TaggerState } from "./tagger-state.svelte.js";
+  import { fileStore, selectionStore, uiStore } from "./stores.svelte.js";
+  import { select, refresh, uploadFiles } from "./actions.js";
 
-  let { tagger }: { tagger: TaggerState } = $props();
-
-  // ── Virtual list ──────────────────────────────────────────
+  // ── Virtual list constants ────────────────────────────────
   const ITEM_H = 72;
   const BUFFER = 5;
 
+  // ── DOM refs ──────────────────────────────────────────────
   let listEl: HTMLDivElement | undefined = $state();
   let fileInputEl: HTMLInputElement | undefined = $state();
-  let uploading = $state(false);
+
+  // ── Scroll tracking ───────────────────────────────────────
   let scrollTop = $state(0);
   let viewH = $state(400);
 
-  let totalH = $derived(tagger.files.length * ITEM_H);
+  // ── Derived virtual list state ────────────────────────────
+  let totalH = $derived(fileStore.list.length * ITEM_H);
   let startIdx = $derived(Math.max(0, Math.floor(scrollTop / ITEM_H) - BUFFER));
-  let endIdx = $derived(Math.min(tagger.files.length, Math.ceil((scrollTop + viewH) / ITEM_H) + BUFFER));
+  let endIdx = $derived(Math.min(fileStore.list.length, Math.ceil((scrollTop + viewH) / ITEM_H) + BUFFER));
   let visible = $derived(
-    tagger.files.slice(startIdx, endIdx).map((filename, i) => ({
+    fileStore.list.slice(startIdx, endIdx).map((filename, i) => ({
       filename,
       index: startIdx + i,
     })),
@@ -35,8 +36,14 @@
     return () => ro.disconnect();
   });
 
-  /** Ensure the given index is scrolled into view. */
-  export function scrollToActive(idx: number) {
+  // React to navigation: scroll active item into view
+  $effect(() => {
+    const tick = uiStore.navigationTick;
+    if (tick === 0) return;
+    scrollToActive(selectionStore.cursor);
+  });
+
+  function scrollToActive(idx: number) {
     if (!listEl) return;
     const top = idx * ITEM_H;
     const bottom = top + ITEM_H;
@@ -49,57 +56,36 @@
 
   function handleClick(e: MouseEvent, idx: number) {
     const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
-    tagger.select(idx, mode);
+    select(idx, mode);
   }
 
   async function handleUpload(e: Event) {
     const input = e.target as HTMLInputElement;
     if (!input.files?.length) return;
-
-    uploading = true;
-    try {
-      const body = new FormData();
-      for (const f of input.files) body.append("files", f);
-
-      const res = await fetch("/api/staged", { method: "POST", body });
-      const json = await res.json();
-
-      if (json.ok && json.data) {
-        const { added, errors } = json.data as { added: string[]; errors: string[] };
-        if (added.length) {
-          addToast(`已加入 ${added.length} 張圖片`, "success");
-          tagger.refresh();
-        }
-        if (errors.length) addToast(`${errors.length} 個檔案失敗`, "error");
-      } else {
-        addToast(json.error || "上傳失敗", "error");
-      }
-    } catch {
-      addToast("上傳請求失敗", "error");
-    } finally {
-      uploading = false;
-      input.value = "";
-    }
+    await uploadFiles(input.files);
+    input.value = "";
   }
 </script>
 
 <aside class="tagger-sidebar">
   <div class="tagger-sidebar-header">
     <span class="tagger-sidebar-title">待審查</span>
-    <span class="badge">{tagger.selectedCount > 1 ? `${tagger.selectedCount}/` : ""}{tagger.files.length}</span>
+    <span class="badge"
+      >{selectionStore.selected.size > 1 ? `${selectionStore.selected.size}/` : ""}{fileStore.list.length}</span
+    >
     <button
       class="btn-refresh"
-      class:spinning={tagger.refreshing}
+      class:spinning={fileStore.refreshing}
       title="重新掃描 staged 資料夾"
-      onclick={() => tagger.refresh()}
-      disabled={tagger.refreshing}
+      onclick={refresh}
+      disabled={fileStore.refreshing}
     >
       <IconRefresh size={14} />
     </button>
   </div>
 
   <div class="tagger-sidebar-list" bind:this={listEl} onscroll={() => listEl && (scrollTop = listEl.scrollTop)}>
-    {#if tagger.files.length === 0}
+    {#if fileStore.list.length === 0}
       <div class="tagger-empty">沒有待審查的圖片</div>
     {:else}
       <div class="virtual-scroll-content" style="height:{totalH}px">
@@ -107,8 +93,8 @@
           <button
             type="button"
             class="tagger-thumb"
-            class:active={item.index === tagger.cursor}
-            class:selected={tagger.selected.has(item.index)}
+            class:active={item.index === selectionStore.cursor}
+            class:selected={selectionStore.selected.has(item.index)}
             style="top:{item.index * ITEM_H}px"
             onclick={(e) => handleClick(e, item.index)}
           >
@@ -134,9 +120,9 @@
       class="visually-hidden"
       onchange={handleUpload}
     />
-    <button class="btn btn-sm tagger-upload-btn" onclick={() => fileInputEl?.click()} disabled={uploading}>
+    <button class="btn btn-sm tagger-upload-btn" onclick={() => fileInputEl?.click()} disabled={fileStore.uploading}>
       <IconUpload size={14} />
-      {uploading ? "上傳中..." : "加入圖片"}
+      {fileStore.uploading ? "上傳中..." : "加入圖片"}
     </button>
   </div>
 </aside>

@@ -5,7 +5,8 @@
   import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
   import type { PageData } from "./$types.js";
 
-  import { TaggerState } from "./tagger-state.svelte.js";
+  import { uiStore } from "./stores.svelte.js";
+  import { initTagger, handleKeydown, resolveConfirm } from "./actions.js";
   import TaggerHeader from "./TaggerHeader.svelte";
   import TaggerSidebar from "./TaggerSidebar.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
@@ -14,51 +15,24 @@
 
   let { data }: { data: PageData } = $props();
 
-  const tagger = new TaggerState(
-    untrack(() => data.stagedFiles),
-    untrack(() => data.allTags),
-  );
+  // Initialize all stores from server-loaded data (once, untracked)
+  untrack(() => initTagger(data.stagedFiles, data.allTags));
 
-  // Component refs (UI-only side-effects)
-  let sidebarRef = $state<TaggerSidebar>();
-  let previewRef = $state<TaggerPreview>();
-  let tagPanelRef = $state<TaggerTagPanel>();
-
-  // Viewport guard
+  // Viewport guard (page-local, not business state)
   let windowWidth = $state(900);
   let windowHeight = $state(600);
   const MIN_WIDTH = 860;
   const MIN_HEIGHT = 500;
   let tooSmall = $derived(windowWidth < MIN_WIDTH || windowHeight < MIN_HEIGHT);
-
-  // Wire UI callbacks once
-  $effect(() => {
-    tagger.onNavigate = () => {
-      sidebarRef?.scrollToActive(tagger.cursor);
-      previewRef?.resetZoom();
-    };
-    tagger.onFocusInput = () => tagPanelRef?.focusInput();
-  });
-
-  // Select first image when list loads
-  $effect(() => {
-    if (tagger.files.length > 0 && tagger.cursor < 0) {
-      tagger.select(0);
-    }
-  });
 </script>
 
 <svelte:head>
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window onkeydown={tagger.handleKeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
+<svelte:window onkeydown={handleKeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
-<TaggerHeader
-  progressPct={tagger.progressPct}
-  progressLabel={tagger.progressLabel}
-  onopentools={() => (tagger.toolsOpen = true)}
-/>
+<TaggerHeader />
 
 {#if tooSmall}
   <TooSmallOverlay
@@ -70,30 +44,19 @@
   />
 {:else}
   <main class="tagger-main">
-    <TaggerSidebar bind:this={sidebarRef} {tagger} />
-
-    <TaggerPreview
-      bind:this={previewRef}
-      currentFilename={tagger.currentFile}
-      previewSrc={tagger.previewUrl}
-      selectedCount={tagger.selectedCount}
-    />
-
-    <TaggerTagPanel bind:this={tagPanelRef} {tagger} />
+    <TaggerSidebar />
+    <TaggerPreview />
+    <TaggerTagPanel />
   </main>
 {/if}
 
-<TaggerToolsModal
-  bind:show={tagger.toolsOpen}
-  allTags={tagger.knownTags}
-  ontagschanged={() => tagger.refreshKnownTags()}
-/>
+<TaggerToolsModal />
 
-{#if tagger.pendingConfirm}
+{#if uiStore.pendingConfirm}
   <ConfirmModal
-    message={tagger.pendingConfirm.message}
-    onconfirm={() => tagger.resolveConfirm(true)}
-    oncancel={() => tagger.resolveConfirm(false)}
+    message={uiStore.pendingConfirm.message}
+    onconfirm={() => resolveConfirm(true)}
+    oncancel={() => resolveConfirm(false)}
   />
 {/if}
 
