@@ -50,6 +50,7 @@ export interface DBData {
  * - If `limit` is omitted or 0, ALL matching results are returned (no pagination).
  */
 export interface QueryOptions {
+  search?: string; // filename (originalName) substring search
   tags?: string[];
   rating?: number;
   ratingOp?: "gte" | "lte" | "eq";

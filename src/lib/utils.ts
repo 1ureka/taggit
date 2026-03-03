@@ -42,6 +42,7 @@ export function parseTags(raw: string | null): string[] {
 export function parseQueryParams(url: URL): QueryOptions {
   const p = url.searchParams;
   return {
+    search: p.get("search") ?? undefined,
     tags: parseTags(p.get("tags")),
     rating: p.has("rating") ? Number(p.get("rating")) : undefined,
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",

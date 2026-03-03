@@ -55,6 +55,7 @@ export function allImageEntries(jsonDB: JSONDatabase): [string, ImageRecord][] {
  * @param opts - Optional query parameters (tags, rating, sort, order, page, limit).
  */
 export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): QueryResult {
+  const search = opts.search?.trim().toLowerCase() ?? "";
   const tags = opts.tags ?? [];
   const rating = opts.rating;
   const ratingOp = opts.ratingOp ?? "gte";
@@ -63,7 +64,7 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
   const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
   const page = Math.max(1, opts.page ?? 1);
 
-  const ids = filterIds(jsonDB, tags, rating, ratingOp);
+  const ids = filterIds(jsonDB, search, tags, rating, ratingOp);
 
   // Build sorted item list
   let items: ImageWithId[] = [...ids].map((id) => ({ id, ...jsonDB.data.images[id] }));
@@ -106,18 +107,21 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
 }
 
 /**
- * Applies tag and rating filters, returning a set of matching image ids.
+ * Applies search, tag, and rating filters, returning a set of matching image ids.
  *
+ * - `search` performs a case-insensitive substring match on `originalName`.
  * - Tags are intersected (AND semantics).
  * - Rating is compared using the given operator (`gte`, `lte`, or `eq`).
  *
  * @param jsonDB - The database instance to query.
+ * @param search - Case-insensitive substring to match against originalName.
  * @param tags - Tags that every returned image must have.
  * @param rating - Rating threshold (or exact value) to filter by.
  * @param ratingOp - Comparison operator for the rating filter.
  */
 export function filterIds(
   jsonDB: JSONDatabase,
+  search: string,
   tags: string[],
   rating: number | undefined,
   ratingOp: "gte" | "lte" | "eq",
@@ -135,6 +139,14 @@ export function filterIds(
     }
   } else {
     ids = new Set(Object.keys(jsonDB.data.images));
+  }
+
+  // Filename (originalName) substring search
+  if (search) {
+    for (const id of ids) {
+      const name = (jsonDB.data.images[id].originalName ?? "").toLowerCase();
+      if (!name.includes(search)) ids.delete(id);
+    }
   }
 
   if (rating !== undefined) {
