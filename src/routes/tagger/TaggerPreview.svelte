@@ -143,13 +143,4 @@
     font-size: 0.875rem;
     color: var(--text-dim);
   }
-
-  /* ─── Mobile ─────────────────────────────────────────────────────────── */
-
-  @media (max-width: 768px) {
-    .tagger-preview {
-      flex: 1;
-      min-height: 0;
-    }
-  }
 </style>

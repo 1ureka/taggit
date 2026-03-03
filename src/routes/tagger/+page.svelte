@@ -27,9 +27,16 @@
   let confirmModal = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
 
   // Component refs
-  let sidebarRef: TaggerSidebar;
-  let previewRef: TaggerPreview;
-  let tagPanelRef: TaggerTagPanel;
+  let sidebarRef = $state<TaggerSidebar>();
+  let previewRef = $state<TaggerPreview>();
+  let tagPanelRef = $state<TaggerTagPanel>();
+
+  // Viewport size
+  let windowWidth = $state(900);
+  let windowHeight = $state(600);
+  const MIN_WIDTH = 860;
+  const MIN_HEIGHT = 500;
+  let tooSmall = $derived(windowWidth < MIN_WIDTH || windowHeight < MIN_HEIGHT);
 
   // ─── Derived ──────────────────────────────────────────────────────────
   let currentFilename = $derived(
@@ -257,32 +264,45 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
 <TaggerHeader {progressPct} {progressLabel} onopentools={() => (showToolsModal = true)} />
 
-<main class="tagger-main">
-  <TaggerSidebar
-    bind:this={sidebarRef}
-    {stagedFiles}
-    {currentIndex}
-    {refreshing}
-    onselect={selectImage}
-    onrefresh={refreshStaged}
-  />
+{#if tooSmall}
+  <div class="too-small-overlay">
+    <div class="too-small-card">
+      <div class="too-small-icon">⚠</div>
+      <h2 class="too-small-title">視窗過小</h2>
+      <p class="too-small-desc">
+        Tagger 需要至少 {MIN_WIDTH}×{MIN_HEIGHT} 的視窗大小才能正常使用。<br />請放大您的瀏覽器視窗。
+      </p>
+      <span class="too-small-current">{windowWidth} × {windowHeight}</span>
+    </div>
+  </div>
+{:else}
+  <main class="tagger-main">
+    <TaggerSidebar
+      bind:this={sidebarRef}
+      {stagedFiles}
+      {currentIndex}
+      {refreshing}
+      onselect={selectImage}
+      onrefresh={refreshStaged}
+    />
 
-  <TaggerPreview bind:this={previewRef} {currentFilename} {previewSrc} />
+    <TaggerPreview bind:this={previewRef} {currentFilename} {previewSrc} />
 
-  <TaggerTagPanel
-    bind:this={tagPanelRef}
-    {allTags}
-    bind:currentTags
-    bind:currentRating
-    oncommit={commitCurrent}
-    ontrash={trashCurrent}
-    oncopyprevious={copyPreviousTags}
-  />
-</main>
+    <TaggerTagPanel
+      bind:this={tagPanelRef}
+      {allTags}
+      bind:currentTags
+      bind:currentRating
+      oncommit={commitCurrent}
+      ontrash={trashCurrent}
+      oncopyprevious={copyPreviousTags}
+    />
+  </main>
+{/if}
 
 <TaggerToolsModal bind:show={showToolsModal} {allTags} ontagschanged={refreshTags} />
 
@@ -297,9 +317,45 @@
     margin-top: 3rem;
   }
 
-  @media (max-width: 768px) {
-    .tagger-main {
-      flex-direction: column;
-    }
+  .too-small-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    z-index: 9999;
+  }
+
+  .too-small-card {
+    text-align: center;
+    padding: 2.5rem;
+    max-width: 24rem;
+  }
+
+  .too-small-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+  }
+
+  .too-small-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+
+  .too-small-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .too-small-current {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
   }
 </style>

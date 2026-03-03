@@ -16,11 +16,13 @@
   let newName = $state("");
   let newInputEl: HTMLInputElement | undefined = $state();
 
-  function open() {
-    show = true;
-    oldName = "";
-    newName = "";
-  }
+  // Reset fields whenever the modal opens
+  $effect(() => {
+    if (show) {
+      oldName = "";
+      newName = "";
+    }
+  });
 
   function close() {
     show = false;

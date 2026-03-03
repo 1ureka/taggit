@@ -240,41 +240,12 @@
     color: var(--text-dim);
   }
 
-  /* ─── Mobile ─────────────────────────────────────────────────────────── */
+  .tagger-sidebar-footer {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--border);
+  }
 
-  @media (max-width: 768px) {
-    .tagger-sidebar {
-      width: 100%;
-      min-width: 0;
-      max-height: 120px;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tagger-sidebar-list {
-      display: flex;
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-    }
-
-    .tagger-thumb {
-      flex-direction: column;
-      min-width: 80px;
-      border-left: none;
-      border-bottom: 3px solid transparent;
-      padding: 0.25rem;
-      text-align: center;
-    }
-
-    .tagger-thumb.active {
-      border-left-color: transparent;
-      border-bottom-color: var(--accent);
-    }
-
-    .tagger-thumb-img {
-      height: 48px;
-      max-width: 64px;
-    }
+  .tagger-upload-btn {
+    width: 100%;
   }
 </style>

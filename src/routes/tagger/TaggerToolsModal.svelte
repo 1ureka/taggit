@@ -20,6 +20,11 @@
   let toolResult = $state("");
   let confirmModal = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
 
+  // Reset result when modal opens
+  $effect(() => {
+    if (show) toolResult = "";
+  });
+
   function confirmDialog(message: string): Promise<boolean> {
     return new Promise((resolve) => {
       confirmModal = { message, resolve };
@@ -34,11 +39,6 @@
   function handleConfirmCancel() {
     confirmModal?.resolve(false);
     confirmModal = null;
-  }
-
-  function open() {
-    show = true;
-    toolResult = "";
   }
 
   function close() {

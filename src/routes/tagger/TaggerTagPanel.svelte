@@ -183,21 +183,4 @@
     align-items: center;
     gap: 0.25rem;
   }
-
-  /* ─── Mobile ─────────────────────────────────────────────────────────── */
-
-  @media (max-width: 768px) {
-    .tagger-panel {
-      width: 100%;
-      min-width: 0;
-      max-height: 40vh;
-      border-left: none;
-      border-top: 1px solid var(--border);
-      overflow-y: auto;
-    }
-
-    .tagger-shortcuts {
-      display: none;
-    }
-  }
 </style>
