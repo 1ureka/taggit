@@ -203,6 +203,10 @@
   transform: scale(1.15);
 }
 
+.rating-star.preview {
+  color: var(--text-dim);
+}
+
 .rating-star.active {
   color: var(--text);
 }

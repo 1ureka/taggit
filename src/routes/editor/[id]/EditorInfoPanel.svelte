@@ -6,28 +6,11 @@
   import { addTag, removeTag, removeLastTag, setRating } from "./actions.js";
 
   let image = $derived(editStore.image!);
-  let ratingProxy = $state(editStore.currentRating);
-
-  // Sync store → proxy
-  $effect(() => {
-    ratingProxy = editStore.currentRating;
-  });
-
-  // Detect user-initiated rating change from bind
-  let prevProxy = editStore.currentRating;
-  $effect(() => {
-    if (ratingProxy !== prevProxy) {
-      prevProxy = ratingProxy;
-      if (ratingProxy !== editStore.currentRating) {
-        setRating(ratingProxy);
-      }
-    }
-  });
 </script>
 
 <aside class="editor-panel">
   <div class="editor-rating">
-    <Rating bind:value={ratingProxy} size="1.5rem" />
+    <Rating value={editStore.currentRating} size="1.5rem" onchange={setRating} />
   </div>
   <div class="separator"></div>
 

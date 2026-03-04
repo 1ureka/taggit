@@ -10,31 +10,21 @@
   import { clearSelection, deleteSelected, rateSelected } from "./actions.js";
 
   let count = $derived(selectionStore.selected.size);
+
+  // Visual-only rating value that resets each time the selection changes.
+  // The actual batch-rate action is triggered via the onchange callback,
+  // NOT via a reactive $effect — this avoids accidentally calling rateSelected
+  // when the value is reset programmatically (e.g. selection cleared).
   let dockRating = $state(0);
 
-  // Reset dock rating when selection changes
   $effect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    count;
+    count; // depend on count so we reset once per selection change
     dockRating = 0;
-  });
-
-  let prevRating = $state(0);
-  $effect(() => {
-    if (dockRating !== prevRating) {
-      prevRating = dockRating;
-      if (dockRating > 0) {
-        rateSelected(dockRating);
-      }
-    }
   });
 </script>
 
 {#if count > 0}
-  <div
-    class="selection-dock"
-    transition:fly={{ y: 20, duration: 200, opacity: 0 }}
-  >
+  <div class="selection-dock" transition:fly={{ y: 20, duration: 200, opacity: 0 }}>
     <div class="dock-inner">
       <button class="btn btn-ghost btn-sm dock-close" onclick={clearSelection} title="取消選取">
         <IconX size={16} />
@@ -45,7 +35,7 @@
       <div class="dock-separator"></div>
 
       <div class="dock-rating">
-        <Rating bind:value={dockRating} size="1.125rem" />
+        <Rating bind:value={dockRating} size="1.125rem" onchange={rateSelected} />
       </div>
 
       <div class="dock-separator"></div>

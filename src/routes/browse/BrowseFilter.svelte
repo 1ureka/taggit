@@ -11,16 +11,6 @@
   let startDisabled = $derived(filterStore.matchCount === 0 || filterStore.counting);
   let countText = $derived(filterStore.counting ? "查詢中..." : `共 ${filterStore.matchCount} 張符合`);
 
-  // Rating uses bind:value for two-way toggle; trigger count on change
-  let prevRating = filterStore.minRating;
-  $effect(() => {
-    const cur = filterStore.minRating;
-    if (cur !== prevRating) {
-      prevRating = cur;
-      updateCount();
-    }
-  });
-
   const sortOptions = [
     { value: "committedAt", label: "提交時間" },
     { value: "rating", label: "評等" },
@@ -54,7 +44,7 @@
     <!-- Min Rating -->
     <div class="browse-filter-field">
       <span class="browse-filter-label">最低評等</span>
-      <Rating bind:value={filterStore.minRating} size="1.5rem" />
+      <Rating bind:value={filterStore.minRating} size="1.5rem" onchange={updateCount} />
     </div>
 
     <!-- Sort -->
