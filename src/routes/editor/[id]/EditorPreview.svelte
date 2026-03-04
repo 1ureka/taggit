@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
+
   let {
     currentFilename,
     previewSrc,
@@ -7,58 +9,17 @@
     previewSrc: string;
   } = $props();
 
-  let scale = $state(1);
-  let panX = $state(0);
-  let panY = $state(0);
-  let isDragging = $state(false);
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragStartPanX = 0;
-  let dragStartPanY = 0;
+  const zp = useZoomPan();
 
   /** Reset zoom whenever the image source changes. */
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     previewSrc;
-    scale = 1;
-    panX = 0;
-    panY = 0;
+    zp.reset();
   });
-
-  function resetZoom() {
-    scale = 1;
-    panX = 0;
-    panY = 0;
-  }
-
-  function handleWheel(e: WheelEvent) {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    scale = Math.max(0.2, Math.min(10, scale + delta * scale));
-  }
-
-  function handleMousedown(e: MouseEvent) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    dragStartPanX = panX;
-    dragStartPanY = panY;
-  }
-
-  function handleWindowMousemove(e: MouseEvent) {
-    if (!isDragging) return;
-    panX = dragStartPanX + (e.clientX - dragStartX);
-    panY = dragStartPanY + (e.clientY - dragStartY);
-  }
-
-  function handleWindowMouseup() {
-    isDragging = false;
-  }
 </script>
 
-<svelte:window onmousemove={handleWindowMousemove} onmouseup={handleWindowMouseup} />
+<svelte:window onmousemove={zp.onWindowMousemove} onmouseup={zp.onWindowMouseup} />
 
 <section class="editor-preview">
   {#if currentFilename}
@@ -66,18 +27,13 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="editor-preview-container"
-      class:dragging={isDragging}
-      onwheel={handleWheel}
-      onmousedown={handleMousedown}
-      ondblclick={resetZoom}
+      class:dragging={zp.isDragging}
+      onwheel={zp.onWheel}
+      onmousedown={zp.onMousedown}
+      ondblclick={zp.reset}
       role="img"
     >
-      <img
-        src={previewSrc}
-        alt={currentFilename}
-        draggable="false"
-        style="transform:translate({panX}px,{panY}px) scale({scale})"
-      />
+      <img src={previewSrc} alt={currentFilename} draggable="false" style="transform:{zp.transform}" />
     </div>
   {:else}
     <div class="editor-preview-container">

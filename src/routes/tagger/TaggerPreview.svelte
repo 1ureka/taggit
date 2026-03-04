@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
   import { fileStore, selectionStore, uiStore } from "./stores.svelte.js";
   import { stagedUrl } from "./helpers.js";
 
@@ -11,57 +12,18 @@
   let previewSrc = $derived(currentFile ? stagedUrl(currentFile) : "");
   let selectedCount = $derived(selectionStore.selected.size);
 
-  // ── Local zoom / pan state ────────────────────────────────
-  let scale = $state(1);
-  let panX = $state(0);
-  let panY = $state(0);
-  let isDragging = $state(false);
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragStartPanX = 0;
-  let dragStartPanY = 0;
-
-  function resetZoom() {
-    scale = 1;
-    panX = 0;
-    panY = 0;
-  }
+  // ── Zoom / pan ────────────────────────────────────────────
+  const zp = useZoomPan();
 
   // React to navigation: reset zoom
   $effect(() => {
     const tick = uiStore.navigationTick;
     if (tick === 0) return;
-    resetZoom();
+    zp.reset();
   });
-
-  function handleWheel(e: WheelEvent) {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    scale = Math.max(0.2, Math.min(10, scale + delta * scale));
-  }
-
-  function handleMousedown(e: MouseEvent) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    dragStartPanX = panX;
-    dragStartPanY = panY;
-  }
-
-  function handleWindowMousemove(e: MouseEvent) {
-    if (!isDragging) return;
-    panX = dragStartPanX + (e.clientX - dragStartX);
-    panY = dragStartPanY + (e.clientY - dragStartY);
-  }
-
-  function handleWindowMouseup() {
-    isDragging = false;
-  }
 </script>
 
-<svelte:window onmousemove={handleWindowMousemove} onmouseup={handleWindowMouseup} />
+<svelte:window onmousemove={zp.onWindowMousemove} onmouseup={zp.onWindowMouseup} />
 
 <section class="tagger-preview">
   {#if currentFile}
@@ -69,17 +31,17 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="tagger-preview-container"
-      class:dragging={isDragging}
-      onwheel={handleWheel}
-      onmousedown={handleMousedown}
-      ondblclick={resetZoom}
+      class:dragging={zp.isDragging}
+      onwheel={zp.onWheel}
+      onmousedown={zp.onMousedown}
+      ondblclick={zp.reset}
       role="img"
     >
       <img
         src={previewSrc}
         alt={currentFile}
         draggable="false"
-        style="transform:translate({panX}px,{panY}px) scale({scale})"
+        style="transform:{zp.transform}"
       />
     </div>
     <div class="tagger-preview-info">
