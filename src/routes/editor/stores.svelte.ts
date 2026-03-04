@@ -8,6 +8,7 @@
  * Stores:
  *   searchStore     — search / filter / pagination
  *   selectionStore  — multi-select image IDs
+ *   uiStore         — modals & cross-component signals
  *
  * Edit-page stores live in [id]/stores.svelte.ts.
  */
@@ -45,3 +46,13 @@ class SelectionStore {
 }
 
 export const selectionStore = new SelectionStore();
+
+// ═══════════════════════════════════════════════════════════
+//  UI Store
+// ═══════════════════════════════════════════════════════════
+
+class UIStore {
+  pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
+}
+
+export const uiStore = new UIStore();

@@ -16,7 +16,7 @@ import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import type { ImageWithId, TagInfo, QueryResult } from "$lib/types.js";
 
-import { searchStore, selectionStore } from "./stores.svelte.js";
+import { searchStore, selectionStore, uiStore } from "./stores.svelte.js";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -173,18 +173,85 @@ export function handleCardClick(id: string) {
   }
 }
 
-/** Batch-delete selected images (console.log placeholder). */
-export function deleteSelected() {
-  const ids = [...selectionStore.selected];
-  console.log("[Editor] Delete selected:", ids);
-  addToast(`已選取 ${ids.length} 張圖片（刪除功能尚未實裝）`, "info");
+// ═══════════════════════════════════════════════════════════
+//  Confirm Dialog
+// ═══════════════════════════════════════════════════════════
+
+export function confirmDialog(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    uiStore.pendingConfirm = { message, resolve };
+  });
 }
 
-/** Batch-rate selected images (console.log placeholder). */
-export function rateSelected(rating: number) {
+export function resolveConfirm(value: boolean) {
+  uiStore.pendingConfirm?.resolve(value);
+  uiStore.pendingConfirm = null;
+}
+
+/** Batch-delete selected images. */
+export async function deleteSelected() {
   const ids = [...selectionStore.selected];
-  console.log("[Editor] Rate selected:", ids, "→", rating);
-  addToast(`已選取 ${ids.length} 張圖片 → ${rating} 星（評等功能尚未實裝）`, "info");
+  if (ids.length === 0) return;
+
+  const ok = await confirmDialog(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
+  if (!ok) return;
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const id of ids) {
+    const res = await api.del(`/api/images/${encodeURIComponent(id)}`);
+    if (res.ok) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+
+  clearSelection();
+  await doSearch(false);
+
+  if (failCount > 0) {
+    addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
+  } else {
+    addToast(`已刪除 ${successCount} 張圖片`, "success");
+  }
+}
+
+/** Batch-rate selected images. */
+export async function rateSelected(rating: number) {
+  const ids = [...selectionStore.selected];
+  if (ids.length === 0) return;
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const id of ids) {
+    const image = searchStore.items.find((item) => item.id === id);
+    if (!image) {
+      failCount++;
+      continue;
+    }
+    const res = await api.patch<{ updatedAt?: number }>(`/api/images/${encodeURIComponent(id)}`, {
+      rating,
+      expectedUpdatedAt: image.updatedAt,
+    });
+    if (res.ok) {
+      successCount++;
+      // Reflect the new rating immediately in the store so the UI updates
+      searchStore.items = searchStore.items.map((item) =>
+        item.id === id ? { ...item, rating, updatedAt: res.data?.updatedAt ?? item.updatedAt } : item,
+      );
+    } else {
+      failCount++;
+    }
+  }
+
+  if (failCount > 0) {
+    addToast(`已設定 ${successCount} 張，${failCount} 張失敗`, "error");
+  } else {
+    addToast(`已設定 ${successCount} 張圖片為 ${rating} 星`, "success");
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

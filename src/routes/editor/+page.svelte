@@ -1,9 +1,11 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
+  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import type { PageData } from "./$types.js";
 
-  import { initSearch, handleSearchKeydown } from "./actions.js";
+  import { initSearch, handleSearchKeydown, resolveConfirm } from "./actions.js";
+  import { uiStore } from "./stores.svelte.js";
   import EditorSearch from "./EditorSearch.svelte";
   import EditorSelectionDock from "./EditorSelectionDock.svelte";
 
@@ -37,6 +39,14 @@
 </main>
 
 <EditorSelectionDock />
+
+{#if uiStore.pendingConfirm}
+  <ConfirmModal
+    message={uiStore.pendingConfirm.message}
+    onconfirm={() => resolveConfirm(true)}
+    oncancel={() => resolveConfirm(false)}
+  />
+{/if}
 
 <style>
   .editor-header {
