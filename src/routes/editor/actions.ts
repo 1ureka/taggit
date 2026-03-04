@@ -134,6 +134,20 @@ export function isSelecting(): boolean {
   return selectionStore.selected.size > 0;
 }
 
+/** Select every image on the current page. */
+export function selectAll() {
+  selectionStore.selected = new Set(searchStore.items.map((item) => item.id));
+}
+
+/** Invert the selection across the current page. */
+export function invertSelection() {
+  const next = new Set<string>();
+  for (const item of searchStore.items) {
+    if (!selectionStore.selected.has(item.id)) next.add(item.id);
+  }
+  selectionStore.selected = next;
+}
+
 /** Toggle selection of a single image by ID. */
 export function toggleSelect(id: string) {
   const next = new Set(selectionStore.selected);
@@ -187,10 +201,23 @@ export function handleSearchKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement;
   const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
 
-  if (inInput || e.ctrlKey || e.metaKey || e.altKey) return;
-
-  if (e.key === "Escape") {
-    e.preventDefault();
-    goto("/");
+  // Ctrl/Cmd shortcuts (work even when focus is in an input)
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === "a" || e.key === "A") {
+      // Ctrl+Shift+A → clear all; Ctrl+A → select all
+      if (e.shiftKey) {
+        e.preventDefault();
+        clearSelection();
+      } else if (!inInput) {
+        e.preventDefault();
+        selectAll();
+      }
+      return;
+    }
+    if ((e.key === "i" || e.key === "I") && !inInput) {
+      e.preventDefault();
+      invertSelection();
+      return;
+    }
   }
 }

@@ -24,6 +24,12 @@
     首頁
   </a>
   <span class="editor-title">搜尋圖片</span>
+  <div class="editor-shortcuts">
+    <span><span class="kbd">Ctrl A</span> 全選</span>
+    <span><span class="kbd">Ctrl ⇧A</span> 全不選</span>
+    <span><span class="kbd">Ctrl I</span> 反轉</span>
+    <span><span class="kbd">Esc</span> 取消選取</span>
+  </div>
 </header>
 
 <main class="editor-content-search">
@@ -56,6 +62,23 @@
     white-space: nowrap;
     flex: 1;
     min-width: 0;
+  }
+
+  .editor-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .editor-shortcuts span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   .editor-content-search {
