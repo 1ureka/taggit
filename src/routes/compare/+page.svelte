@@ -171,11 +171,7 @@
       </div>
       <div class="compare-info">
         <div class="compare-info-rating">
-          {#each [1, 2, 3, 4, 5] as i}
-            <span class="rating-star" class:active={i <= (pairA.rating ?? 0)}>
-              {i <= (pairA.rating ?? 0) ? "★" : "☆"}
-            </span>
-          {/each}
+          <Rating readonly value={pairA.rating ?? 0} size="0.875rem" />
         </div>
         <div class="compare-info-tags">
           {#each pairA.tags as tag}
@@ -191,11 +187,7 @@
       </div>
       <div class="compare-info">
         <div class="compare-info-rating">
-          {#each [1, 2, 3, 4, 5] as i}
-            <span class="rating-star" class:active={i <= (pairB.rating ?? 0)}>
-              {i <= (pairB.rating ?? 0) ? "★" : "☆"}
-            </span>
-          {/each}
+          <Rating readonly value={pairB.rating ?? 0} size="0.875rem" />
         </div>
         <div class="compare-info-tags">
           {#each pairB.tags as tag}

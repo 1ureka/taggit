@@ -182,34 +182,6 @@
   gap: 0.5rem;
 }
 
-/* ─── Rating Stars ─── */
-.rating {
-  display: inline-flex;
-  gap: 0.125rem;
-  user-select: none;
-}
-
-.rating-star {
-  display: inline-flex;
-  cursor: pointer;
-  color: var(--text-dim);
-  transition:
-    color 0.1s,
-    transform 0.1s;
-}
-
-.rating-star:hover {
-  transform: scale(1.15);
-}
-
-.rating-star.preview {
-  color: var(--text-dim);
-}
-
-.rating-star.active {
-  color: var(--text);
-}
-
 /* ─── Progress Bar ─── */
 .progress-bar {
   width: 100%;
