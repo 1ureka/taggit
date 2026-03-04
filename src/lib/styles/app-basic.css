@@ -190,13 +190,12 @@
 }
 
 .rating-star {
-  font-size: 1.25rem;
+  display: inline-flex;
   cursor: pointer;
   color: var(--text-dim);
   transition:
     color 0.1s,
     transform 0.1s;
-  line-height: 1;
 }
 
 .rating-star:hover {

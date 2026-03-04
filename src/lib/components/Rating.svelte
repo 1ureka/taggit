@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { IconStar, IconStarFilled } from "@tabler/icons-svelte";
+
   let {
     value = $bindable(0),
     size = "1.25rem",
@@ -10,6 +12,9 @@
     onchange?: (v: number) => void;
   } = $props();
 
+  // Convert CSS rem string → px for tabler icon size prop (assumes 16px root)
+  const iconPx = $derived(Math.round(parseFloat(size) * 16));
+
   let hoveredValue = $state(0);
   let displayValue = $derived(hoveredValue || value);
 
@@ -20,7 +25,7 @@
   }
 </script>
 
-<div class="rating" style="font-size:{size}" role="group" aria-label="評分" onmouseleave={() => (hoveredValue = 0)}>
+<div class="rating" role="group" aria-label="評分" onmouseleave={() => (hoveredValue = 0)}>
   {#each [1, 2, 3, 4, 5] as i}
     <span
       class="rating-star"
@@ -34,7 +39,11 @@
         if (e.key === "Enter" || e.key === " ") handleClick(i);
       }}
     >
-      {i <= value ? "★" : "☆"}
+      {#if i <= value}
+        <IconStarFilled size={iconPx} />
+      {:else}
+        <IconStar size={iconPx} />
+      {/if}
     </span>
   {/each}
 </div>
