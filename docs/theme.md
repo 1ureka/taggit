@@ -63,12 +63,11 @@
 ## 2. 已知耦合 & 技術債
 
 1. **硬編碼顏色**：`EditorSelectionDock` 的白底 dock 使用了大量 `#ffffff`, `#000000`, `#555555` 等硬編碼值，未走 CSS 變數。
-2. **全域 class 穿透**：部分元件透過 `:global()` 覆寫其他元件內部 class（如 dock 覆寫 `.rating-star` 顏色）。
-3. **全域原子 class**：`app-basic.css` 中的 `.btn`, `.chip` 等為全域命名，無 scope — 雖然目前沒有衝突，但限制了命名自由度。
+2. **全域原子 class**：`app-basic.css` 中的 `.btn`, `.chip` 等為全域命名，無 scope — 雖然目前沒有衝突，但限制了命名自由度。
 
 ---
 
-## 3. 推薦的現代 CSS 主題實踐
+## 3. 現代 CSS 主題實踐（務必遵循）
 
 ### 3.1 使用相對色彩語法（Relative Color Syntax）
 
@@ -89,7 +88,7 @@ border-color: hsl(from var(--border) h s calc(l + 15));
 **好處**：
 - 一個語意色可衍生出 hover、active、disabled 等狀態色
 - 減少 CSS 變數數量
-- 切換主題（如淺色模式）只需改基礎色
+- 只需維護一套深色基礎色即可衍生所有變體
 
 **注意**：需要基礎色本身使用 CSS 支援的格式（hex、rgb、hsl 皆可），瀏覽器會自動解析。
 
@@ -105,55 +104,20 @@ background: color-mix(in srgb, var(--bg-card) 85%, white);
 background: color-mix(in srgb, var(--accent) 80%, black);
 ```
 
-### 3.3 將主題層級化
+### 3.3 強制深色模式
 
-建議日後將變數組織為三層：
-
-```
-┌─────────────────────────────────┐
-│  Primitive Tokens               │  --gray-100, --gray-200, --red-500 …
-├─────────────────────────────────┤
-│  Semantic Tokens                │  --bg, --text, --destructive …
-├─────────────────────────────────┤
-│  Component Tokens               │  --rating-color, --toast-bg, --btn-bg …
-└─────────────────────────────────┘
-```
-
-- **Primitive**：原始色票（可由設計工具匯出）
-- **Semantic**：語意化映射，切換主題只需重新映射此層
-- **Component**：元件級覆寫點，讓 scoped 樣式更靈活
-
-### 3.4 淺色 / 深色模式切換（未來目標）
+本專案僅支援深色主題，不打算支援淺色模式。在 `:root` 中應明確宣告：
 
 ```css
 :root {
   color-scheme: dark;
-  --bg: #0a0a0a;
-  --text: #fafafa;
-  /* … */
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-    --bg: #ffffff;
-    --text: #0a0a0a;
-    /* … */
-  }
+  /* 所有變數皆為深色值 */
 }
 ```
 
-或用 `data-theme` attribute 手動切換：
+`color-scheme: dark` 告知瀏覽器使用深色系的原生控制項（scrollbar、form elements 等），確保視覺一致。
 
-```css
-:root[data-theme="light"] {
-  --bg: #ffffff;
-  --text: #171717;
-  /* … */
-}
-```
-
-### 3.5 元件 Scoped 變數 + 外部覆寫
+### 3.4 元件 Scoped 變數 + 外部覆寫
 
 此專案已在 Rating 元件上開始實踐。模式為：
 
@@ -179,9 +143,8 @@ background: color-mix(in srgb, var(--accent) 80%, black);
 ## 4. 遷移路線建議
 
 1. **短期**：繼續使用目前的 semantic tokens（`--bg`, `--text` 等），逐步將元件內的硬編碼色轉為變數。
-2. **中期**：為需要外部覆寫的元件引入 component-level CSS custom properties（如 `--rating-color`），消除 `:global()` 穿透。
-3. **中期**：將 dock 等淺色區塊的硬編碼色改用 `hsl(from … h s l / alpha)` 或 `color-mix()` 從語意色衍生。
-4. **長期**：引入 primitive token 層，支援多主題（dark / light / 自訂），搭配 `data-theme` 切換。
+2. **中期**：為需要外部覆寫的元件引入 component-level CSS custom properties（如 `--rating-color`），消除所有 `:global()` 穿透。
+3. **中期**：將 dock 等特殊區塊的硬編碼色改用 `hsl(from … h s l / alpha)` 或 `color-mix()` 從語意色衍生，減少 magic number。
 
 ---
 
