@@ -441,5 +441,5 @@
 </div>
 
 <style>
-  @import "./BrowsePlayer.css";
+  @import "./page.css";
 </style>
