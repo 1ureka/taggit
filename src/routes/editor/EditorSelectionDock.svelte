@@ -3,6 +3,7 @@
   Visible when at least one image is selected.
 -->
 <script lang="ts">
+  import { fly } from "svelte/transition";
   import { IconX, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import { selectionStore } from "./stores.svelte.js";
@@ -30,8 +31,11 @@
 </script>
 
 {#if count > 0}
-  <div class="selection-dock">
-    <div class="dock-inner slide-up">
+  <div
+    class="selection-dock"
+    transition:fly={{ y: 20, duration: 200, opacity: 0 }}
+  >
+    <div class="dock-inner">
       <button class="btn btn-ghost btn-sm dock-close" onclick={clearSelection} title="取消選取">
         <IconX size={16} />
       </button>
