@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { toasts } from "$lib/client/toast.js";
+  import { IconX, IconCircleCheck, IconAlertCircle, IconInfoCircle } from "@tabler/icons-svelte";
+  import { toasts, dismissToast } from "$lib/client/toast.js";
   import type { ToastItem } from "$lib/client/toast.js";
 
   let items: ToastItem[] = $state([]);
@@ -26,18 +27,30 @@
       }
     }
   });
+
+  function iconColor(type: ToastItem["type"]) {
+    return type === "success" ? "var(--color-success)" : type === "error" ? "var(--destructive)" : "var(--color-info)";
+  }
 </script>
 
 {#if items.length > 0}
   <div class="toast-container">
     {#each items as toast (toast.id)}
-      <div
-        class="toast toast-{toast.type}"
-        style={fading.has(toast.id)
-          ? "opacity:0;transform:translateY(-8px);transition:opacity 0.2s,transform 0.2s;"
-          : ""}
-      >
-        {toast.message}
+      <div class="toast toast-{toast.type}" class:is-fading={fading.has(toast.id)} role="status" aria-live="polite">
+        <span class="toast-icon" style="color: {iconColor(toast.type)}">
+          {#if toast.type === "success"}
+            <IconCircleCheck size={16} stroke={1.5} />
+          {:else if toast.type === "error"}
+            <IconAlertCircle size={16} stroke={1.5} />
+          {:else}
+            <IconInfoCircle size={16} stroke={1.5} />
+          {/if}
+        </span>
+        <span class="toast-message">{toast.message}</span>
+        <button class="toast-close" aria-label="關閉" onclick={() => dismissToast(toast.id)}>
+          <IconX size={14} stroke={2} />
+        </button>
+        <div class="toast-progress toast-progress-{toast.type}" style="animation-duration: {toast.duration}ms"></div>
       </div>
     {/each}
   </div>
