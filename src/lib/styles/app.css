@@ -36,6 +36,9 @@
   --text-dim: #71717a;
   --accent: #ffffff;
   --destructive: #ef4444;
+  --color-info: #3b82f6;
+  --color-warning: #eab308;
+  --color-success: #22c55e;
   --ring: #d4d4d8;
   --radius: 6px;
   --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;

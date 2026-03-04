@@ -42,7 +42,7 @@
   tabindex="-1"
 >
   {#if checked}
-    <IconCheck size={iconSize} stroke-width={3} />
+    <IconCheck size={iconSize} stroke={3} />
   {/if}
 </div>
 
