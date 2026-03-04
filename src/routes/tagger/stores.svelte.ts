@@ -23,7 +23,6 @@ import type { TagInfo } from "$lib/types.js";
 class FileStore {
   list = $state<string[]>([]);
   total = $state(0);
-  processed = $state(0);
   refreshing = $state(false);
   uploading = $state(false);
 }

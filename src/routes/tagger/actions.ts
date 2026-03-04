@@ -50,7 +50,6 @@ export function initTagger(files: string[], tags: TagInfo[]) {
   // File store
   fileStore.list = [...files];
   fileStore.total = files.length;
-  fileStore.processed = 0;
   fileStore.refreshing = false;
   fileStore.uploading = false;
 
@@ -171,7 +170,6 @@ export async function commit() {
     });
 
     if (ok) {
-      fileStore.processed += ok;
       addToast(ok === 1 ? `已提交: ${names[0]}` : `已提交 ${ok} 張圖片`, "success");
     }
     if (fail) addToast(`${fail} 張提交失敗`, "error");
@@ -201,7 +199,6 @@ export async function trash() {
   const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/staged/${encodeURIComponent(fn)}`));
 
   if (ok) {
-    fileStore.processed += ok;
     addToast(ok === 1 ? `已移至垃圾桶: ${names[0]}` : `已將 ${ok} 張圖片移至垃圾桶`, "info");
   }
   if (fail) addToast(`${fail} 張刪除失敗`, "error");

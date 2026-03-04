@@ -3,8 +3,9 @@
   import { fileStore } from "./stores.svelte.js";
   import { openTools } from "./actions.js";
 
-  let progressPct = $derived(fileStore.total > 0 ? Math.round((fileStore.processed / fileStore.total) * 100) : 0);
-  let progressLabel = $derived(`${fileStore.processed}/${fileStore.total} (${fileStore.list.length} 剩餘)`);
+  let processed = $derived(fileStore.total - fileStore.list.length);
+  let progressPct = $derived(fileStore.total > 0 ? Math.round((processed / fileStore.total) * 100) : 0);
+  let progressLabel = $derived(`${processed}/${fileStore.total} (${fileStore.list.length} 剩餘)`);
 </script>
 
 <header class="tagger-header">
