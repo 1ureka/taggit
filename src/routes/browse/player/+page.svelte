@@ -252,37 +252,17 @@
       goto("/browse");
     }
 
-    // ─── Click / DblClick ────────────────────────────────────────────────
+    // ─── Click ───────────────────────────────────────────────────────────
+    // Only toggle play when the carousel itself already has focus.
+    // If focus was elsewhere (e.g. a dock input), the click simply
+    // transfers focus to the carousel — no play/pause change.
 
-    let clickTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    function handleCarouselClick(e: MouseEvent) {
-      if ((e.target as HTMLElement).tagName !== "IMG") return;
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-        clickTimeout = null;
-        return; // dblclick will handle
-      }
-      clickTimeout = setTimeout(() => {
-        clickTimeout = null;
-        togglePlay();
-      }, 250);
-    }
-
-    function handleCarouselDblclick(e: MouseEvent) {
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-        clickTimeout = null;
-      }
-      const target = (e.target as HTMLElement).closest("img") as HTMLImageElement | null;
-      if (!target || target.dataset.idx == null) return;
-      const imgIdx = parseInt(target.dataset.idx, 10);
-      const img = images[imgIdx];
-      if (img) window.open(`/editor?id=${encodeURIComponent(img.id)}`, "_blank");
+    function handleCarouselClick() {
+      if (document.activeElement !== carouselEl) return;
+      togglePlay();
     }
 
     carouselEl.addEventListener("click", handleCarouselClick);
-    carouselEl.addEventListener("dblclick", handleCarouselDblclick);
 
     // ─── Dock Auto-Hide ──────────────────────────────────────────────────
 
@@ -361,6 +341,7 @@
     updateVisibleImages();
     updateProgress();
     resetIdleTimer();
+    carouselEl.focus();
     rafId = requestAnimationFrame(tick);
 
     // ─── Cleanup ─────────────────────────────────────────────────────────
@@ -369,10 +350,8 @@
       if (rafId != null) cancelAnimationFrame(rafId);
       if (idleTimer) clearTimeout(idleTimer);
       if (resizeTimer) clearTimeout(resizeTimer);
-      if (clickTimeout) clearTimeout(clickTimeout);
 
       carouselEl?.removeEventListener("click", handleCarouselClick);
-      carouselEl?.removeEventListener("dblclick", handleCarouselDblclick);
       document.removeEventListener("mousemove", handleMousemove);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("resize", handleResize);
@@ -404,7 +383,8 @@
 </svelte:head>
 
 <div class="browse-player">
-  <div class="browse-carousel" bind:this={carouselEl}></div>
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <div class="browse-carousel" bind:this={carouselEl} tabindex="0" role="application" aria-label="圖片播放區"></div>
 
   <!-- YouTube-style play/pause feedback -->
   <div class="browse-feedback" bind:this={feedbackEl}></div>
