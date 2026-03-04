@@ -1,103 +1,12 @@
 <script lang="ts">
   import { IconSearch } from "@tabler/icons-svelte";
-  import type { ImageWithId, TagInfo, QueryResult } from "$lib/types.js";
-  import { api } from "$lib/client/api.js";
   import FilterBar from "$lib/components/FilterBar.svelte";
-
-  let {
-    initialItems = [],
-    allTags = [],
-    onselect,
-  }: {
-    initialItems?: ImageWithId[];
-    allTags?: TagInfo[];
-    onselect: (id: string) => void;
-  } = $props();
-
-  // ─── State ────────────────────────────────────────────────────────────
-  let searchText = $state("");
-  let selectedTags = $state<string[]>([]);
-  let rating = $state<number | undefined>(undefined);
-  let ratingOp = $state<"gte" | "lte" | "eq">("gte");
-  let sort = $state("committedAt");
-  let order = $state("desc");
-  let items = $state<ImageWithId[]>([]);
-  let total = $state(0);
-  let page = $state(1);
-  let pages = $state(1);
-  let loading = $state(false);
-  let showLoading = $state(false);
-  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  let searchTimer: ReturnType<typeof setTimeout> | null = null;
-  let initialised = $state(false);
-
-  const PAGE_SIZE = 60;
-  const LOADING_DELAY = 200; // ms – don't flash "搜尋中" for fast queries
-
-  // Initialise from SSR data
-  $effect(() => {
-    if (!initialised && initialItems.length > 0) {
-      items = initialItems;
-      total = initialItems.length;
-      initialised = true;
-    }
-  });
-
-  // ─── Server query ─────────────────────────────────────────────────────
-  async function doSearch(resetPage = true) {
-    if (resetPage) page = 1;
-    loading = true;
-
-    // Only show loading indicator after a short delay – avoids flicker for fast queries
-    if (loadingTimer) clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => {
-      if (loading) showLoading = true;
-    }, LOADING_DELAY);
-
-    try {
-      const params = new URLSearchParams();
-      params.set("limit", String(PAGE_SIZE));
-      params.set("page", String(page));
-      params.set("sort", sort);
-      params.set("order", order);
-      if (searchText.trim()) params.set("search", searchText.trim());
-      if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
-      if (rating !== undefined) {
-        params.set("rating", String(rating));
-        params.set("ratingOp", ratingOp);
-      }
-
-      const res = await api.get<QueryResult>(`/api/images?${params.toString()}`);
-      if (res.ok && res.data) {
-        items = res.data.items;
-        total = res.data.total;
-        pages = res.data.pages;
-      }
-    } finally {
-      loading = false;
-      if (loadingTimer) clearTimeout(loadingTimer);
-      showLoading = false;
-    }
-  }
-
-  function handleSearchInput() {
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => doSearch(), 300);
-  }
-
-  function handleFilterChange() {
-    doSearch();
-  }
-
-  function goToPage(p: number) {
-    if (p < 1 || p > pages) return;
-    page = p;
-    doSearch(false);
-  }
+  import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
+  import { searchStore, selectionStore } from "./stores.svelte.js";
+  import { handleSearchInput, handleFilterChange, goToPage, handleCardClick, toggleSelect } from "./actions.js";
 </script>
 
 <div class="editor-search slide-up">
-  <!-- Unified search grid: search input + filter bar share the same width -->
   <div class="editor-search-grid">
     <div class="search-input-wrap">
       <span class="search-adornment">
@@ -105,7 +14,7 @@
       </span>
       <input
         class="input search-input"
-        bind:value={searchText}
+        bind:value={searchStore.searchText}
         placeholder="搜尋檔名..."
         oninput={handleSearchInput}
         autocomplete="off"
@@ -113,37 +22,43 @@
     </div>
     <div class="editor-filters">
       <FilterBar
-        {allTags}
-        bind:selectedTags
-        bind:rating
-        bind:ratingOp
-        bind:sort
-        bind:order
+        allTags={searchStore.allTags}
+        bind:selectedTags={searchStore.selectedTags}
+        bind:rating={searchStore.rating}
+        bind:ratingOp={searchStore.ratingOp}
+        bind:sort={searchStore.sort}
+        bind:order={searchStore.order}
         onchange={handleFilterChange}
       />
     </div>
   </div>
 
-  <!-- Results info -->
-  {#if total > 0}
+  {#if searchStore.total > 0}
     <div class="editor-search-info">
-      <span>{total} 張圖片</span>
-      {#if pages > 1}
+      <span>{searchStore.total} 張圖片</span>
+      {#if searchStore.pages > 1}
         <span class="editor-search-pager">
-          第 {page} / {pages} 頁
+          第 {searchStore.page} / {searchStore.pages} 頁
         </span>
       {/if}
     </div>
   {/if}
 
-  {#if showLoading}
+  {#if searchStore.showLoading}
     <div class="editor-search-status">搜尋中...</div>
-  {:else if items.length === 0}
+  {:else if searchStore.items.length === 0}
     <div class="editor-search-status">找不到符合的圖片</div>
   {:else}
     <div class="editor-search-results">
-      {#each items as img (img.id)}
-        <button type="button" class="editor-search-card" onclick={() => onselect(img.id)}>
+      {#each searchStore.items as img (img.id)}
+        {@const selected = selectionStore.selected.has(img.id)}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="editor-search-card select-checkbox-host"
+          class:editor-search-card-selected={selected}
+          onclick={() => handleCardClick(img.id)}
+        >
           <img
             class="editor-search-card-thumb"
             src="/img/committed/{img.id}{img.ext}"
@@ -164,24 +79,30 @@
               </div>
             {/if}
           </div>
-        </button>
+          <SelectCheckbox checked={selected} size="sm" onchange={() => toggleSelect(img.id)} />
+        </div>
       {/each}
     </div>
   {/if}
 
-  <!-- Pagination -->
-  {#if pages > 1}
+  {#if searchStore.pages > 1}
     <div class="editor-pagination">
-      <button class="btn btn-sm" disabled={page <= 1} onclick={() => goToPage(page - 1)}>上一頁</button>
-      {#each Array.from({ length: Math.min(pages, 7) }, (_, i) => {
-        if (pages <= 7) return i + 1;
-        if (page <= 4) return i + 1;
-        if (page >= pages - 3) return pages - 6 + i;
-        return page - 3 + i;
+      <button class="btn btn-sm" disabled={searchStore.page <= 1} onclick={() => goToPage(searchStore.page - 1)}
+        >上一頁</button
+      >
+      {#each Array.from({ length: Math.min(searchStore.pages, 7) }, (_, i) => {
+        if (searchStore.pages <= 7) return i + 1;
+        if (searchStore.page <= 4) return i + 1;
+        if (searchStore.page >= searchStore.pages - 3) return searchStore.pages - 6 + i;
+        return searchStore.page - 3 + i;
       }) as p}
-        <button class="btn btn-sm" class:btn-primary={p === page} onclick={() => goToPage(p)}>{p}</button>
+        <button class="btn btn-sm" class:btn-primary={p === searchStore.page} onclick={() => goToPage(p)}>{p}</button>
       {/each}
-      <button class="btn btn-sm" disabled={page >= pages} onclick={() => goToPage(page + 1)}>下一頁</button>
+      <button
+        class="btn btn-sm"
+        disabled={searchStore.page >= searchStore.pages}
+        onclick={() => goToPage(searchStore.page + 1)}>下一頁</button
+      >
     </div>
   {/if}
 </div>
@@ -191,6 +112,7 @@
     max-width: 960px;
     margin: 0 auto;
     padding: 1.5rem;
+    padding-bottom: 5rem;
   }
 
   .editor-search-grid {
@@ -253,6 +175,7 @@
   }
 
   .editor-search-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -273,6 +196,11 @@
   .editor-search-card:hover {
     background: var(--bg-hover);
     border-color: var(--border-hover);
+  }
+
+  .editor-search-card-selected {
+    border-color: var(--accent);
+    background: var(--bg-hover);
   }
 
   .editor-search-card-thumb {

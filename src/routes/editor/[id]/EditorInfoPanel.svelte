@@ -1,66 +1,39 @@
 <script lang="ts">
   import Rating from "$lib/components/Rating.svelte";
   import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import { addToast } from "$lib/client/toast.js";
   import { formatDate, formatSize } from "$lib/utils.js";
-  import type { TagInfo, ImageWithId } from "$lib/types.js";
+  import { editStore } from "./stores.svelte.js";
+  import { addTag, removeTag, removeLastTag, setRating } from "./actions.js";
 
-  let {
-    image,
-    allTags,
-    currentTags = $bindable([]),
-    currentRating = $bindable(0),
-    dirty = $bindable(false),
-  }: {
-    image: ImageWithId;
-    allTags: TagInfo[];
-    currentTags: string[];
-    currentRating: number;
-    dirty: boolean;
-  } = $props();
+  let image = $derived(editStore.image!);
+  let ratingProxy = $state(editStore.currentRating);
 
-  function addTag(rawTag: string) {
-    const tag = rawTag.trim().toLowerCase();
-    if (!tag) return;
-    if (currentTags.includes(tag)) {
-      addToast("標籤已存在", "info");
-      return;
-    }
-    currentTags = [...currentTags, tag];
-    dirty = true;
-  }
-
-  function removeTag(tag: string) {
-    currentTags = currentTags.filter((t) => t !== tag);
-    dirty = true;
-  }
-
-  function removeLastTag() {
-    if (currentTags.length > 0) {
-      currentTags = currentTags.slice(0, -1);
-      dirty = true;
-    }
-  }
-
-  // Track rating changes
-  let prevRating = $state(currentRating);
+  // Sync store → proxy
   $effect(() => {
-    if (currentRating !== prevRating) {
-      prevRating = currentRating;
-      dirty = true;
+    ratingProxy = editStore.currentRating;
+  });
+
+  // Detect user-initiated rating change from bind
+  let prevProxy = editStore.currentRating;
+  $effect(() => {
+    if (ratingProxy !== prevProxy) {
+      prevProxy = ratingProxy;
+      if (ratingProxy !== editStore.currentRating) {
+        setRating(ratingProxy);
+      }
     }
   });
 </script>
 
 <aside class="editor-panel">
   <div class="editor-rating">
-    <Rating bind:value={currentRating} size="1.5rem" />
+    <Rating bind:value={ratingProxy} size="1.5rem" />
   </div>
   <div class="separator"></div>
 
   <div class="editor-tags">
     <div class="editor-tags-list">
-      {#each currentTags as tag}
+      {#each editStore.currentTags as tag}
         <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
           <span>{tag}</span>
           <span class="chip-remove">x</span>
@@ -69,8 +42,8 @@
     </div>
     <div class="editor-tags-input-wrap">
       <TagAutocomplete
-        {allTags}
-        excludedTags={currentTags}
+        allTags={editStore.allTags}
+        excludedTags={editStore.currentTags}
         placeholder="輸入標籤..."
         onselect={addTag}
         onbackspace={removeLastTag}
