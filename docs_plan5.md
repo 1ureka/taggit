@@ -161,12 +161,11 @@ export function stopPlayer() { ... }          // 返回篩選畫面
 **`startPlayer` 流程：**
 1. 設 `playerStore.loading = true`。
 2. 呼叫 `fetchAllImages()`（見 §4.5），存入 `playerStore.images`。
-3. 若 `sort === 'random'` → in-place shuffle。
-4. 呼叫 `buildLayout()`（helpers）→ 寫入 `offsets`, `widths`, `stripWidth`。
-5. `scrollX = 0`, `playing = true`, `lastTime = 0`, `seeking = false`。
-6. `phaseStore.current = 'player'`。
-7. 啟動 rAF loop（見 §六）。
-8. `playerStore.loading = false`。
+3. 呼叫 `buildLayout()`（helpers）→ 寫入 `offsets`, `widths`, `stripWidth`。
+4. `scrollX = 0`, `playing = true`, `lastTime = 0`, `seeking = false`。
+5. `phaseStore.current = 'player'`。
+6. 啟動 rAF loop（見 §六）。
+7. `playerStore.loading = false`。
 
 **`stopPlayer` 流程：**
 1. `cancelAnimationFrame(playerStore.rafId)`。
@@ -193,10 +192,9 @@ export function seekEnd() { ... }               // slider mouseup
 async function fetchAllImages(): Promise<ImageWithId[]> { ... }
 ```
 
-- 最多載入 **MAX_IMAGES = 200** 張（可調整，old-ref 也是 200）。
-- 多頁 fetch `GET /api/images?page=N&limit=200&tags=...&rating=...&ratingOp=gte&sort=...&order=...`。
-- `sort=random` 時不傳 sort/order（後端隨機），取回後 client shuffle。
-- 迴圈直到 `page >= totalPages` 或 `累計 >= MAX_IMAGES`。
+- **單次請求**：`GET /api/images?limit=MAX_IMAGES&tags=...&rating=...&ratingOp=gte&sort=...&order=...`。
+- 後端 `queryImages` 的 `limit` 參數無上限，直接傳 `MAX_IMAGES`（預設 200）即可一次取完。
+- `sort=random` 時後端 Fisher–Yates shuffle 後再 slice，**不需要 client 端洗牌**。
 
 ### 4.6 Dock 控制
 
@@ -265,21 +263,15 @@ export function calcCurrentIndex(
 - 二分搜尋或線性掃描找到第一張 `offset + width > pos` 的圖片。
 - 用於進度文字顯示 `"idx+1 / total"`。
 
-### 5.3 shuffleArray
-
-```ts
-export function shuffleArray<T>(arr: T[]): T[]
-```
-
-Fisher–Yates。in-place 並回傳原 array。
-
-### 5.4 committedUrl
+### 5.3 committedUrl
 
 ```ts
 export function committedUrl(img: ImageWithId): string {
   return `/img/committed/${img.id}${img.ext}`;
 }
 ```
+
+> **注意**：不再需要 `shuffleArray`——`sort=random` 由後端 `queryImages` 內建 Fisher–Yates shuffle 處理。
 
 ---
 
@@ -395,7 +387,7 @@ carouselEl.style.transform = `translateX(${-scrollX}px)`;
 
 | 常數 | 值 | 說明 |
 |------|----|------|
-| `MAX_IMAGES` | 200 | 最多載入圖片數 |
+| `MAX_IMAGES` | 200 | 單次請求 limit（即最多載入圖片數） |
 | `BUFFER_PX` | 2000 | 虛擬化緩衝區 |
 | `UPDATE_THRESHOLD` | 300 | 超過此 px 變化才重算 visible set |
 | `IDLE_TIMEOUT` | 2500 | dock 自動隱藏 ms |
