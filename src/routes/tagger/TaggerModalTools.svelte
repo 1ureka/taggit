@@ -1,9 +1,7 @@
 <script lang="ts">
   import { IconFileSearch, IconFileAlert, IconTag, IconDatabase, IconTrashX } from "@tabler/icons-svelte";
-  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
-  import { uiStore, toolStore, tagCatalogStore } from "./stores.svelte.js";
+  import { uiStore, toolStore } from "./stores.svelte.js";
   import { closeTools, checkOrphans, checkMissing, openRenameModal, backup, emptyTrash } from "./actions.js";
-  import RenameTagModal from "./RenameTagModal.svelte";
 </script>
 
 {#if uiStore.toolsOpen}
@@ -50,8 +48,6 @@
     </div>
   </div>
 {/if}
-
-<RenameTagModal />
 
 <style>
   .tools-result {
