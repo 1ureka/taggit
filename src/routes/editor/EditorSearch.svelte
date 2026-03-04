@@ -198,9 +198,15 @@
     border-color: var(--border-hover);
   }
 
+  /* Selected state uses box-shadow for the accent ring so hover cannot override it */
   .editor-search-card-selected {
     border-color: var(--accent);
     background: var(--bg-hover);
+  }
+
+  /* Explicitly keep accent border + ring while hovering over a selected card */
+  .editor-search-card-selected:hover {
+    border-color: var(--accent);
   }
 
   .editor-search-card-thumb {

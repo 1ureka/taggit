@@ -89,6 +89,8 @@ export async function doSearch(resetPage = true) {
     searchStore.loading = false;
     if (loadingTimer) clearTimeout(loadingTimer);
     searchStore.showLoading = false;
+    // Drop any selected IDs that are no longer visible after filtering/paging
+    validateSelection();
   }
 }
 
@@ -108,6 +110,19 @@ export function goToPage(p: number) {
   if (p < 1 || p > searchStore.pages) return;
   searchStore.page = p;
   doSearch(false);
+}
+
+/**
+ * Remove from the selection any IDs that are no longer present
+ * in the current result page. Called automatically after every search.
+ */
+export function validateSelection() {
+  if (selectionStore.selected.size === 0) return;
+  const visibleIds = new Set(searchStore.items.map((item) => item.id));
+  const next = new Set([...selectionStore.selected].filter((id) => visibleIds.has(id)));
+  if (next.size !== selectionStore.selected.size) {
+    selectionStore.selected = next;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

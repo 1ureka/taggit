@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import { initSearch, handleSearchKeydown } from "./actions.js";
@@ -18,7 +19,10 @@
 <svelte:window onkeydown={handleSearchKeydown} />
 
 <header class="editor-header">
-  <a href="/" class="btn btn-ghost btn-sm">首頁</a>
+  <a href="/" class="btn btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    首頁
+  </a>
   <span class="editor-title">搜尋圖片</span>
 </header>
 

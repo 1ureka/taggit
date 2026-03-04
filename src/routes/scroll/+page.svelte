@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconArrowLeft, IconArrowUp } from "@tabler/icons-svelte";
+  import { fly } from "svelte/transition";
   import { onMount, untrack } from "svelte";
   import type { TagInfo, ImageWithId, QueryResult } from "$lib/types.js";
   import type { PageData } from "./$types.js";
@@ -202,7 +203,12 @@
 
 <!-- FAB: scroll to top -->
 {#if showFab}
-  <button class="scroll-fab" onclick={scrollToTop} aria-label="回到頂部">
+  <button
+    class="scroll-fab"
+    onclick={scrollToTop}
+    aria-label="回到頂部"
+    transition:fly={{ y: 16, duration: 200, opacity: 0 }}
+  >
     <IconArrowUp size={20} />
   </button>
 {/if}
