@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconTag, IconPencil, IconPlayerPlay, IconLayoutList } from "@tabler/icons-svelte";
-  import { IconArrowsLeftRight, IconChevronRight, IconSettings } from "@tabler/icons-svelte";
+  import { IconArrowsLeftRight, IconChevronRight, IconSettings, IconTrash } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
   let { data }: { data: PageData } = $props();
   const stats = $derived(data.stats);
@@ -71,6 +71,11 @@
     <a href="/setup" class="home-settings-link">
       <IconSettings size={14} />
       設定
+    </a>
+    <span class="home-settings-dot">·</span>
+    <a href="/trash" class="home-settings-link">
+      <IconTrash size={14} />
+      垃圾桶
     </a>
   </div>
 </div>
@@ -171,8 +176,17 @@
   }
 
   .home-settings {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     margin-top: 1rem;
+  }
+
+  .home-settings-dot {
+    color: var(--text-dim);
+    font-size: 0.8125rem;
+    user-select: none;
   }
 
   .home-settings-link {
