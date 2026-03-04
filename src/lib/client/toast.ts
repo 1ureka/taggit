@@ -1,24 +1,42 @@
+/**
+ * @file toast.ts
+ * Lightweight toast notification store.
+ *
+ * Public API:
+ *   addToast(message, type?, duration?)  — show a toast
+ *   dismissToast(id)                     — programmatically dismiss
+ */
+
 import { writable } from "svelte/store";
+
+export type ToastType = "success" | "error" | "info";
 
 export interface ToastItem {
   id: number;
   message: string;
-  type: "success" | "error" | "info";
+  type: ToastType;
   duration: number;
 }
 
 let nextId = 0;
 
-const { subscribe, update } = writable<ToastItem[]>([]);
+const store = writable<ToastItem[]>([]);
 
-export const toasts = { subscribe };
+/** Subscribe-only handle. The component reads this. */
+export const toasts = { subscribe: store.subscribe };
 
-export function addToast(message: string, type: ToastItem["type"] = "info", duration = 3000) {
+/**
+ * Show a toast notification.
+ * @returns The toast id (useful for programmatic dismissal).
+ */
+export function addToast(message: string, type: ToastType = "info", duration = 3000): number {
   const id = nextId++;
-  update((items) => [...items, { id, message, type, duration }]);
-  setTimeout(() => dismissToast(id), duration + 200);
+  store.update((all) => [...all, { id, message, type, duration }]);
+  if (duration > 0) setTimeout(() => dismissToast(id), duration);
+  return id;
 }
 
+/** Remove a toast immediately (triggers the out-transition in the component). */
 export function dismissToast(id: number) {
-  update((items) => items.filter((t) => t.id !== id));
+  store.update((all) => all.filter((t) => t.id !== id));
 }
