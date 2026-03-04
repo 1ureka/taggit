@@ -34,7 +34,7 @@
 
       <div class="dock-separator"></div>
 
-      <div class="dock-rating">
+      <div class="dock-rating" style="--rating-color: #aaaaaa; --rating-color-active: #000000">
         <Rating bind:value={dockRating} size="1.125rem" onchange={rateSelected} />
       </div>
 
@@ -103,15 +103,6 @@
   .dock-rating {
     display: flex;
     align-items: center;
-  }
-
-  /* Rating stars on white dock need dark colours */
-  .dock-rating :global(.rating-star) {
-    color: #aaaaaa;
-  }
-
-  .dock-rating :global(.rating-star.active) {
-    color: #000000;
   }
 
   /* Delete button: keep red but re-anchor hover to white base */

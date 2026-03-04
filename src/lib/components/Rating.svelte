@@ -75,7 +75,7 @@
   .rating-star {
     display: inline-flex;
     cursor: pointer;
-    color: var(--text-dim);
+    color: var(--rating-color, var(--text-dim));
     transition:
       color 0.1s,
       transform 0.1s;
@@ -86,11 +86,11 @@
   }
 
   .rating-star.preview {
-    color: var(--text-dim);
+    color: var(--rating-color, var(--text-dim));
   }
 
   .rating-star.active {
-    color: var(--text);
+    color: var(--rating-color-active, var(--text));
   }
 
   /* ─── Readonly mode ─────────────────────────────────────── */
