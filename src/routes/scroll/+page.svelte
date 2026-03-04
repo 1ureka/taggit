@@ -133,7 +133,7 @@
   }
 
   function handleImageDblClick(img: ImageWithId) {
-    window.open(`/editor?id=${encodeURIComponent(img.id)}`, "_blank");
+    window.open(`/editor/${encodeURIComponent(img.id)}`, "_blank");
   }
 </script>
 

@@ -103,7 +103,7 @@
 
   function openInEditor(img: ImageWithId | null) {
     if (img) {
-      window.open(`/editor?id=${encodeURIComponent(img.id)}`, "_blank");
+      window.open(`/editor/${encodeURIComponent(img.id)}`, "_blank");
     }
   }
 
