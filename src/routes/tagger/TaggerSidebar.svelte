@@ -119,6 +119,7 @@
       multiple
       class="visually-hidden"
       onchange={handleUpload}
+      tabindex={-1}
     />
     <button class="btn btn-sm tagger-upload-btn" onclick={() => fileInputEl?.click()} disabled={fileStore.uploading}>
       <IconUpload size={14} />
