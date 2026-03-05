@@ -15,7 +15,7 @@ import { goto } from "$app/navigation";
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { debounce } from "$lib/utils.js";
-import type { ImageWithId, TagInfo } from "$lib/types.js";
+import type { ImageWithId } from "$lib/types.js";
 
 import { editStore, uiStore } from "./stores.svelte.js";
 
@@ -28,9 +28,8 @@ const SAVE_DEBOUNCE = 800;
 // ═══════════════════════════════════════════════════════════
 
 /** Hydrate edit stores from SSR data. */
-export function initEdit(image: ImageWithId, allTags: TagInfo[]) {
+export function initEdit(image: ImageWithId) {
   editStore.image = image;
-  editStore.allTags = allTags;
   editStore.currentTags = [...image.tags];
   editStore.currentRating = image.rating ?? 0;
   editStore.dirty = false;
@@ -44,27 +43,8 @@ export function initEdit(image: ImageWithId, allTags: TagInfo[]) {
 //  Tags
 // ═══════════════════════════════════════════════════════════
 
-export function addTag(rawTag: string) {
-  const tag = rawTag.trim().toLowerCase();
-  if (!tag) return;
-  if (editStore.currentTags.includes(tag)) {
-    addToast("標籤已存在", "info");
-    return;
-  }
-  editStore.currentTags = [...editStore.currentTags, tag];
+export function markDirty() {
   editStore.dirty = true;
-}
-
-export function removeTag(tag: string) {
-  editStore.currentTags = editStore.currentTags.filter((t) => t !== tag);
-  editStore.dirty = true;
-}
-
-export function removeLastTag() {
-  if (editStore.currentTags.length > 0) {
-    editStore.currentTags = editStore.currentTags.slice(0, -1);
-    editStore.dirty = true;
-  }
 }
 
 export function setRating(r: number) {

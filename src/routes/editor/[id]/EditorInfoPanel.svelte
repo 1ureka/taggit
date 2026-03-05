@@ -1,9 +1,9 @@
 <script lang="ts">
   import Rating from "$lib/components/Rating.svelte";
-  import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
+  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
   import { editStore } from "./stores.svelte.js";
-  import { addTag, removeTag, removeLastTag, setRating } from "./actions.js";
+  import { markDirty, setRating } from "./actions.js";
 
   let image = $derived(editStore.image!);
 </script>
@@ -15,23 +15,12 @@
   <div class="separator"></div>
 
   <div class="editor-tags">
-    <div class="editor-tags-list">
-      {#each editStore.currentTags as tag}
-        <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
-          <span>{tag}</span>
-          <span class="chip-remove">x</span>
-        </button>
-      {/each}
-    </div>
-    <div class="editor-tags-input-wrap">
-      <TagAutocomplete
-        allTags={editStore.allTags}
-        excludedTags={editStore.currentTags}
-        placeholder="輸入標籤..."
-        onselect={addTag}
-        onbackspace={removeLastTag}
-      />
-    </div>
+    <TagAutocompleteNew
+      bind:tags={editStore.currentTags}
+      variant="top"
+      placeholder="輸入標籤..."
+      onchange={markDirty}
+    />
   </div>
 
   <div class="separator"></div>
@@ -62,13 +51,11 @@
 <style>
   .editor-panel {
     width: 300px;
-    min-width: 300px;
     display: flex;
     flex-direction: column;
     padding: 0.75rem;
     border-left: 1px solid var(--border);
     background: var(--bg-card);
-    overflow-y: auto;
   }
 
   .editor-rating {
@@ -80,23 +67,8 @@
 
   .editor-tags {
     flex: 1;
-    display: flex;
-    flex-direction: column;
     min-height: 0;
-  }
-
-  .editor-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-    max-height: 14rem;
     overflow-y: auto;
-    align-content: flex-start;
-  }
-
-  .editor-tags-input-wrap {
-    position: relative;
   }
 
   .editor-meta {

@@ -11,7 +11,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  untrack(() => initEdit(data.image, data.allTags));
+  untrack(() => initEdit(data.image));
 
   // Auto-save when dirty
   $effect(() => {
