@@ -40,10 +40,8 @@
   }
 
   function close() {
-    setTimeout(() => {
-      showDropdown = false;
-      activeIndex = -1;
-    }, 150);
+    showDropdown = false;
+    activeIndex = -1;
   }
 
   function selectTag(name: string) {

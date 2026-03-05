@@ -89,7 +89,7 @@
   // ── Autocomplete lifecycle ──────────────────────────────────────────────────
 
   async function openAutocomplete() {
-    allTags = await tagCache.get();
+    allTags = await tagCache.get(); // 這會自己請求去重、使用快取、並在後台更新等
     showDropdown = true;
     activeIndex = -1;
   }
