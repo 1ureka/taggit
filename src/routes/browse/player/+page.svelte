@@ -20,7 +20,6 @@
 
   // ─── DOM refs ─────────────────────────────────────────────────────────
   let carouselEl: HTMLDivElement | undefined = $state();
-  let dockEl: HTMLDivElement | undefined = $state();
   let sliderEl: HTMLInputElement | undefined = $state();
   let textEl: HTMLSpanElement | undefined = $state();
   let speedSliderEl: HTMLInputElement | undefined = $state();
@@ -389,7 +388,7 @@
   <!-- YouTube-style play/pause feedback -->
   <div class="browse-feedback" bind:this={feedbackEl}></div>
 
-  <div class="browse-dock" class:is-hidden={!dockVisible} bind:this={dockEl}>
+  <div class="browse-dock" class:is-hidden={!dockVisible}>
     <!-- Play / Pause -->
     <button class="btn btn-icon" bind:this={playBtnEl}>
       {#if playing}

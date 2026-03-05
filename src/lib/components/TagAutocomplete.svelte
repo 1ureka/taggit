@@ -22,7 +22,6 @@
   let showDropdown = $state(false);
   let activeIndex = $state(-1);
   let inputEl: HTMLInputElement | undefined = $state();
-  let dropdownEl: HTMLDivElement | undefined = $state();
 
   let filtered = $derived.by(() => {
     const query = inputValue.trim().toLowerCase();
@@ -114,7 +113,7 @@
     autocomplete="off"
   />
 
-  <div bind:this={dropdownEl} class="ac-dropdown" use:float={{ reference: inputEl, open: dropdownVisible }}>
+  <div class="ac-dropdown" use:float={{ reference: inputEl, open: dropdownVisible }}>
     {#each filtered as tag, i}
       <div
         class="ac-item"

@@ -46,7 +46,7 @@
     }
   }
 
-  function handleBlur(e: FocusEvent) {
+  function handleBlur() {
     setTimeout(() => {
       if (!triggerEl?.contains(document.activeElement) && !listEl?.contains(document.activeElement)) {
         open = false;
