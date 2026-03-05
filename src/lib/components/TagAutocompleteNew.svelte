@@ -25,12 +25,9 @@
     variant = "top",
   }: TagAutocompleteProps = $props();
 
-  // ── DOM refs ────────────────────────────────────────────────────────────────
-
-  let inputEl = $state<HTMLInputElement>();
-
   // ── State ───────────────────────────────────────────────────────────────────
 
+  let inputEl = $state<HTMLInputElement>();
   let allTags = $state<TagInfo[]>([]);
   let inputValue = $state("");
   let showDropdown = $state(false);
@@ -46,12 +43,12 @@
     return available.filter((t) => t.name.toLowerCase().includes(query));
   });
 
-  $effect(() => {
-    tags;
-    onchange?.();
-  });
-
   // ── Tag operations ──────────────────────────────────────────────────────────
+
+  function setTags(newTags: string[]) {
+    tags = newTags;
+    onchange?.();
+  }
 
   function addTag(name: string) {
     const normalized = name.trim().toLowerCase();
@@ -63,7 +60,7 @@
 
     const newTags = inputTags.filter((t) => !tags.includes(t));
     if (newTags.length === 0) return;
-    tags = [...tags, ...newTags];
+    setTags([...tags, ...newTags]);
 
     inputValue = "";
     activeIndex = -1;
@@ -71,13 +68,11 @@
   }
 
   function removeTag(name: string) {
-    tags = tags.filter((t) => t !== name);
+    setTags(tags.filter((t) => t !== name));
   }
 
   function popTag() {
-    if (tags.length > 0) {
-      tags = tags.slice(0, -1);
-    }
+    tags.length > 0 && setTags(tags.slice(0, -1));
   }
 
   // ── Autocomplete lifecycle ──────────────────────────────────────────────────
