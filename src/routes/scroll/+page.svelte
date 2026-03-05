@@ -1,9 +1,8 @@
 <script lang="ts">
   import { IconArrowLeft, IconArrowUp } from "@tabler/icons-svelte";
   import { fly } from "svelte/transition";
-  import { onMount, untrack } from "svelte";
-  import type { TagInfo, ImageWithId, QueryResult } from "$lib/types.js";
-  import type { PageData } from "./$types.js";
+  import { onMount } from "svelte";
+  import type { ImageWithId, QueryResult } from "$lib/types.js";
   import { api } from "$lib/client/api.js";
   import { addToast } from "$lib/client/toast.js";
   import FilterBar from "$lib/components/FilterBar.svelte";
@@ -12,10 +11,7 @@
   import { createWeightBasedLayout } from "./masonry.js";
   import { createVirtualizer } from "./virtualizer.svelte.js";
 
-  let { data }: { data: PageData } = $props();
-
   // ─── State ────────────────────────────────────────────────────────────
-  let allTags = $state<TagInfo[]>(untrack(() => [...data.allTags]));
   let selectedTags = $state<string[]>([]);
   let rating = $state<number | undefined>(undefined);
   let ratingOp = $state<"gte" | "lte" | "eq">("gte");
