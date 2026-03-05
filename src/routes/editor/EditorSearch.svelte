@@ -22,7 +22,6 @@
     </div>
     <div class="editor-filters">
       <FilterBar
-        allTags={searchStore.allTags}
         bind:selectedTags={searchStore.selectedTags}
         bind:rating={searchStore.rating}
         bind:ratingOp={searchStore.ratingOp}

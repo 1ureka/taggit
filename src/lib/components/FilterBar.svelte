@@ -1,10 +1,8 @@
 <script lang="ts">
-  import type { TagInfo } from "$lib/types.js";
-  import TagAutocomplete from "./TagAutocomplete.svelte";
+  import TagAutocompleteNew from "./TagAutocompleteNew.svelte";
   import Select from "./Select.svelte";
 
   let {
-    allTags = [],
     selectedTags = $bindable([]),
     rating = $bindable(undefined),
     ratingOp = $bindable("gte"),
@@ -12,7 +10,6 @@
     order = $bindable("desc"),
     onchange,
   }: {
-    allTags?: TagInfo[];
     selectedTags?: string[];
     rating?: number | undefined;
     ratingOp?: "gte" | "lte" | "eq";
@@ -20,25 +17,6 @@
     order?: string;
     onchange?: () => void;
   } = $props();
-
-  function addTag(tag: string) {
-    if (!selectedTags.includes(tag)) {
-      selectedTags = [...selectedTags, tag];
-      onchange?.();
-    }
-  }
-
-  function removeTag(tag: string) {
-    selectedTags = selectedTags.filter((t) => t !== tag);
-    onchange?.();
-  }
-
-  function removeLastTag() {
-    if (selectedTags.length > 0) {
-      selectedTags = selectedTags.slice(0, -1);
-      onchange?.();
-    }
-  }
 
   const ratingOpOptions = [
     { value: "gte", label: "≥" },
@@ -69,21 +47,7 @@
 </script>
 
 <div class="filter-bar">
-  <div class="filter-tags-row">
-    {#each selectedTags as tag}
-      <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
-        {tag}
-        <span class="chip-remove">×</span>
-      </button>
-    {/each}
-    <TagAutocomplete
-      {allTags}
-      excludedTags={selectedTags}
-      placeholder="篩選標籤..."
-      onselect={addTag}
-      onbackspace={removeLastTag}
-    />
-  </div>
+  <TagAutocompleteNew bind:tags={selectedTags} variant="inline" placeholder="篩選標籤..." {onchange} />
   <div class="filter-controls">
     <span class="filter-label">評分</span>
     <Select bind:value={ratingOp} options={ratingOpOptions} stretch onchange={() => onchange?.()} />
@@ -95,5 +59,22 @@
 </div>
 
 <style>
-  @import "../styles/FilterBar.css";
+  .filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filter-controls {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr auto 1fr 1fr;
+    gap: 0.375rem 0.5rem;
+    align-items: center;
+    font-size: 0.8125rem;
+  }
+
+  .filter-label {
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
 </style>

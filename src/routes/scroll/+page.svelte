@@ -157,15 +157,7 @@
 <main class="scroll-main slide-up">
   <!-- Filter area (not sticky, just at top) -->
   <div class="scroll-filter-area">
-    <FilterBar
-      {allTags}
-      bind:selectedTags
-      bind:rating
-      bind:ratingOp
-      bind:sort
-      bind:order
-      onchange={handleFilterChange}
-    />
+    <FilterBar bind:selectedTags bind:rating bind:ratingOp bind:sort bind:order onchange={handleFilterChange} />
     <div class="scroll-result-count">
       <span>{total} 張結果</span>
     </div>
