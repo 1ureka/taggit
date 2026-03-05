@@ -54,6 +54,11 @@
     return available.filter((t) => t.name.toLowerCase().includes(query));
   });
 
+  $effect(() => {
+    tags;
+    onchange?.();
+  });
+
   // ── Tag operations ──────────────────────────────────────────────────────────
 
   function addTag(name: string) {
@@ -71,18 +76,15 @@
     inputValue = "";
     activeIndex = -1;
     inputEl?.focus();
-    onchange?.();
   }
 
   function removeTag(name: string) {
     tags = tags.filter((t) => t !== name);
-    onchange?.();
   }
 
   function popTag() {
     if (tags.length > 0) {
       tags = tags.slice(0, -1);
-      onchange?.();
     }
   }
 
