@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconArrowLeft, IconArrowUp } from "@tabler/icons-svelte";
   import { fly } from "svelte/transition";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { ImageWithId, QueryResult } from "$lib/types.js";
   import { api } from "$lib/client/api.js";
   import { addToast } from "$lib/client/toast.js";
@@ -11,23 +11,25 @@
   import { createWeightBasedLayout } from "./masonry.js";
   import { createVirtualizer } from "./virtualizer.svelte.js";
 
+  let { data } = $props();
+
   // ─── State ────────────────────────────────────────────────────────────
+  const PAGE_SIZE = 30;
+  const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
+
   let selectedTags = $state<string[]>([]);
   let rating = $state<number | undefined>(undefined);
   let ratingOp = $state<"gte" | "lte" | "eq">("gte");
   let sort = $state("committedAt");
   let order = $state("desc");
 
-  let items = $state<ImageWithId[]>([]);
-  let total = $state(0);
+  let items = $state<ImageWithId[]>(untrack(() => data.initialItems));
+  let total = $state(untrack(() => data.initialTotal));
   let page = $state(1);
   let loading = $state(false);
-  let noMore = $state(false);
+  let noMore = $state(untrack(() => data.initialItems.length < PAGE_SIZE));
   let showFab = $state(false);
   let columns = $state(3);
-
-  const PAGE_SIZE = 30;
-  const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
   // ─── Masonry layout ───────────────────────────────────────────────────
   let containerEl = $state<HTMLElement | null>(null);
@@ -50,11 +52,6 @@
     () => layout,
     () => containerEl,
   );
-
-  // ─── Init ─────────────────────────────────────────────────────────────
-  $effect(() => {
-    doSearch(true);
-  });
 
   // ─── Scroll handling ──────────────────────────────────────────────────
   const handleScroll = throttle(() => {

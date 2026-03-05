@@ -1,53 +1,37 @@
 <script lang="ts">
+  import type { ImageWithId, QueryResult } from "$lib/types.js";
   import { IconArrowLeft, IconArrowsShuffle } from "@tabler/icons-svelte";
   import { untrack } from "svelte";
-  import type { TagInfo, ImageWithId, QueryResult } from "$lib/types.js";
-  import type { PageData } from "./$types.js";
   import { api } from "$lib/client/api.js";
-  import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
+  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
   import Rating from "$lib/components/Rating.svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data } = $props();
 
   // ─── State ────────────────────────────────────────────────────────────
-  let allTags = $state<TagInfo[]>(untrack(() => [...data.allTags]));
   let filterTags = $state<string[]>([]);
   let filterMinRating = $state(0);
-  let totalCount = $state(0);
-  let pairA = $state<ImageWithId | null>(null);
-  let pairB = $state<ImageWithId | null>(null);
+  let totalCount = $state(untrack(() => data.total));
+  let pairA = $state<ImageWithId | null>(untrack(() => data.pairA));
+  let pairB = $state<ImageWithId | null>(untrack(() => data.pairB));
   let loading = $state(false);
   let showLoading = $state(false);
   let loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  let errorMsg = $state("");
+  let errorMsg = $state(untrack(() => (data.pairA ? "" : "圖片不足兩張")));
 
   const LOADING_DELAY = 200; // ms – don't flash "載入中" for fast loads
 
-  // ─── Init ─────────────────────────────────────────────────────────────
+  // 初次 mount 不重新載入（SSR 已有資料），之後篩選條件變動時才重新載入
+  let filterMounted = false;
   $effect(() => {
-    // load first pair on mount
+    filterTags;
+    filterMinRating;
+    if (!filterMounted) {
+      filterMounted = true;
+      return;
+    }
     loadPair();
   });
-
-  // ─── Filter tag helpers ───────────────────────────────────────────────
-  function addFilterTag(tag: string) {
-    if (!filterTags.includes(tag)) {
-      filterTags = [...filterTags, tag];
-      loadPair();
-    }
-  }
-
-  function removeFilterTag(tag: string) {
-    filterTags = filterTags.filter((t) => t !== tag);
-    loadPair();
-  }
-
-  function removeLastFilterTag() {
-    if (filterTags.length > 0) {
-      filterTags = filterTags.slice(0, -1);
-      loadPair();
-    }
-  }
 
   // ─── Load random pair (sort=random & limit=2) ────────────────────────
   async function loadPair() {
@@ -107,10 +91,6 @@
     }
   }
 
-  function handleRatingFilterChange() {
-    loadPair();
-  }
-
   // ─── Keyboard shortcuts ───────────────────────────────────────────────
   function handleKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
@@ -135,26 +115,8 @@
   </a>
   <span class="compare-title">比較</span>
   <div class="compare-header-filter">
-    <div class="compare-filter-chips">
-      {#each filterTags as tag}
-        <button type="button" class="chip chip-removable" onclick={() => removeFilterTag(tag)}>
-          {tag}
-          <span class="chip-remove">×</span>
-        </button>
-      {/each}
-    </div>
-    <div class="compare-tag-input">
-      <TagAutocomplete
-        {allTags}
-        excludedTags={filterTags}
-        placeholder="標籤篩選..."
-        onselect={addFilterTag}
-        onbackspace={removeLastFilterTag}
-      />
-    </div>
-    <div class="compare-rating-filter">
-      <Rating bind:value={filterMinRating} size="1rem" />
-    </div>
+    <TagAutocompleteNew bind:tags={filterTags} variant="compact" placeholder="標籤篩選..." />
+    <Rating bind:value={filterMinRating} size="1rem" />
     <span class="compare-count">{totalCount} 張</span>
   </div>
 </header>
@@ -235,26 +197,6 @@
     gap: 0.5rem;
     flex: 1;
     min-width: 0;
-  }
-
-  .compare-filter-chips {
-    display: flex;
-    gap: 0.25rem;
-    flex-wrap: wrap;
-  }
-
-  .compare-tag-input {
-    width: 10rem;
-    flex-shrink: 0;
-  }
-
-  .compare-tag-input :global(.input) {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
-  }
-
-  .compare-rating-filter {
-    flex-shrink: 0;
   }
 
   .compare-count {
