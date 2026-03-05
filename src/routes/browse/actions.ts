@@ -19,15 +19,23 @@ const DEBOUNCE_COUNT = 200;
 //  Init
 // ═══════════════════════════════════════════════════════════
 
-/** Reset filter store and hydrate SSR data. */
-export function initBrowse() {
+/**
+ * Initialize browse page.
+ * If `initialCount` is provided (from SSR), use it directly to avoid an
+ * extra client-side round-trip on first load.
+ */
+export function initBrowse(initialCount?: number) {
   filterStore.tags = [];
   filterStore.minRating = 0;
   filterStore.sort = "committedAt";
-  filterStore.matchCount = 0;
   filterStore.counting = false;
 
-  updateCount();
+  if (initialCount !== undefined) {
+    filterStore.matchCount = initialCount;
+  } else {
+    filterStore.matchCount = 0;
+    updateCount();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

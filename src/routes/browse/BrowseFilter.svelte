@@ -18,87 +18,98 @@
   ];
 </script>
 
-<div class="browse-filter">
-  <div class="browse-filter-box">
-    <h2>水平瀏覽</h2>
+<div class="browse-container slide-up">
+  <a href="/" class="browse-back">
+    <IconArrowLeft size={16} />
+    返回首頁
+  </a>
 
-    <!-- Tag Filter -->
-    <div class="browse-filter-field">
-      <span class="browse-filter-label">標籤篩選</span>
-      <TagAutocompleteNew bind:tags={filterStore.tags} variant="top" placeholder="添加標籤..." onchange={updateCount} />
-    </div>
+  <h1 class="browse-title">水平瀏覽</h1>
+  <p class="browse-subtitle">設定篩選條件後開始瀏覽</p>
 
-    <!-- Min Rating -->
-    <div class="browse-filter-field">
-      <span class="browse-filter-label">最低評等</span>
-      <Rating bind:value={filterStore.minRating} size="1.5rem" onchange={updateCount} />
-    </div>
-
-    <!-- Sort -->
-    <div class="browse-filter-field">
-      <span class="browse-filter-label">排序</span>
-      <Select bind:value={filterStore.sort} options={sortOptions} size="md" stretch />
-    </div>
-
-    <!-- Count -->
-    <div class="browse-filter-count">{countText}</div>
-
-    <!-- Start Button -->
-    <button class="btn btn-primary" style="width:100%" disabled={startDisabled} onclick={startPlayer}>
-      <IconPlayerPlay size={18} />
-      {#if filterStore.counting}
-        查詢中...
-      {:else}
-        開始瀏覽
-      {/if}
-    </button>
-
-    <!-- Back to Home -->
-    <a href="/" class="btn btn-ghost btn-sm" style="margin-top:0.5rem;width:100%;text-align:center;">
-      <IconArrowLeft size={16} />
-      返回首頁
-    </a>
+  <!-- Tag Filter -->
+  <div class="browse-field">
+    <span class="browse-label">標籤篩選</span>
+    <TagAutocompleteNew bind:tags={filterStore.tags} variant="top" placeholder="添加標籤..." onchange={updateCount} />
   </div>
+
+  <!-- Min Rating -->
+  <div class="browse-field">
+    <span class="browse-label">最低評等</span>
+    <Rating bind:value={filterStore.minRating} size="1.5rem" onchange={updateCount} />
+  </div>
+
+  <!-- Sort -->
+  <div class="browse-field">
+    <span class="browse-label">排序</span>
+    <Select bind:value={filterStore.sort} options={sortOptions} size="md" stretch />
+  </div>
+
+  <!-- Count -->
+  <div class="browse-count">{countText}</div>
+
+  <!-- Start Button -->
+  <button class="btn btn-primary" style="width:100%" disabled={startDisabled} onclick={startPlayer}>
+    <IconPlayerPlay size={18} />
+    {#if filterStore.counting}
+      查詢中...
+    {:else}
+      開始瀏覽
+    {/if}
+  </button>
 </div>
 
 <style>
-  .browse-filter {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
-  }
-
-  .browse-filter-box {
-    width: 100%;
+  .browse-container {
     max-width: 480px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 2rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
-  .browse-filter-box h2 {
-    font-size: 1.25rem;
+  .browse-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-dim);
+    font-size: 0.8125rem;
+    margin-bottom: 2rem;
+    transition: color 0.15s;
+  }
+
+  .browse-back:hover {
+    color: var(--text-muted);
+  }
+
+  .browse-title {
+    font-size: 1.5rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    text-align: center;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
   }
 
-  .browse-filter-field {
+  .browse-subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .browse-field {
     margin-bottom: 1rem;
   }
 
-  .browse-filter-label {
+  .browse-label {
     display: block;
     font-size: 0.8125rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--text);
     margin-bottom: 0.375rem;
   }
 
-  .browse-filter-count {
+  .browse-count {
     text-align: center;
     font-size: 0.875rem;
     color: var(--text-muted);

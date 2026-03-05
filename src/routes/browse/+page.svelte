@@ -1,7 +1,11 @@
 <script lang="ts">
+  import { untrack } from "svelte";
+  import type { PageData } from "./$types.js";
   import { initBrowse } from "./actions.js";
   import BrowseFilter from "./BrowseFilter.svelte";
-  initBrowse();
+
+  let { data }: { data: PageData } = $props();
+  initBrowse(untrack(() => data.initialCount));
 </script>
 
 <svelte:head>
