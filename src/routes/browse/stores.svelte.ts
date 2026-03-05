@@ -6,14 +6,7 @@
  * All mutations happen exclusively through actions (see actions.ts).
  */
 
-import type { TagInfo } from "$lib/types.js";
-
-// ═══════════════════════════════════════════════════════════
-//  Filter Store
-// ═══════════════════════════════════════════════════════════
-
 class FilterStore {
-  allTags = $state<TagInfo[]>([]);
   tags = $state<string[]>([]);
   minRating = $state(0);
   sort = $state<"committedAt" | "rating" | "originalName" | "random">("committedAt");

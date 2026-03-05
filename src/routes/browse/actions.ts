@@ -7,14 +7,11 @@
  * Player logic lives entirely in /browse/player/+page.svelte (pure JS).
  */
 
+import type { QueryResult } from "$lib/types.js";
 import { api } from "$lib/client/api.js";
 import { debounce } from "$lib/utils.js";
-import type { QueryResult, TagInfo } from "$lib/types.js";
 import { goto } from "$app/navigation";
-
 import { filterStore } from "./stores.svelte.js";
-
-// ─── Constants ──────────────────────────────────────────────────────────────
 
 const DEBOUNCE_COUNT = 200;
 
@@ -23,8 +20,7 @@ const DEBOUNCE_COUNT = 200;
 // ═══════════════════════════════════════════════════════════
 
 /** Reset filter store and hydrate SSR data. */
-export function initBrowse(allTags: TagInfo[]) {
-  filterStore.allTags = allTags;
+export function initBrowse() {
   filterStore.tags = [];
   filterStore.minRating = 0;
   filterStore.sort = "committedAt";
@@ -38,25 +34,9 @@ export function initBrowse(allTags: TagInfo[]) {
 //  Filter Operations
 // ═══════════════════════════════════════════════════════════
 
-export function addTag(tag: string) {
-  const t = tag.trim().toLowerCase();
-  if (!t || filterStore.tags.includes(t)) return;
-  filterStore.tags = [...filterStore.tags, t];
-  updateCount();
-}
-
-export function removeTag(tag: string) {
-  filterStore.tags = filterStore.tags.filter((t) => t !== tag);
-  updateCount();
-}
-
 export function setMinRating(n: number) {
   filterStore.minRating = n === filterStore.minRating ? 0 : n;
   updateCount();
-}
-
-export function setSort(s: "committedAt" | "rating" | "originalName" | "random") {
-  filterStore.sort = s;
 }
 
 /** Debounced count query: GET /api/images?limit=1&page=1&... → total */

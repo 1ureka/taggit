@@ -1,12 +1,11 @@
 <script lang="ts">
   import { IconPlayerPlay, IconArrowLeft } from "@tabler/icons-svelte";
-  import TagChips from "$lib/components/TagChips.svelte";
-  import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
+  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Select from "$lib/components/Select.svelte";
 
   import { filterStore } from "./stores.svelte.js";
-  import { addTag, removeTag, updateCount, setSort, startPlayer } from "./actions.js";
+  import { updateCount, startPlayer } from "./actions.js";
 
   let startDisabled = $derived(filterStore.matchCount === 0 || filterStore.counting);
   let countText = $derived(filterStore.counting ? "查詢中..." : `共 ${filterStore.matchCount} 張符合`);
@@ -17,10 +16,6 @@
     { value: "originalName", label: "檔名" },
     { value: "random", label: "隨機" },
   ];
-
-  function handleSortChange() {
-    setSort(filterStore.sort as "committedAt" | "rating" | "originalName" | "random");
-  }
 </script>
 
 <div class="browse-filter">
@@ -30,15 +25,7 @@
     <!-- Tag Filter -->
     <div class="browse-filter-field">
       <span class="browse-filter-label">標籤篩選</span>
-      {#if filterStore.tags.length > 0}
-        <TagChips tags={filterStore.tags} onremove={removeTag} />
-      {/if}
-      <TagAutocomplete
-        allTags={filterStore.allTags}
-        excludedTags={filterStore.tags}
-        placeholder="添加標籤..."
-        onselect={addTag}
-      />
+      <TagAutocompleteNew bind:tags={filterStore.tags} variant="top" placeholder="添加標籤..." onchange={updateCount} />
     </div>
 
     <!-- Min Rating -->
@@ -50,7 +37,7 @@
     <!-- Sort -->
     <div class="browse-filter-field">
       <span class="browse-filter-label">排序</span>
-      <Select bind:value={filterStore.sort} options={sortOptions} size="md" stretch onchange={handleSortChange} />
+      <Select bind:value={filterStore.sort} options={sortOptions} size="md" stretch />
     </div>
 
     <!-- Count -->
@@ -75,5 +62,46 @@
 </div>
 
 <style>
-  @import "./BrowseFilter.css";
+  .browse-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .browse-filter-box {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+  }
+
+  .browse-filter-box h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .browse-filter-field {
+    margin-bottom: 1rem;
+  }
+
+  .browse-filter-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 0.375rem;
+  }
+
+  .browse-filter-count {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
 </style>
