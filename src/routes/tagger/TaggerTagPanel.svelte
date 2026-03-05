@@ -104,6 +104,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
   }
 
   .tagger-tags-list {
@@ -111,8 +112,8 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     margin-bottom: 0.5rem;
-    max-height: 12rem;
-    overflow-y: auto;
+    /* max-height: 12rem; */
+    /* overflow-y: auto; */
     align-content: flex-start;
   }
 
