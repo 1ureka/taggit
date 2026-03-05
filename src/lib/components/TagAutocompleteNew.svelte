@@ -54,13 +54,17 @@
     const normalized = name.trim().toLowerCase();
     if (!normalized) return;
 
-    const splited = normalized.split(/[,，]+/);
-    const inputTags = splited.map((t) => t.trim()).filter((t) => t);
-    if (inputTags.length === 0) return;
+    const inputTags = normalized
+      .split(/[,，]+/)
+      .map((t) => t.trim())
+      .filter((t) => t)
+      .filter((t) => !tags.includes(t));
 
-    const newTags = inputTags.filter((t) => !tags.includes(t));
-    if (newTags.length === 0) return;
-    setTags([...tags, ...newTags]);
+    const uniqueInputTags = Array.from(new Set(inputTags));
+
+    if (uniqueInputTags.length === 0) return;
+
+    setTags([...tags, ...uniqueInputTags]);
 
     inputValue = "";
     activeIndex = -1;
