@@ -9,73 +9,46 @@
  * Usage:
  *   <div use:float={{ reference: triggerEl, open }}>…</div>
  */
-import {
-  computePosition,
-  autoUpdate,
-  flip,
-  offset,
-  shift,
-  size,
-  type Placement,
-  type Middleware,
-} from "@floating-ui/dom";
+import { computePosition, autoUpdate, flip, offset, shift, size } from "@floating-ui/dom";
+import type { Placement, Middleware, ElementRects } from "@floating-ui/dom";
 
-export interface FloatOptions {
+type FloatOptions = {
   /** The reference (anchor) element */
   reference: HTMLElement | undefined;
   /** Whether the floating element is currently visible */
   open: boolean;
   /** Preferred placement (default: 'bottom-start') */
   placement?: Placement;
-  /** Offset in px from reference (default: 4) */
-  offset?: number;
   /** Whether to match the width of the reference element (default: true) */
   matchWidth?: boolean;
-  /** Whether to set minWidth to match the reference element (default: false) */
-  matchMinWidth?: boolean;
-  /** Extra middleware to append */
-  middleware?: Middleware[];
-}
+};
 
 export function float(node: HTMLElement, opts: FloatOptions) {
-  let cleanup: (() => void) | undefined;
-
-  // Portal to <body> so the node escapes any overflow/transform ancestors.
-  // The node must have `position: fixed` in CSS — that way it is always
-  // viewport-relative and can NEVER contribute to scrollWidth/scrollHeight,
-  // so stale coordinates while invisible are completely harmless.
   document.body.appendChild(node);
   node.dataset.open = "false";
 
+  /** ? */
+  let cleanup: (() => void) | undefined;
+
+  /** ? */
   function buildMiddleware(o: FloatOptions): Middleware[] {
-    const mw: Middleware[] = [offset(o.offset ?? 4), flip({ padding: 8 }), shift({ padding: 8 })];
+    const middleware: Middleware[] = [offset(4), flip({ padding: 8 }), shift({ padding: 8 })];
 
     if (o.matchWidth !== false) {
-      mw.push(
-        size({
-          apply({ rects }) {
-            Object.assign(node.style, { width: `${rects.reference.width}px` });
-          },
-          padding: 8,
-        }),
-      );
-    } else if (o.matchMinWidth) {
-      mw.push(
-        size({
-          apply({ rects }) {
-            Object.assign(node.style, { minWidth: `${rects.reference.width}px` });
-          },
-          padding: 8,
-        }),
-      );
+      const apply = ({ rects }: { rects: ElementRects }) => {
+        Object.assign(node.style, { width: `${rects.reference.width}px` });
+      };
+
+      middleware.push(size({ apply, padding: 8 }));
     }
 
-    if (o.middleware) mw.push(...o.middleware);
-    return mw;
+    return middleware;
   }
 
+  /** ? */
   function recompute(o: FloatOptions) {
     if (!o.reference) return;
+
     computePosition(o.reference, node, {
       strategy: "fixed",
       placement: o.placement ?? "bottom-start",
@@ -85,6 +58,7 @@ export function float(node: HTMLElement, opts: FloatOptions) {
     });
   }
 
+  /** ? */
   function apply(o: FloatOptions) {
     cleanup?.();
     cleanup = undefined;

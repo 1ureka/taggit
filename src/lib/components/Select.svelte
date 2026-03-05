@@ -74,7 +74,7 @@
   bind:this={listEl}
   class="select-list"
   role="listbox"
-  use:float={{ reference: triggerEl, open, placement: "bottom-start", matchWidth: false, matchMinWidth: true }}
+  use:float={{ reference: triggerEl, open, placement: "bottom-start" }}
 >
   {#each options as opt}
     <button

@@ -8,12 +8,11 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
+  user-select: none;
+  min-width: 0;
   transition:
     background 0.15s,
     border-color 0.15s;
-  user-select: none;
-  white-space: nowrap;
-  min-width: 0;
 }
 
 .select-trigger:hover {
@@ -53,21 +52,15 @@
   transform: rotate(180deg);
 }
 
-/* ─── Dropdown list (portalled to <body> by float action, position:fixed so it
-      never contributes to document scrollWidth) ──────────────────────────── */
+/* 列表容器 */
 .select-list {
   position: fixed;
   z-index: 9999;
-  max-height: 14rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
   padding: 0.25rem 0;
-  left: 0;
-  top: 0;
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
@@ -76,6 +69,14 @@
     transform 0.12s ease-out;
 }
 
+/* 列表容器: 設置最大高度並啟用滾動 */
+.select-list {
+  max-height: 14rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 列表項目(按鈕): 覆蓋原生按鈕樣式 */
 .select-option {
   display: block;
   width: 100%;
@@ -88,6 +89,12 @@
   border: none;
   cursor: pointer;
   transition: background 0.08s;
+}
+
+/* 列表項目(按鈕): 使文字溢出時顯示省略號 */
+.select-option {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
