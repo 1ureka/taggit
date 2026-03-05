@@ -1,0 +1,68 @@
+import { addToast } from "$lib/client/toast.js";
+import type { TagInfo } from "$lib/types.js";
+import { api } from "./api.js";
+
+/** A function that returns a promise of type `T`. */
+type AsyncFn<T> = () => Promise<T>;
+
+/**
+ * Returns a cached version of `fn` with a time-to-live (TTL).
+ * The cached value is returned if it's still valid (not expired), otherwise `fn` is called to refresh it.
+ */
+function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
+  let cachedData: T | null = null;
+  let lastFetchedAt = 0;
+  let pendingPromise: Promise<T> | null = null;
+
+  const revalidate = (): Promise<T> => {
+    if (pendingPromise) return pendingPromise;
+
+    pendingPromise = fn()
+      .then((data) => {
+        cachedData = data;
+        lastFetchedAt = Date.now();
+        return data;
+      })
+      .finally(() => {
+        pendingPromise = null;
+      });
+
+    return pendingPromise;
+  };
+
+  const get = async (): Promise<T> => {
+    const now = Date.now();
+    const isExpired = now - lastFetchedAt > ttl;
+
+    if (cachedData === null) {
+      return revalidate();
+    }
+
+    if (isExpired) {
+      revalidate().catch(() => addToast(errMsg, "error"));
+    }
+
+    return cachedData;
+  };
+
+  const invalidate = () => {
+    lastFetchedAt = 0;
+    cachedData = null;
+    pendingPromise = null;
+  };
+
+  return { get, invalidate, revalidate };
+}
+
+/**
+ * Fetches the list of tags from the server.
+ */
+const fetchTags = async () => {
+  const res = await api.get<{ tags: TagInfo[] }>("/api/metadata/tags");
+  return res.ok && res.data ? res.data.tags : [];
+};
+
+/**
+ * A cached version of `fetchTags` with a TTL of 5 seconds.
+ */
+export const tagCache = createSWR(fetchTags, 5_000, "獲取標籤失敗");
