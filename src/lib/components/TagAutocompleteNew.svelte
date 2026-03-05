@@ -38,6 +38,11 @@
   let activeIndex = $state(-1);
   let showOverflow = $state(false); // compact: overflow popover 狀態
 
+  // 當 overflow 數量歸零時自動關閉 popover
+  $effect(() => {
+    if (overflowCount === 0) showOverflow = false;
+  });
+
   // ── Derived ─────────────────────────────────────────────────────────────────
 
   const COMPACT_MAX = 2;
@@ -217,33 +222,42 @@
       </button>
     {/each}
 
-    {#if overflowCount > 0}
-      <button
-        bind:this={overflowBtnEl}
-        type="button"
-        class="chip overflow-btn"
-        onclick={() => (showOverflow = !showOverflow)}
-      >
-        +{overflowCount}
-      </button>
-      <!-- 溢出 popover（float 至 body） -->
-      <div class="overflow-menu" use:float={{ reference: overflowBtnEl, open: showOverflow }}>
-        {#each overflowTags as tag}
-          <button
-            type="button"
-            class="overflow-menu-item"
-            onmousedown={(e) => {
-              e.preventDefault();
-              removeTag(tag);
-              if (overflowTags.length <= 1) showOverflow = false;
-            }}
-          >
-            <span>{tag}</span>
-            <span class="chip-remove"><IconX size={12} /></span>
-          </button>
-        {/each}
-      </div>
-    {/if}
+    <!-- 溢出按鈕：始終保持掛載（避免 bind:this 瞬間 undefined），overflowCount=0 時 CSS 隱藏 -->
+    <button
+      bind:this={overflowBtnEl}
+      type="button"
+      class="chip overflow-btn"
+      class:overflow-btn--hidden={overflowCount === 0}
+      tabindex={overflowCount === 0 ? -1 : 0}
+      onclick={() => (showOverflow = !showOverflow)}
+    >
+      +{overflowCount}
+    </button>
+    <!-- 溢出 popover（float 至 body） -->
+    <div
+      class="overflow-menu"
+      use:float={{
+        reference: overflowBtnEl,
+        open: showOverflow && overflowCount > 0,
+        placement: "bottom-start",
+        matchWidth: false,
+      }}
+    >
+      {#each overflowTags as tag}
+        <button
+          type="button"
+          class="overflow-menu-item"
+          onmousedown={(e) => {
+            e.preventDefault();
+            removeTag(tag);
+            if (overflowTags.length <= 1) showOverflow = false;
+          }}
+        >
+          <span class="overflow-item-name">{tag}</span>
+          <span class="chip-remove"><IconX size={12} /></span>
+        </button>
+      {/each}
+    </div>
 
     <div class="input-wrapper">
       <input
@@ -331,28 +345,34 @@
 
   /* "+N" 收合按鈕 */
   .overflow-btn {
-    font-size: 0.75rem;
-    font-weight: 600;
+    cursor: pointer;
     flex-shrink: 0;
-    background: color-mix(in oklch, var(--accent) 12%, transparent);
-    color: var(--accent);
-    border-color: color-mix(in oklch, var(--accent) 30%, transparent);
   }
 
   .overflow-btn:hover {
     background: color-mix(in oklch, var(--accent) 22%, transparent);
   }
 
-  /* overflow popover（portalled via float） */
+  /* 始終掛載但不可見時隱藏 */
+  .overflow-btn--hidden {
+    display: none;
+  }
+
+  /* overflow popover — 與 autocomplete / Select 一致的樣式 */
   .overflow-menu {
     position: fixed;
     z-index: 9999;
     min-width: 9rem;
-    padding: 0.25rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.25rem 0;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    left: 0;
+    top: 0;
     opacity: 0;
     transform: translateY(-4px);
     pointer-events: none;
@@ -372,15 +392,26 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 0.3125rem 0.5rem;
+    padding: 0.375rem 0.625rem;
     font-size: 0.8125rem;
-    border-radius: calc(var(--radius) - 2px);
+    color: var(--text);
+    background: transparent;
+    border: none;
     cursor: pointer;
     transition: background 0.08s;
+    white-space: nowrap;
+    font-family: var(--font);
   }
 
   .overflow-menu-item:hover {
     background: var(--bg-hover);
+  }
+
+  .overflow-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 0.5rem;
   }
 
   /* ── Shared: input wrapper (inline / compact) ──────────────────────────────── */
