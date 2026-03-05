@@ -13,8 +13,8 @@
     onenter?: () => void;
     /** 當標籤變更時觸發 */
     onchange?: () => void;
-    /** 佈局變體 */
-    variant?: "top" | "inline" | "compact";
+    /** 佈局變體（compact 請改用 TagAutocompleteCompact） */
+    variant?: "top" | "inline";
   }
 
   let {
@@ -28,7 +28,6 @@
   // ── DOM refs ────────────────────────────────────────────────────────────────
 
   let inputEl = $state<HTMLInputElement>();
-  let overflowBtnEl = $state<HTMLButtonElement>(); // compact: "+N" 按鈕
 
   // ── State ───────────────────────────────────────────────────────────────────
 
@@ -36,20 +35,8 @@
   let inputValue = $state("");
   let showDropdown = $state(false);
   let activeIndex = $state(-1);
-  let showOverflow = $state(false); // compact: overflow popover 狀態
-
-  // 當 overflow 數量歸零時自動關閉 popover
-  $effect(() => {
-    if (overflowCount === 0) showOverflow = false;
-  });
 
   // ── Derived ─────────────────────────────────────────────────────────────────
-
-  const COMPACT_MAX = 2;
-
-  let visibleTags = $derived(variant === "compact" ? tags.slice(0, COMPACT_MAX) : tags);
-  let overflowTags = $derived(variant === "compact" ? tags.slice(COMPACT_MAX) : []);
-  let overflowCount = $derived(overflowTags.length);
 
   let filtered = $derived.by(() => {
     const query = inputValue.trim().toLowerCase();
@@ -165,12 +152,7 @@
   }
 </script>
 
-<div
-  class="tag-input"
-  class:tag-input--top={variant === "top"}
-  class:tag-input--inline={variant === "inline"}
-  class:tag-input--compact={variant === "compact"}
->
+<div class="tag-input" class:tag-input--top={variant === "top"} class:tag-input--inline={variant === "inline"}>
   {#if variant === "top"}
     <!-- chips 區（上方，chips 多時可垂直滾動） -->
     {#if tags.length > 0}
@@ -201,64 +183,6 @@
         {tag}<span class="chip-remove"><IconX size={12} /></span>
       </button>
     {/each}
-    <div class="input-wrapper">
-      <input
-        bind:this={inputEl}
-        bind:value={inputValue}
-        class="input"
-        {placeholder}
-        oninput={handleInput}
-        onfocus={openAutocomplete}
-        onblur={closeAutocomplete}
-        onkeydown={handleKeydown}
-        autocomplete="off"
-      />
-    </div>
-  {:else}
-    <!-- compact: 最多顯示 COMPACT_MAX 個 chips，其餘收合為 "+N" -->
-    {#each visibleTags as tag}
-      <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
-        {tag}<span class="chip-remove"><IconX size={12} /></span>
-      </button>
-    {/each}
-
-    <!-- 溢出按鈕：始終保持掛載（避免 bind:this 瞬間 undefined），overflowCount=0 時 CSS 隱藏 -->
-    <button
-      bind:this={overflowBtnEl}
-      type="button"
-      class="chip overflow-btn"
-      class:overflow-btn--hidden={overflowCount === 0}
-      tabindex={overflowCount === 0 ? -1 : 0}
-      onclick={() => (showOverflow = !showOverflow)}
-    >
-      +{overflowCount}
-    </button>
-    <!-- 溢出 popover（float 至 body） -->
-    <div
-      class="overflow-menu"
-      use:float={{
-        reference: overflowBtnEl,
-        open: showOverflow && overflowCount > 0,
-        placement: "bottom-start",
-        matchWidth: false,
-      }}
-    >
-      {#each overflowTags as tag}
-        <button
-          type="button"
-          class="overflow-menu-item"
-          onmousedown={(e) => {
-            e.preventDefault();
-            removeTag(tag);
-            if (overflowTags.length <= 1) showOverflow = false;
-          }}
-        >
-          <span class="overflow-item-name">{tag}</span>
-          <span class="chip-remove"><IconX size={12} /></span>
-        </button>
-      {/each}
-    </div>
-
     <div class="input-wrapper">
       <input
         bind:this={inputEl}
@@ -332,89 +256,6 @@
     gap: 0.5rem;
     align-items: center;
   }
-
-  /* ── Variant: compact ──────────────────────────────────────────────────────── */
-
-  .tag-input--compact {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.25rem;
-    align-items: center;
-    min-width: 0;
-  }
-
-  /* "+N" 收合按鈕 */
-  .overflow-btn {
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .overflow-btn:hover {
-    background: color-mix(in oklch, var(--accent) 22%, transparent);
-  }
-
-  /* 始終掛載但不可見時隱藏 */
-  .overflow-btn--hidden {
-    display: none;
-  }
-
-  /* overflow popover — 與 autocomplete / Select 一致的樣式 */
-  .overflow-menu {
-    position: fixed;
-    z-index: 9999;
-    min-width: 9rem;
-    max-height: 14rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 0.25rem 0;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    left: 0;
-    top: 0;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition:
-      opacity 0.12s ease-out,
-      transform 0.12s ease-out;
-  }
-
-  .overflow-menu:global([data-open="true"]) {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
-  .overflow-menu-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
-    color: var(--text);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: background 0.08s;
-    white-space: nowrap;
-    font-family: var(--font);
-  }
-
-  .overflow-menu-item:hover {
-    background: var(--bg-hover);
-  }
-
-  .overflow-item-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-right: 0.5rem;
-  }
-
-  /* ── Shared: input wrapper (inline / compact) ──────────────────────────────── */
 
   .input-wrapper {
     flex: 1;
