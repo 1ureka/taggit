@@ -104,11 +104,6 @@
   function handleInput() {
     if (!showDropdown) openAutocomplete();
     activeIndex = -1;
-    // 逗號觸發新增（支援全形）
-    if (inputValue.includes(",") || inputValue.includes("，")) {
-      const val = inputValue.replace(/[,，]/g, "").trim();
-      if (val) addTag(val);
-    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
