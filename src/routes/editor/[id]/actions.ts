@@ -19,8 +19,6 @@ import type { ImageWithId } from "$lib/types.js";
 
 import { editStore, uiStore } from "./stores.svelte.js";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
 const SAVE_DEBOUNCE = 800;
 
 // ═══════════════════════════════════════════════════════════
@@ -39,16 +37,7 @@ export function initEdit(image: ImageWithId) {
   uiStore.pendingConfirm = null;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Tags
-// ═══════════════════════════════════════════════════════════
-
 export function markDirty() {
-  editStore.dirty = true;
-}
-
-export function setRating(r: number) {
-  editStore.currentRating = r;
   editStore.dirty = true;
 }
 

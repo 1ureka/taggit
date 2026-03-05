@@ -3,14 +3,14 @@
   import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
   import { editStore } from "./stores.svelte.js";
-  import { markDirty, setRating } from "./actions.js";
+  import { markDirty } from "./actions.js";
 
   let image = $derived(editStore.image!);
 </script>
 
 <aside class="editor-panel">
   <div class="editor-rating">
-    <Rating value={editStore.currentRating} size="1.5rem" onchange={setRating} />
+    <Rating bind:value={editStore.currentRating} size="1.5rem" onchange={markDirty} />
   </div>
   <div class="separator"></div>
 
