@@ -61,7 +61,8 @@
     <button
       type="button"
       class="select-option"
-      class:select-option-active={opt.value === value}
+      class:select-option-active={i === ui.activeIndex}
+      class:select-option-selected={opt.value === value}
       onmousedown={(e) => ui.handleOptionMouseDown(e, opt)}
       onmouseenter={() => ui.handleOptionMouseEnter(i)}
       role="option"
@@ -179,6 +180,10 @@
       background: var(--bg-hover);
     }
     &.select-option-active {
+      color: var(--accent);
+      background: var(--bg-hover);
+    }
+    &.select-option-selected {
       color: var(--accent);
       background: var(--bg-active);
     }
