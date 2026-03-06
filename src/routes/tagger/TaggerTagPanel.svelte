@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
-  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { editStore, selectionStore, uiStore } from "./stores.svelte.js";
   import { commit, trash } from "./actions.js";
 
@@ -25,7 +25,7 @@
   <div class="separator"></div>
 
   <div class="tagger-tags" bind:this={tagInputWrapEl}>
-    <TagAutocompleteNew bind:tags={editStore.tags} variant="top" placeholder="輸入標籤..." onenter={() => commit()} />
+    <Autocomplete bind:tags={editStore.tags} variant="top" placeholder="輸入標籤..." onenter={() => commit()} />
   </div>
 
   <div class="separator"></div>

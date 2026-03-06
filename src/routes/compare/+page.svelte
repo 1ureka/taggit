@@ -3,7 +3,7 @@
   import { IconArrowLeft, IconArrowsShuffle } from "@tabler/icons-svelte";
   import { untrack } from "svelte";
   import { api } from "$lib/client/api.js";
-  import TagAutocompleteCompact from "$lib/components/TagAutocompleteCompact.svelte";
+  import AutocompleteCompact from "$lib/components/AutocompleteCompact.svelte";
   import Rating from "$lib/components/Rating.svelte";
 
   let { data } = $props();
@@ -115,7 +115,7 @@
   </a>
   <span class="compare-title">比較</span>
   <div class="compare-header-filter">
-    <TagAutocompleteCompact bind:tags={filterTags} placeholder="標籤篩選..." />
+    <AutocompleteCompact bind:tags={filterTags} placeholder="標籤篩選..." />
     <Rating bind:value={filterMinRating} size="1rem" />
     <span class="compare-count">{totalCount} 張</span>
   </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { toolStore } from "./stores.svelte.js";
   import { closeRenameModal, renameTag } from "./actions.js";
 
@@ -52,7 +52,7 @@
         <div class="rename-field">
           <label class="rename-label" for="rename-old">舊標籤名稱</label>
           <div class="rename-ac-wrap">
-            <TagAutocompleteNew
+            <Autocomplete
               bind:tags={selectedTags}
               variant="inline"
               placeholder="選擇要重命名的標籤..."

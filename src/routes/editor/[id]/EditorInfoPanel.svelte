@@ -1,6 +1,6 @@
 <script lang="ts">
   import Rating from "$lib/components/Rating.svelte";
-  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
   import { editStore } from "./stores.svelte.js";
   import { markDirty } from "./actions.js";
@@ -16,12 +16,7 @@
   <div class="separator"></div>
 
   <div class="editor-tags">
-    <TagAutocompleteNew
-      bind:tags={editStore.currentTags}
-      variant="top"
-      placeholder="輸入標籤..."
-      onchange={markDirty}
-    />
+    <Autocomplete bind:tags={editStore.currentTags} variant="top" placeholder="輸入標籤..." onchange={markDirty} />
   </div>
 
   <div class="separator"></div>

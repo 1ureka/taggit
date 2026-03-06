@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconPlayerPlay, IconArrowLeft } from "@tabler/icons-svelte";
-  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Select from "$lib/components/Select.svelte";
 
@@ -30,7 +30,7 @@
   <!-- Tag Filter -->
   <div class="browse-field">
     <span class="browse-label">標籤篩選</span>
-    <TagAutocompleteNew bind:tags={filterStore.tags} variant="top" placeholder="添加標籤..." onchange={updateCount} />
+    <Autocomplete bind:tags={filterStore.tags} variant="top" placeholder="添加標籤..." onchange={updateCount} />
   </div>
 
   <!-- Min Rating -->

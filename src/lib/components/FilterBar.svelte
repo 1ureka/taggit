@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TagAutocompleteNew from "./TagAutocompleteNew.svelte";
+  import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
 
   let {
@@ -47,7 +47,7 @@
 </script>
 
 <div class="filter-bar">
-  <TagAutocompleteNew bind:tags={selectedTags} variant="inline" placeholder="篩選標籤..." {onchange} />
+  <Autocomplete bind:tags={selectedTags} variant="inline" placeholder="篩選標籤..." {onchange} />
   <div class="filter-controls">
     <span class="filter-label">評分</span>
     <Select bind:value={ratingOp} options={ratingOpOptions} stretch onchange={() => onchange?.()} />
