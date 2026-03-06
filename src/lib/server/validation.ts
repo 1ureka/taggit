@@ -10,10 +10,11 @@ export function isValidId(value: unknown): value is string {
 
 /**
  * Tags must be a non-empty array of trimmed, non-empty, unique strings (max 50 chars each).
- * An empty array [ ] is valid (clearing all tags).
+ * An empty array is NOT valid — every committed image must have at least one tag.
  */
 export function isValidTags(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
+  if (value.length === 0) return false;
   if (value.some((t) => typeof t !== "string" || t.trim() === "" || t.length > 50)) return false;
   // Check uniqueness
   const seen = new Set<string>();

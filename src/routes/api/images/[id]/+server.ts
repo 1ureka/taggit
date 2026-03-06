@@ -37,7 +37,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
   if (typeof expectedUpdatedAt !== "number")
     return json({ ok: false, error: "expectedUpdatedAt is required (number)" }, { status: 400 });
-  if (tags !== undefined && !isValidTags(tags)) return json({ ok: false, error: "Invalid tags" }, { status: 400 });
+  if (tags !== undefined && !isValidTags(tags))
+    return json(
+      { ok: false, error: "Invalid tags (must be a non-empty array of unique, non-empty strings)" },
+      { status: 400 },
+    );
   if (rating !== undefined && !isValidRating(rating))
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
 
