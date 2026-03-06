@@ -1,24 +1,25 @@
 <script lang="ts">
-  import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import { toolStore, tagCatalogStore } from "./stores.svelte.js";
+  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import { toolStore } from "./stores.svelte.js";
   import { closeRenameModal, renameTag } from "./actions.js";
 
   // ── Local form state ──────────────────────────────────────
-  let oldName = $state("");
+  let selectedTags = $state<string[]>([]);
+  let oldName = $derived.by(() => selectedTags[0] ?? "");
   let newName = $state("");
   let newInputEl: HTMLInputElement | undefined = $state();
 
   // Reset fields whenever the modal opens
   $effect(() => {
     if (toolStore.showRename) {
-      oldName = "";
+      selectedTags = [];
       newName = "";
     }
   });
 
-  function handleSelectOld(tag: string) {
-    oldName = tag.trim().toLowerCase();
-    requestAnimationFrame(() => newInputEl?.focus());
+  function handleSelectChange() {
+    if (selectedTags.length > 1) selectedTags = [selectedTags.at(-1)!];
+    if (oldName) requestAnimationFrame(() => newInputEl?.focus());
   }
 
   function handleSubmit() {
@@ -51,17 +52,13 @@
         <div class="rename-field">
           <label class="rename-label" for="rename-old">舊標籤名稱</label>
           <div class="rename-ac-wrap">
-            <TagAutocomplete
-              allTags={tagCatalogStore.known}
+            <TagAutocompleteNew
+              bind:tags={selectedTags}
+              variant="inline"
               placeholder="選擇要重命名的標籤..."
-              onselect={handleSelectOld}
+              onchange={handleSelectChange}
             />
           </div>
-          {#if oldName}
-            <div class="rename-selected">
-              已選擇：<span class="chip">{oldName}</span>
-            </div>
-          {/if}
         </div>
 
         <div class="rename-field">
@@ -115,14 +112,5 @@
 
   .rename-ac-wrap {
     position: relative;
-  }
-
-  .rename-selected {
-    margin-top: 0.375rem;
-    font-size: 0.8125rem;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
   }
 </style>
