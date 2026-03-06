@@ -89,13 +89,7 @@
     display: inline-flex;
     gap: 0.125rem;
     user-select: none;
-    outline: none;
     border-radius: 2px;
-  }
-
-  .rating:focus-visible {
-    outline: 2px solid var(--accent, currentColor);
-    outline-offset: 2px;
   }
 
   .rating-star {
