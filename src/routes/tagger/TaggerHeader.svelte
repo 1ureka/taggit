@@ -8,7 +8,7 @@
   let progressLabel = $derived(`${processed}/${fileStore.total} (${fileStore.list.length} 剩餘)`);
 </script>
 
-<header class="tagger-header">
+<header class="page-header">
   <a href="/" class="btn btn-ghost btn-sm">
     <IconArrowLeft size={16} />
     首頁
@@ -28,21 +28,6 @@
 </header>
 
 <style>
-  .tagger-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0 1rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
-  }
-
   .tagger-progress {
     flex: 1;
     display: flex;

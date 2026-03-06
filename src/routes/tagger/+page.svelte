@@ -33,8 +33,6 @@
 
 <svelte:window onkeydown={handleKeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
-<TaggerHeader />
-
 {#if tooSmall}
   <TooSmallOverlay
     minWidth={MIN_WIDTH}
@@ -44,11 +42,14 @@
     label="Tagger"
   />
 {:else}
-  <main class="tagger-main">
-    <TaggerSidebar />
-    <TaggerPreview />
-    <TaggerTagPanel />
-  </main>
+  <div class="page">
+    <TaggerHeader />
+    <main class="tagger-main">
+      <TaggerSidebar />
+      <TaggerPreview />
+      <TaggerTagPanel />
+    </main>
+  </div>
 {/if}
 
 <TaggerToolsModal />
@@ -63,9 +64,16 @@
 {/if}
 
 <style>
+  .page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
   .tagger-main {
     display: flex;
-    height: calc(100vh - 3rem);
-    margin-top: 3rem;
+    flex: 1;
+    min-height: 0;
   }
 </style>
