@@ -56,7 +56,7 @@
     justify-content: center;
     border-radius: 4px;
     border: 2px solid var(--border-hover);
-    background: rgba(0, 0, 0, 0.45);
+    background: hsl(from var(--bg) h s l/ 0.5);
     color: var(--text);
     cursor: pointer;
     opacity: 0;
@@ -66,7 +66,6 @@
       transform 0.18s ease,
       background 0.15s,
       border-color 0.15s;
-    z-index: 2;
     pointer-events: auto;
   }
 
