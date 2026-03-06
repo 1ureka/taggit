@@ -1,26 +1,16 @@
-<!--
-  SelectCheckbox — shared checkbox for image card selection.
-  Always present in the DOM; controlled via CSS opacity + scale transitions.
-  Appears on parent hover or when checked.
-
-  Sizes: "sm" (20px), "md" (24px), "lg" (28px)
-
-  Usage:
-    Wrap the card in a container with class `select-checkbox-host`
-    so that the checkbox can respond to the parent's :hover.
--->
 <script lang="ts">
   import { IconCheck } from "@tabler/icons-svelte";
 
-  let {
-    checked = false,
-    size = "md",
-    onchange,
-  }: {
+  type Props = {
+    /** 是否選中 */
     checked?: boolean;
+    /** 大小變體，預設 "md"，其中 "sm" (20px), "md" (24px), "lg" (28px) */
     size?: "sm" | "md" | "lg";
+    /** 當狀態變更時觸發的回調 */
     onchange?: (checked: boolean) => void;
-  } = $props();
+  };
+
+  let { checked = false, size = "md", onchange }: Props = $props();
 
   const iconSize = $derived(size === "sm" ? 12 : size === "md" ? 14 : 16);
 

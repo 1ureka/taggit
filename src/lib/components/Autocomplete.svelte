@@ -5,7 +5,7 @@
 
   type Props = {
     /** 雙向綁定：目前選中的標籤列表 */
-    tags: string[]; // $bindable
+    tags: string[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
     placeholder?: string;
     /** 空輸入時按 Enter 觸發（非新增標籤行為）。用於 tagger 的「提交」等外部動作 */
@@ -30,54 +30,30 @@
   });
 </script>
 
-<div class="tag-input" class:tag-input--top={variant === "top"} class:tag-input--inline={variant === "inline"}>
-  {#if variant === "top"}
-    <!-- chips 區（上方，chips 多時可垂直滾動） -->
-    {#if tags.length > 0}
-      <div class="chip-list">
-        {#each tags as tag}
-          <button type="button" class="chip chip-removable" onclick={() => ui.handleChipClick(tag)}>
-            {tag}<span class="chip-remove"><IconX size={12} /></span>
-          </button>
-        {/each}
-      </div>
-    {/if}
-    <!-- input 佔滿整列 -->
-    <input
-      bind:this={ui.inputEl}
-      bind:value={ui.inputValue}
-      class="input"
-      {placeholder}
-      oninput={ui.handleInput}
-      onfocus={ui.handleInputFocus}
-      onblur={ui.handleInputBlur}
-      onkeydown={ui.handleInputKeydown}
-      autocomplete="off"
-    />
-  {:else if variant === "inline"}
-    <!-- chips + input 同行，flex-wrap 換行 -->
-    {#each tags as tag}
-      <button type="button" class="chip chip-removable" onclick={() => ui.handleChipClick(tag)}>
-        {tag}<span class="chip-remove"><IconX size={12} /></span>
-      </button>
-    {/each}
-    <div class="input-wrapper">
-      <input
-        bind:this={ui.inputEl}
-        bind:value={ui.inputValue}
-        class="input"
-        {placeholder}
-        oninput={ui.handleInput}
-        onfocus={ui.handleInputFocus}
-        onblur={ui.handleInputBlur}
-        onkeydown={ui.handleInputKeydown}
-        autocomplete="off"
-      />
+<div class="autocomplete" class:autocomplete--top={variant === "top"} class:autocomplete--inline={variant === "inline"}>
+  {#if tags.length > 0}
+    <div class="chip-list">
+      {#each tags as tag}
+        <button type="button" class="chip chip-removable" onclick={() => ui.handleChipClick(tag)}>
+          {tag}<span class="chip-remove"><IconX size={12} /></span>
+        </button>
+      {/each}
     </div>
   {/if}
 
-  <!-- 自動完成 dropdown（float action 會 portal 至 body） -->
-  <div class="autocomplete" use:float={{ reference: ui.inputEl, open: ui.showDropdown && ui.dropdownTags.length > 0 }}>
+  <input
+    bind:this={ui.inputEl}
+    bind:value={ui.inputValue}
+    class="input"
+    {placeholder}
+    oninput={ui.handleInput}
+    onfocus={ui.handleInputFocus}
+    onblur={ui.handleInputBlur}
+    onkeydown={ui.handleInputKeydown}
+    autocomplete="off"
+  />
+
+  <div class="popover" use:float={{ reference: ui.inputEl, open: ui.showDropdown && ui.dropdownTags.length > 0 }}>
     {#each ui.dropdownTags as tag, i}
       <div
         class="autocomplete-item"
@@ -96,21 +72,6 @@
 </div>
 
 <style>
-  /* ── Root ──────────────────────────────────────────────────────────────────── */
-
-  .tag-input {
-    position: relative;
-  }
-
-  /* ── Variant: top ──────────────────────────────────────────────────────────── */
-
-  .tag-input--top {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* chips 區 */
   .chip-list {
     display: flex;
     flex-wrap: wrap;
@@ -118,55 +79,29 @@
     align-content: flex-start;
   }
 
-  /* input 在 top variant 下佔滿整列 */
-  .tag-input--top .input {
-    width: 100%;
-  }
-
-  /* ── Variant: inline ───────────────────────────────────────────────────────── */
-
-  .tag-input--inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .input-wrapper {
-    flex: 1;
-    min-width: 7rem;
-  }
-
-  .input-wrapper .input {
-    width: 100%;
-  }
-
-  /* ── Autocomplete dropdown (portalled via float) ───────────────────────────── */
-
   .autocomplete {
-    position: fixed;
-    z-index: 9999;
-    max-height: 14rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    left: 0;
-    top: 0;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition:
-      opacity 0.12s ease-out,
-      transform 0.12s ease-out;
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
   }
 
-  .autocomplete:global([data-open="true"]) {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
+  .autocomplete--top {
+    flex-direction: column;
+
+    & .input {
+      width: 100%;
+    }
+  }
+
+  .autocomplete--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+
+    & .input {
+      flex: 1;
+      min-width: 7rem;
+    }
   }
 
   .autocomplete-item {

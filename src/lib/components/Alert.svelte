@@ -1,13 +1,14 @@
 <script lang="ts">
   import { IconInfoCircle, IconAlertCircle, IconAlertTriangle } from "@tabler/icons-svelte";
 
-  let {
-    type = "default",
-    message,
-  }: {
+  type Props = {
+    /** 警示類型，會影響顏色與圖示 */
     type?: "info" | "error" | "default";
+    /** 警示訊息內容 */
     message: string;
-  } = $props();
+  };
+
+  let { type = "default", message }: Props = $props();
 
   const color = $derived(
     type === "info" ? "var(--color-info)" : type === "error" ? "var(--destructive)" : "var(--color-warning)",
