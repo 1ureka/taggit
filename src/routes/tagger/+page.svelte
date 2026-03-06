@@ -17,7 +17,7 @@
   let { data }: { data: PageData } = $props();
 
   // Initialize all stores from server-loaded data (once, untracked)
-  untrack(() => initTagger(data.stagedFiles, data.allTags));
+  untrack(() => initTagger(data.stagedFiles));
 
   // Viewport guard (page-local, not business state)
   let windowWidth = $state(900);

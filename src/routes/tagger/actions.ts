@@ -11,16 +11,14 @@
  *
  * Sections:
  *   Init · Navigation · Tag Editing · Commit & Trash ·
- *   File Operations · Tag Catalog · Confirm Dialog ·
+ *   File Operations · Confirm Dialog ·
  *   Tools · Keyboard
  */
 
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
-import type { TagInfo } from "$lib/types.js";
-
-import { fileStore, selectionStore, editStore, tagCatalogStore, uiStore, toolStore } from "./stores.svelte.js";
-
+import { tagCache } from "$lib/client/cache.js";
+import { fileStore, selectionStore, editStore, uiStore, toolStore } from "./stores.svelte.js";
 import { stagedUrl, imageDimensions, batchRun } from "./helpers.js";
 
 // ─── Internal helpers (not exported) ─────────────────────────────────────────
@@ -46,7 +44,7 @@ function removeByNames(names: string[]) {
 // ═══════════════════════════════════════════════════════════
 
 /** Reset all stores and load initial data from the server. */
-export function initTagger(files: string[], tags: TagInfo[]) {
+export function initTagger(files: string[]) {
   // File store
   fileStore.list = [...files];
   fileStore.total = files.length;
@@ -62,9 +60,6 @@ export function initTagger(files: string[], tags: TagInfo[]) {
   editStore.tags = [];
   editStore.rating = 0;
   editStore.busy = false;
-
-  // Tag catalog
-  tagCatalogStore.known = [...tags];
 
   // UI store
   uiStore.toolsOpen = false;
@@ -175,7 +170,7 @@ export async function commit() {
     if (fail) addToast(`${fail} 張提交失敗`, "error");
 
     removeByNames(names);
-    refreshKnownTags();
+    tagCache.invalidate();
   } finally {
     editStore.busy = false;
   }
@@ -273,16 +268,6 @@ export async function uploadFiles(files: FileList) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Tag Catalog
-// ═══════════════════════════════════════════════════════════
-
-/** Refresh the known-tags catalog from the server. */
-export async function refreshKnownTags() {
-  const res = await api.get<{ tags: TagInfo[] }>("/api/metadata/tags");
-  if (res.ok && res.data) tagCatalogStore.known = res.data.tags;
-}
-
-// ═══════════════════════════════════════════════════════════
 //  Confirm Dialog
 // ═══════════════════════════════════════════════════════════
 
@@ -353,7 +338,7 @@ export async function renameTag(oldName: string, newName: string) {
   const res = await api.post<{ affected: number }>("/api/metadata/tags", { oldName, newName });
   if (res.ok && res.data) {
     toolStore.result = `✓ 已將「${oldName}」重命名為「${newName}」，影響 ${res.data.affected} 張圖片`;
-    refreshKnownTags();
+    tagCache.invalidate();
   } else {
     toolStore.result = "錯誤: " + (res.error || "未知");
   }

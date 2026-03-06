@@ -12,6 +12,7 @@
   <div class="editor-rating">
     <Rating bind:value={editStore.currentRating} size="1.5rem" onchange={markDirty} />
   </div>
+
   <div class="separator"></div>
 
   <div class="editor-tags">

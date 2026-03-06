@@ -1,9 +1,9 @@
 <script lang="ts">
   import { IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
-  import TagAutocomplete from "$lib/components/TagAutocomplete.svelte";
-  import { editStore, tagCatalogStore, selectionStore, uiStore } from "./stores.svelte.js";
-  import { addTag, removeTag, popTag, commit, trash } from "./actions.js";
+  import TagAutocompleteNew from "$lib/components/TagAutocompleteNew.svelte";
+  import { editStore, selectionStore, uiStore } from "./stores.svelte.js";
+  import { commit, trash } from "./actions.js";
 
   let tagInputWrapEl: HTMLDivElement | undefined = $state();
 
@@ -24,25 +24,8 @@
   </div>
   <div class="separator"></div>
 
-  <div class="tagger-tags">
-    <div class="tagger-tags-list">
-      {#each editStore.tags as tag}
-        <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
-          <span>{tag}</span>
-          <span class="chip-remove">x</span>
-        </button>
-      {/each}
-    </div>
-    <div class="tagger-tags-input-wrap" bind:this={tagInputWrapEl}>
-      <TagAutocomplete
-        allTags={tagCatalogStore.known}
-        excludedTags={editStore.tags}
-        placeholder="輸入標籤..."
-        onselect={(tag) => addTag(tag)}
-        oncommit={() => commit()}
-        onbackspace={() => popTag()}
-      />
-    </div>
+  <div class="tagger-tags" bind:this={tagInputWrapEl}>
+    <TagAutocompleteNew bind:tags={editStore.tags} variant="top" placeholder="輸入標籤..." onenter={() => commit()} />
   </div>
 
   <div class="separator"></div>
@@ -105,20 +88,6 @@
     flex-direction: column;
     min-height: 0;
     overflow-y: auto;
-  }
-
-  .tagger-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-    /* max-height: 12rem; */
-    /* overflow-y: auto; */
-    align-content: flex-start;
-  }
-
-  .tagger-tags-input-wrap {
-    position: relative;
   }
 
   .tagger-actions {

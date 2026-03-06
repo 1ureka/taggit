@@ -9,16 +9,9 @@
  *   fileStore       — staged file list & progress tracking
  *   selectionStore  — cursor position & multi-select
  *   editStore       — current tagging session (tags, rating, busy)
- *   tagCatalogStore — all known tags (autocomplete source)
  *   uiStore         — modals & cross-component signals
  *   toolStore       — maintenance tool results
  */
-
-import type { TagInfo } from "$lib/types.js";
-
-// ═══════════════════════════════════════════════════════════
-//  File Store
-// ═══════════════════════════════════════════════════════════
 
 class FileStore {
   list = $state<string[]>([]);
@@ -29,10 +22,6 @@ class FileStore {
 
 export const fileStore = new FileStore();
 
-// ═══════════════════════════════════════════════════════════
-//  Selection Store
-// ═══════════════════════════════════════════════════════════
-
 class SelectionStore {
   cursor = $state(-1);
   selected = $state<Set<number>>(new Set());
@@ -41,10 +30,6 @@ class SelectionStore {
 
 export const selectionStore = new SelectionStore();
 
-// ═══════════════════════════════════════════════════════════
-//  Edit Store
-// ═══════════════════════════════════════════════════════════
-
 class EditStore {
   tags = $state<string[]>([]);
   rating = $state(0);
@@ -52,20 +37,6 @@ class EditStore {
 }
 
 export const editStore = new EditStore();
-
-// ═══════════════════════════════════════════════════════════
-//  Tag Catalog Store
-// ═══════════════════════════════════════════════════════════
-
-class TagCatalogStore {
-  known = $state<TagInfo[]>([]);
-}
-
-export const tagCatalogStore = new TagCatalogStore();
-
-// ═══════════════════════════════════════════════════════════
-//  UI Store
-// ═══════════════════════════════════════════════════════════
 
 class UIStore {
   toolsOpen = $state(false);
@@ -77,10 +48,6 @@ class UIStore {
 }
 
 export const uiStore = new UIStore();
-
-// ═══════════════════════════════════════════════════════════
-//  Tool Store
-// ═══════════════════════════════════════════════════════════
 
 class ToolStore {
   result = $state("");
