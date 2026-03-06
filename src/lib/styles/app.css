@@ -3,6 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap");
 @import "./app-basic.css";
+@import "./app-button.css";
 
 /* ─── Accessibility (global, not component-scoped) ─────────────────────────── */
 .visually-hidden {
@@ -49,7 +50,6 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
-  scrollbar-gutter: stable;
 }
 
 body {
@@ -69,6 +69,13 @@ img {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
 }
 
 /* ─── Custom Scrollbar ─────────────────────────────────────────────────────── */

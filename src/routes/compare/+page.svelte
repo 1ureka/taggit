@@ -108,89 +108,72 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<header class="compare-header">
-  <a href="/" class="btn btn-ghost btn-sm">
-    <IconArrowLeft size={16} />
-    首頁
-  </a>
-  <span class="compare-title">比較</span>
-  <div class="compare-header-filter">
-    <AutocompleteCompact bind:tags={filterTags} placeholder="標籤篩選..." />
-    <Rating bind:value={filterMinRating} size="1rem" />
-    <span class="compare-count">{totalCount} 張</span>
-  </div>
-</header>
+<div class="page-compare">
+  <header class="page-header">
+    <a href="/" class="btn btn-ghost btn-sm">
+      <IconArrowLeft size={16} />
+      首頁
+    </a>
+    <span class="page-header-title">比較</span>
+    <div class="compare-header-filter">
+      <AutocompleteCompact bind:tags={filterTags} placeholder="標籤篩選..." />
+      <Rating bind:value={filterMinRating} size="1rem" />
+      <span class="compare-count">{totalCount} 張</span>
+    </div>
+  </header>
 
-<main class="compare-main">
-  {#if showLoading}
-    <div class="compare-empty">載入中…</div>
-  {:else if errorMsg}
-    <div class="compare-empty">{errorMsg}</div>
-  {:else if pairA && pairB}
-    <button class="compare-card" type="button" onclick={() => openInEditor(pairA)} title="在 Editor 中開啟">
-      <div class="compare-img-wrap">
-        <img src="/img/committed/{pairA.id}{pairA.ext}" alt={pairA.originalName || pairA.id} draggable="false" />
-      </div>
-      <div class="compare-info">
-        <div class="compare-info-rating">
+  <main class="compare-main">
+    {#if showLoading}
+      <div class="compare-empty">載入中…</div>
+    {:else if errorMsg}
+      <div class="compare-empty">{errorMsg}</div>
+    {:else if pairA && pairB}
+      <button class="compare-card" type="button" onclick={() => openInEditor(pairA)} title="在 Editor 中開啟">
+        <div class="compare-card-image">
+          <img src="/img/committed/{pairA.id}{pairA.ext}" alt={pairA.originalName || pairA.id} draggable="false" />
+        </div>
+        <div class="compare-card-info">
           <Rating readonly value={pairA.rating ?? 0} size="0.875rem" />
+          <div class="compare-card-info-tags">
+            {#each pairA.tags as tag}
+              <span class="chip">{tag}</span>
+            {/each}
+          </div>
         </div>
-        <div class="compare-info-tags">
-          {#each pairA.tags as tag}
-            <span class="chip">{tag}</span>
-          {/each}
-        </div>
-      </div>
-    </button>
+      </button>
 
-    <button class="compare-card" type="button" onclick={() => openInEditor(pairB)} title="在 Editor 中開啟">
-      <div class="compare-img-wrap">
-        <img src="/img/committed/{pairB.id}{pairB.ext}" alt={pairB.originalName || pairB.id} draggable="false" />
-      </div>
-      <div class="compare-info">
-        <div class="compare-info-rating">
+      <button class="compare-card" type="button" onclick={() => openInEditor(pairB)} title="在 Editor 中開啟">
+        <div class="compare-card-image">
+          <img src="/img/committed/{pairB.id}{pairB.ext}" alt={pairB.originalName || pairB.id} draggable="false" />
+        </div>
+        <div class="compare-card-info">
           <Rating readonly value={pairB.rating ?? 0} size="0.875rem" />
+          <div class="compare-card-info-tags">
+            {#each pairB.tags as tag}
+              <span class="chip">{tag}</span>
+            {/each}
+          </div>
         </div>
-        <div class="compare-info-tags">
-          {#each pairB.tags as tag}
-            <span class="chip">{tag}</span>
-          {/each}
-        </div>
-      </div>
-    </button>
-  {/if}
-</main>
+      </button>
+    {/if}
+  </main>
 
-<footer class="compare-footer">
-  <button class="btn btn-primary" onclick={loadPair} disabled={loading}>
-    <IconArrowsShuffle size={18} />
-    換一組 <span class="kbd">Space</span>
-  </button>
-</footer>
+  <footer class="compare-footer">
+    <button class="btn btn-primary" onclick={loadPair} disabled={loading}>
+      <IconArrowsShuffle size={18} />
+      換一組 <span class="kbd">Space</span>
+    </button>
+  </footer>
+</div>
 
 <style>
-  /* ─── Header ─────────────────────────────────────────────────────────── */
-  .compare-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3rem;
+  .page-compare {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0 1rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
+    flex-direction: column;
+    height: 100vh;
   }
 
-  .compare-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
+  /* ─── Header ─────────────────────────────────────────────────────────── */
   .compare-header-filter {
     display: flex;
     align-items: center;
@@ -210,12 +193,10 @@
   /* ─── Main ───────────────────────────────────────────────────────────── */
   .compare-main {
     display: flex;
-    gap: 1rem;
+    gap: 1rem 0.5rem;
     padding: 1rem;
-    padding-top: calc(3rem + 1rem); /* header height + space */
-    padding-bottom: 4.5rem; /* footer space */
-    height: 100vh;
-    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
   }
 
   .compare-card {
@@ -230,18 +211,14 @@
     transition:
       border-color 0.15s,
       box-shadow 0.15s;
-    min-width: 0;
-    color: inherit;
-    font-family: inherit;
-    text-align: left;
+
+    &:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 0 0 1px var(--border-hover);
+    }
   }
 
-  .compare-card:hover {
-    border-color: var(--border-hover);
-    box-shadow: 0 0 0 1px var(--border-hover);
-  }
-
-  .compare-img-wrap {
+  .compare-card-image {
     flex: 1;
     display: flex;
     align-items: center;
@@ -249,15 +226,15 @@
     overflow: hidden;
     min-height: 0;
     background: var(--bg);
+
+    & img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
   }
 
-  .compare-img-wrap img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-
-  .compare-info {
+  .compare-card-info {
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
@@ -265,12 +242,7 @@
     border-top: 1px solid var(--border);
   }
 
-  .compare-info-rating {
-    display: flex;
-    gap: 0.125rem;
-  }
-
-  .compare-info-tags {
+  .compare-card-info-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
@@ -287,17 +259,11 @@
 
   /* ─── Footer ─────────────────────────────────────────────────────────── */
   .compare-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem;
+    display: grid;
+    place-items: center;
+    height: 3rem;
     background: var(--bg-card);
     border-top: 1px solid var(--border);
-    z-index: 100;
   }
 
   /* 換一組按鈕在 loading 時保持原本外觀，避免 opacity 閃爍 */
