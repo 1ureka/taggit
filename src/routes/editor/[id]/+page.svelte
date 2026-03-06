@@ -74,13 +74,6 @@
     height: 100vh;
   }
 
-  .page-header-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-
   .editor-header-actions {
     display: flex;
     gap: 0.5rem;
