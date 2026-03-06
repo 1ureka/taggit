@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { TagInfo } from "$lib/types.js";
   import { float } from "$lib/client/float.js";
-  import { tagCache } from "$lib/client/cache";
+  import { createAutocomplete } from "$lib/client/autocomplete.svelte.js";
   import { IconX } from "@tabler/icons-svelte";
 
   interface Props {
@@ -17,143 +16,35 @@
     maxVisible?: number;
   }
 
-  let {
-    tags = $bindable([]),
-    placeholder = "輸入標籤...",
-    onenter,
-    onchange,
-    maxVisible = 2,
-  }: Props = $props();
+  let { tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, maxVisible = 2 }: Props = $props();
 
-  // ── DOM refs ─────────────────────────────────────────────────────────────────
-
-  let inputEl = $state<HTMLInputElement>();
   let overflowBtnEl = $state<HTMLButtonElement>();
-
-  // ── State ─────────────────────────────────────────────────────────────────────
-
-  let allTags = $state<TagInfo[]>([]);
-  let inputValue = $state("");
-  let showDropdown = $state(false);
-  let activeIndex = $state(-1);
-  /** overflow popover 完全由 overflow 按鈕的 focus 狀態控制，不需要額外同步 */
   let overflowOpen = $state(false);
+
+  // ── Autocomplete core ─────────────────────────────────────────────────────────
+
+  const ui = createAutocomplete({
+    onchange: () => onchange?.(),
+    onenter: () => onenter?.(),
+    get selectedTags() {
+      return tags;
+    },
+    set selectedTags(v) {
+      tags = v;
+    },
+  });
 
   // ── Derived ───────────────────────────────────────────────────────────────────
 
   let visibleTags = $derived(tags.slice(0, maxVisible));
   let overflowTags = $derived(tags.slice(maxVisible));
   let overflowCount = $derived(overflowTags.length);
-
-  let filtered = $derived.by(() => {
-    const query = inputValue.trim().toLowerCase();
-    const excluded = new Set(tags.map((t) => t.toLowerCase()));
-    const available = allTags.filter((t) => !excluded.has(t.name.toLowerCase()));
-    if (!query) return available;
-    return available.filter((t) => t.name.toLowerCase().includes(query));
-  });
-
-  $effect(() => {
-    tags;
-    onchange?.();
-  });
-
-  // ── Tag operations ────────────────────────────────────────────────────────────
-
-  function addTag(name: string) {
-    const normalized = name.trim().toLowerCase();
-    if (!normalized) return;
-    const inputTags = normalized
-      .split(/[,，]+/)
-      .map((t) => t.trim())
-      .filter(Boolean);
-    if (!inputTags.length) return;
-    const newTags = inputTags.filter((t) => !tags.includes(t));
-    if (!newTags.length) return;
-    tags = [...tags, ...newTags];
-    inputValue = "";
-    activeIndex = -1;
-    inputEl?.focus();
-  }
-
-  function removeTag(name: string) {
-    tags = tags.filter((t) => t !== name);
-  }
-
-  function popTag() {
-    if (tags.length > 0) tags = tags.slice(0, -1);
-  }
-
-  // ── Autocomplete lifecycle ────────────────────────────────────────────────────
-
-  async function openAutocomplete() {
-    allTags = await tagCache.get();
-    showDropdown = true;
-    activeIndex = -1;
-  }
-
-  function closeAutocomplete() {
-    showDropdown = false;
-    activeIndex = -1;
-  }
-
-  // ── Input event handlers ──────────────────────────────────────────────────────
-
-  function handleInput() {
-    if (!showDropdown) openAutocomplete();
-    activeIndex = -1;
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      closeAutocomplete();
-      return;
-    }
-
-    if (e.key === "Backspace" && !inputValue) {
-      popTag();
-      return;
-    }
-
-    if (e.key === "Tab" && showDropdown && filtered.length > 0) {
-      e.preventDefault();
-      addTag(filtered[activeIndex >= 0 ? activeIndex : 0].name);
-      return;
-    }
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (!showDropdown) openAutocomplete();
-      else activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
-      return;
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      activeIndex = Math.max(activeIndex - 1, 0);
-      return;
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < filtered.length) {
-        addTag(filtered[activeIndex].name);
-        return;
-      }
-      if (inputValue.trim()) {
-        addTag(inputValue.trim());
-        return;
-      }
-      onenter?.();
-      return;
-    }
-  }
 </script>
 
 <div class="tag-compact">
   <!-- 可見 chips -->
   {#each visibleTags as tag}
-    <button type="button" class="chip chip-removable" onclick={() => removeTag(tag)}>
+    <button type="button" class="chip chip-removable" onclick={() => ui.handleChipClick(tag)}>
       {tag}<span class="chip-remove"><IconX size={12} /></span>
     </button>
   {/each}
@@ -190,7 +81,7 @@
         class="overflow-menu-item"
         onmousedown={(e) => {
           e.preventDefault(); // 阻止按鈕失去 focus，讓 popover 保持開啟直到 count 歸零
-          removeTag(tag);
+          ui.handleChipClick(tag);
         }}
       >
         <span class="overflow-item-name">{tag}</span>
@@ -202,32 +93,29 @@
   <!-- input -->
   <div class="input-wrapper">
     <input
-      bind:this={inputEl}
-      bind:value={inputValue}
+      bind:this={ui.inputEl}
+      bind:value={ui.inputValue}
       class="input"
       {placeholder}
-      oninput={handleInput}
-      onfocus={openAutocomplete}
-      onblur={closeAutocomplete}
-      onkeydown={handleKeydown}
+      oninput={ui.handleInput}
+      onfocus={ui.handleInputFocus}
+      onblur={ui.handleInputBlur}
+      onkeydown={ui.handleInputKeydown}
       autocomplete="off"
     />
   </div>
 
   <!-- autocomplete dropdown（float 至 body） -->
-  <div class="autocomplete" use:float={{ reference: inputEl, open: showDropdown && filtered.length > 0 }}>
-    {#each filtered as tag, i}
+  <div class="autocomplete" use:float={{ reference: ui.inputEl, open: ui.showDropdown && ui.dropdownTags.length > 0 }}>
+    {#each ui.dropdownTags as tag, i}
       <div
         class="autocomplete-item"
-        class:active={i === activeIndex}
-        onmousedown={(e) => {
-          e.preventDefault();
-          addTag(tag.name);
-        }}
-        onmouseenter={() => (activeIndex = i)}
+        class:active={i === ui.activeIndex}
+        onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
+        onmouseenter={() => ui.handleDropdownMouseOver(i)}
         role="option"
         tabindex="-1"
-        aria-selected={i === activeIndex}
+        aria-selected={i === ui.activeIndex}
       >
         <span class="autocomplete-item-name">{tag.name}</span>
         <span class="autocomplete-item-count">{tag.count}</span>
