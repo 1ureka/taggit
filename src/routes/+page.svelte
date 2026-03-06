@@ -10,77 +10,85 @@
   <title>Image Manager</title>
 </svelte:head>
 
-<div class="home-container slide-up">
-  <h1 class="home-title">Image Manager</h1>
-  <p class="home-subtitle">本地圖片標籤管理</p>
+<main class="home">
+  <div class="home-container slide-up">
+    <h1 class="home-title">Image Manager</h1>
+    <p class="home-subtitle">本地圖片標籤管理</p>
 
-  <nav class="home-nav">
-    <a href="/tagger" class="home-card">
-      <span class="home-card-icon"><IconTag size={24} /></span>
-      <div class="home-card-body">
-        <div class="home-card-name">Tagger</div>
-        <div class="home-card-desc">審查並標記新圖片</div>
+    <nav class="home-nav">
+      <a href="/tagger" class="home-card">
+        <span class="home-card-icon"><IconTag size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">Tagger</div>
+          <div class="home-card-desc">審查並標記新圖片</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+
+      <a href="/editor" class="home-card">
+        <span class="home-card-icon"><IconPencil size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">Editor</div>
+          <div class="home-card-desc">編輯已儲存圖片</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+
+      <a href="/browse" class="home-card">
+        <span class="home-card-icon"><IconPlayerPlay size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">Browse</div>
+          <div class="home-card-desc">水平輪播瀏覽</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+
+      <a href="/scroll" class="home-card">
+        <span class="home-card-icon"><IconLayoutList size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">Scroll</div>
+          <div class="home-card-desc">垂直捲動瀏覽</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+
+      <a href="/compare" class="home-card">
+        <span class="home-card-icon"><IconArrowsLeftRight size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">Compare</div>
+          <div class="home-card-desc">隨機比較</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+    </nav>
+
+    <div class="home-footer">
+      <div class="stats">
+        共 {stats.totalImages} 張圖片 · {stats.totalTags} 個標籤 · {stats.stagedCount} 張待審查
       </div>
-      <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-    </a>
+    </div>
 
-    <a href="/editor" class="home-card">
-      <span class="home-card-icon"><IconPencil size={24} /></span>
-      <div class="home-card-body">
-        <div class="home-card-name">Editor</div>
-        <div class="home-card-desc">編輯已儲存圖片</div>
-      </div>
-      <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-    </a>
-
-    <a href="/browse" class="home-card">
-      <span class="home-card-icon"><IconPlayerPlay size={24} /></span>
-      <div class="home-card-body">
-        <div class="home-card-name">Browse</div>
-        <div class="home-card-desc">水平輪播瀏覽</div>
-      </div>
-      <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-    </a>
-
-    <a href="/scroll" class="home-card">
-      <span class="home-card-icon"><IconLayoutList size={24} /></span>
-      <div class="home-card-body">
-        <div class="home-card-name">Scroll</div>
-        <div class="home-card-desc">垂直捲動瀏覽</div>
-      </div>
-      <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-    </a>
-
-    <a href="/compare" class="home-card">
-      <span class="home-card-icon"><IconArrowsLeftRight size={24} /></span>
-      <div class="home-card-body">
-        <div class="home-card-name">Compare</div>
-        <div class="home-card-desc">隨機比較</div>
-      </div>
-      <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-    </a>
-  </nav>
-
-  <div class="home-footer">
-    <div class="stats">
-      共 {stats.totalImages} 張圖片 · {stats.totalTags} 個標籤 · {stats.stagedCount} 張待審查
+    <div class="home-settings">
+      <a href="/setup" class="home-settings-link">
+        <IconSettings size={14} />
+        設定
+      </a>
+      <span class="home-settings-dot">·</span>
+      <a href="/trash" class="home-settings-link">
+        <IconTrash size={14} />
+        垃圾桶
+      </a>
     </div>
   </div>
-
-  <div class="home-settings">
-    <a href="/setup" class="home-settings-link">
-      <IconSettings size={14} />
-      設定
-    </a>
-    <span class="home-settings-dot">·</span>
-    <a href="/trash" class="home-settings-link">
-      <IconTrash size={14} />
-      垃圾桶
-    </a>
-  </div>
-</div>
+</main>
 
 <style>
+  main.home {
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
   .home-container {
     max-width: 640px;
     margin: 0 auto;

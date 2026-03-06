@@ -108,7 +108,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="page-compare">
+<div class="page">
   <header class="page-header">
     <a href="/" class="btn btn-ghost btn-sm">
       <IconArrowLeft size={16} />
@@ -167,7 +167,7 @@
 </div>
 
 <style>
-  .page-compare {
+  .page {
     display: flex;
     flex-direction: column;
     height: 100vh;
