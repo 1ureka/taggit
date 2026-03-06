@@ -1,6 +1,7 @@
 <script lang="ts">
   import { float } from "$lib/client/float.js";
   import { createAutocomplete } from "$lib/client/autocomplete.svelte.js";
+  import { createMenu } from "$lib/client/menu.svelte.js";
   import { IconX } from "@tabler/icons-svelte";
 
   type Props = {
@@ -18,9 +19,6 @@
 
   let { tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, maxVisible = 2 }: Props = $props();
 
-  let overflowBtnEl = $state<HTMLButtonElement>();
-  let overflowOpen = $state(false);
-
   let visibleTags = $derived(tags.slice(0, maxVisible));
   let overflowTags = $derived(tags.slice(maxVisible));
   let overflowCount = $derived(overflowTags.length);
@@ -36,10 +34,13 @@
     },
   });
 
-  const handleMenuItemMouseDown = (e: MouseEvent, tag: string) => {
-    e.preventDefault(); // 阻止按鈕失去 focus，讓 popover 保持開啟直到 count 歸零
-    ui.handleChipClick(tag);
-  };
+  const menu = createMenu({
+    disableAutoClose: true,
+    onselect: (item) => ui.handleChipClick(item.value),
+    get list() {
+      return overflowTags.map((t) => ({ value: t, label: t }));
+    },
+  });
 </script>
 
 <div class="autocomplete">
@@ -50,24 +51,37 @@
   {/each}
 
   <button
-    bind:this={overflowBtnEl}
+    bind:this={menu.triggerEl}
     type="button"
     class="chip overflow-btn"
     class:overflow-btn--hidden={overflowCount === 0}
     aria-label="{overflowCount} 個更多標籤，點擊展開"
-    onfocus={() => (overflowOpen = true)}
-    onblur={() => (overflowOpen = false)}
+    aria-expanded={menu.open}
+    aria-haspopup="listbox"
+    onclick={menu.handleTriggerClick}
+    onblur={menu.handleTriggerBlur}
+    onkeydown={menu.handleTriggerKeydown}
   >
     +{overflowCount}
   </button>
 
   <div
     class="popover overflow-menu"
-    use:float={{ reference: overflowBtnEl, open: overflowOpen, placement: "bottom-start", matchWidth: false }}
+    use:float={{ reference: menu.triggerEl, open: menu.open, placement: "bottom-start", matchWidth: false }}
+    role="listbox"
+    aria-label="溢出標籤"
   >
-    {#each overflowTags as tag}
-      <button type="button" class="overflow-menu-item" onmousedown={(e) => handleMenuItemMouseDown(e, tag)}>
-        <span class="overflow-menu-item-name">{tag}</span>
+    {#each menu.list as item, i}
+      <button
+        type="button"
+        role="option"
+        class="overflow-menu-item"
+        class:active={i === menu.activeIndex}
+        aria-selected={i === menu.activeIndex}
+        onmousedown={(e) => menu.handleItemMouseDown(e, item)}
+        onmouseenter={() => menu.handleItemMouseEnter(i)}
+      >
+        <span class="overflow-menu-item-name">{item.label}</span>
         <span class="chip-remove"><IconX size={12} /></span>
       </button>
     {/each}
@@ -143,7 +157,8 @@
     white-space: nowrap;
   }
 
-  .overflow-menu-item:hover {
+  .overflow-menu-item:hover,
+  .overflow-menu-item.active {
     background: var(--bg-hover);
   }
 
