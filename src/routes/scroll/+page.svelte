@@ -14,7 +14,6 @@
   let { data } = $props();
 
   // ─── State ────────────────────────────────────────────────────────────
-  const PAGE_SIZE = 30;
   const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
   let selectedTags = $state<string[]>([]);
@@ -25,13 +24,10 @@
 
   let items = $state<ImageWithId[]>(untrack(() => data.initialItems));
   let total = $state(untrack(() => data.initialTotal));
-  let page = $state(1);
   let loading = $state(false);
-  let noMore = $state(untrack(() => data.initialItems.length < PAGE_SIZE));
   let showFab = $state(false);
   let columns = $state(3);
 
-  // ─── Masonry layout ───────────────────────────────────────────────────
   let containerEl = $state<HTMLElement | null>(null);
   let pageContentEl = $state<HTMLElement | null>(null);
   let layout = $derived(createWeightBasedLayout(items, columns));
@@ -49,38 +45,19 @@
     columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
   });
 
+  /** 圖片牆虛擬化提供者 */
   const virtualizer = createVirtualizer(
     () => layout,
     () => containerEl,
     () => pageContentEl,
   );
 
-  // ─── Scroll handling ──────────────────────────────────────────────────
-  const handleScroll = throttle(() => {
-    const el = pageContentEl;
-    if (!el) return;
-    showFab = el.scrollTop > 300;
-
-    if (loading || noMore) return;
-    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceToBottom < 400) {
-      loadMore();
-    }
-  }, 150);
-
-  // ─── API ──────────────────────────────────────────────────────────────
-  async function doSearch(reset = true) {
-    if (reset) {
-      page = 1;
-      items = [];
-      noMore = false;
-    }
+  /** 執行查詢 */
+  async function doSearch() {
     loading = true;
 
     try {
       const params = new URLSearchParams();
-      params.set("limit", String(PAGE_SIZE));
-      params.set("page", String(page));
       params.set("sort", sort);
       params.set("order", order);
       if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
@@ -91,15 +68,8 @@
 
       const res = await api.get<QueryResult>(`/api/images?${params.toString()}`);
       if (res.ok && res.data) {
-        if (reset) {
-          items = res.data.items;
-        } else {
-          items = [...items, ...res.data.items];
-        }
+        items = res.data.items;
         total = res.data.total;
-        if (res.data.items.length < PAGE_SIZE) {
-          noMore = true;
-        }
       } else {
         addToast(res.error || "載入失敗", "error");
       }
@@ -107,28 +77,22 @@
       addToast("載入失敗", "error");
     } finally {
       loading = false;
-      // 載入後檢查視窗是否仍未填滿，若是則繼續載入
-      requestAnimationFrame(() => {
-        if (!noMore && pageContentEl && pageContentEl.scrollHeight <= pageContentEl.clientHeight) {
-          loadMore();
-        }
-      });
     }
   }
 
-  async function loadMore() {
-    page += 1;
-    await doSearch(false);
-  }
+  /** 處理 main 滾動事件 */
+  const handleScroll = throttle(() => {
+    const el = pageContentEl;
+    if (!el) return;
+    showFab = el.scrollTop > 300;
+  }, 150);
 
-  function handleFilterChange() {
-    doSearch(true);
-  }
-
-  function scrollToTop() {
+  /** 處理 FAB 點擊事件，滾動到頂部 */
+  function handleFABClick() {
     pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  /** 處理圖片雙擊事件，打開編輯器 */
   function handleImageDblClick(img: ImageWithId) {
     window.open(`/editor/${encodeURIComponent(img.id)}`, "_blank");
   }
@@ -152,7 +116,7 @@
 
   <main class="page-content slide-up" bind:this={pageContentEl} onscroll={handleScroll}>
     <div class="scroll-filter-area">
-      <FilterBar bind:selectedTags bind:rating bind:ratingOp bind:sort bind:order onchange={handleFilterChange} />
+      <FilterBar bind:selectedTags bind:rating bind:ratingOp bind:sort bind:order onchange={doSearch} />
       <div class="scroll-result-count">
         <span>{total} 張結果</span>
       </div>
@@ -193,7 +157,7 @@
 {#if showFab}
   <button
     class="scroll-fab"
-    onclick={scrollToTop}
+    onclick={handleFABClick}
     aria-label="回到頂部"
     transition:fly={{ y: 16, duration: 200, opacity: 0 }}
   >
