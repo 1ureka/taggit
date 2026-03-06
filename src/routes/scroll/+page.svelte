@@ -299,7 +299,6 @@
     transition:
       transform 0.15s,
       box-shadow 0.15s;
-    z-index: 90;
   }
 
   .scroll-fab:hover {
