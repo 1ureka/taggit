@@ -33,6 +33,7 @@
 
   // ─── Masonry layout ───────────────────────────────────────────────────
   let containerEl = $state<HTMLElement | null>(null);
+  let pageContentEl = $state<HTMLElement | null>(null);
   let layout = $derived(createWeightBasedLayout(items, columns));
 
   onMount(() => {
@@ -51,14 +52,17 @@
   const virtualizer = createVirtualizer(
     () => layout,
     () => containerEl,
+    () => pageContentEl,
   );
 
   // ─── Scroll handling ──────────────────────────────────────────────────
   const handleScroll = throttle(() => {
-    showFab = window.scrollY > 300;
+    const el = pageContentEl;
+    if (!el) return;
+    showFab = el.scrollTop > 300;
 
     if (loading || noMore) return;
-    const distanceToBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (distanceToBottom < 400) {
       loadMore();
     }
@@ -105,7 +109,7 @@
       loading = false;
       // 載入後檢查視窗是否仍未填滿，若是則繼續載入
       requestAnimationFrame(() => {
-        if (!noMore && document.documentElement.scrollHeight <= window.innerHeight) {
+        if (!noMore && pageContentEl && pageContentEl.scrollHeight <= pageContentEl.clientHeight) {
           loadMore();
         }
       });
@@ -122,7 +126,7 @@
   }
 
   function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleImageDblClick(img: ImageWithId) {
@@ -134,57 +138,56 @@
   <title>Scroll — Image Manager</title>
 </svelte:head>
 
-<svelte:window onscroll={handleScroll} />
-
-<header class="scroll-header">
-  <a href="/" class="btn btn-ghost btn-sm">
-    <IconArrowLeft size={16} />
-    首頁
-  </a>
-  <span class="scroll-title">垂直瀏覽</span>
-  <div class="scroll-header-right">
-    <Select bind:value={columns} options={COLUMN_OPTIONS} />
-  </div>
-</header>
-
-<main class="scroll-main slide-up">
-  <!-- Filter area (not sticky, just at top) -->
-  <div class="scroll-filter-area">
-    <FilterBar bind:selectedTags bind:rating bind:ratingOp bind:sort bind:order onchange={handleFilterChange} />
-    <div class="scroll-result-count">
-      <span>{total} 張結果</span>
+<div class="page">
+  <header class="page-header">
+    <a href="/" class="btn btn-ghost btn-sm">
+      <IconArrowLeft size={16} />
+      首頁
+    </a>
+    <span class="page-header-title">垂直瀏覽</span>
+    <div class="select-wrapper">
+      <Select bind:value={columns} options={COLUMN_OPTIONS} />
     </div>
-  </div>
+  </header>
 
-  <!-- Masonry wall -->
-  {#if items.length === 0 && !loading}
-    <div class="scroll-empty">找不到符合的圖片</div>
-  {/if}
-
-  <div class="masonry-container" bind:this={containerEl} style:height="{virtualizer.totalHeight}px">
-    {#each virtualizer.visibleItems as item (item.id)}
-      <div
-        class="masonry-item"
-        style:transform="translate3d({item.pixelX}px, {item.pixelY}px, 0)"
-        style:width="{item.pixelW}px"
-        style:height="{item.pixelH}px"
-      >
-        <img
-          class="masonry-img"
-          src="/img/committed/{item.id}{item.ext}"
-          alt={item.originalName || item.id}
-          loading="lazy"
-          draggable="false"
-          ondblclick={() => handleImageDblClick(item)}
-        />
+  <main class="page-content slide-up" bind:this={pageContentEl} onscroll={handleScroll}>
+    <div class="scroll-filter-area">
+      <FilterBar bind:selectedTags bind:rating bind:ratingOp bind:sort bind:order onchange={handleFilterChange} />
+      <div class="scroll-result-count">
+        <span>{total} 張結果</span>
       </div>
-    {/each}
-  </div>
+    </div>
 
-  {#if loading}
-    <div class="scroll-loading">載入中…</div>
-  {/if}
-</main>
+    <!-- Masonry wall -->
+    {#if items.length === 0 && !loading}
+      <div class="scroll-empty">找不到符合的圖片</div>
+    {/if}
+
+    <div class="masonry-container" bind:this={containerEl} style:height="{virtualizer.totalHeight}px">
+      {#each virtualizer.visibleItems as item (item.id)}
+        <div
+          class="masonry-item"
+          style:transform="translate3d({item.pixelX}px, {item.pixelY}px, 0)"
+          style:width="{item.pixelW}px"
+          style:height="{item.pixelH}px"
+        >
+          <img
+            class="masonry-img"
+            src="/img/committed/{item.id}{item.ext}"
+            alt={item.originalName || item.id}
+            loading="lazy"
+            draggable="false"
+            ondblclick={() => handleImageDblClick(item)}
+          />
+        </div>
+      {/each}
+    </div>
+
+    {#if loading}
+      <div class="scroll-loading">載入中…</div>
+    {/if}
+  </main>
+</div>
 
 <!-- FAB: scroll to top -->
 {#if showFab}
@@ -199,28 +202,16 @@
 {/if}
 
 <style>
-  /* ─── Header ──────────────────────────────────────────── */
-  .scroll-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3rem;
+  .page {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0 1rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
+    flex-direction: column;
+    height: 100vh;
+    align-items: stretch;
+    overflow: hidden;
   }
 
-  .scroll-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
-  .scroll-header-right {
+  /* ─── Header ──────────────────────────────────────────── */
+  .select-wrapper {
     margin-left: auto;
     display: flex;
     align-items: center;
@@ -228,9 +219,11 @@
   }
 
   /* ─── Main ────────────────────────────────────────────── */
-  .scroll-main {
-    margin: 0 auto;
-    padding-top: 3rem; /* header height */
+  .page-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   /* ─── Filter area ─────────────────────────────────────── */
@@ -269,16 +262,7 @@
     border-radius: 4px;
     -webkit-user-select: none;
     user-select: none;
-    animation: masonry-fade-in 0.25s cubic-bezier(0, 0, 0.2, 1) forwards;
-  }
-
-  @keyframes masonry-fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    animation: fadeIn 0.25s cubic-bezier(0, 0, 0.2, 1) forwards;
   }
 
   /* ─── States ──────────────────────────────────────────── */
@@ -307,8 +291,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
-    color: #000;
+    background: var(--accent);
+    color: var(--bg);
     border: none;
     cursor: pointer;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);

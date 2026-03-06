@@ -73,14 +73,16 @@ class RAFAggregator {
  * **必須在組件初始化階段呼叫**（因為內部使用 `$effect`）。
  *
  * - 當 `getLayout()` 回傳的佈局資料變更時，立即重新計算可見項目
- * - 自動監聽 window scroll / resize，透過 20 FPS 的 RAF 聚合器限制頻率
+ * - 自動監聽 scroll container scroll / window resize，透過 20 FPS 的 RAF 聚合器限制頻率
  *
- * @param getLayout   - 響應式 getter，回傳當前瀑布流佈局（tracks + yMax）
- * @param getContainer - getter，回傳瀑布流容器 DOM 元素
+ * @param getLayout         - 響應式 getter，回傳當前瀑布流佈局（tracks + yMax）
+ * @param getContainer      - getter，回傳瀑布流容器 DOM 元素
+ * @param getScrollContainer - getter，回傳實際捲動容器（取代 window scroll）
  */
 export function createVirtualizer<T extends { width: number; height: number }>(
   getLayout: () => Layout<T>,
   getContainer: () => HTMLElement | null,
+  getScrollContainer: () => HTMLElement | null,
 ) {
   let visibleItems = $state<VirtualizedItem<T>[]>([]);
   let totalHeight = $state(0);
@@ -95,13 +97,20 @@ export function createVirtualizer<T extends { width: number; height: number }>(
       return;
     }
 
-    const rect = container.getBoundingClientRect();
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const scrollContainerRect = scrollContainer.getBoundingClientRect();
+    const localTop = Math.max(0, scrollContainerRect.top - containerRect.top);
+    const localBottom = scrollContainerRect.bottom - containerRect.top;
+
     const result = getVirtualizedItems({
       tracks: layout.tracks,
       yMax: layout.yMax,
-      containerRect: rect,
       containerWidth: container.clientWidth,
-      viewportHeight: window.innerHeight,
+      localTop,
+      localBottom,
     });
 
     visibleItems = result.visibleItems;
@@ -114,16 +123,19 @@ export function createVirtualizer<T extends { width: number; height: number }>(
     compute();
   });
 
-  // 掛載 scroll / resize 監聽器（僅執行一次）
+  // 掛載 scroll / resize 監聽器（當 scroll container 改變時重新綁定）
   $effect(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
     const aggregator = new RAFAggregator(compute, { fps: 20, idleTimeout: 500 });
     const handleEvent = () => aggregator.notify();
 
-    window.addEventListener("scroll", handleEvent, { passive: true });
+    scrollContainer.addEventListener("scroll", handleEvent, { passive: true });
     window.addEventListener("resize", handleEvent);
 
     return () => {
-      window.removeEventListener("scroll", handleEvent);
+      scrollContainer.removeEventListener("scroll", handleEvent);
       window.removeEventListener("resize", handleEvent);
       aggregator.dispose();
     };

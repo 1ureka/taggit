@@ -80,20 +80,20 @@ export function createWeightBasedLayout<T extends ItemWithSize>(items: T[], colu
 /**
  * 基於二分搜尋的視窗虛擬化
  *
- * 適用於 window scroll 場景：透過容器的 `getBoundingClientRect()` 計算
- * 視窗可見區域在容器內的對應範圍，並從各軌道中以二分搜尋高效篩選出可見項目。
+ * 適用於任意 scroll 容器：由呼叫端計算可見區域在容器內的本地座標，
+ * 並從各軌道中以二分搜尋高效篩選出可見項目。
  */
 export function getVirtualizedItems<T extends ItemWithSize>(params: {
   tracks: Tracks<T>;
   yMax: number;
-  /** 容器相對於視窗的矩形（由 getBoundingClientRect 取得） */
-  containerRect: DOMRect;
   /** 容器實際可用寬度（不含捲軸） */
   containerWidth: number;
-  /** 視窗高度（window.innerHeight） */
-  viewportHeight: number;
+  /** 可見區域上緣，相對於容器頂端的像素偏移（>= 0） */
+  localTop: number;
+  /** 可見區域下緣，相對於容器頂端的像素偏移 */
+  localBottom: number;
 }): { visibleItems: VirtualizedItem<T>[]; totalHeight: number } {
-  const { tracks, yMax, containerRect, containerWidth, viewportHeight } = params;
+  const { tracks, yMax, containerWidth, localTop, localBottom } = params;
 
   if (tracks.length === 0 || yMax <= 0 || containerWidth <= 0) {
     return { visibleItems: [], totalHeight: 0 };
@@ -101,10 +101,6 @@ export function getVirtualizedItems<T extends ItemWithSize>(params: {
 
   const k = containerWidth / tracks.length; // 權重單位 → 像素 的係數
   const totalHeight = yMax * k;
-
-  // 將視窗可見範圍轉換為容器本地的權重座標
-  const localTop = Math.max(0, -containerRect.top);
-  const localBottom = -containerRect.top + viewportHeight;
 
   if (localBottom <= 0 || localTop >= totalHeight) {
     return { visibleItems: [], totalHeight };
