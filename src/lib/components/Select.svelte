@@ -52,11 +52,7 @@
   </span>
 </button>
 
-<div
-  class="select-list"
-  role="listbox"
-  use:float={{ reference: ui.triggerEl, open: ui.open, placement: "bottom-start" }}
->
+<div class="popover" role="listbox" use:float={{ reference: ui.triggerEl, open: ui.open, placement: "bottom-start" }}>
   {#each options as opt, i}
     <button
       type="button"
@@ -132,48 +128,15 @@
     }
   }
 
-  /* 列表容器 */
-  .select-list {
-    position: fixed;
-    z-index: 9999;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    padding: 0.25rem 0;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition:
-      opacity 0.12s ease-out,
-      transform 0.12s ease-out;
-
-    &:global([data-open="true"]) {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-  }
-
-  /* 列表容器: 設置最大高度並啟用滾動 */
-  .select-list {
-    max-height: 14rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
   /* 列表項目(按鈕): 覆蓋原生按鈕樣式 */
   .select-option {
     display: block;
     width: 100%;
     text-align: left;
     padding: 0.375rem 0.625rem;
-    font-family: var(--font);
     font-size: 0.8125rem;
     color: var(--text);
     background: transparent;
-    border: none;
-    cursor: pointer;
     transition: background 0.08s;
 
     &:hover {

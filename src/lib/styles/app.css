@@ -44,6 +44,7 @@
   --radius: 6px;
   --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --z-popover: 10;
 }
 
 /* ─── HTML / Body ──────────────────────────────────────────────────────────── */

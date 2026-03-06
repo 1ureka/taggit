@@ -156,14 +156,6 @@
   margin: 0.75rem 0;
 }
 
-/* ─── Skeleton ─── */
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-active) 25%, var(--bg-hover) 50%, var(--bg-active) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius);
-}
-
 /* ─── Header ─── */
 .page-header {
   display: flex;
@@ -179,4 +171,37 @@
   font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* ─── Popover ─── */
+
+/**
+ * 套用於所有 use:float 指令的容器元素。
+ * float action 會將元素 portal 至 body 並設置 data-open 屬性。
+ */
+.popover {
+  position: fixed;
+  z-index: var(--z-popover);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  max-height: 14rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.25rem 0;
+
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+
+  &[data-open="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  transition:
+    opacity 0.12s ease-out,
+    transform 0.12s ease-out;
 }
