@@ -1,38 +1,50 @@
 <script lang="ts">
   import { IconStar, IconStarFilled } from "@tabler/icons-svelte";
+  import { createRating } from "$lib/client/rating.svelte.js";
 
-  let {
-    value = $bindable(0),
-    size = "1.25rem",
-    readonly = false,
-    onchange,
-  }: {
+  type Props = {
+    /** 雙向綁定：目前分數（0–5），0 = 未評分 */
     value?: number;
+    /** 星號大小（rem 長度單位，預設 1.25rem） */
     size?: string;
-    /** When true the component is display-only — no hover, click or keyboard interaction. */
+    /** 設為 true 時為唯讀模式（無互動） */
     readonly?: boolean;
-    /** Called with the new value (0–5) whenever the user clicks a star. */
+    /** 當分數變更時觸發的回調 */
     onchange?: (v: number) => void;
-  } = $props();
+  };
+
+  let { value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
 
   // Convert CSS rem string → px for tabler icon size prop (assumes 16px root)
   const iconPx = $derived(Math.round(parseFloat(size) * 16));
 
-  let hoveredValue = $state(0);
-  let displayValue = $derived(hoveredValue || value);
-
-  function handleClick(starValue: number) {
-    const next = starValue === value ? 0 : starValue;
-    value = next;
-    onchange?.(next);
-  }
+  const rating = createRating({
+    get value() {
+      return value;
+    },
+    set value(v) {
+      value = v;
+    },
+    get onchange() {
+      return onchange;
+    },
+    get readonly() {
+      return readonly;
+    },
+  });
 </script>
 
+<!--
+  唯讀模式：role="img" 純展示，不可聚焦。
+  互動模式：role="spinbutton"，單一聚焦點，星星全部 aria-hidden。
+  鍵盤：←/→ ±1，Home = 0，End = 5（spinbutton 慣例）。
+-->
 {#if readonly}
-  <div class="rating rating-readonly" role="img" aria-label="評分 {value}/5">
+  <div class="rating rating--readonly" role="img" aria-label="評分 {value}/5">
     {#each [1, 2, 3, 4, 5] as i}
-      <span class="rating-star" class:active={i <= value}>
-        {#if i <= value}
+      {@const state = rating.getStarState(i)}
+      <span class="rating-star" class:bright={state.bright} aria-hidden="true">
+        {#if state.filled}
           <IconStarFilled size={iconPx} />
         {:else}
           <IconStar size={iconPx} />
@@ -41,21 +53,28 @@
     {/each}
   </div>
 {:else}
-  <div class="rating" role="group" aria-label="評分" onmouseleave={() => (hoveredValue = 0)}>
+  <div
+    class="rating"
+    role="spinbutton"
+    aria-label="評分"
+    aria-valuenow={value}
+    aria-valuemin={0}
+    aria-valuemax={5}
+    aria-valuetext={value === 0 ? "未評分" : `${value} 顆星`}
+    tabindex="0"
+    onkeydown={rating.handleContainerKeydown}
+    onmouseleave={rating.handleContainerMouseLeave}
+  >
     {#each [1, 2, 3, 4, 5] as i}
+      {@const state = rating.getStarState(i)}
       <span
         class="rating-star"
-        class:preview={i <= value}
-        class:active={i <= displayValue}
-        role="button"
-        tabindex="0"
-        onmouseenter={() => (hoveredValue = i)}
-        onclick={() => handleClick(i)}
-        onkeydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleClick(i);
-        }}
+        class:bright={state.bright}
+        aria-hidden="true"
+        onmouseenter={() => rating.handleStarMouseEnter(i)}
+        onclick={() => rating.handleStarClick(i)}
       >
-        {#if i <= value}
+        {#if state.filled}
           <IconStarFilled size={iconPx} />
         {:else}
           <IconStar size={iconPx} />
@@ -70,6 +89,13 @@
     display: inline-flex;
     gap: 0.125rem;
     user-select: none;
+    outline: none;
+    border-radius: 2px;
+  }
+
+  .rating:focus-visible {
+    outline: 2px solid var(--accent, currentColor);
+    outline-offset: 2px;
   }
 
   .rating-star {
@@ -85,20 +111,16 @@
     transform: scale(1.15);
   }
 
-  .rating-star.preview {
-    color: var(--rating-color, var(--text-dim));
-  }
-
-  .rating-star.active {
+  .rating-star.bright {
     color: var(--rating-color-active, var(--text));
   }
 
   /* ─── Readonly mode ─────────────────────────────────────── */
-  .rating-readonly .rating-star {
+  .rating--readonly .rating-star {
     cursor: default;
   }
 
-  .rating-readonly .rating-star:hover {
+  .rating--readonly .rating-star:hover {
     transform: none;
   }
 </style>
