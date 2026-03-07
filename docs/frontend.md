@@ -431,34 +431,72 @@ export function createXxx(options: XxxOptions) {
 
 ```
 src/routes/example/
-├── store.svelte.ts   ← 定義 Context class 與 getter/setter
+├── context.svelte.ts ← 定義 Context class 與 getter/setter
 ├── +page.svelte      ← 父元件，負責注入 Context
 └── Child.svelte      ← 子元件，透過 getter 存取 Context
 ```
 
-### 6.3 完整程式碼範例
+### 6.3 Context Class 設計原則
 
-#### `store.svelte.ts` — 定義 Context
+Context class 是**純資料結構**，不包含任何方法。它可以持有兩類成員：
 
-使用 `createContext<T>()` 建立型別安全的 getter / setter pair。
-Context class 的屬性使用 `$state` rune，確保任何修改都會觸發響應式更新。
+1. **`$state` 響應式屬性**——驅動 UI 渲染的狀態（篩選條件、查詢結果、載入狀態等）。
+2. **非 `$state` 的共享引用**——不參與響應式更新，但需要跨元件協調的資料，例如：
+   - **常數**（`PAGE_SIZE`、`LOADING_DELAY`、`SEARCH_DEBOUNCE`）：避免各無頭 UI 各自 hardcode。
+   - **Timer 引用**（`loadingTimer`、`searchTimer`）：多個元件各自擁有 `doSearch()`，但透過共享 timer 引用確保 `clearTimeout` 能取消前一次的操作，**消除 race condition**。
 
 ```ts
-// src/routes/example/store.svelte.ts
+// context.svelte.ts
 import { createContext } from "svelte";
+import type { ImageWithId } from "$lib/types.js";
 
-export class MyContext {
-  tags = $state<string[]>(["Svelte", "SSR"]);
-  minRating = $state(0);
+export class EditorContext {
+  // ─── 常數 ────────────────────────────────────────────
+  readonly PAGE_SIZE = 60;
+  readonly LOADING_DELAY = 200;
+  readonly SEARCH_DEBOUNCE = 300;
+
+  // ─── 共享 Timer 引用（非響應式） ─────────────────────
+  loadingTimer: ReturnType<typeof setTimeout> | null = null;
+  searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ─── $state 響應式屬性 ───────────────────────────────
+  searchText = $state("");
+  items = $state<ImageWithId[]>([]);
+  total = $state(0);
+  loading = $state(false);
+  showLoading = $state(false);
+  // ... 其餘 $state 屬性
 }
 
-export const [getMyContext, setMyContext] = createContext<MyContext>();
+export const [getEditorContext, setEditorContext] = createContext<EditorContext>();
+```
+
+各子元件的無頭 UI 各自實作 `doSearch()`，但操作同一個 `ctx.loadingTimer`：
+
+```ts
+// editorForm.svelte.ts — doSearch 重置頁碼
+async function doSearch() {
+  ctx.page = 1;
+  ctx.loading = true;
+  if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
+  ctx.loadingTimer = setTimeout(() => { /* ... */ }, ctx.LOADING_DELAY);
+  // ...
+}
+
+// editorPagination.svelte.ts — doSearch 不重置頁碼
+async function doSearch() {
+  ctx.loading = true;
+  if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
+  ctx.loadingTimer = setTimeout(() => { /* ... */ }, ctx.LOADING_DELAY);
+  // ...
+}
 ```
 
 **重點說明：**
-- `$state<string[]>` 讓陣列具備深層響應性，包含 `.push()` 等 mutating 操作
-- `createContext` 回傳 tuple `[getter, setter]`，直接解構命名導出
-- `store.svelte.ts` 副檔名必須為 `.svelte.ts`，才能在檔案頂層使用 `$state` rune
+- `readonly` 常數與普通 timer 引用**不使用 `$state`**，因為它們不需要觸發 UI 重繪
+- 多個元件寧可各自重複 `doSearch()` 實作（語義各異），但透過共享 timer 引用保持協調
+- `context.svelte.ts` 副檔名必須為 `.svelte.ts`，才能在檔案頂層使用 `$state` rune
 
 #### `+page.svelte` — 父元件（注入 Context）
 
@@ -467,7 +505,7 @@ export const [getMyContext, setMyContext] = createContext<MyContext>();
 ```svelte
 <!-- src/routes/example/+page.svelte -->
 <script>
-  import { MyContext, setMyContext } from "./store.svelte";
+  import { MyContext, setMyContext } from "./context.svelte";
   import Child from "./Child.svelte";
 
   const myContext = setMyContext(new MyContext());
@@ -499,7 +537,7 @@ export const [getMyContext, setMyContext] = createContext<MyContext>();
 ```svelte
 <!-- src/routes/example/Child.svelte -->
 <script>
-  import { getMyContext } from "./store.svelte";
+  import { getMyContext } from "./context.svelte";
 
   const ctx = getMyContext();
 </script>
@@ -543,7 +581,7 @@ export const [getMyContext, setMyContext] = createContext<MyContext>();
 當需要將 SSR `data` 注入 Context 時，必須透過 getter/setter proxy 確保響應性不被截斷：
 
 ```ts
-// store.svelte.ts
+// context.svelte.ts
 import { createContext } from "svelte";
 
 export class MyContext {
@@ -566,7 +604,7 @@ export const load: PageServerLoad = () => {
 ```svelte
 <!-- +page.svelte -->
 <script lang="ts">
-  import { MyContext, setMyContext } from "./store.svelte";
+  import { MyContext, setMyContext } from "./context.svelte";
   import type { PageData } from "./$types.js";
 
   let { data }: { data: PageData } = $props();

@@ -1,5 +1,5 @@
 import { goto } from "$app/navigation";
-import { getEditorContext } from "./store.svelte.js";
+import { getEditorContext } from "./context.svelte.js";
 
 /**
  * 建立圖片清單邏輯的核心工廠函數

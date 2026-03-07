@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getEditorContext } from "./store.svelte.js";
+  import { getEditorContext } from "./context.svelte.js";
   import { createEditorPagination } from "./editorPagination.svelte.js";
 
   const ctx = getEditorContext();

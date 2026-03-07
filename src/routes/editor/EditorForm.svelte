@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconSearch } from "@tabler/icons-svelte";
   import FilterBar from "$lib/components/FilterBar.svelte";
-  import { getEditorContext } from "./store.svelte.js";
+  import { getEditorContext } from "./context.svelte.js";
   import { createEditorForm } from "./editorForm.svelte.js";
 
   const ctx = getEditorContext();

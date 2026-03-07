@@ -1,12 +1,6 @@
 import { api } from "$lib/client/api.js";
 import type { QueryResult } from "$lib/types.js";
-import { getEditorContext } from "./store.svelte.js";
-
-/** 每頁筆數 */
-const PAGE_SIZE = 60;
-
-/** 載入提示延遲毫秒數 */
-const LOADING_DELAY = 200;
+import { getEditorContext } from "./context.svelte.js";
 
 /**
  * 建立分頁邏輯的核心工廠函數
@@ -15,23 +9,20 @@ export function createEditorPagination() {
   /** Editor 頁面共享的 Context */
   const ctx = getEditorContext();
 
-  /** 載入提示延遲計時器 */
-  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
-
   // ---
 
   /** 執行伺服器查詢（不重置頁碼）並更新 Context 狀態 */
   async function doSearch() {
     ctx.loading = true;
 
-    if (loadingTimer) clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => {
+    if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
+    ctx.loadingTimer = setTimeout(() => {
       if (ctx.loading) ctx.showLoading = true;
-    }, LOADING_DELAY);
+    }, ctx.LOADING_DELAY);
 
     try {
       const params = new URLSearchParams();
-      params.set("limit", String(PAGE_SIZE));
+      params.set("limit", String(ctx.PAGE_SIZE));
       params.set("page", String(ctx.page));
       params.set("sort", ctx.sort);
       params.set("order", ctx.order);
@@ -50,7 +41,7 @@ export function createEditorPagination() {
       }
     } finally {
       ctx.loading = false;
-      if (loadingTimer) clearTimeout(loadingTimer);
+      if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
       ctx.showLoading = false;
       validateSelection();
     }

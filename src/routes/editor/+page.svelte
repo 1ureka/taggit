@@ -3,7 +3,7 @@
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import type { PageData } from "./$types.js";
 
-  import { EditorContext, setEditorContext } from "./store.svelte.js";
+  import { EditorContext, setEditorContext } from "./context.svelte.js";
   import EditorForm from "./EditorForm.svelte";
   import EditorList from "./EditorList.svelte";
   import EditorPagination from "./EditorPagination.svelte";

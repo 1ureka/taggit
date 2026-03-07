@@ -1,6 +1,6 @@
 <script lang="ts">
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
-  import { getEditorContext } from "./store.svelte.js";
+  import { getEditorContext } from "./context.svelte.js";
   import { createEditorList } from "./editorList.svelte.js";
 
   const ctx = getEditorContext();

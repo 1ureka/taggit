@@ -1,15 +1,6 @@
 import { api } from "$lib/client/api.js";
 import type { QueryResult } from "$lib/types.js";
-import { getEditorContext } from "./store.svelte.js";
-
-/** 每頁筆數 */
-const PAGE_SIZE = 60;
-
-/** 載入提示延遲毫秒數 */
-const LOADING_DELAY = 200;
-
-/** 搜尋文字 debounce 毫秒數 */
-const SEARCH_DEBOUNCE = 300;
+import { getEditorContext } from "./context.svelte.js";
 
 /**
  * 建立搜尋表單邏輯的核心工廠函數
@@ -18,11 +9,6 @@ export function createEditorForm() {
   /** Editor 頁面共享的 Context */
   const ctx = getEditorContext();
 
-  /** 載入提示延遲計時器 */
-  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  /** 搜尋文字 debounce 計時器 */
-  let searchTimer: ReturnType<typeof setTimeout> | null = null;
-
   // ---
 
   /** 執行伺服器查詢並更新 Context 狀態 */
@@ -30,14 +16,14 @@ export function createEditorForm() {
     ctx.page = 1;
     ctx.loading = true;
 
-    if (loadingTimer) clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => {
+    if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
+    ctx.loadingTimer = setTimeout(() => {
       if (ctx.loading) ctx.showLoading = true;
-    }, LOADING_DELAY);
+    }, ctx.LOADING_DELAY);
 
     try {
       const params = new URLSearchParams();
-      params.set("limit", String(PAGE_SIZE));
+      params.set("limit", String(ctx.PAGE_SIZE));
       params.set("page", String(ctx.page));
       params.set("sort", ctx.sort);
       params.set("order", ctx.order);
@@ -56,7 +42,7 @@ export function createEditorForm() {
       }
     } finally {
       ctx.loading = false;
-      if (loadingTimer) clearTimeout(loadingTimer);
+      if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
       ctx.showLoading = false;
       validateSelection();
     }
@@ -76,8 +62,8 @@ export function createEditorForm() {
 
   /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
   function handleSearchInput() {
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => doSearch(), SEARCH_DEBOUNCE);
+    if (ctx.searchTimer) clearTimeout(ctx.searchTimer);
+    ctx.searchTimer = setTimeout(() => doSearch(), ctx.SEARCH_DEBOUNCE);
   }
 
   /** 處理篩選條件變更事件，立即觸發查詢 */
