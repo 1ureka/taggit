@@ -1,24 +1,46 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import type { PageData } from "./$types.js";
 
-  import { initTrash, handleTrashKeydown, resolveConfirm } from "./actions.js";
-  import { uiStore } from "./stores.svelte.js";
-  import TrashSearch from "./TrashSearch.svelte";
+  import { TrashContext, setTrashContext } from "./context.svelte.js";
+  import TrashForm from "./TrashForm.svelte";
+  import TrashList from "./TrashList.svelte";
+  import TrashPagination from "./TrashPagination.svelte";
   import TrashSelectionDock from "./TrashSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  untrack(() => initTrash(data.files, data.total, data.page, data.pages));
+  const proxy = {
+    get files() {
+      return data.files;
+    },
+    set files(v) {
+      data.files = v;
+    },
+    get total() {
+      return data.total;
+    },
+    set total(v) {
+      data.total = v;
+    },
+    get pages() {
+      return data.pages;
+    },
+    set pages(v) {
+      data.pages = v;
+    },
+  };
+
+  const ctx = setTrashContext(new TrashContext());
+  ctx.files = proxy.files;
+  ctx.total = proxy.total;
+  ctx.pages = proxy.pages;
 </script>
 
 <svelte:head>
   <title>垃圾桶 — Image Manager</title>
 </svelte:head>
-
-<svelte:window onkeydown={handleTrashKeydown} />
 
 <div class="page">
   <header class="page-header">
@@ -36,17 +58,27 @@
   </header>
 
   <main class="page-content">
-    <TrashSearch />
+    <div class="slide-up">
+      <TrashForm />
+      <TrashList />
+      <TrashPagination />
+    </div>
   </main>
 </div>
 
 <TrashSelectionDock />
 
-{#if uiStore.pendingConfirm}
+{#if ctx.pendingConfirm}
   <ConfirmModal
-    message={uiStore.pendingConfirm.message}
-    onconfirm={() => resolveConfirm(true)}
-    oncancel={() => resolveConfirm(false)}
+    message={ctx.pendingConfirm.message}
+    onconfirm={() => {
+      ctx.pendingConfirm?.resolve(true);
+      ctx.pendingConfirm = null;
+    }}
+    oncancel={() => {
+      ctx.pendingConfirm?.resolve(false);
+      ctx.pendingConfirm = null;
+    }}
   />
 {/if}
 
@@ -80,5 +112,12 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
+  }
+
+  .page-content > .slide-up {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    padding-bottom: 5rem;
   }
 </style>

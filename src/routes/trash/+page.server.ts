@@ -9,10 +9,5 @@ export const load: PageServerLoad = () => {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const files = allFiles.slice(0, PAGE_SIZE);
 
-  return {
-    files,
-    total,
-    page: 1,
-    pages,
-  };
+  return { files, total, pages };
 };

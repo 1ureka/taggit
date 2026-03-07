@@ -1,33 +1,28 @@
-<!--
-  TrashSelectionDock — bottom fixed dock for batch operations.
-  Visible when at least one image is selected.
--->
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { IconX, IconTrash, IconRotate } from "@tabler/icons-svelte";
-  import { selectionStore } from "./stores.svelte.js";
-  import { clearSelection, restoreSelected, deleteSelected } from "./actions.js";
+  import { createTrashSelectionDock } from "./trashSelectionDock.svelte.js";
 
-  let count = $derived(selectionStore.selected.size);
+  const ui = createTrashSelectionDock();
 </script>
 
-{#if count > 0}
+{#if ui.count > 0}
   <div class="selection-dock" transition:fly={{ y: 20, duration: 200, opacity: 0 }}>
     <div class="dock-inner">
-      <button class="btn btn-ghost btn-sm dock-close" onclick={clearSelection} title="取消選取">
+      <button class="btn btn-ghost btn-sm dock-close" onclick={ui.handleCloseClick} title="取消選取">
         <IconX size={16} />
       </button>
 
-      <span class="dock-count">已選取 {count} 張</span>
+      <span class="dock-count">已選取 {ui.count} 張</span>
 
       <div class="dock-separator"></div>
 
-      <button class="btn btn-sm dock-restore" onclick={restoreSelected}>
+      <button class="btn btn-sm dock-restore" onclick={ui.handleRestoreClick}>
         <IconRotate size={14} />
         還原
       </button>
 
-      <button class="btn btn-destructive btn-sm" onclick={deleteSelected}>
+      <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick}>
         <IconTrash size={14} />
         刪除
       </button>
