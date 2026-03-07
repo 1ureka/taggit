@@ -88,6 +88,10 @@ export const load: PageServerLoad = () => {
 
 `+page.svelte` 除了 `<main>` 的殼層樣式外，業務邏輯全在 `BrowseForm.svelte` / `browseForm.svelte.ts` 中。
 
+### 2.5 範例2（`/editor` 路由）
+
+該路由更加複雜，包含多個子元件、Context 注入、以及跨元件共享狀態等，若你發現你要處理的路由有著類似的複雜度，建議參考 `src/routes/editor/` 的實作範例。
+
 ---
 
 ## 三、元件開發規範
