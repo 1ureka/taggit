@@ -1,9 +1,8 @@
 import { onMount } from "svelte";
 import type { ImageWithId } from "$lib/types.js";
-import { throttle } from "$lib/utils.js";
 import { getScrollContext } from "./context.svelte.js";
-import { createWeightBasedLayout } from "./masonry.js";
-import { createVirtualizer } from "./virtualizer.svelte.js";
+import { createWeightBasedLayout } from "./masonry/masonry-layout.js";
+import { createVirtualizer } from "./masonry/virtualizer.svelte.js";
 
 /**
  * 建立瀑布流牆邏輯的核心工廠函數
@@ -14,8 +13,6 @@ export function createScrollMasonry() {
 
   /** 瀑布流容器 DOM 引用 */
   let containerEl = $state<HTMLElement | null>(null);
-  /** 是否顯示回到頂部按鈕 */
-  let showFab = $state(false);
 
   /** 瀑布流佈局 */
   const layout = $derived(createWeightBasedLayout(ctx.items, ctx.columns));
@@ -44,26 +41,6 @@ export function createScrollMasonry() {
 
   onMount(detectBreakpoint);
 
-  // 監聽頁面捲動事件以控制回到頂部按鈕顯示
-  $effect(() => {
-    const el = ctx.pageContentEl;
-    if (!el) return;
-
-    const onScroll = throttle(() => {
-      showFab = el.scrollTop > 300;
-    }, 150);
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  });
-
-  // ---
-
-  /** 處理 FAB 點擊事件，滾動到頂部 */
-  function handleFabClick() {
-    ctx.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   // ---
 
   /** 處理圖片雙擊事件，在新分頁打開編輯器 */
@@ -83,10 +60,6 @@ export function createScrollMasonry() {
       containerEl = el;
     },
 
-    /** 存取是否顯示回到頂部按鈕的 getter */
-    get showFab() {
-      return showFab;
-    },
     /** 存取可見項目列表的 getter */
     get visibleItems() {
       return virtualizer.visibleItems;
@@ -96,8 +69,6 @@ export function createScrollMasonry() {
       return virtualizer.totalHeight;
     },
 
-    /** 處理 FAB 點擊事件，滾動到頂部 */
-    handleFabClick,
     /** 處理圖片雙擊事件，在新分頁打開編輯器 */
     handleImageDblClick,
   };

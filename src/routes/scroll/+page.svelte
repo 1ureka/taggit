@@ -3,6 +3,7 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import { ScrollContext, setScrollContext } from "./context.svelte.js";
   import Select from "$lib/components/Select.svelte";
+  import ScrollFab from "./ScrollFab.svelte";
   import ScrollForm from "./ScrollForm.svelte";
   import ScrollMasonry from "./ScrollMasonry.svelte";
 
@@ -54,6 +55,8 @@
     <ScrollMasonry />
   </main>
 </div>
+
+<ScrollFab />
 
 <style>
   .page {
