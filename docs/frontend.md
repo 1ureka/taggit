@@ -522,6 +522,10 @@ export const [getMyContext, setMyContext] = createContext<MyContext>();
 - `getMyContext()` 不需要傳入任何參數，Svelte 自動沿元件樹向上尋找最近的 Context
 - 子元件對 `ctx.tags.push(...)` 的修改會同步反映在父元件的 `{#each}` 列表中
 
+> **注意**：
+> `getMyContext()` **可以** 在頁面層級的無頭 UI 中呼叫
+> 只要你確保該無頭 UI 的邏輯執行是在 Context 注入之後（通常在子元件的 `<script>` 頂層即可）
+
 ### 6.4 資料流示意
 
 ```
