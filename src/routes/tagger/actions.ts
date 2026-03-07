@@ -18,7 +18,7 @@
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { tagCache } from "$lib/client/cache.js";
-import { fileStore, selectionStore, editStore, uiStore, toolStore } from "./stores.svelte.js";
+import { fileStore, selectionStore, editStore, uiStore } from "./stores.svelte.js";
 import { stagedUrl, imageDimensions, batchRun } from "./helpers.js";
 
 // ─── Internal helpers (not exported) ─────────────────────────────────────────
@@ -62,14 +62,9 @@ export function initTagger(files: string[]) {
   editStore.busy = false;
 
   // UI store
-  uiStore.toolsOpen = false;
   uiStore.pendingConfirm = null;
   uiStore.navigationTick = 0;
   uiStore.focusInputTick = 0;
-
-  // Tool store
-  toolStore.result = "";
-  toolStore.showRename = false;
 
   // Auto-select first image
   if (files.length > 0) select(0);
@@ -285,87 +280,6 @@ export function resolveConfirm(accepted: boolean) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Tools
-// ═══════════════════════════════════════════════════════════
-
-export function openTools() {
-  uiStore.toolsOpen = true;
-  toolStore.result = "";
-}
-
-export function closeTools() {
-  uiStore.toolsOpen = false;
-}
-
-export function openRenameModal() {
-  toolStore.showRename = true;
-}
-
-export function closeRenameModal() {
-  toolStore.showRename = false;
-}
-
-export async function checkOrphans() {
-  toolStore.result = "檢查中...";
-  const res = await api.get<{ orphans: string[] }>("/api/maintenance/orphans");
-  if (res.ok && res.data) {
-    const { orphans } = res.data;
-    toolStore.result =
-      orphans.length === 0
-        ? "✓ 沒有找到孤立檔案"
-        : `找到 ${orphans.length} 個孤立檔案:\n${orphans.map((f) => "  • " + f).join("\n")}`;
-  } else {
-    toolStore.result = "錯誤: " + (res.error || "未知");
-  }
-}
-
-export async function checkMissing() {
-  toolStore.result = "檢查中...";
-  const res = await api.get<{ missing: string[] }>("/api/maintenance/missing");
-  if (res.ok && res.data) {
-    const { missing } = res.data;
-    toolStore.result =
-      missing.length === 0
-        ? "✓ 沒有找到缺失檔案"
-        : `找到 ${missing.length} 個缺失記錄:\n${missing.map((m) => "  • " + m).join("\n")}`;
-  } else {
-    toolStore.result = "錯誤: " + (res.error || "未知");
-  }
-}
-
-export async function renameTag(oldName: string, newName: string) {
-  toolStore.result = "重命名中...";
-  const res = await api.post<{ affected: number }>("/api/metadata/tags", { oldName, newName });
-  if (res.ok && res.data) {
-    toolStore.result = `✓ 已將「${oldName}」重命名為「${newName}」，影響 ${res.data.affected} 張圖片`;
-    tagCache.invalidate();
-  } else {
-    toolStore.result = "錯誤: " + (res.error || "未知");
-  }
-}
-
-export async function backup() {
-  toolStore.result = "備份中...";
-  const res = await api.post<{ backupPath: string }>("/api/maintenance/backup");
-  if (res.ok && res.data) {
-    toolStore.result = "✓ 備份完成: " + res.data.backupPath;
-  } else {
-    toolStore.result = "錯誤: " + (res.error || "未知");
-  }
-}
-
-export async function emptyTrash() {
-  if (!(await confirm("確定要清空垃圾桶？此操作無法復原。"))) return;
-  toolStore.result = "清空中...";
-  const res = await api.del<{ deleted: number }>("/api/trash");
-  if (res.ok && res.data) {
-    toolStore.result = `✓ 已清空垃圾桶，刪除 ${res.data.deleted} 個檔案`;
-  } else {
-    toolStore.result = "錯誤: " + (res.error || "未知");
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
 //  Keyboard
 // ═══════════════════════════════════════════════════════════
 
@@ -395,9 +309,6 @@ export function handleKeydown(e: KeyboardEvent) {
     },
     Enter: () => commit(),
     Delete: () => trash(),
-    Escape: () => {
-      if (uiStore.toolsOpen) uiStore.toolsOpen = false;
-    },
   };
 
   const action = actions[key];

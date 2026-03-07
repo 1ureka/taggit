@@ -10,7 +10,6 @@
  *   selectionStore  — cursor position & multi-select
  *   editStore       — current tagging session (tags, rating, busy)
  *   uiStore         — modals & cross-component signals
- *   toolStore       — maintenance tool results
  */
 
 class FileStore {
@@ -39,7 +38,6 @@ class EditStore {
 export const editStore = new EditStore();
 
 class UIStore {
-  toolsOpen = $state(false);
   pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
   /** Incremented on navigation — signals sidebar scroll & preview zoom reset. */
   navigationTick = $state(0);
@@ -48,10 +46,3 @@ class UIStore {
 }
 
 export const uiStore = new UIStore();
-
-class ToolStore {
-  result = $state("");
-  showRename = $state(false);
-}
-
-export const toolStore = new ToolStore();

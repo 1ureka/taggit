@@ -11,8 +11,6 @@
   import TaggerSidebar from "./TaggerSidebar.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
   import TaggerTagPanel from "./TaggerTagPanel.svelte";
-  import TaggerToolsModal from "./TaggerModalTools.svelte";
-  import RenameTagModal from "./TaggerModalRename.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -51,9 +49,6 @@
     </main>
   </div>
 {/if}
-
-<TaggerToolsModal />
-<RenameTagModal />
 
 {#if uiStore.pendingConfirm}
   <ConfirmModal

@@ -69,7 +69,7 @@
     </div>
 
     <div class="home-settings">
-      <a href="/setup" class="home-settings-link">
+      <a href="/settings" class="home-settings-link">
         <IconSettings size={14} />
         設定
       </a>

@@ -36,7 +36,7 @@ config.ensureServerJson();
 /** Paths that bypass the collection-ready check */
 function isWhitelisted(pathname: string): boolean {
   return (
-    pathname.startsWith("/setup") ||
+    pathname.startsWith("/settings") ||
     pathname.startsWith("/api/setup") ||
     // Static assets served by Vite / adapter-node: don't need DB
     pathname.startsWith("/_app/") ||
@@ -54,11 +54,11 @@ export const handle: Handle = async ({ event, resolve }) => {
   const root = config.getCollectionRoot();
 
   if (!root) {
-    throw redirect(303, "/setup?alert=default");
+    throw redirect(303, "/settings?alert=default");
   }
 
   if (!config.isCollectionValid(root)) {
-    throw redirect(303, "/setup?alert=error");
+    throw redirect(303, "/settings?alert=error");
   }
 
   // Ensure DB is loaded (or reload if collection was switched)
