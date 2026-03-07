@@ -1,14 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { Readable } from "stream";
 import type { RequestHandler } from "@sveltejs/kit";
 import { getDB } from "$lib/server/db.js";
-import { MIME_TYPES } from "$lib/server/config.js";
 import { getPaths } from "$lib/server/helpers.js";
+import { getImage } from "$lib/server/thumbnail.js";
 
 const VALID_AREAS = new Set(["committed", "staged", "trash"]);
 
-export const GET: RequestHandler = ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
   if (!getDB().isLoaded()) {
     return new Response("No collection loaded", { status: 503 });
   }
@@ -35,17 +34,18 @@ export const GET: RequestHandler = ({ params }) => {
     return new Response("Not found", { status: 404 });
   }
 
-  const ext = path.extname(file).toLowerCase();
-  const mimeType = MIME_TYPES[ext] ?? "application/octet-stream";
-  const cacheControl = area === "committed" ? "public, max-age=86400" : "no-cache, no-store, must-revalidate";
+  const wantThumb = url.searchParams.has("thumb");
 
-  const nodeStream = fs.createReadStream(filePath);
-  const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+  try {
+    const buffer = await getImage(area!, file!, filePath, wantThumb);
 
-  return new Response(webStream, {
-    headers: {
-      "Content-Type": mimeType,
-      "Cache-Control": cacheControl,
-    },
-  });
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+  } catch {
+    return new Response("Failed to process image", { status: 500 });
+  }
 };

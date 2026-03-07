@@ -98,6 +98,23 @@ export function isCollectionValid(root: string): boolean {
 }
 
 /**
+ * Returns the current defaultBlurhash from server.json, or empty string if not set.
+ */
+export function getDefaultBlurhash(): string {
+  const cfg = readServerJson();
+  return cfg.defaultBlurhash ?? "";
+}
+
+/**
+ * Writes defaultBlurhash to server.json.
+ */
+export function setDefaultBlurhash(hash: string): void {
+  const cfg = readServerJson();
+  cfg.defaultBlurhash = hash;
+  writeServerJson(cfg);
+}
+
+/**
  * Derives all relevant paths from a collection root.
  */
 export function getCollectionPaths(root: string): CollectionPaths {

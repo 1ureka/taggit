@@ -1,15 +1,17 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
+
+import type { ImageRecord } from "$lib/types.js";
 import { getDB } from "$lib/server/db.js";
 import { hasImage } from "$lib/server/db-query.js";
 import { addImage } from "$lib/server/db-mutation.js";
+
 import { IMG_EXTS } from "$lib/server/config.js";
 import { isValidTags, isValidRating } from "$lib/server/validation.js";
 import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
-import type { ImageRecord } from "$lib/types.js";
+import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /**
  * POST /api/staged/[filename] — commit a staged file.
@@ -28,7 +30,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const { tags, rating, width, height } = body;
+  const { tags, rating } = body;
 
   if (!isValidTags(tags)) return json({ ok: false, error: "Invalid tags" }, { status: 400 });
   if (!isValidRating(rating))
@@ -53,6 +55,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     fs.renameSync(srcPath, destPath);
 
     const now = Date.now();
+    const meta = await getImageMeta(destPath);
     const record: ImageRecord = {
       ext,
       originalName: filename,
@@ -61,8 +64,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       committedAt: now,
       updatedAt: now,
       fileSize: stat.size,
-      width: typeof width === "number" && width > 0 ? width : 0,
-      height: typeof height === "number" && height > 0 ? height : 0,
+      ...meta,
     };
 
     addImage(getDB(), id, record);

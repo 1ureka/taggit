@@ -2,7 +2,7 @@ import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { tagCache } from "$lib/client/cache.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { stagedUrl, imageDimensions, batchRun, scrollToActive } from "./helpers.js";
+import { batchRun, scrollToActive } from "./helpers.js";
 
 /**
  * 建立標籤面板邏輯的核心工廠函數
@@ -85,11 +85,9 @@ export function createTaggerPanel() {
 
     try {
       const [ok, fail] = await batchRun(names, 5, async (fn) => {
-        const dims = await imageDimensions(stagedUrl(fn));
         return api.post(`/api/staged/${encodeURIComponent(fn)}`, {
           tags: ctx.tags,
           rating: ctx.rating,
-          ...dims,
         });
       });
 

@@ -10,6 +10,7 @@ export interface ImageRecord {
   fileSize: number; // bytes
   width: number; // px, 0 = unknown
   height: number; // px, 0 = unknown
+  blurhash: string; // BlurHash string, empty = unable to compute
 }
 
 export interface ImageWithId extends ImageRecord {
@@ -20,6 +21,7 @@ export interface ImageWithId extends ImageRecord {
 
 export interface ServerConfig {
   collectionRoot?: string; // abs path; undefined = not yet set
+  defaultBlurhash?: string; // default BlurHash for staged/trash placeholder
 }
 
 // ─── Collection Paths ─────────────────────────────────────────────────────────
