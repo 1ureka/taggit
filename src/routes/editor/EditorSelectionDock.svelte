@@ -1,46 +1,37 @@
-<!--
-  EditorSelectionDock — bottom fixed dock for batch operations.
-  Visible when at least one image is selected.
--->
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { IconX, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
-  import { selectionStore } from "./stores.svelte.js";
-  import { clearSelection, deleteSelected, rateSelected } from "./actions.js";
+  import { createEditorSelectionDock } from "./editorSelectionDock.svelte.js";
 
-  let count = $derived(selectionStore.selected.size);
+  const ui = createEditorSelectionDock();
 
-  // Visual-only rating value that resets each time the selection changes.
-  // The actual batch-rate action is triggered via the onchange callback,
-  // NOT via a reactive $effect — this avoids accidentally calling rateSelected
-  // when the value is reset programmatically (e.g. selection cleared).
   let dockRating = $state(0);
 
   $effect(() => {
-    count; // depend on count so we reset once per selection change
+    ui.count;
     dockRating = 0;
   });
 </script>
 
-{#if count > 0}
+{#if ui.count > 0}
   <div class="selection-dock" transition:fly={{ y: 20, duration: 200, opacity: 0 }}>
     <div class="dock-inner">
-      <button class="btn btn-ghost btn-sm dock-close" onclick={clearSelection} title="取消選取">
+      <button class="btn btn-ghost btn-sm dock-close" onclick={ui.handleCloseClick} title="取消選取">
         <IconX size={16} />
       </button>
 
-      <span class="dock-count">已選取 {count} 張</span>
+      <span class="dock-count">已選取 {ui.count} 張</span>
 
       <div class="dock-separator"></div>
 
       <div class="dock-rating" style="--rating-color: #aaaaaa; --rating-color-active: #000000">
-        <Rating bind:value={dockRating} size="1.125rem" onchange={rateSelected} />
+        <Rating bind:value={dockRating} size="1.125rem" onchange={ui.handleRatingChange} />
       </div>
 
       <div class="dock-separator"></div>
 
-      <button class="btn btn-destructive btn-sm" onclick={deleteSelected}>
+      <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick}>
         <IconTrash size={14} />
         刪除
       </button>

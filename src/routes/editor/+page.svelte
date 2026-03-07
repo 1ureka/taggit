@@ -1,24 +1,39 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import type { PageData } from "./$types.js";
 
-  import { initSearch, handleSearchKeydown, resolveConfirm } from "./actions.js";
-  import { uiStore } from "./stores.svelte.js";
-  import EditorSearch from "./EditorSearch.svelte";
+  import { EditorContext, setEditorContext } from "./store.svelte.js";
+  import EditorForm from "./EditorForm.svelte";
+  import EditorList from "./EditorList.svelte";
+  import EditorPagination from "./EditorPagination.svelte";
   import EditorSelectionDock from "./EditorSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  untrack(() => initSearch(data.recent.items));
+  const proxy = {
+    get items() {
+      return data.recent.items;
+    },
+    set items(v) {
+      data.recent.items = v;
+    },
+    get total() {
+      return data.recent.total;
+    },
+    set total(v) {
+      data.recent.total = v;
+    },
+  };
+
+  const ctx = setEditorContext(new EditorContext());
+  ctx.items = proxy.items;
+  ctx.total = proxy.total;
 </script>
 
 <svelte:head>
   <title>Editor — Image Manager</title>
 </svelte:head>
-
-<svelte:window onkeydown={handleSearchKeydown} />
 
 <div class="page">
   <header class="page-header">
@@ -36,17 +51,27 @@
   </header>
 
   <main class="page-content">
-    <EditorSearch />
+    <div class="slide-up">
+      <EditorForm />
+      <EditorList />
+      <EditorPagination />
+    </div>
   </main>
 </div>
 
 <EditorSelectionDock />
 
-{#if uiStore.pendingConfirm}
+{#if ctx.pendingConfirm}
   <ConfirmModal
-    message={uiStore.pendingConfirm.message}
-    onconfirm={() => resolveConfirm(true)}
-    oncancel={() => resolveConfirm(false)}
+    message={ctx.pendingConfirm.message}
+    onconfirm={() => {
+      ctx.pendingConfirm?.resolve(true);
+      ctx.pendingConfirm = null;
+    }}
+    oncancel={() => {
+      ctx.pendingConfirm?.resolve(false);
+      ctx.pendingConfirm = null;
+    }}
   />
 {/if}
 
@@ -79,5 +104,12 @@
     overflow-y: auto;
     scrollbar-gutter: stable;
     min-height: 0;
+  }
+
+  .page-content > .slide-up {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    padding-bottom: 5rem;
   }
 </style>
