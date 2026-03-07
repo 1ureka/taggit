@@ -62,8 +62,52 @@
 
 ## 2. 已知耦合 & 技術債
 
-1. **硬編碼顏色**：`EditorSelectionDock` 的白底 dock 使用了大量 `#ffffff`, `#000000`, `#555555` 等硬編碼值，未走 CSS 變數。
+1. **硬編碼反轉顏色**：`EditorSelectionDock`、`TrashSelectionDock` 的白底 dock、以及 `browse/player/page.css` 中使用了大量 `#ffffff`, `#000000`, `#555555` 等硬編碼值，未走 CSS 變數。詳見 §2.1。
 2. **全域原子 class**：`app-basic.css` 中的 `.btn`, `.chip` 等為全域命名，無 scope — 雖然目前沒有衝突，但限制了命名自由度。
+
+### 2.1 Token 反轉（Inverted Token）策略
+
+本專案**只有深色模式**，不會有淺色模式。因此，當 UI 區塊需要「反轉」配色（如淺底深字的浮動 dock）時，**不需要另建一組 `--light-*` 變數**，直接對調使用現有 token 即可：
+
+| 需求 | 硬編碼（❌） | Token 反轉（✅） |
+|------|-------------|-----------------|
+| 淺色底板 | `background: #ffffff` | `background: var(--text)` |
+| 深色文字 | `color: #000000` | `color: var(--bg)` |
+| 次要/柔和文字 | `color: #555555` | `color: var(--text-dim)` — 搭配 `color-mix()` 微調 |
+| hover 高亮 | `background: #e0e0e0` | `background: color-mix(in oklch, var(--text) 85%, var(--bg))` |
+
+**原理**：深色主題中 `--text`（`#fafafa`）是亮色，`--bg`（`#0a0a0a`）是暗色。在「反轉區塊」中，亮色就是底板、暗色就是文字 — 語意上完全對称。
+
+#### 需修正的檔案
+
+| 檔案 | 硬編碼 | 替換 |
+|------|--------|------|
+| `EditorSelectionDock.svelte` | `.dock-inner { background: #ffffff; color: #000000; }` | `background: var(--text); color: var(--bg);` |
+| `EditorSelectionDock.svelte` | `.dock-close, .dock-count { color: #555555; }` | `color: color-mix(in oklch, var(--bg) 65%, var(--text))` |
+| `TrashSelectionDock.svelte` | `.dock-inner { background: #ffffff; color: #000000; }` | `background: var(--text); color: var(--bg);` |
+| `TrashSelectionDock.svelte` | `.dock-close, .dock-count { color: #555555; }` | `color: color-mix(in oklch, var(--bg) 65%, var(--text))` |
+| `browse/player/page.css` | `.browse-player { background: #000; }` | `background: var(--bg);` |
+
+#### 命名指引
+
+在反轉區塊中，不要發明新變數。直接反用 `--bg` / `--text` / `--text-muted` / `--text-dim`：
+
+```css
+/* ✅ 反轉 dock */
+.dock-inner {
+  background: var(--text);
+  color: var(--bg);
+}
+.dock-muted {
+  color: color-mix(in oklch, var(--bg) 65%, var(--text));
+}
+
+/* ❌ 不要這樣做 */
+.dock-inner {
+  background: var(--dock-bg);   /* 多餘的新變數 */
+  color: var(--dock-text);
+}
+```
 
 ---
 
