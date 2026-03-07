@@ -2,42 +2,35 @@
   import { IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
-  import { editStore, selectionStore, uiStore } from "./stores.svelte.js";
-  import { commit, trash } from "./actions.js";
+  import { getTaggerContext } from "./context.svelte.js";
+  import { createTaggerPanel } from "./taggerPanel.svelte.js";
 
-  let tagInputWrapEl: HTMLDivElement | undefined = $state();
-
-  // Derived
-  let selectedCount = $derived(selectionStore.selected.size);
-
-  // React to focus-input signal
-  $effect(() => {
-    const tick = uiStore.focusInputTick;
-    if (tick === 0) return;
-    tagInputWrapEl?.querySelector("input")?.focus();
-  });
+  const ctx = getTaggerContext();
+  const ui = createTaggerPanel();
 </script>
+
+<svelte:window onkeydown={ui.handleWindowKeydown} />
 
 <aside class="tagger-panel">
   <div class="tagger-rating">
-    <Rating bind:value={editStore.rating} size="1.5rem" />
+    <Rating bind:value={ctx.rating} size="1.5rem" />
   </div>
   <div class="separator"></div>
 
-  <div class="tagger-tags" bind:this={tagInputWrapEl}>
-    <Autocomplete bind:tags={editStore.tags} variant="top" placeholder="輸入標籤..." onenter={() => commit()} />
+  <div class="tagger-tags" bind:this={ui.tagInputWrapEl}>
+    <Autocomplete bind:tags={ctx.tags} variant="top" placeholder="輸入標籤..." onenter={ui.handleTagEnter} />
   </div>
 
   <div class="separator"></div>
 
   <div class="tagger-actions">
-    <button class="btn btn-primary btn-sm" onclick={commit} disabled={editStore.busy}>
+    <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
       <IconCheck size={16} />
-      {editStore.busy ? "提交中…" : selectedCount > 1 ? `提交 ${selectedCount} 張` : "提交"}
+      {ui.loading ? "載入中…" : ui.selectedCount > 1 ? `提交 ${ui.selectedCount} 張` : "提交"}
     </button>
-    <button class="btn btn-destructive btn-sm" onclick={trash} disabled={editStore.busy}>
+    <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
       <IconTrash size={16} />
-      {selectedCount > 1 ? `刪除 ${selectedCount} 張` : "刪除"}
+      {ui.selectedCount > 1 ? `刪除 ${ui.selectedCount} 張` : "刪除"}
     </button>
   </div>
 

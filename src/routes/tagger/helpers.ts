@@ -37,3 +37,16 @@ export async function batchRun<T>(
   }
   return [ok, fail];
 }
+
+/** 將指定索引的項目捲動至可視範圍內 */
+export function scrollToActive(listEl: HTMLElement | null, idx: number, itemH: number): void {
+  if (!listEl) return;
+  const top = idx * itemH;
+  const bottom = top + itemH;
+  const viewH = listEl.clientHeight;
+  if (top < listEl.scrollTop) {
+    listEl.scrollTop = top;
+  } else if (bottom > listEl.scrollTop + viewH) {
+    listEl.scrollTop = bottom - viewH;
+  }
+}

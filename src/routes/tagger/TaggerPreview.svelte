@@ -1,53 +1,35 @@
 <script lang="ts">
-  import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
-  import { fileStore, selectionStore, uiStore } from "./stores.svelte.js";
-  import { stagedUrl } from "./helpers.js";
+  import { createTaggerPreview } from "./taggerPreview.svelte.js";
 
-  // ── Derived from stores ───────────────────────────────────
-  let currentFile = $derived(
-    selectionStore.cursor >= 0 && selectionStore.cursor < fileStore.list.length
-      ? fileStore.list[selectionStore.cursor]
-      : null,
-  );
-  let previewSrc = $derived(currentFile ? stagedUrl(currentFile) : "");
-  let selectedCount = $derived(selectionStore.selected.size);
-
-  // ── Zoom / pan ────────────────────────────────────────────
-  const zp = useZoomPan();
-
-  // React to navigation: reset zoom
-  $effect(() => {
-    const tick = uiStore.navigationTick;
-    if (tick === 0) return;
-    zp.reset();
-  });
+  const ui = createTaggerPreview();
 </script>
 
-<svelte:window onmousemove={zp.onWindowMousemove} onmouseup={zp.onWindowMouseup} />
+<svelte:window onmousemove={ui.handleWindowMousemove} onmouseup={ui.handleWindowMouseup} />
 
 <section class="tagger-preview">
-  {#if currentFile}
+  {#if ui.currentFile}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="tagger-preview-container"
-      class:dragging={zp.isDragging}
-      onwheel={zp.onWheel}
-      onmousedown={zp.onMousedown}
-      ondblclick={zp.reset}
+      class:dragging={ui.isDragging}
+      onwheel={ui.handleContainerWheel}
+      onmousedown={ui.handleContainerMousedown}
+      ondblclick={ui.handleContainerDblclick}
       role="img"
     >
       <img
-        src={previewSrc}
-        alt={currentFile}
+        src={ui.previewSrc}
+        alt={ui.currentFile}
         draggable="false"
-        style="transform:{zp.transform}"
+        class:loading={ui.loading}
+        style="transform:{ui.transform}"
       />
     </div>
     <div class="tagger-preview-info">
-      {currentFile}
-      {#if selectedCount > 1}
-        <span class="selection-hint">已選 {selectedCount} 張</span>
+      {ui.currentFile}
+      {#if ui.selectedCount > 1}
+        <span class="selection-hint">已選 {ui.selectedCount} 張</span>
       {/if}
     </div>
   {:else}
@@ -89,10 +71,14 @@
     max-height: 100%;
     object-fit: contain;
     transform-origin: center center;
-    transition: none;
+    transition: opacity 0.2s;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+  }
+
+  .tagger-preview-container img.loading {
+    opacity: 0.75;
   }
 
   .tagger-preview-info {

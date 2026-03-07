@@ -1,23 +1,36 @@
 <script lang="ts">
-  import { untrack } from "svelte";
-
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
   import type { PageData } from "./$types.js";
 
-  import { uiStore } from "./stores.svelte.js";
-  import { initTagger, handleKeydown, resolveConfirm } from "./actions.js";
-  import TaggerHeader from "./TaggerHeader.svelte";
+  import { TaggerContext, setTaggerContext } from "./context.svelte.js";
+  import TaggerProgress from "./TaggerProgress.svelte";
   import TaggerSidebar from "./TaggerSidebar.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
-  import TaggerTagPanel from "./TaggerTagPanel.svelte";
+  import TaggerPanel from "./TaggerPanel.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  // Initialize all stores from server-loaded data (once, untracked)
-  untrack(() => initTagger(data.stagedFiles));
+  const proxy = {
+    get list() {
+      return data.stagedFiles;
+    },
+    set list(v: string[]) {
+      data.stagedFiles = v;
+    },
+  };
 
-  // Viewport guard (page-local, not business state)
+  const ctx = setTaggerContext(new TaggerContext());
+  ctx.list = proxy.list;
+  ctx.total = proxy.list.length;
+
+  // 自動選取第一張圖片
+  if (ctx.list.length > 0) {
+    ctx.cursor = 0;
+    ctx.selected = new Set([0]);
+  }
+
+  // Viewport guard
   let windowWidth = $state(900);
   let windowHeight = $state(600);
   const MIN_WIDTH = 860;
@@ -29,7 +42,7 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window onkeydown={handleKeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
+<svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
 {#if tooSmall}
   <TooSmallOverlay
@@ -41,20 +54,26 @@
   />
 {:else}
   <div class="page">
-    <TaggerHeader />
+    <TaggerProgress />
     <main class="tagger-main">
       <TaggerSidebar />
       <TaggerPreview />
-      <TaggerTagPanel />
+      <TaggerPanel />
     </main>
   </div>
 {/if}
 
-{#if uiStore.pendingConfirm}
+{#if ctx.pendingConfirm}
   <ConfirmModal
-    message={uiStore.pendingConfirm.message}
-    onconfirm={() => resolveConfirm(true)}
-    oncancel={() => resolveConfirm(false)}
+    message={ctx.pendingConfirm.message}
+    onconfirm={() => {
+      ctx.pendingConfirm?.resolve(true);
+      ctx.pendingConfirm = null;
+    }}
+    oncancel={() => {
+      ctx.pendingConfirm?.resolve(false);
+      ctx.pendingConfirm = null;
+    }}
   />
 {/if}
 
