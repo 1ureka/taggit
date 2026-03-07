@@ -90,16 +90,4 @@
     font-family: var(--font-mono);
     font-size: 0.6875rem;
   }
-
-  /* ─── Mobile ─────────────────────────────────────────────────────────── */
-
-  @media (max-width: 768px) {
-    .editor-panel {
-      width: 100%;
-      min-width: 0;
-      max-height: 50vh;
-      border-left: none;
-      border-top: 1px solid var(--border);
-    }
-  }
 </style>

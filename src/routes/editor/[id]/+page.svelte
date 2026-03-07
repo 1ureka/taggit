@@ -87,10 +87,4 @@
     min-height: 0;
     overflow-y: auto;
   }
-
-  @media (max-width: 768px) {
-    .editor-content {
-      flex-direction: column;
-    }
-  }
 </style>
