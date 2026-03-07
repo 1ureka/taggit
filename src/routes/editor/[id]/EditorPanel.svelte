@@ -2,21 +2,26 @@
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
-  import { editStore } from "./stores.svelte.js";
-  import { markDirty } from "./actions.js";
+  import { getEditorDetailContext } from "./context.svelte.js";
+  import { createEditorPanel } from "./editorPanel.svelte.js";
 
-  let image = $derived(editStore.image!);
+  const ctx = getEditorDetailContext();
+  const ui = createEditorPanel();
+
+  let image = $derived(ctx.image!);
 </script>
+
+<svelte:window onkeydown={ui.handleWindowKeydown} />
 
 <aside class="editor-panel">
   <div class="editor-rating">
-    <Rating bind:value={editStore.currentRating} size="1.5rem" onchange={markDirty} />
+    <Rating bind:value={image.rating} size="1.5rem" onchange={ui.handleRatingChange} />
   </div>
 
   <div class="separator"></div>
 
   <div class="editor-tags">
-    <Autocomplete bind:tags={editStore.currentTags} variant="top" placeholder="輸入標籤..." onchange={markDirty} />
+    <Autocomplete bind:tags={image.tags} variant="top" placeholder="輸入標籤..." onchange={ui.handleTagChange} />
   </div>
 
   <div class="separator"></div>

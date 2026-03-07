@@ -1,39 +1,24 @@
 <script lang="ts">
-  import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
+  import { createEditorPreview } from "./editorPreview.svelte.js";
 
-  let {
-    currentFilename,
-    previewSrc,
-  }: {
-    currentFilename: string | null;
-    previewSrc: string;
-  } = $props();
-
-  const zp = useZoomPan();
-
-  /** Reset zoom whenever the image source changes. */
-  $effect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    previewSrc;
-    zp.reset();
-  });
+  const ui = createEditorPreview();
 </script>
 
-<svelte:window onmousemove={zp.onWindowMousemove} onmouseup={zp.onWindowMouseup} />
+<svelte:window onmousemove={ui.zp.onWindowMousemove} onmouseup={ui.zp.onWindowMouseup} />
 
 <section class="editor-preview">
-  {#if currentFilename}
+  {#if ui.previewFilename}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="editor-preview-container"
-      class:dragging={zp.isDragging}
-      onwheel={zp.onWheel}
-      onmousedown={zp.onMousedown}
-      ondblclick={zp.reset}
+      class:dragging={ui.zp.isDragging}
+      onwheel={ui.zp.onWheel}
+      onmousedown={ui.zp.onMousedown}
+      ondblclick={ui.zp.reset}
       role="img"
     >
-      <img src={previewSrc} alt={currentFilename} draggable="false" style="transform:{zp.transform}" />
+      <img src={ui.previewSrc} alt={ui.previewFilename} draggable="false" style="transform:{ui.zp.transform}" />
     </div>
   {:else}
     <div class="editor-preview-container">
