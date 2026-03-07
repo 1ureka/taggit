@@ -14,7 +14,7 @@
 import { goto } from "$app/navigation";
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
-import type { ImageWithId, TagInfo, QueryResult } from "$lib/types.js";
+import type { ImageWithId, QueryResult } from "$lib/types.js";
 
 import { searchStore, selectionStore, uiStore } from "./stores.svelte.js";
 
@@ -34,8 +34,7 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null;
 // ═══════════════════════════════════════════════════════════
 
 /** Hydrate search stores from SSR data. */
-export function initSearch(recentItems: ImageWithId[], allTags: TagInfo[]) {
-  searchStore.allTags = allTags;
+export function initSearch(recentItems: ImageWithId[]) {
   searchStore.items = recentItems;
   searchStore.total = recentItems.length;
   searchStore.page = 1;

@@ -13,14 +13,13 @@
  * Edit-page stores live in [id]/stores.svelte.ts.
  */
 
-import type { ImageWithId, TagInfo } from "$lib/types.js";
+import type { ImageWithId } from "$lib/types.js";
 
 // ═══════════════════════════════════════════════════════════
 //  Search Store
 // ═══════════════════════════════════════════════════════════
 
 class SearchStore {
-  allTags = $state<TagInfo[]>([]);
   items = $state<ImageWithId[]>([]);
   total = $state(0);
   page = $state(1);

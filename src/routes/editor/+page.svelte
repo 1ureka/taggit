@@ -11,7 +11,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  untrack(() => initSearch(data.recent.items, data.allTags));
+  untrack(() => initSearch(data.recent.items));
 </script>
 
 <svelte:head>
