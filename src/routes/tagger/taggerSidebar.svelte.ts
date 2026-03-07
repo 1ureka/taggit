@@ -1,7 +1,7 @@
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { scrollToActive } from "./helpers.js";
+import { scrollToActive } from "$lib/client/dom.js";
 
 /**
  * 建立側邊欄邏輯的核心工廠函數

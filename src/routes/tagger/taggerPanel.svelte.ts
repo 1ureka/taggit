@@ -2,7 +2,8 @@ import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { tagCache } from "$lib/client/cache.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { batchRun, scrollToActive } from "./helpers.js";
+import { batchRun } from "$lib/utils.js";
+import { scrollToActive } from "$lib/client/dom.js";
 
 /**
  * 建立標籤面板邏輯的核心工廠函數
