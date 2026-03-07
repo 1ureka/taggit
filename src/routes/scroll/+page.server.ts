@@ -6,7 +6,7 @@ export const load: PageServerLoad = () => {
   const db = getDB();
   const result = queryImages(db, { sort: "committedAt", order: "desc" });
   return {
-    initialItems: result.items,
-    initialTotal: result.total,
+    items: result.items,
+    total: result.total,
   };
 };
