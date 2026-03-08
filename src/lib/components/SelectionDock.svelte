@@ -45,7 +45,7 @@
     padding: 0.5rem 1rem;
     background: var(--text);
     color: var(--bg);
-    border: 1px solid hsla(from var(--bg) h s l / 0.12);
+    border: 1px solid hsl(from var(--bg) h s l / 0.12);
     border-radius: calc(var(--radius) * 2);
     box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.14),
@@ -60,7 +60,7 @@
   }
 
   .dock-close:hover {
-    background: hsla(from var(--bg) h s l / 0.07);
+    background: hsl(from var(--bg) h s l / 0.07);
     border-color: transparent;
     color: var(--bg);
   }
@@ -75,11 +75,7 @@
   .dock-separator {
     width: 1px;
     height: 1.25rem;
-    background: hsla(from var(--bg) h s l / 0.15);
+    background: hsl(from var(--bg) h s l / 0.15);
     flex-shrink: 0;
-  }
-
-  .dock-inner :global(.btn-destructive:hover) {
-    background: hsla(from var(--destructive) h s l / 0.1);
   }
 </style>

@@ -67,7 +67,7 @@
 | 淺色底板 | `background: var(--text)` |
 | 深色文字 | `color: var(--bg)` |
 | 次要文字 | `color: color-mix(in oklch, var(--bg) 65%, var(--text))` |
-| 半透明暗色 | `hsla(from var(--bg) h s l / <alpha>)` |
+| 半透明暗色 | `hsl(from var(--bg) h s l / <alpha>)` |
 
 全域原子 class（`app-basic.css` 的 `.btn`, `.chip` 等）為全域命名、無 scope，目前無衝突但限制了命名自由度。
 
