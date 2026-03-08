@@ -1,10 +1,16 @@
 import sharp from "sharp";
 import { encode } from "blurhash";
 import { LRUCache, TaskPool } from "./resources.js";
+import type { ImageSize } from "$lib/types.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_PIXELS = 250_000;
+const SIZE_PRESETS = {
+  sm: { maxPixels: 512 * 512, quality: 80, lossless: false },
+  md: { maxPixels: 1024 * 1024, quality: 90, lossless: false },
+  xl: { maxPixels: Infinity, quality: 100, lossless: true },
+} as const;
+
 const MAX_CACHE_BYTES = 512 * 1024 * 1024; // 512 MB
 const MAX_CONCURRENT = 4;
 const BLURHASH_W = 32;
@@ -26,23 +32,23 @@ function gcd(a: number, b: number): number {
   return a;
 }
 
-export function thumbnailSize(w: number, h: number): { width: number; height: number } {
-  if (w * h <= MAX_PIXELS) return { width: w, height: h };
+function thumbnailSize(w: number, h: number, maxPixels: number): { width: number; height: number } {
+  if (w * h <= maxPixels) return { width: w, height: h };
 
   const g = gcd(w, h);
   const bw = w / g;
   const bh = h / g;
   const baseArea = bw * bh;
 
-  let k = Math.floor(Math.sqrt(MAX_PIXELS / baseArea));
-  while ((k + 1) * (k + 1) * baseArea <= MAX_PIXELS) k++;
+  let k = Math.floor(Math.sqrt(maxPixels / baseArea));
+  while ((k + 1) * (k + 1) * baseArea <= maxPixels) k++;
   k = Math.max(1, k);
 
   const tw = bw * k;
   const th = bh * k;
 
-  if (tw * th > MAX_PIXELS * 1.5) {
-    const ratio = Math.sqrt(MAX_PIXELS / (w * h));
+  if (tw * th > maxPixels * 1.5) {
+    const ratio = Math.sqrt(maxPixels / (w * h));
     return {
       width: Math.max(1, Math.floor(w * ratio)),
       height: Math.max(1, Math.floor(h * ratio)),
@@ -54,10 +60,12 @@ export function thumbnailSize(w: number, h: number): { width: number; height: nu
 
 // ─── Image Processing ─────────────────────────────────────────────────────────
 
-async function processImage(sourcePath: string, thumb: boolean): Promise<Buffer> {
+async function processImage(sourcePath: string, size: ImageSize): Promise<Buffer> {
+  const preset = SIZE_PRESETS[size];
+
   return pool.enqueue(async () => {
-    if (!thumb) {
-      return sharp(sourcePath).webp({ quality: 90 }).toBuffer();
+    if (preset.lossless) {
+      return sharp(sourcePath).webp({ lossless: true }).toBuffer();
     }
 
     const meta = await sharp(sourcePath).metadata();
@@ -65,30 +73,30 @@ async function processImage(sourcePath: string, thumb: boolean): Promise<Buffer>
     const origH = meta.height ?? 0;
 
     if (origW === 0 || origH === 0) {
-      return sharp(sourcePath).webp({ quality: 80 }).toBuffer();
+      return sharp(sourcePath).webp({ quality: preset.quality }).toBuffer();
     }
 
-    const { width, height } = thumbnailSize(origW, origH);
+    const { width, height } = thumbnailSize(origW, origH, preset.maxPixels);
 
     if (width === origW && height === origH) {
-      return sharp(sourcePath).webp({ quality: 80 }).toBuffer();
+      return sharp(sourcePath).webp({ quality: preset.quality }).toBuffer();
     }
 
-    return sharp(sourcePath).resize(width, height, { fit: "fill" }).webp({ quality: 80 }).toBuffer();
+    return sharp(sourcePath).resize(width, height, { fit: "fill" }).webp({ quality: preset.quality }).toBuffer();
   });
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getImage(area: string, file: string, sourcePath: string, thumb: boolean): Promise<Buffer> {
-  const cacheKey = thumb ? `thumb:${area}/${file}` : `full:${area}/${file}`;
+export async function getImage(area: string, file: string, sourcePath: string, size: ImageSize): Promise<Buffer> {
+  const cacheKey = `${size}:${area}/${file}`;
 
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   if (inflight.has(cacheKey)) return inflight.get(cacheKey)!;
 
-  const promise = processImage(sourcePath, thumb)
+  const promise = processImage(sourcePath, size)
     .then((buffer) => {
       cache.set(cacheKey, buffer);
       return buffer;
