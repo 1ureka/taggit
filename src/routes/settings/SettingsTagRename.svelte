@@ -32,7 +32,7 @@
         bind:this={ui.newInputEl}
         bind:value={ui.newName}
         id="rename-new"
-        class="input"
+        class="text-input"
         placeholder="輸入新的標籤名稱..."
         autocomplete="off"
         onkeydown={ui.handleNewNameKeydown}

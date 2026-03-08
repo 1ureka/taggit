@@ -15,7 +15,7 @@
 | 檔案 | 職責 |
 |---|---|
 | `src/lib/styles/app.css` | 入口：引入字體 + `app-basic.css` + CSS reset + `:root` 變數 + 全域基礎樣式 |
-| `src/lib/styles/app-basic.css` | 全域可複用的 UI 原子：`.btn`, `.chip`, `.input`, `.modal`, `.kbd`, `.separator` 等 |
+| `src/lib/styles/app-basic.css` | 全域可複用的 UI 原子：`.btn`, `.chip`, `.text-input`, `.modal`, `.kbd`, `.separator` 等 |
 | 各 `.svelte` 檔案 `<style>` 區塊 | 元件級 scoped 樣式（包含 Toast、Rating 等） |
 
 ### 1.3 CSS 變數一覽

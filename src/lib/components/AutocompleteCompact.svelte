@@ -90,7 +90,7 @@
   <input
     bind:this={ui.inputEl}
     bind:value={ui.inputValue}
-    class="input"
+    class="text-input"
     {placeholder}
     oninput={ui.handleInput}
     onfocus={ui.handleInputFocus}
@@ -126,7 +126,7 @@
     align-items: center;
     min-width: 0;
 
-    & .input {
+    & .text-input {
       min-width: 7rem;
     }
   }

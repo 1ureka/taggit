@@ -44,7 +44,7 @@
   <input
     bind:this={ui.inputEl}
     bind:value={ui.inputValue}
-    class="input"
+    class="text-input"
     {placeholder}
     oninput={ui.handleInput}
     onfocus={ui.handleInputFocus}
@@ -88,7 +88,7 @@
   .autocomplete--top {
     flex-direction: column;
 
-    & .input {
+    & .text-input {
       width: 100%;
     }
   }
@@ -98,7 +98,7 @@
     flex-wrap: wrap;
     align-items: center;
 
-    & .input {
+    & .text-input {
       flex: 1;
       min-width: 7rem;
     }
