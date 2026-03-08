@@ -2,64 +2,43 @@
   import { IconTag, IconPencil, IconPlayerPlay, IconLayoutList } from "@tabler/icons-svelte";
   import { IconArrowsLeftRight, IconChevronRight, IconSettings, IconTrash } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
+
   let { data }: { data: PageData } = $props();
   const stats = $derived(data.stats);
+
+  function onMouseMove(e: MouseEvent) {
+    const el = e.currentTarget as HTMLElement;
+    el.style.setProperty("--x", e.clientX + "px");
+    el.style.setProperty("--y", e.clientY + "px");
+  }
 </script>
 
 <svelte:head>
   <title>Image Manager</title>
 </svelte:head>
 
-<main class="home">
-  <div class="home-container slide-up">
+<main class="home" onmousemove={onMouseMove}>
+  <div class="home-container home-enter">
     <h1 class="home-title">Image Manager</h1>
     <p class="home-subtitle">本地圖片標籤管理</p>
 
+    {#snippet card(href: string, Icon: typeof IconTag, name: string, desc: string)}
+      <a {href} class="home-card">
+        <span class="home-card-icon"><Icon size={24} /></span>
+        <div class="home-card-body">
+          <div class="home-card-name">{name}</div>
+          <div class="home-card-desc">{desc}</div>
+        </div>
+        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
+      </a>
+    {/snippet}
+
     <nav class="home-nav">
-      <a href="/tagger" class="home-card">
-        <span class="home-card-icon"><IconTag size={24} /></span>
-        <div class="home-card-body">
-          <div class="home-card-name">Tagger</div>
-          <div class="home-card-desc">審查並標記新圖片</div>
-        </div>
-        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-      </a>
-
-      <a href="/editor" class="home-card">
-        <span class="home-card-icon"><IconPencil size={24} /></span>
-        <div class="home-card-body">
-          <div class="home-card-name">Editor</div>
-          <div class="home-card-desc">編輯已儲存圖片</div>
-        </div>
-        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-      </a>
-
-      <a href="/browse" class="home-card">
-        <span class="home-card-icon"><IconPlayerPlay size={24} /></span>
-        <div class="home-card-body">
-          <div class="home-card-name">Browse</div>
-          <div class="home-card-desc">水平輪播瀏覽</div>
-        </div>
-        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-      </a>
-
-      <a href="/scroll" class="home-card">
-        <span class="home-card-icon"><IconLayoutList size={24} /></span>
-        <div class="home-card-body">
-          <div class="home-card-name">Scroll</div>
-          <div class="home-card-desc">垂直捲動瀏覽</div>
-        </div>
-        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-      </a>
-
-      <a href="/compare" class="home-card">
-        <span class="home-card-icon"><IconArrowsLeftRight size={24} /></span>
-        <div class="home-card-body">
-          <div class="home-card-name">Compare</div>
-          <div class="home-card-desc">隨機比較</div>
-        </div>
-        <span class="home-card-arrow"><IconChevronRight size={20} /></span>
-      </a>
+      {@render card("/tagger", IconTag, "Tagger", "審查並標記新圖片")}
+      {@render card("/editor", IconPencil, "Editor", "編輯已儲存圖片")}
+      {@render card("/browse", IconPlayerPlay, "Browse", "水平輪播瀏覽")}
+      {@render card("/scroll", IconLayoutList, "Scroll", "垂直捲動瀏覽")}
+      {@render card("/compare", IconArrowsLeftRight, "Compare", "隨機比較")}
     </nav>
 
     <div class="home-footer">
@@ -120,24 +99,40 @@
   }
 
   .home-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: var(--bg-card);
+    background-color: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 1.5);
-    transition:
-      background 0.15s,
-      border-color 0.15s;
+    transition: all 0.15s;
     cursor: pointer;
-    text-decoration: none;
-    color: inherit;
+
+    --light-outline: hsl(from var(--accent) h s l / 0.75);
+    --light-bg: hsl(from var(--accent) h s l / 0.15);
+  }
+
+  .home-card::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background-image: radial-gradient(circle at var(--x, 0) var(--y, 0), var(--light-outline), transparent 7.5rem);
+    background-attachment: fixed;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
   }
 
   .home-card:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
+    background-color: var(--bg-hover);
+    background-image: radial-gradient(circle at var(--x, 0) var(--y, 0), var(--light-bg), transparent 15rem);
+    background-attachment: fixed;
+  }
+
+  .home-card:active {
+    background-color: var(--bg-active);
   }
 
   .home-card-icon {
@@ -208,5 +203,21 @@
 
   .home-settings-link:hover {
     color: var(--text-muted);
+  }
+
+  /** slide-up 但不使用 transform，避免創建 containing block 導致 background-attachment: fixed 失效 */
+  @keyframes homeEnter {
+    from {
+      opacity: 0;
+      margin-top: 8px;
+    }
+    to {
+      opacity: 1;
+      margin-top: 0;
+    }
+  }
+
+  .home-enter {
+    animation: homeEnter 0.3s ease-out both;
   }
 </style>

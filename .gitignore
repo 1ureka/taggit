@@ -23,5 +23,5 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # App specific
-old-ref
 server.json
+tmp.md
