@@ -50,6 +50,13 @@ export function createTaggerPreview() {
 
   // ---
 
+  /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
+  function handleImageLoad() {
+    ctx.imageLoading = false;
+  }
+
+  // ---
+
   return {
     /** 存取目前檔案名稱的 getter */
     get currentFile() {
@@ -66,6 +73,10 @@ export function createTaggerPreview() {
     /** 存取載入狀態的 getter */
     get loading() {
       return ctx.loading;
+    },
+    /** 存取圖片載入狀態的 getter */
+    get imageLoading() {
+      return ctx.imageLoading;
     },
     /** 存取 zoom-pan transform 的 getter */
     get transform() {
@@ -86,5 +97,7 @@ export function createTaggerPreview() {
     handleWindowMousemove,
     /** 處理 Window 滑鼠放開事件，結束拖曳 */
     handleWindowMouseup,
+    /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
+    handleImageLoad,
   };
 }

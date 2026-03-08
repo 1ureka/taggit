@@ -22,8 +22,9 @@
         src={ui.previewSrc}
         alt={ui.currentFile}
         draggable="false"
-        class:loading={ui.loading}
+        class:loading={ui.loading || ui.imageLoading}
         style="transform:{ui.transform}"
+        onload={ui.handleImageLoad}
       />
     </div>
     <div class="tagger-preview-info">

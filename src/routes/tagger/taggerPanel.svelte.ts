@@ -36,6 +36,7 @@ export function createTaggerPanel() {
       ctx.cursor = -1;
     } else {
       const next = Math.min(ctx.cursor, ctx.list.length - 1);
+      ctx.imageLoading = true;
       ctx.cursor = next;
       ctx.selected = new Set([next]);
       ctx.tags = [];
@@ -49,6 +50,7 @@ export function createTaggerPanel() {
   function navigate(delta: -1 | 1) {
     const next = ctx.cursor + delta;
     if (next < 0 || next >= ctx.list.length) return;
+    ctx.imageLoading = true;
     ctx.cursor = next;
     ctx.selected = new Set([next]);
     ctx.tags = [];
