@@ -25,7 +25,7 @@ export function createSettingsCollection() {
     message = "";
     isError = false;
 
-    const res = await fetch("/api/setup", {
+    const res = await fetch("/api/maintenance/setup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ collectionRoot: inputValue.trim() }),

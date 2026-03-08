@@ -46,7 +46,7 @@ export function createSettingsImages() {
     metaBusy = true;
     metaResult = "";
 
-    const res = await api.get<{ missing: number }>("/api/maintenance/metadata");
+    const res = await api.get<{ missing: number }>("/api/metadata");
     if (res.ok && res.data) {
       metaMissing = res.data.missing;
       metaResult = res.data.missing === 0 ? "所有圖片的元資料皆完整" : `找到 ${res.data.missing} 張圖片缺少元資料`;
@@ -61,7 +61,7 @@ export function createSettingsImages() {
     metaBusy = true;
     metaResult = "補算中，這可能需要一些時間…";
 
-    const res = await api.post<{ updated: number }>("/api/maintenance/metadata");
+    const res = await api.post<{ updated: number }>("/api/metadata");
     if (res.ok && res.data) {
       metaResult = res.data.updated > 0 ? `已為 ${res.data.updated} 張圖片補上元資料` : "沒有圖片需要補算";
       metaMissing = Math.max(0, metaMissing - res.data.updated);

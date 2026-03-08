@@ -5,7 +5,7 @@ import { getDB } from "$lib/server/db.js";
 import { guardLoaded, getPaths } from "$lib/server/helpers.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
-/** POST /api/maintenance/metadata — 為缺少 blurhash/寬高 的圖片補算元資料 */
+/** POST /api/metadata — 為缺少 blurhash/寬高 的圖片補算元資料 */
 export const POST: RequestHandler = async () => {
   const err = guardLoaded();
   if (err) return err;
@@ -42,7 +42,7 @@ export const POST: RequestHandler = async () => {
   return json({ ok: true, data: { updated } });
 };
 
-/** GET /api/maintenance/metadata — 檢查缺少元資料的圖片數量 */
+/** GET /api/metadata — 檢查缺少元資料的圖片數量 */
 export const GET: RequestHandler = () => {
   const err = guardLoaded();
   if (err) return err;

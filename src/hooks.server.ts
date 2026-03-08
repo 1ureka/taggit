@@ -37,7 +37,7 @@ config.ensureServerJson();
 function isWhitelisted(pathname: string): boolean {
   return (
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/api/setup") ||
+    pathname.startsWith("/api/maintenance/setup") ||
     // Static assets served by Vite / adapter-node: don't need DB
     pathname.startsWith("/_app/") ||
     pathname.startsWith("/favicon")

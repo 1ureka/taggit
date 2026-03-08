@@ -5,13 +5,13 @@ import { getDB } from "$lib/server/db.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
 
-/** GET /api/setup — return current collectionRoot */
+/** GET /api/maintenance/setup — return current collectionRoot */
 export const GET: RequestHandler = () => {
   const collectionRoot = config.getCollectionRoot();
   return json({ ok: true, data: { collectionRoot } });
 };
 
-/** POST /api/setup — set a new collectionRoot */
+/** POST /api/maintenance/setup — set a new collectionRoot */
 export const POST: RequestHandler = async ({ request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
