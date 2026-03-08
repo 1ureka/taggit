@@ -18,7 +18,13 @@
       ondblclick={ui.zp.reset}
       role="img"
     >
-      <img src={ui.previewSrc} alt={ui.previewFilename} draggable="false" style="transform:{ui.zp.transform}" />
+      <img
+        src={ui.previewSrc}
+        alt={ui.previewFilename}
+        draggable="false"
+        class:loading={ui.loading}
+        style="transform:{ui.zp.transform}"
+      />
     </div>
   {:else}
     <div class="editor-preview-container">
@@ -58,10 +64,14 @@
     max-height: 100%;
     object-fit: contain;
     transform-origin: center center;
-    transition: none;
+    transition: opacity 0.2s;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+  }
+
+  .editor-preview-container img.loading {
+    opacity: 0.75;
   }
 
   .editor-empty {

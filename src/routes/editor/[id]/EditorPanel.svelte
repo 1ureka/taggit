@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { IconDeviceFloppy, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
@@ -22,6 +23,19 @@
 
   <div class="editor-tags">
     <Autocomplete bind:tags={image.tags} variant="top" placeholder="輸入標籤..." onchange={ui.handleTagChange} />
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="editor-actions">
+    <button class="btn btn-primary btn-sm" onclick={ui.handleSaveClick} disabled={!ui.dirty || ui.loading}>
+      <IconDeviceFloppy size={16} />
+      {ui.loading ? "操作中…" : "儲存"}
+    </button>
+    <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
+      <IconTrash size={16} />
+      移入垃圾桶
+    </button>
   </div>
 
   <div class="separator"></div>
@@ -70,6 +84,17 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+  }
+
+  .editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .editor-actions :global(.btn) {
+    flex: 1;
+    min-width: 0;
   }
 
   .editor-meta {
