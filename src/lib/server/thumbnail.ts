@@ -3,13 +3,12 @@ import { encode } from "blurhash";
 import { LRUCache, TaskPool } from "./resources.js";
 import type { ImageSize } from "$lib/types.js";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+type ProcessableSize = Exclude<ImageSize, "xl">;
 
-const SIZE_PRESETS = {
-  sm: { maxPixels: 512 * 512, quality: 80, lossless: false },
-  md: { maxPixels: 1024 * 1024, quality: 90, lossless: false },
-  xl: { maxPixels: Infinity, quality: 100, lossless: true },
-} as const;
+const SIZE_PRESETS: Record<ProcessableSize, { maxPixels: number; quality: number }> = {
+  sm: { maxPixels: 512 * 512, quality: 80 },
+  md: { maxPixels: 1024 * 1024, quality: 90 },
+};
 
 const MAX_CACHE_BYTES = 512 * 1024 * 1024; // 512 MB
 const MAX_CONCURRENT = 4;
@@ -60,14 +59,10 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
 
 // ─── Image Processing ─────────────────────────────────────────────────────────
 
-async function processImage(sourcePath: string, size: ImageSize): Promise<Buffer> {
+async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
 
   return pool.enqueue(async () => {
-    if (preset.lossless) {
-      return sharp(sourcePath).webp({ lossless: true }).toBuffer();
-    }
-
     const meta = await sharp(sourcePath).metadata();
     const origW = meta.width ?? 0;
     const origH = meta.height ?? 0;
@@ -88,7 +83,7 @@ async function processImage(sourcePath: string, size: ImageSize): Promise<Buffer
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getImage(area: string, file: string, sourcePath: string, size: ImageSize): Promise<Buffer> {
+export async function getImage(area: string, file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const cacheKey = `${size}:${area}/${file}`;
 
   const cached = cache.get(cacheKey);
