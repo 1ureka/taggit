@@ -1,4 +1,5 @@
 import { goto } from "$app/navigation";
+import { isInEditable } from "$lib/client/dom.js";
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import type { ImageWithId } from "$lib/types.js";
@@ -93,8 +94,7 @@ export function createEditorPanel() {
 
   /** 處理 Window 鍵盤事件，執行儲存與導航快捷鍵操作 */
   function handleWindowKeydown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement;
-    const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
+    const inInput = isInEditable(e.target);
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "s" || e.key === "S") {

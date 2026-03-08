@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { isInEditable } from "$lib/client/dom.js";
   import { IconPlayerPause, IconPlayerPlay, IconFilter } from "@tabler/icons-svelte";
   import type { ImageWithId } from "$lib/types.js";
   import type { PageData } from "./$types.js";
@@ -286,8 +287,7 @@
     // ─── Keyboard ────────────────────────────────────────────────────────
 
     function handleKeydown(e: KeyboardEvent) {
-      const el = e.target as HTMLElement;
-      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.contentEditable === "true") return;
+      if (isInEditable(e.target)) return;
 
       if (e.key === " ") {
         e.preventDefault();

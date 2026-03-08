@@ -1,3 +1,4 @@
+import { isInEditable } from "$lib/client/dom.js";
 import { getTrashContext } from "./context.svelte.js";
 
 /**
@@ -64,8 +65,7 @@ export function createTrashList() {
       return;
     }
 
-    const target = e.target as HTMLElement;
-    const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
+    const inInput = isInEditable(e.target);
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "a" || e.key === "A") {

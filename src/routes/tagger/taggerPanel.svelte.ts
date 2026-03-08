@@ -1,4 +1,5 @@
 import { api } from "$lib/client/api.js";
+import { isInEditable } from "$lib/client/dom.js";
 import { addToast } from "$lib/client/toast.js";
 import { tagCache } from "$lib/client/cache.js";
 import { getTaggerContext } from "./context.svelte.js";
@@ -137,8 +138,7 @@ export function createTaggerPanel() {
 
   /** 處理 Window 鍵盤事件，執行導航、評等、聚焦、提交或刪除操作 */
   function handleWindowKeydown(e: KeyboardEvent) {
-    const el = e.target as HTMLElement;
-    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.contentEditable === "true") return;
+    if (isInEditable(e.target)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     const { key } = e;
