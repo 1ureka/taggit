@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconArrowLeft } from "@tabler/icons-svelte";
+  import CircularProgress from "$lib/components/CircularProgress.svelte";
   import { createTaggerProgress } from "./taggerProgress.svelte.js";
 
   const ui = createTaggerProgress();
@@ -16,12 +17,14 @@
     </div>
     <span class="tagger-progress-text">{ui.progressLabel}</span>
   </div>
-  {#if ui.loading}
-    <div class="tagger-loading">
-      <span class="tagger-loading-text">載入中...</span>
-      <span class="tagger-spinner"></span>
-    </div>
-  {/if}
+  <div class="tagger-loading-indicators">
+    {#if ui.loading}
+      <CircularProgress label="操作中…" />
+    {/if}
+    {#if ui.imageLoading}
+      <CircularProgress label="圖片載入中…" />
+    {/if}
+  </div>
 </header>
 
 <style>
@@ -41,33 +44,11 @@
     text-align: right;
   }
 
-  .tagger-loading {
+  .tagger-loading-indicators {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     margin-left: auto;
     flex-shrink: 0;
-  }
-
-  .tagger-loading-text {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  @keyframes tagger-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .tagger-spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--text-dim);
-    border-top-color: var(--text);
-    border-radius: 50%;
-    animation: tagger-spin 0.6s linear infinite;
   }
 </style>

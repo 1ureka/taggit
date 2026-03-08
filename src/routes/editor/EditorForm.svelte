@@ -14,7 +14,7 @@
       <IconSearch size={16} />
     </span>
     <input
-      class="input search-input"
+      class="text-input search-input"
       bind:value={ctx.searchText}
       placeholder="搜尋檔名..."
       oninput={ui.handleSearchInput}

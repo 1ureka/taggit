@@ -1,6 +1,5 @@
 import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { stagedUrl } from "./helpers.js";
 
 /**
  * 建立圖片預覽邏輯的核心工廠函數
@@ -16,7 +15,7 @@ export function createTaggerPreview() {
   /** 目前游標所指的檔案名稱 */
   const currentFile = $derived(ctx.cursor >= 0 && ctx.cursor < ctx.list.length ? ctx.list[ctx.cursor] : null);
   /** 預覽圖片的 URL */
-  const previewSrc = $derived(currentFile ? stagedUrl(currentFile) : "");
+  const previewSrc = $derived(currentFile ? `/img/staged/${encodeURIComponent(currentFile)}` : "");
   /** 已選取的圖片數量 */
   const selectedCount = $derived(ctx.selected.size);
 
@@ -51,6 +50,13 @@ export function createTaggerPreview() {
 
   // ---
 
+  /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
+  function handleImageLoad() {
+    ctx.imageLoading = false;
+  }
+
+  // ---
+
   return {
     /** 存取目前檔案名稱的 getter */
     get currentFile() {
@@ -67,6 +73,10 @@ export function createTaggerPreview() {
     /** 存取載入狀態的 getter */
     get loading() {
       return ctx.loading;
+    },
+    /** 存取圖片載入狀態的 getter */
+    get imageLoading() {
+      return ctx.imageLoading;
     },
     /** 存取 zoom-pan transform 的 getter */
     get transform() {
@@ -87,5 +97,7 @@ export function createTaggerPreview() {
     handleWindowMousemove,
     /** 處理 Window 滑鼠放開事件，結束拖曳 */
     handleWindowMouseup,
+    /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
+    handleImageLoad,
   };
 }

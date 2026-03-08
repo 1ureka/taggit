@@ -1,4 +1,5 @@
 import { goto } from "$app/navigation";
+import { isInEditable } from "$lib/client/dom.js";
 import { getEditorContext } from "./context.svelte.js";
 
 /**
@@ -69,8 +70,7 @@ export function createEditorList() {
       return;
     }
 
-    const target = e.target as HTMLElement;
-    const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
+    const inInput = isInEditable(e.target);
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "a" || e.key === "A") {

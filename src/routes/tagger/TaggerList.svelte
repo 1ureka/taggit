@@ -22,7 +22,7 @@
         >
           <img
             class="tagger-thumb-img"
-            src="/img/staged/{encodeURIComponent(item.filename)}"
+            src="/img/staged/{encodeURIComponent(item.filename)}?size=sm"
             alt={item.filename}
             loading="lazy"
           />

@@ -1,5 +1,5 @@
 import { getTaggerContext } from "./context.svelte.js";
-import { scrollToActive } from "./helpers.js";
+import { scrollToActive } from "$lib/client/dom.js";
 
 /**
  * 建立虛擬列表邏輯的核心工廠函數
@@ -49,6 +49,7 @@ export function createTaggerList() {
 
   /** 以單選模式選取指定索引 */
   function selectSingle(idx: number) {
+    if (idx !== ctx.cursor) ctx.imageLoading = true;
     ctx.cursor = idx;
     ctx.selected = new Set([idx]);
     anchor = idx;
@@ -62,6 +63,7 @@ export function createTaggerList() {
   function selectCtrl(idx: number) {
     const next = new Set(ctx.selected);
     next.has(idx) && next.size > 1 ? next.delete(idx) : next.add(idx);
+    if (idx !== ctx.cursor) ctx.imageLoading = true;
     ctx.cursor = idx;
     ctx.selected = next;
     anchor = idx;
@@ -75,6 +77,7 @@ export function createTaggerList() {
     const hi = Math.max(anchor, idx);
     const next = new Set<number>();
     for (let i = lo; i <= hi; i++) next.add(i);
+    if (idx !== ctx.cursor) ctx.imageLoading = true;
     ctx.cursor = idx;
     ctx.selected = next;
     scrollToActive(ctx.listEl, idx, ctx.ITEM_H);

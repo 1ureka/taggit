@@ -1,25 +1,8 @@
-/**
- * @file utils.ts
- * Shared utility functions usable on both the client and the server.
- *
- * - URL/query helpers: {@link parseTags}, {@link parseQueryParams}
- * - Formatting helpers: {@link formatDate}, {@link formatSize}
- * - Timing helpers: {@link debounce}, {@link throttle}
- */
-
 import type { QueryOptions } from "$lib/types.js";
 
-// ─── URL / Query helpers (usable on both client and server) ──────────────────
-
 /**
- * Parses a comma-separated tags string from a URL query parameter.
- *
- * @example
- * parseTags("nature, cat , sky") // ["nature", "cat", "sky"]
- * parseTags(null)                // []
- *
- * @param raw - The raw query-parameter value, or `null` if absent.
- * @returns An array of trimmed, non-empty tag strings.
+ * 解析以逗號分隔的標籤字串。
+ * 回傳裁切空白後的非空標籤陣列。
  */
 export function parseTags(raw: string | null): string[] {
   if (!raw) return [];
@@ -30,14 +13,8 @@ export function parseTags(raw: string | null): string[] {
 }
 
 /**
- * Extracts a {@link QueryOptions} object from the search parameters of a URL.
- *
- * Handles tags, rating, ratingOp, sort, order, page, and limit.
- * - `limit` stays `undefined` when absent, which causes `queryImages` to return all results.
- * - `rating` stays `undefined` when absent (no rating filter applied).
- *
- * @param url - The URL whose `searchParams` will be read.
- * @returns A fully-typed {@link QueryOptions} value ready to pass to `queryImages`.
+ * 從 URL 的 searchParams 中提取 {@link QueryOptions}。
+ * 處理 tags、rating、ratingOp、sort、order、page、limit。
  */
 export function parseQueryParams(url: URL): QueryOptions {
   const p = url.searchParams;
@@ -53,14 +30,16 @@ export function parseQueryParams(url: URL): QueryOptions {
   };
 }
 
-// ─── Formatting helpers ───────────────────────────────────────────────────────
-
-/** Format a Unix ms timestamp to a locale-friendly date-time string. */
+/**
+ * 將 Unix 毫秒時間戳格式化為本地日期時間字串。
+ */
 export function formatDate(ms: number): string {
   return new Date(ms).toLocaleString();
 }
 
-/** Format bytes to a human-readable size string (B / KB / MB / GB). */
+/**
+ * 將位元組數格式化為可讀的大小字串（B / KB / MB / GB）。
+ */
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -69,8 +48,8 @@ export function formatSize(bytes: number): string {
 }
 
 /**
- * Returns a debounced version of `fn`.
- * Only called after `ms` milliseconds of silence.
+ * 回傳 `fn` 的防抖版本。
+ * 在 `ms` 毫秒的靜默期後才會真正執行。
  */
 export function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -84,8 +63,8 @@ export function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: numb
 }
 
 /**
- * Returns a throttled version of `fn`.
- * At most one call per `ms` milliseconds.
+ * 回傳 `fn` 的節流版本。
+ * 每 `ms` 毫秒最多執行一次。
  */
 export function throttle<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
   let lastCall = 0;
@@ -96,4 +75,22 @@ export function throttle<T extends (...args: unknown[]) => void>(fn: T, ms: numb
       fn(...args);
     }
   }) as T;
+}
+
+/**
+ * 以固定大小的並行批次處理 `items`。
+ * 回傳 `[成功數, 失敗數]`。
+ */
+export async function batchRun<T>(
+  items: T[],
+  size: number,
+  fn: (item: T) => Promise<{ ok: boolean }>,
+): Promise<[ok: number, fail: number]> {
+  let ok = 0;
+  let fail = 0;
+  for (let i = 0; i < items.length; i += size) {
+    const results = await Promise.all(items.slice(i, i + size).map(fn));
+    for (const r of results) r.ok ? ok++ : fail++;
+  }
+  return [ok, fail];
 }

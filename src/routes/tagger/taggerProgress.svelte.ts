@@ -33,5 +33,9 @@ export function createTaggerProgress() {
     get loading() {
       return ctx.loading;
     },
+    /** 存取圖片載入狀態的 getter */
+    get imageLoading() {
+      return ctx.imageLoading;
+    },
   };
 }

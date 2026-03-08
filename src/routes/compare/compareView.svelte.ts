@@ -1,5 +1,6 @@
 import type { ImageWithId, QueryResult } from "$lib/types.js";
 import { api } from "$lib/client/api.js";
+import { isInEditable } from "$lib/client/dom.js";
 
 /**
  * 比較頁面組件的配置選項
@@ -132,8 +133,7 @@ export function createCompareView(options: CompareViewOptions) {
 
   /** 處理 Window 鍵盤事件，按空白鍵重新載入圖片 */
   function handleWindowKeydown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement;
-    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+    if (isInEditable(e.target)) return;
     if (e.key === " ") {
       e.preventDefault();
       loadPair();

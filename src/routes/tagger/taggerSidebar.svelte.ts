@@ -1,7 +1,7 @@
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { scrollToActive } from "./helpers.js";
+import { scrollToActive } from "$lib/client/dom.js";
 
 /**
  * 建立側邊欄邏輯的核心工廠函數
@@ -31,19 +31,21 @@ export function createTaggerSidebar() {
     if (!res.ok || !res.data) return;
 
     const oldLen = ctx.list.length;
+    const oldFile = ctx.cursor >= 0 && ctx.cursor < ctx.list.length ? ctx.list[ctx.cursor] : null;
+
     ctx.list = res.data.files;
     ctx.selected = new Set();
 
+    // ── 重新定位游標 ──
     if (ctx.list.length === 0) {
       ctx.cursor = -1;
-    } else if (ctx.cursor >= ctx.list.length) {
-      selectSingle(ctx.list.length - 1);
-    } else if (oldLen === 0) {
-      selectSingle(0);
     } else {
-      selectSingle(ctx.cursor);
+      const nextIdx = Math.min(ctx.cursor, ctx.list.length - 1);
+      if (ctx.list[nextIdx] !== oldFile) ctx.imageLoading = true;
+      selectSingle(Math.max(nextIdx, 0));
     }
 
+    // ── Toast 通知 ──
     const diff = ctx.list.length - oldLen;
     if (diff > 0) {
       ctx.total = ctx.total === 0 ? ctx.list.length : ctx.total + diff;

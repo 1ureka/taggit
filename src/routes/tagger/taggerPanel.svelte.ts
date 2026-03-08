@@ -1,8 +1,10 @@
 import { api } from "$lib/client/api.js";
+import { isInEditable } from "$lib/client/dom.js";
 import { addToast } from "$lib/client/toast.js";
 import { tagCache } from "$lib/client/cache.js";
 import { getTaggerContext } from "./context.svelte.js";
-import { stagedUrl, imageDimensions, batchRun, scrollToActive } from "./helpers.js";
+import { batchRun } from "$lib/utils.js";
+import { scrollToActive } from "$lib/client/dom.js";
 
 /**
  * 建立標籤面板邏輯的核心工廠函數
@@ -34,6 +36,7 @@ export function createTaggerPanel() {
       ctx.cursor = -1;
     } else {
       const next = Math.min(ctx.cursor, ctx.list.length - 1);
+      ctx.imageLoading = true;
       ctx.cursor = next;
       ctx.selected = new Set([next]);
       ctx.tags = [];
@@ -47,6 +50,7 @@ export function createTaggerPanel() {
   function navigate(delta: -1 | 1) {
     const next = ctx.cursor + delta;
     if (next < 0 || next >= ctx.list.length) return;
+    ctx.imageLoading = true;
     ctx.cursor = next;
     ctx.selected = new Set([next]);
     ctx.tags = [];
@@ -85,11 +89,9 @@ export function createTaggerPanel() {
 
     try {
       const [ok, fail] = await batchRun(names, 5, async (fn) => {
-        const dims = await imageDimensions(stagedUrl(fn));
         return api.post(`/api/staged/${encodeURIComponent(fn)}`, {
           tags: ctx.tags,
           rating: ctx.rating,
-          ...dims,
         });
       });
 
@@ -138,8 +140,7 @@ export function createTaggerPanel() {
 
   /** 處理 Window 鍵盤事件，執行導航、評等、聚焦、提交或刪除操作 */
   function handleWindowKeydown(e: KeyboardEvent) {
-    const el = e.target as HTMLElement;
-    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.contentEditable === "true") return;
+    if (isInEditable(e.target)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     const { key } = e;

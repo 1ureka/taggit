@@ -26,7 +26,7 @@
   <div class="tagger-actions">
     <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
       <IconCheck size={16} />
-      {ui.loading ? "載入中…" : ui.selectedCount > 1 ? `提交 ${ui.selectedCount} 張` : "提交"}
+      {ui.selectedCount > 1 ? `提交 ${ui.selectedCount} 張` : "提交"}
     </button>
     <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
       <IconTrash size={16} />

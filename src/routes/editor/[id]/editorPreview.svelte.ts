@@ -35,6 +35,10 @@ export function createEditorPreview() {
     get previewSrc() {
       return previewSrc;
     },
+    /** 存取載入狀態的 getter */
+    get loading() {
+      return ctx.loading;
+    },
     /** 存取縮放平移控制器的 getter */
     get zp() {
       return zp;

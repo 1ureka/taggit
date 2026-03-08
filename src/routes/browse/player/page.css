@@ -3,7 +3,7 @@
 .browse-player {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: var(--bg);
   overflow: hidden;
 }
 

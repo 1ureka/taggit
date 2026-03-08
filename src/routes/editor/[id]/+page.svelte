@@ -1,9 +1,10 @@
 <script lang="ts">
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
+  import CircularProgress from "$lib/components/CircularProgress.svelte";
+  import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import { EditorDetailContext, setEditorDetailContext } from "./context.svelte.js";
-  import EditorHeader from "./EditorHeader.svelte";
   import EditorPreview from "./EditorPreview.svelte";
   import EditorPanel from "./EditorPanel.svelte";
 
@@ -29,7 +30,20 @@
 </svelte:head>
 
 <div class="page">
-  <EditorHeader />
+  <header class="page-header">
+    <a href="/editor" class="btn btn-ghost btn-sm">
+      <IconArrowLeft size={16} />
+      返回搜尋
+    </a>
+    <span class="page-header-title">
+      {ctx.image?.originalName || ctx.image?.id || ""}
+    </span>
+    {#if ctx.loading}
+      <div class="editor-header-loading">
+        <CircularProgress label="操作中…" />
+      </div>
+    {/if}
+  </header>
 
   <main class="page-content">
     <EditorPreview />

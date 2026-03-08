@@ -1,4 +1,5 @@
 import { goto } from "$app/navigation";
+import { isInEditable } from "$lib/client/dom.js";
 import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/toast.js";
 import type { ImageWithId } from "$lib/types.js";
@@ -16,8 +17,8 @@ export function createEditorPanel() {
   /** 執行儲存變更至伺服器 */
   async function saveChanges() {
     const img = ctx.image;
-    if (!img || !ctx.dirty || ctx.saving) return;
-    ctx.saving = true;
+    if (!img || !ctx.dirty || ctx.loading) return;
+    ctx.loading = true;
 
     if (ctx.saveTimer) clearTimeout(ctx.saveTimer);
 
@@ -42,7 +43,7 @@ export function createEditorPanel() {
       ctx.dirty = false;
       addToast("已儲存", "success");
     } finally {
-      ctx.saving = false;
+      ctx.loading = false;
     }
   }
 
@@ -79,6 +80,36 @@ export function createEditorPanel() {
 
   // ---
 
+  /** 顯示確認對話框並等待使用者回應 */
+  function confirmDialog(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      ctx.pendingConfirm = { message, resolve };
+    });
+  }
+
+  /** 將圖片移入垃圾桶 */
+  async function doTrash() {
+    const img = ctx.image;
+    if (!img || ctx.loading) return;
+    const ok = await confirmDialog("確定要將此圖片移入垃圾桶嗎？");
+    if (!ok) return;
+
+    ctx.loading = true;
+    try {
+      const res = await api.del(`/api/images/${encodeURIComponent(img.id)}`);
+      if (!res.ok) {
+        addToast("操作失敗: " + (res.error || "未知錯誤"), "error");
+        return;
+      }
+      addToast("已移入垃圾桶", "success");
+      goto("/editor");
+    } finally {
+      ctx.loading = false;
+    }
+  }
+
+  // ---
+
   /** 處理評等變更事件，標記為已變更 */
   function handleRatingChange() {
     markDirty();
@@ -91,10 +122,21 @@ export function createEditorPanel() {
 
   // ---
 
+  /** 處理儲存按鈕點擊事件，立即儲存變更 */
+  function handleSaveClick() {
+    saveChanges();
+  }
+
+  /** 處理刪除按鈕點擊事件，確認後將圖片移入垃圾桶 */
+  function handleTrashClick() {
+    doTrash();
+  }
+
+  // ---
+
   /** 處理 Window 鍵盤事件，執行儲存與導航快捷鍵操作 */
   function handleWindowKeydown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement;
-    const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
+    const inInput = isInEditable(e.target);
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "s" || e.key === "S") {
@@ -115,10 +157,23 @@ export function createEditorPanel() {
   // ---
 
   return {
+    /** 存取是否有未儲存變更的 getter */
+    get dirty() {
+      return ctx.dirty;
+    },
+    /** 存取載入狀態的 getter */
+    get loading() {
+      return ctx.loading;
+    },
+
     /** 處理評等變更事件，標記為已變更 */
     handleRatingChange,
     /** 處理標籤變更事件，標記為已變更 */
     handleTagChange,
+    /** 處理儲存按鈕點擊事件，立即儲存變更 */
+    handleSaveClick,
+    /** 處理刪除按鈕點擊事件，確認後將圖片移入垃圾桶 */
+    handleTrashClick,
     /** 處理 Window 鍵盤事件，執行儲存與導航快捷鍵操作 */
     handleWindowKeydown,
   };

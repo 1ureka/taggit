@@ -1,4 +1,4 @@
-// ─── Image Record ─────────────────────────────────────────────────────────────
+// ─── Image ─────────────────────────────────────────────────────────────
 
 export interface ImageRecord {
   ext: string; // '.png', '.jpg', etc.
@@ -10,11 +10,16 @@ export interface ImageRecord {
   fileSize: number; // bytes
   width: number; // px, 0 = unknown
   height: number; // px, 0 = unknown
+  blurhash: string; // BlurHash string, empty = unable to compute
 }
 
 export interface ImageWithId extends ImageRecord {
   id: string;
 }
+
+export type ImageArea = "committed" | "staged" | "trash";
+
+export type ImageSize = "sm" | "md" | "xl";
 
 // ─── Server Config ────────────────────────────────────────────────────────────
 

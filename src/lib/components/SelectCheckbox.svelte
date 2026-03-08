@@ -51,6 +51,8 @@
     cursor: pointer;
     opacity: 0;
     transform: scale(0.8);
+    will-change: opacity, transform;
+    contain: layout style;
     transition:
       opacity 0.18s ease,
       transform 0.18s ease,

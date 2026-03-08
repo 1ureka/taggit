@@ -1,30 +1,30 @@
 import fs from "fs";
 import path from "path";
-import { Readable } from "stream";
 import type { RequestHandler } from "@sveltejs/kit";
-import { getDB } from "$lib/server/db.js";
+
 import { MIME_TYPES } from "$lib/server/config.js";
+import { getDB } from "$lib/server/db.js";
 import { getPaths } from "$lib/server/helpers.js";
+import { getImage } from "$lib/server/thumbnail.js";
+import { isValidArea, isValidFilename, isValidSize } from "$lib/server/validation.js";
 
-const VALID_AREAS = new Set(["committed", "staged", "trash"]);
-
-export const GET: RequestHandler = ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
   if (!getDB().isLoaded()) {
     return new Response("No collection loaded", { status: 503 });
   }
 
   const { area, file } = params;
 
-  if (!VALID_AREAS.has(area!)) {
+  if (!isValidArea(area)) {
     return new Response("Invalid area", { status: 400 });
   }
 
-  if (!file || file.includes("/") || file.includes("\\") || file.includes("..") || file.startsWith(".")) {
+  if (!isValidFilename(file)) {
     return new Response("Invalid filename", { status: 400 });
   }
 
   const paths = getPaths();
-  const baseDir = paths[area as keyof typeof paths] as string;
+  const baseDir = paths[area];
 
   const filePath = path.resolve(baseDir, file);
   if (!filePath.startsWith(path.resolve(baseDir) + path.sep) && filePath !== path.resolve(baseDir)) {
@@ -35,17 +35,32 @@ export const GET: RequestHandler = ({ params }) => {
     return new Response("Not found", { status: 404 });
   }
 
-  const ext = path.extname(file).toLowerCase();
-  const mimeType = MIME_TYPES[ext] ?? "application/octet-stream";
-  const cacheControl = area === "committed" ? "public, max-age=86400" : "no-cache, no-store, must-revalidate";
+  const sizeParam = url.searchParams.get("size") ?? "xl";
+  if (!isValidSize(sizeParam)) {
+    return new Response("Invalid size", { status: 400 });
+  }
 
-  const nodeStream = fs.createReadStream(filePath);
-  const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+  let headers: HeadersInit = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Content-Type": "application/octet-stream",
+  };
 
-  return new Response(webStream, {
-    headers: {
-      "Content-Type": mimeType,
-      "Cache-Control": cacheControl,
-    },
-  });
+  if (sizeParam === "xl") {
+    const ext = path.extname(file).toLowerCase();
+    headers["Content-Type"] = MIME_TYPES[ext] ?? "application/octet-stream";
+  } else {
+    headers["Content-Type"] = "image/webp";
+  }
+
+  try {
+    if (sizeParam === "xl") {
+      const raw = fs.readFileSync(filePath);
+      return new Response(raw, { headers });
+    } else {
+      const buffer = await getImage(area, file, filePath, sizeParam);
+      return new Response(new Uint8Array(buffer), { headers });
+    }
+  } catch {
+    return new Response("Failed to process image", { status: 500 });
+  }
 };

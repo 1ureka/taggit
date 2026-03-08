@@ -31,7 +31,7 @@
     <input
       id="collection-root"
       type="text"
-      class="input"
+      class="text-input"
       bind:value={ui.inputValue}
       placeholder="例如 C:/Users/you/Pictures/tagged"
     />
