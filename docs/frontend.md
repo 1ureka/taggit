@@ -195,7 +195,7 @@ function handleSomethingClick() {
 
 ```ts
 /** 排序欄位類型 */
-type Sort = "committedAt" | "rating" | "originalName" | "random";
+type Sort = "committedAt" | "rating" | "name" | "random";
 ```
 
 - **Options type** 與 **factory function** 使用**多行** JSDoc：
