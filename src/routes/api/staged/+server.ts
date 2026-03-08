@@ -62,5 +62,8 @@ export const POST: RequestHandler = async ({ request }) => {
     }
   }
 
-  return json({ ok: true, data: { added, errors } }, { status: added.length > 0 ? 201 : 400 });
+  if (added.length > 0) {
+    return json({ ok: true, data: { added, errors } }, { status: 201 });
+  }
+  return json({ ok: false, data: { added, errors } }, { status: 400 });
 };
