@@ -21,7 +21,6 @@ export interface ImageWithId extends ImageRecord {
 
 export interface ServerConfig {
   collectionRoot?: string; // abs path; undefined = not yet set
-  defaultBlurhash?: string; // default BlurHash for staged/trash placeholder
 }
 
 // ─── Collection Paths ─────────────────────────────────────────────────────────
