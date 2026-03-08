@@ -35,7 +35,7 @@
     />
     <button class="btn btn-sm tagger-upload-btn" onclick={ui.handleUploadClick} disabled={ui.loading}>
       <IconUpload size={14} />
-      {ui.loading ? "操作中…" : "加入圖片"}
+      加入圖片
     </button>
   </div>
 </aside>
