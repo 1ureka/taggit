@@ -170,3 +170,11 @@ export async function getImageMeta(filePath: string): Promise<{
     return { width: 0, height: 0, blurhash: "" };
   }
 }
+
+export function clearCache(): void {
+  cache.clear();
+}
+
+export function getCacheStats(): { entries: number; bytes: number } {
+  return cache.stats;
+}
