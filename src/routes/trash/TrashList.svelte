@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { blurhashStyle } from "$lib/client/blurhash.js";
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
   import { getTrashContext } from "./context.svelte.js";
   import { createTrashList } from "./trashList.svelte.js";
@@ -35,7 +36,13 @@
         class:trash-card-selected={selected}
         onclick={() => ui.handleCardClick(filename)}
       >
-        <img class="trash-card-thumb" src="/img/trash/{filename}" alt={filename} loading="lazy" />
+        <img
+          class="trash-card-thumb"
+          src="/img/trash/{filename}?size=sm"
+          style={blurhashStyle()}
+          alt={filename}
+          loading="lazy"
+        />
         <div class="trash-card-info">
           <div class="trash-card-name">{filename}</div>
         </div>

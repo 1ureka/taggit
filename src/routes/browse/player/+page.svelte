@@ -5,6 +5,7 @@
   import { IconPlayerPause, IconPlayerPlay, IconFilter } from "@tabler/icons-svelte";
   import type { ImageWithId } from "$lib/types.js";
   import type { PageData } from "./$types.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -135,6 +136,15 @@
           el.alt = images[info.imgIdx].originalName || "";
           el.draggable = false;
           el.dataset.idx = String(info.imgIdx);
+
+          const img = images[info.imgIdx];
+          el.style.cssText = blurhashStyle({
+            fit: "contain",
+            blurhash: img.blurhash,
+            width: img.width,
+            height: img.height,
+          });
+
           el.style.width = widths[info.imgIdx] + "px";
           carouselEl!.appendChild(el);
         }

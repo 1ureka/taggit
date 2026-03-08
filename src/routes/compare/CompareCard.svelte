@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/types.js";
   import Rating from "$lib/components/Rating.svelte";
+  import { blurhashStyle } from "$lib/client/blurhash";
 
   type Props = { image: ImageWithId; onclick: () => void };
   let { image, onclick }: Props = $props();
@@ -8,7 +9,14 @@
 
 <button class="compare-card" type="button" {onclick} title="在 Editor 中開啟">
   <div class="compare-card-image">
-    <img src="/img/committed/{image.id}{image.ext}" alt={image.originalName || image.id} draggable="false" />
+    {#key image.id}
+      <img
+        src="/img/committed/{image.id}{image.ext}"
+        style={blurhashStyle({ fit: "contain", blurhash: image.blurhash, width: image.width, height: image.height })}
+        alt={image.originalName || image.id}
+        draggable="false"
+      />
+    {/key}
   </div>
   <div class="compare-card-info">
     <Rating readonly value={image.rating ?? 0} size="0.875rem" />
@@ -50,8 +58,8 @@
     background: var(--bg);
 
     & img {
-      max-width: 100%;
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
     }
   }
