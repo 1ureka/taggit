@@ -148,7 +148,7 @@ export function createAutocomplete(options: AutocompleteOptions) {
     }
 
     /** 當按下 ArrowUp 鍵時，若下拉選單未顯示則打開下拉選單；若下拉選單已顯示則將高亮移動到上一個標籤 (阻止瀏覽器滾動頁面) */
-    if (e.key === "ArrowUp") {
+    if (e.key === "ArrowUp" && showDropdown) {
       e.preventDefault();
 
       activeIndex = Math.max(activeIndex - 1, 0);
