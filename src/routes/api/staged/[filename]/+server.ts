@@ -15,7 +15,7 @@ import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /**
  * POST /api/staged/[filename] — commit a staged file.
- * Body: { tags, rating, width?, height? }
+ * Body: { tags, rating }
  * filename comes from URL param.
  */
 export const POST: RequestHandler = async ({ params, request }) => {
