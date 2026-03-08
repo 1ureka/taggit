@@ -1,14 +1,21 @@
 import sharp from "sharp";
 import { encode } from "blurhash";
+import { LRUCache, TaskPool } from "./resources.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_PIXELS = 250_000;
-const MAX_CONCURRENT = 4;
 const MAX_CACHE_BYTES = 512 * 1024 * 1024; // 512 MB
+const MAX_CONCURRENT = 4;
 const BLURHASH_W = 32;
 const BLURHASH_COMPONENT_X = 4;
 const BLURHASH_COMPONENT_Y = 3;
+
+// ─── Instances ────────────────────────────────────────────────────────────────
+
+const cache = new LRUCache(MAX_CACHE_BYTES);
+const pool = new TaskPool(MAX_CONCURRENT);
+const inflight = new Map<string, Promise<Buffer>>();
 
 // ─── Thumbnail Size ───────────────────────────────────────────────────────────
 
@@ -45,98 +52,10 @@ export function thumbnailSize(w: number, h: number): { width: number; height: nu
   return { width: tw, height: th };
 }
 
-// ─── LRU Cache ────────────────────────────────────────────────────────────────
-
-type CacheEntry = {
-  buffer: Buffer;
-  byteSize: number;
-};
-
-class LRUCache {
-  private map = new Map<string, CacheEntry>();
-  private currentBytes = 0;
-  private readonly maxBytes: number;
-
-  constructor(maxBytes: number) {
-    this.maxBytes = maxBytes;
-  }
-
-  get(key: string): Buffer | undefined {
-    const entry = this.map.get(key);
-    if (!entry) return undefined;
-    this.map.delete(key);
-    this.map.set(key, entry);
-    return entry.buffer;
-  }
-
-  set(key: string, buffer: Buffer): void {
-    if (this.map.has(key)) {
-      this.currentBytes -= this.map.get(key)!.byteSize;
-      this.map.delete(key);
-    }
-
-    const byteSize = buffer.byteLength;
-
-    while (this.currentBytes + byteSize > this.maxBytes && this.map.size > 0) {
-      const oldest = this.map.keys().next().value!;
-      this.currentBytes -= this.map.get(oldest)!.byteSize;
-      this.map.delete(oldest);
-    }
-
-    this.map.set(key, { buffer, byteSize });
-    this.currentBytes += byteSize;
-  }
-
-  clear(): void {
-    this.map.clear();
-    this.currentBytes = 0;
-  }
-
-  get stats() {
-    return { entries: this.map.size, bytes: this.currentBytes };
-  }
-}
-
-const cache = new LRUCache(MAX_CACHE_BYTES);
-
-// ─── Pool ─────────────────────────────────────────────────────────────────────
-
-let running = 0;
-const queue: Array<() => void> = [];
-
-function enqueue<T>(fn: () => Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const run = async () => {
-      running++;
-      try {
-        resolve(await fn());
-      } catch (e) {
-        reject(e);
-      } finally {
-        running--;
-        drain();
-      }
-    };
-
-    if (running < MAX_CONCURRENT) {
-      run();
-    } else {
-      queue.push(run);
-    }
-  });
-}
-
-function drain() {
-  while (running < MAX_CONCURRENT && queue.length > 0) {
-    const next = queue.shift()!;
-    next();
-  }
-}
-
 // ─── Image Processing ─────────────────────────────────────────────────────────
 
 async function processImage(sourcePath: string, thumb: boolean): Promise<Buffer> {
-  return enqueue(async () => {
+  return pool.enqueue(async () => {
     if (!thumb) {
       return sharp(sourcePath).webp({ quality: 90 }).toBuffer();
     }
@@ -160,8 +79,6 @@ async function processImage(sourcePath: string, thumb: boolean): Promise<Buffer>
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
-
-const inflight = new Map<string, Promise<Buffer>>();
 
 export async function getImage(area: string, file: string, sourcePath: string, thumb: boolean): Promise<Buffer> {
   const cacheKey = thumb ? `thumb:${area}/${file}` : `full:${area}/${file}`;
@@ -216,8 +133,4 @@ export async function getImageMeta(filePath: string): Promise<{
   } catch {
     return { width: 0, height: 0, blurhash: "" };
   }
-}
-
-export function clearCache(): void {
-  cache.clear();
 }
