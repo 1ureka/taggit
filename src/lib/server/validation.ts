@@ -54,3 +54,8 @@ export function isValidFilename(value: unknown): value is string {
 export function isValidSize(value: unknown): value is ImageSize {
   return value === "sm" || value === "md" || value === "xl";
 }
+
+/** name 必須為非空字串，長度 ≤ 200 */
+export function isValidName(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= 200;
+}

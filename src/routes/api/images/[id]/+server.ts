@@ -5,7 +5,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { getDB } from "$lib/server/db.js";
 import { getImage } from "$lib/server/db-query.js";
 import { updateImage, removeImage } from "$lib/server/db-mutation.js";
-import { isValidId, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { isValidId, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
 import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
 
 /** GET /api/images/[id] */
@@ -33,7 +33,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const { tags, rating, expectedUpdatedAt } = body;
+  const { tags, rating, name, expectedUpdatedAt } = body;
 
   if (typeof expectedUpdatedAt !== "number") {
     return json({ ok: false, error: "expectedUpdatedAt is required (number)" }, { status: 400 });
@@ -50,10 +50,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
   }
 
+  if (name !== undefined && !isValidName(name)) {
+    return json({ ok: false, error: "Invalid name (must be non-empty string, max 200 chars)" }, { status: 400 });
+  }
+
   const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
 
   try {
-    const updated = updateImage(getDB(), id, { tags: trimmedTags, rating: rating }, expectedUpdatedAt);
+    const updated = updateImage(getDB(), id, { tags: trimmedTags, rating, name }, expectedUpdatedAt);
 
     return json({ ok: true, data: updated });
   } catch (e) {
@@ -85,9 +89,9 @@ export const DELETE: RequestHandler = ({ params }) => {
   const paths = getPaths();
   const src = path.join(paths.committed, id + image.ext);
 
-  // Move file to trash with original name (auto-rename on collision)
+  // Move file to trash with id-based name (auto-rename on collision)
   if (fs.existsSync(src)) {
-    const trashName = uniqueFilename(paths.trash, image.originalName);
+    const trashName = uniqueFilename(paths.trash, id + image.ext);
     const dest = path.join(paths.trash, trashName);
     fs.renameSync(src, dest);
   }

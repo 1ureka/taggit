@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const meta = await getImageMeta(destPath);
     const record: ImageRecord = {
       ext,
-      originalName: filename,
+      name: path.basename(filename, ext),
       tags: trimmedTags,
       rating: rating as number,
       committedAt: now,

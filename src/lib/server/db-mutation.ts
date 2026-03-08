@@ -51,7 +51,7 @@ export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
  *
  * @param jsonDB - The database instance to mutate.
  * @param id - The unique identifier of the image to update.
- * @param patch - Fields to update (`tags` and/or `rating`).
+ * @param patch - Fields to update (`tags`, `rating`, and/or `name`).
  * @param expectedUpdatedAt - The `updatedAt` timestamp the caller last saw.
  *   If the stored record has a different timestamp the update is rejected with
  *   a `409 Conflict` error that includes the current record.
@@ -62,7 +62,7 @@ export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
 export function updateImage(
   jsonDB: JSONDatabase,
   id: string,
-  patch: { tags?: string[]; rating?: number },
+  patch: { tags?: string[]; rating?: number; name?: string },
   expectedUpdatedAt: number,
 ): ImageWithId {
   const rec = jsonDB.data.images[id];
@@ -75,6 +75,7 @@ export function updateImage(
   jsonDB.indexRemove(id, rec);
   if (patch.tags !== undefined) rec.tags = patch.tags;
   if (patch.rating !== undefined) rec.rating = patch.rating;
+  if (patch.name !== undefined) rec.name = patch.name;
   rec.updatedAt = Date.now();
   jsonDB.indexAdd(id, rec);
   jsonDB.markDirty();

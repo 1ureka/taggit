@@ -23,7 +23,7 @@ export function parseQueryParams(url: URL): QueryOptions {
     tags: parseTags(p.get("tags")),
     rating: p.has("rating") ? Number(p.get("rating")) : undefined,
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
-    sort: (p.get("sort") as "committedAt" | "rating" | "originalName" | "random") ?? "committedAt",
+    sort: (p.get("sort") as "committedAt" | "rating" | "name" | "random") ?? "committedAt",
     order: (p.get("order") as "asc" | "desc") ?? "desc",
     page: p.has("page") ? Number(p.get("page")) : undefined,
     limit: p.has("limit") ? Number(p.get("limit")) : undefined,

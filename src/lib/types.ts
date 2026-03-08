@@ -2,7 +2,7 @@
 
 export interface ImageRecord {
   ext: string; // '.png', '.jpg', etc.
-  originalName: string; // original filename (before commit rename)
+  name: string; // user-editable image name
   tags: string[]; // tag list
   rating: number; // 0-5
   committedAt: number; // Unix ms
@@ -55,11 +55,11 @@ export interface DBData {
  * - If `limit` is omitted or 0, ALL matching results are returned (no pagination).
  */
 export interface QueryOptions {
-  search?: string; // filename (originalName) substring search
+  search?: string; // name substring search
   tags?: string[];
   rating?: number;
   ratingOp?: "gte" | "lte" | "eq";
-  sort?: "committedAt" | "rating" | "originalName" | "random";
+  sort?: "committedAt" | "rating" | "name" | "random";
   order?: "asc" | "desc";
   page?: number;
   limit?: number; // 0 or undefined = return all
