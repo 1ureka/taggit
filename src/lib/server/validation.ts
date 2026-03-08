@@ -1,7 +1,4 @@
-/**
- * Input validation helpers for API routes.
- * All functions are pure (no I/O) and can be used server-side only.
- */
+import type { ImageArea, ImageSize } from "$lib/types.js";
 
 /** 16-character lowercase hex string */
 export function isValidId(value: unknown): value is string {
@@ -30,18 +27,29 @@ export function isValidRating(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 5;
 }
 
-/**
- * Filename must not contain path separators or special shell characters,
- * and must not start with a dot.
- */
-export function isValidFilename(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  if (value.startsWith(".")) return false;
-  // Reject path traversal and shell metacharacters
-  return !/[/\\<>:"|?*\x00-\x1f]/.test(value);
-}
-
 /** Absolute path looks reasonable (non-empty string) */
 export function isValidAbsPath(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+/** Check area param is one of committed / staged / trash */
+export function isValidArea(value: unknown): value is ImageArea {
+  return value === "committed" || value === "staged" || value === "trash";
+}
+
+/** Filename must be non-empty and free of path-traversal characters */
+export function isValidFilename(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    !value.includes("/") &&
+    !value.includes("\\") &&
+    !value.includes("..") &&
+    !value.startsWith(".")
+  );
+}
+
+/** Check size query param is sm / md / xl */
+export function isValidSize(value: unknown): value is ImageSize {
+  return value === "sm" || value === "md" || value === "xl";
 }
