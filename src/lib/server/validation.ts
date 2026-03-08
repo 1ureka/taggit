@@ -13,11 +13,12 @@ export function isValidTags(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   if (value.length === 0) return false;
   if (value.some((t) => typeof t !== "string" || t.trim() === "" || t.length > 50)) return false;
-  // Check uniqueness
+  // Check uniqueness on trimmed strings
   const seen = new Set<string>();
   for (const t of value as string[]) {
-    if (seen.has(t)) return false;
-    seen.add(t);
+    const trimmed = t.trim();
+    if (seen.has(trimmed)) return false;
+    seen.add(trimmed);
   }
   return true;
 }
