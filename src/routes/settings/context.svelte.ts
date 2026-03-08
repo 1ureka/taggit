@@ -17,6 +17,10 @@ export class SettingsContext {
   alert = $state<string | null>(null);
   /** 待確認對話框 */
   pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
+  /** 快取項目數量 */
+  cacheEntries = $state(0);
+  /** 快取已使用位元組數 */
+  cacheBytes = $state(0);
 }
 
 export const [getSettingsContext, setSettingsContext] = createContext<SettingsContext>();

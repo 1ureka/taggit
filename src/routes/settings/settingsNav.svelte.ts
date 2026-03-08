@@ -21,6 +21,7 @@ export function createSettingsNav() {
     const base: NavSection[] = [{ id: "collection", label: "圖片集路徑" }];
     if (ctx.collectionRoot) {
       base.push({ id: "tags", label: "標籤管理" });
+      base.push({ id: "images", label: "圖片與快取" });
       base.push({ id: "maintenance", label: "系統維護" });
     }
     return base;

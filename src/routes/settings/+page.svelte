@@ -7,6 +7,7 @@
   import SettingsNav from "./SettingsNav.svelte";
   import SettingsCollection from "./SettingsCollection.svelte";
   import SettingsTagRename from "./SettingsTagRename.svelte";
+  import SettingsImages from "./SettingsImages.svelte";
   import SettingsMaintenance from "./SettingsMaintenance.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -20,11 +21,16 @@
     set collectionRoot(v: string) {
       data.collectionRoot = v;
     },
+    get cacheStats() {
+      return data.cacheStats;
+    },
   };
 
   const ctx = setSettingsContext(new SettingsContext());
   ctx.collectionRoot = proxy.collectionRoot;
   ctx.alert = params.get("alert");
+  ctx.cacheEntries = proxy.cacheStats.entries;
+  ctx.cacheBytes = proxy.cacheStats.bytes;
 </script>
 
 <svelte:head>
@@ -47,6 +53,7 @@
         <SettingsCollection />
         {#if ctx.collectionRoot}
           <SettingsTagRename />
+          <SettingsImages />
           <SettingsMaintenance />
         {/if}
       </div>
