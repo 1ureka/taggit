@@ -45,9 +45,9 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
-    background: #ffffff;
-    color: #000000;
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: var(--text);
+    color: var(--bg);
+    border: 1px solid hsla(from var(--bg) h s l / 0.12);
     border-radius: calc(var(--radius) * 2);
     box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.14),
@@ -56,28 +56,28 @@
 
   .dock-close {
     padding: 0.25rem;
-    color: #555555;
+    color: color-mix(in oklch, var(--bg) 65%, var(--text));
     background: transparent;
     border-color: transparent;
   }
 
   .dock-close:hover {
-    background: rgba(0, 0, 0, 0.07);
+    background: hsla(from var(--bg) h s l / 0.07);
     border-color: transparent;
-    color: #000000;
+    color: var(--bg);
   }
 
   .dock-count {
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #555555;
+    color: color-mix(in oklch, var(--bg) 65%, var(--text));
     white-space: nowrap;
   }
 
   .dock-separator {
     width: 1px;
     height: 1.25rem;
-    background: rgba(0, 0, 0, 0.15);
+    background: hsla(from var(--bg) h s l / 0.15);
     flex-shrink: 0;
   }
 
