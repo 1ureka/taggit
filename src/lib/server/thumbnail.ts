@@ -12,6 +12,39 @@ const SIZE_PRESETS: Record<ProcessableSize, { maxPixels: number; quality: number
 
 const MAX_CACHE_BYTES = 512 * 1024 * 1024; // 512 MB
 const MAX_CONCURRENT = 4;
+
+// ## BlurHash 編碼參數
+//
+// BlurHash 將圖片轉為離散餘弦轉換 (DCT) 的低頻分量，壓縮成一段 ~20-30 字元的
+// 短字串。解碼時可還原為極小的模糊圖片，用作載入佔位。
+//
+// 編碼流程：
+//   1. sharp 將原圖 resize 到 BLURHASH_W px 寬（等比例），輸出 raw RGBA buffer
+//   2. blurhash.encode() 對 pixel data 做 DCT，取前 componentX × componentY 個分量
+//   3. 分量被量化為 Base83 字串（即最終的 blurhash）
+//
+// ## 可調參數
+//
+// BLURHASH_W（編碼用輸入寬度，目前 32px）
+//   - 只是餵給 encode() 之前的縮圖尺寸，不影響最終 hash 品質（因為 DCT 分量數
+//     才是決定精細度的因素）。降到 16 可加速但拿不到更多細節；升到 64 浪費算力。
+//   - 建議範圍：16 ~ 64，32 是常見最佳平衡點。
+//
+// BLURHASH_COMPONENT_X / BLURHASH_COMPONENT_Y（DCT 分量數，目前 4×3）
+//   - 範圍：1 ~ 9（BlurHash 規格限制）
+//   - 分量越多 → 模糊圖越精細，但 hash 字串越長：
+//       1×1 =  6 chars（單一平均色）
+//       4×3 = 28 chars（官方推薦，色塊＋漸層可辨識）
+//       4×4 = 33 chars
+//       6×6 = 66 chars（細節更多但 ROI 遞減）
+//       9×9 = 160 chars（極端，肉眼差異不大）
+//   - 字串長度公式：4 + 2 × componentX × componentY
+//   - 適用場景：
+//       2×2：只需色調提示，追求最短字串（聊天室頭像等）
+//       4×3：通用推薦，佔位圖能看出大致構圖
+//       5×4 ~ 6×5：大尺寸 hero image，值得多幾個 byte 換更好的預覽
+//   - 超過 6×6 幾乎沒有視覺收益，不建議使用。
+
 const BLURHASH_W = 32;
 const BLURHASH_COMPONENT_X = 4;
 const BLURHASH_COMPONENT_Y = 3;
