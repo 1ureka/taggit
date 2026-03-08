@@ -35,24 +35,36 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
   const { tags, rating, expectedUpdatedAt } = body;
 
-  if (typeof expectedUpdatedAt !== "number")
+  if (typeof expectedUpdatedAt !== "number") {
     return json({ ok: false, error: "expectedUpdatedAt is required (number)" }, { status: 400 });
-  if (tags !== undefined && !isValidTags(tags))
+  }
+
+  if (tags !== undefined && !isValidTags(tags)) {
     return json(
       { ok: false, error: "Invalid tags (must be a non-empty array of unique, non-empty strings)" },
       { status: 400 },
     );
-  if (rating !== undefined && !isValidRating(rating))
+  }
+
+  if (rating !== undefined && !isValidRating(rating)) {
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
+  }
+
+  const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
 
   try {
-    const updated = updateImage(getDB(), id, { tags: tags as string[], rating: rating as number }, expectedUpdatedAt);
+    const updated = updateImage(getDB(), id, { tags: trimmedTags, rating: rating }, expectedUpdatedAt);
+
     return json({ ok: true, data: updated });
   } catch (e) {
-    if ((e as any).status === 409)
+    if ((e as any).status === 409) {
       return json({ ok: false, error: "Conflict", data: (e as any).record }, { status: 409 });
-    if ((e as Error).message?.includes("not found"))
+    }
+
+    if ((e as Error).message?.includes("not found")) {
       return json({ ok: false, error: "Image not found" }, { status: 404 });
+    }
+
     throw e;
   }
 };
