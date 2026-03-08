@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { IconAlertTriangle, IconArrowLeft } from "@tabler/icons-svelte";
+
   type Props = {
     /** 該頁面支援的最小寬度 */
     minWidth: number;
@@ -17,12 +19,21 @@
 
 <div class="too-small-overlay">
   <div class="too-small-card">
-    <div class="too-small-icon">⚠</div>
+    <div class="too-small-icon"><IconAlertTriangle size={40} stroke={1.5} /></div>
     <h2 class="too-small-title">視窗過小</h2>
+
     <p class="too-small-desc">
       {label}需要至少 {minWidth}×{minHeight} 的視窗大小才能正常使用。<br />請放大您的瀏覽器視窗。
     </p>
+
     <span class="too-small-current">{currentWidth} × {currentHeight}</span>
+
+    <div class="too-small-home">
+      <a class="btn btn-ghost" href="/">
+        <IconArrowLeft size={14} />
+        返回首頁
+      </a>
+    </div>
   </div>
 </div>
 
@@ -43,9 +54,8 @@
   }
 
   .too-small-icon {
-    font-size: 2.5rem;
     margin-bottom: 1rem;
-    opacity: 0.6;
+    color: var(--text-dim);
   }
 
   .too-small-title {
@@ -66,5 +76,12 @@
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--text-dim);
+  }
+
+  .too-small-home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1.25rem;
   }
 </style>
