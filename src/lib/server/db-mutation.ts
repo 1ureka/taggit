@@ -44,35 +44,49 @@ export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
 }
 
 /**
+ * 圖片更新補丁 —— 傳入 {@link updateImage} 以部分更新圖片記錄。
+ * 除 `expectedUpdatedAt` 外，所有欄位皆為選填。
+ */
+interface UpdateImagePatch {
+  /** 呼叫端最後一次看到的 `updatedAt` 時間戳，用於樂觀併發控制。 */
+  expectedUpdatedAt: number;
+  /** 替換後的標籤列表。 */
+  tags?: ImageRecord["tags"];
+  /** 替換後的評分。 */
+  rating?: ImageRecord["rating"];
+  /** 替換後的圖片名稱。 */
+  name?: ImageRecord["name"];
+}
+
+/**
  * 使用樂觀併發檢查更新現有圖片記錄的標籤及／或評分。
  *
  * @param jsonDB - 要異動的資料庫實例。
  * @param id - 要更新的圖片唯一識別碼。
- * @param patch - 要更新的欄位（`tags`、`rating` 及／或 `name`）。
- * @param expectedUpdatedAt - 呼叫端最後一次看到的 `updatedAt` 時間戳。
- *   若儲存的記錄時間戳不同，更新會被拒絕並拋出包含目前記錄的 `409 Conflict` 錯誤。
+ * @param patch - 包含 `expectedUpdatedAt` 與要更新欄位的補丁物件。
  * @returns 附帶 id 的已更新圖片。
  * @throws {Error} 若指定 id 的記錄不存在。
  * @throws {Error & { status: 409; record: ImageWithId }} 發生併發衝突時。
  */
-export function updateImage(
-  jsonDB: JSONDatabase,
-  id: string,
-  patch: { tags?: string[]; rating?: number; name?: string },
-  expectedUpdatedAt: number,
-): ImageWithId {
+export function updateImage(jsonDB: JSONDatabase, id: string, patch: UpdateImagePatch): ImageWithId {
   const rec = jsonDB.data.images[id];
-  if (!rec) throw new Error("Image not found: " + id);
 
-  if (rec.updatedAt !== expectedUpdatedAt) {
+  if (!rec) {
+    throw new Error("Image not found: " + id);
+  }
+
+  if (rec.updatedAt !== patch.expectedUpdatedAt) {
     throw Object.assign(new Error("Conflict"), { status: 409, record: { id, ...rec } });
   }
 
   jsonDB.indexRemove(id, rec);
+
   if (patch.tags !== undefined) rec.tags = patch.tags;
   if (patch.rating !== undefined) rec.rating = patch.rating;
   if (patch.name !== undefined) rec.name = patch.name;
+
   rec.updatedAt = Date.now();
+
   jsonDB.indexAdd(id, rec);
   jsonDB.markDirty();
 
@@ -93,21 +107,25 @@ export function updateImage(
  * @returns 受影響的圖片記錄數量。
  */
 export function renameTag(jsonDB: JSONDatabase, oldName: string, newName: string): number {
+  if (oldName === newName) return 0;
+
   const ids = jsonDB.tagIndex.get(oldName);
   if (!ids || ids.size === 0) return 0;
 
   let affected = 0;
+
   for (const id of ids) {
     const rec = jsonDB.data.images[id];
     if (!rec) continue;
-    const idx = rec.tags.indexOf(oldName);
-    if (idx !== -1) {
-      rec.tags[idx] = newName;
-      if (rec.tags.filter((t) => t === newName).length > 1) {
-        rec.tags = [...new Set(rec.tags)];
-      }
-      affected++;
+
+    if (rec.tags.includes(newName)) {
+      rec.tags = rec.tags.filter((t) => t !== oldName);
+    } else {
+      const idx = rec.tags.indexOf(oldName);
+      if (idx !== -1) rec.tags[idx] = newName;
     }
+
+    affected++;
   }
 
   jsonDB.buildIndexes();

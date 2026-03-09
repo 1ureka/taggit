@@ -57,7 +57,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
 
   try {
-    const updated = updateImage(getDB(), id, { tags: trimmedTags, rating, name }, expectedUpdatedAt);
+    const updated = updateImage(getDB(), id, { expectedUpdatedAt, tags: trimmedTags, rating, name });
 
     return json({ ok: true, data: updated });
   } catch (e) {
