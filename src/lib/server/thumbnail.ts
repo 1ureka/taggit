@@ -21,7 +21,7 @@ const SIZE_PRESETS: Record<ProcessableSize, { maxPixels: number; quality: number
   md: { maxPixels: 1024 * 1024, quality: 90 },
 };
 
-const MAX_CACHE_BYTES = 512 * 1024 * 1024; // 512 MB
+const MAX_CACHE_BYTES = 512 * 1024 * 1024;
 const MAX_CONCURRENT = 4;
 
 // ## BlurHash 編碼參數
@@ -68,6 +68,7 @@ const inflight = new Map<string, Promise<Buffer>>();
 
 // ---
 
+/** 計算兩個正整數的最大公因數（輾轉相除法）。 */
 function gcd(a: number, b: number): number {
   while (b !== 0) {
     [a, b] = [b, a % b];
@@ -75,6 +76,10 @@ function gcd(a: number, b: number): number {
   return a;
 }
 
+/**
+ * 在不超過 `maxPixels` 的前提下，以整數倍比例縮小尺寸。
+ * 若原始尺寸已在範圍內，直接回傳原始寬高。
+ */
 function thumbnailSize(w: number, h: number, maxPixels: number): { width: number; height: number } {
   if (w * h <= maxPixels) return { width: w, height: h };
 
@@ -103,6 +108,7 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
 
 // ---
 
+/** 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。 */
 async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
 
@@ -127,6 +133,10 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
 
 // ---
 
+/**
+ * 取得指定圖片的縮圖 Buffer（含 LRU 快取與 in-flight 去重）。
+ * 若快取命中直接回傳；否則排程產生縮圖後寫入快取。
+ */
 export async function getImage(area: string, file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const cacheKey = `${size}:${area}/${file}`;
 
@@ -146,11 +156,11 @@ export async function getImage(area: string, file: string, sourcePath: string, s
   return promise;
 }
 
-export async function getImageMeta(filePath: string): Promise<{
-  width: number;
-  height: number;
-  blurhash: string;
-}> {
+/**
+ * 讀取圖片的寬高與 BlurHash 字串。
+ * 發生錯誤時回傳寬高為 0、blurhash 為空字串。
+ */
+export async function getImageMeta(filePath: string): Promise<{ width: number; height: number; blurhash: string }> {
   try {
     const image = sharp(filePath);
     const meta = await image.metadata();
@@ -182,10 +192,12 @@ export async function getImageMeta(filePath: string): Promise<{
   }
 }
 
+/** 清空縮圖快取，釋放所有項目。 */
 export function clearCache(): void {
   cache.clear();
 }
 
+/** 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。 */
 export function getCacheStats(): { entries: number; bytes: number } {
   return cache.stats;
 }
