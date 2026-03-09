@@ -1,22 +1,21 @@
 import fs from "fs";
 import path from "path";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import { getDB } from "$lib/server/db.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { getImage } from "$lib/server/db-query.js";
 import { updateImage, removeImage } from "$lib/server/db-mutation.js";
 import { isValidId, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
-import { guardLoaded, getPaths, parseBody, uniqueFilename } from "$lib/server/helpers.js";
+import { parseBody, requireDatabase, uniqueFilename } from "$lib/server/helpers.js";
 
 /** GET /api/images/[id] */
 export const GET: RequestHandler = ({ params }) => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
-  const image = getImage(getDB(), id);
+  const { db } = loaded;
+  const image = getImage(db, id);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
   return json({ ok: true, data: image });
@@ -24,8 +23,8 @@ export const GET: RequestHandler = ({ params }) => {
 
 /** PATCH /api/images/[id] — update tags and/or rating (conflict-safe) */
 export const PATCH: RequestHandler = async ({ params, request }) => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
@@ -57,7 +56,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
 
   try {
-    const updated = updateImage(getDB(), id, { expectedUpdatedAt, tags: trimmedTags, rating, name });
+    const { db } = loaded;
+    const updated = updateImage(db, id, { expectedUpdatedAt, tags: trimmedTags, rating, name });
 
     return json({ ok: true, data: updated });
   } catch (e) {
@@ -77,16 +77,16 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
  * DELETE /api/images/[id] — delete committed image.
  */
 export const DELETE: RequestHandler = ({ params }) => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const { id } = params;
   if (!isValidId(id)) return json({ ok: false, error: "Invalid image ID" }, { status: 400 });
 
-  const image = getImage(getDB(), id);
+  const { db, paths } = loaded;
+  const image = getImage(db, id);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
-  const paths = getPaths();
   const src = path.join(paths.committed, id + image.ext);
 
   // Move file to trash with id-based name (auto-rename on collision)
@@ -97,7 +97,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   // Remove DB record — metadata is lost after this point
-  removeImage(getDB(), id);
+  removeImage(db, id);
 
   return json({ ok: true });
 };

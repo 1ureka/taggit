@@ -3,13 +3,13 @@ import path from "path";
 import type { RequestHandler } from "@sveltejs/kit";
 
 import { MIME_TYPES } from "$lib/server/config.js";
-import { getDB } from "$lib/server/db.js";
-import { getPaths } from "$lib/server/helpers.js";
+import { requirePaths } from "$lib/server/helpers.js";
 import { getImage } from "$lib/server/thumbnail.js";
 import { isValidArea, isValidFilename, isValidSize } from "$lib/server/validation.js";
 
 export const GET: RequestHandler = async ({ params, url }) => {
-  if (!getDB().isLoaded()) {
+  const paths = requirePaths();
+  if (!paths) {
     return new Response("No collection loaded", { status: 503 });
   }
 
@@ -23,7 +23,6 @@ export const GET: RequestHandler = async ({ params, url }) => {
     return new Response("Invalid filename", { status: 400 });
   }
 
-  const paths = getPaths();
   const baseDir = paths[area];
 
   const filePath = path.resolve(baseDir, file);
