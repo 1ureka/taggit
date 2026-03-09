@@ -60,13 +60,13 @@ const BLURHASH_W = 32;
 const BLURHASH_COMPONENT_X = 4;
 const BLURHASH_COMPONENT_Y = 3;
 
-// ─── Instances ────────────────────────────────────────────────────────────────
+// ---
 
 const cache = new LRUCache(MAX_CACHE_BYTES);
 const pool = new TaskPool(MAX_CONCURRENT);
 const inflight = new Map<string, Promise<Buffer>>();
 
-// ─── Thumbnail Size ───────────────────────────────────────────────────────────
+// ---
 
 function gcd(a: number, b: number): number {
   while (b !== 0) {
@@ -101,7 +101,7 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
   return { width: tw, height: th };
 }
 
-// ─── Image Processing ─────────────────────────────────────────────────────────
+// ---
 
 async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
@@ -125,7 +125,7 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
   });
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ---
 
 export async function getImage(area: string, file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const cacheKey = `${size}:${area}/${file}`;

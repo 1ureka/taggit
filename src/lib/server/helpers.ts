@@ -1,13 +1,6 @@
 /**
  * @file helpers.ts
  * API 路由共用的伺服器端輔助函式。
- *
- * 本模組的職責：
- *   - {@link guardLoaded}：確認資料庫已載入，否則回傳 503。
- *   - {@link getPaths}：快速取得目前集合的所有路徑。
- *   - {@link getStagedFiles} / {@link getTrashFiles}：列出暫存區與垃圾桶中的檔案。
- *   - {@link uniqueFilename}：產生不衝突的檔案名稱。
- *   - {@link parseBody}：安全解析 JSON 請求本體。
  */
 
 import fs from "fs";
@@ -19,8 +12,8 @@ import { sortCollator } from "$lib/utils.js";
 import type { CollectionPaths } from "$lib/types.js";
 
 /**
- * Returns an error Response (503) if the DB is not loaded, null otherwise.
- * Usage: `const err = guardLoaded(); if (err) return err;`
+ * 若資料庫未載入，回傳 503 錯誤回應；否則回傳 `null`。
+ * 用法：`const err = guardLoaded(); if (err) return err;`
  */
 export function guardLoaded(): Response | null {
   if (!getDB().isLoaded()) {
@@ -29,14 +22,14 @@ export function guardLoaded(): Response | null {
   return null;
 }
 
-/** Shorthand for `getCollectionPaths(getDB().getCurrentRoot()!)`. */
+/** `getCollectionPaths(getDB().getCurrentRoot()!)` 的簡寫。 */
 export function getPaths(): CollectionPaths {
   return getCollectionPaths(getDB().getCurrentRoot()!);
 }
 
-/**
- * List image filenames in the staged/ directory, sorted alphabetically.
- */
+// ---
+
+/** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
 export function getStagedFiles(): string[] {
   try {
     const staged = getPaths().staged;
@@ -49,10 +42,7 @@ export function getStagedFiles(): string[] {
   }
 }
 
-/**
- * List image filenames in the trash/ directory, sorted alphabetically.
- * Trash is purely file-based — no DB records involved.
- */
+/** 列出 trash/ 目錄中的圖片檔名，依字母排序。 */
 export function getTrashFiles(): string[] {
   try {
     const trash = getPaths().trash;
@@ -66,12 +56,12 @@ export function getTrashFiles(): string[] {
 }
 
 /**
- * Find a unique filename in `dir` for the desired `name`.
- * If `name` already exists, appends `_1`, `_2`, … before the extension.
+ * 在 `dir` 中為 `name` 找出不重複的檔名。
+ * 若 `name` 已存在，會在副檔名前附加 `_1`、`_2`、……
  *
- * Example: `photo.png` → `photo_1.png` → `photo_2.png` → …
+ * 範例：`photo.png` → `photo_1.png` → `photo_2.png` → …
  *
- * Returns only the filename (not the full path).
+ * 只回傳檔名（不含完整路徑）。
  */
 export function uniqueFilename(dir: string, name: string): string {
   const ext = path.extname(name);
@@ -90,9 +80,11 @@ export function uniqueFilename(dir: string, name: string): string {
   }
 }
 
+// ---
+
 /**
- * Parse JSON body from a Request.
- * Returns `[body, null]` on success, or `[null, errorResponse]` on failure.
+ * 從 Request 解析 JSON body。
+ * 成功時回傳 `[body, null]`，失敗時回傳 `[null, errorResponse]`。
  */
 export async function parseBody<T = Record<string, unknown>>(request: Request): Promise<[T, null] | [null, Response]> {
   try {

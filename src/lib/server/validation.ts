@@ -9,15 +9,12 @@
 
 import type { ImageArea, ImageSize } from "$lib/types.js";
 
-/** 16-character lowercase hex string */
+/** 16 字元小寫十六進位字串。 */
 export function isValidId(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{16}$/.test(value);
 }
 
-/**
- * Tags must be a non-empty array of trimmed, non-empty, unique strings (max 50 chars each).
- * An empty array is NOT valid — every committed image must have at least one tag.
- */
+/** 標籤必須為非空陣列，每個元素為修剪後非空、不重複的字串（各最長 50 字元）。 */
 export function isValidTags(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   if (value.length === 0) return false;
@@ -32,22 +29,22 @@ export function isValidTags(value: unknown): value is string[] {
   return true;
 }
 
-/** Rating must be an integer in [0, 5] */
+/** 評分必須為 [0, 5] 之間的整數。 */
 export function isValidRating(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 5;
 }
 
-/** Absolute path looks reasonable (non-empty string) */
+/** 絕對路徑看起來合理（非空字串）。 */
 export function isValidAbsPath(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-/** Check area param is one of committed / staged / trash */
+/** 檢查 area 參數是否為 committed / staged / trash 其中之一。 */
 export function isValidArea(value: unknown): value is ImageArea {
   return value === "committed" || value === "staged" || value === "trash";
 }
 
-/** Filename must be non-empty and free of path-traversal characters */
+/** 檔名必須非空且不含路徑穿越字元。 */
 export function isValidFilename(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -59,7 +56,7 @@ export function isValidFilename(value: unknown): value is string {
   );
 }
 
-/** Check size query param is sm / md / xl */
+/** 檢查 size 查詢參數是否為 sm / md / xl 其中之一。 */
 export function isValidSize(value: unknown): value is ImageSize {
   return value === "sm" || value === "md" || value === "xl";
 }
