@@ -16,14 +16,13 @@ export function isValidId(value: unknown): value is string {
 
 /** 標籤必須為非空陣列，每個元素為修剪後非空、不重複的字串（各最長 50 字元）。 */
 export function isValidTags(value: unknown): value is string[] {
-  if (!Array.isArray(value)) return false;
-  if (value.length === 0) return false;
-  if (value.some((t) => typeof t !== "string" || t.trim() === "" || t.length > 50)) return false;
-  // Check uniqueness on trimmed strings
+  if (!Array.isArray(value) || value.length === 0) return false;
+
   const seen = new Set<string>();
-  for (const t of value as string[]) {
+  for (const t of value) {
+    if (typeof t !== "string") return false;
     const trimmed = t.trim();
-    if (seen.has(trimmed)) return false;
+    if (trimmed === "" || t.length > 50 || seen.has(trimmed)) return false;
     seen.add(trimmed);
   }
   return true;
