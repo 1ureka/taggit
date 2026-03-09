@@ -51,7 +51,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     return resolve(event);
   }
 
-  const root = config.getCollectionRoot();
+  // DB 記憶體優先；只有尚未載入 (通常代表首次載入) 時才讀 server.json (避免每次請求都做 I/O)
+  const jsonDB = getDB();
+  const root = jsonDB.getCurrentRoot() ?? config.getCollectionRoot();
 
   if (!root) {
     throw redirect(303, "/settings?alert=default");
@@ -61,8 +63,6 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(303, "/settings?alert=error");
   }
 
-  // Ensure DB is loaded (or reload if collection was switched)
-  const jsonDB = getDB();
   if (!jsonDB.isLoaded() || jsonDB.getCurrentRoot() !== root) {
     jsonDB.loadCollection(root);
   }
