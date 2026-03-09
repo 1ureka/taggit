@@ -34,22 +34,6 @@ export function requireDatabase(): { db: JSONDatabase; paths: CollectionPaths } 
   return { db, paths };
 }
 
-/**
- * 若資料庫未載入，回傳 503 錯誤回應；否則回傳 `null`。
- * 用法：`const err = guardLoaded(); if (err) return err;`
- */
-export function guardLoaded(): Response | null {
-  if (!getDB().isLoaded()) {
-    return json({ ok: false, error: "No collection loaded" }, { status: 503 });
-  }
-  return null;
-}
-
-/** `getCollectionPaths(getDB().getCurrentRoot()!)` 的簡寫。 */
-export function getPaths(): CollectionPaths {
-  return getCollectionPaths(getDB().getCurrentRoot()!);
-}
-
 // ---
 
 /** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
