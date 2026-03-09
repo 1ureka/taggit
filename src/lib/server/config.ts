@@ -2,12 +2,10 @@ import fs from "fs";
 import path from "path";
 import type { ServerConfig, CollectionPaths } from "$lib/types.js";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-/** Supported image extensions */
+/** 支援的圖片副檔名 */
 export const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"]);
 
-/** MIME type map */
+/** MIME 類型對應表 */
 export const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -20,14 +18,14 @@ export const MIME_TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
-/** Absolute path to server.json (project root) */
+/** server.json 的絕對路徑（專案根目錄） */
 const SERVER_JSON_PATH = path.resolve("server.json");
 
-// ─── server.json I/O ─────────────────────────────────────────────────────────
+// ---
 
 /**
- * Ensure server.json exists. Creates `{}` if the file is missing.
- * Called on first read so every code path is safe.
+ * 確保 server.json 存在。若檔案不存在則建立空的 `{}`。
+ * 在首次讀取時呼叫，確保所有程式路徑都是安全的。
  */
 export function ensureServerJson(): void {
   if (!fs.existsSync(SERVER_JSON_PATH)) {
@@ -51,10 +49,10 @@ function writeServerJson(data: ServerConfig): void {
   fs.writeFileSync(SERVER_JSON_PATH, JSON.stringify(data, null, 2) + "\n", "utf8");
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ---
 
 /**
- * Returns the current collectionRoot from server.json, or null if not set.
+ * 從 server.json 回傳目前的 collectionRoot，若未設定則回傳 null。
  */
 export function getCollectionRoot(): string | null {
   const cfg = readServerJson();
@@ -62,8 +60,8 @@ export function getCollectionRoot(): string | null {
 }
 
 /**
- * Writes collectionRoot to server.json.
- * Does NOT trigger db.loadCollection(); the caller (API or hooks) must do that.
+ * 將 collectionRoot 寫入 server.json。
+ * 不會觸發 db.loadCollection()；呼叫端（API 或 hooks）須自行處理。
  */
 export function setCollectionRoot(root: string): void {
   const cfg = readServerJson();
@@ -73,10 +71,10 @@ export function setCollectionRoot(root: string): void {
 }
 
 /**
- * Validates a collection root path:
- * - Must exist as a directory
- * - Automatically creates staged/, committed/, trash/ if missing
- * Returns true when the collection is ready to use.
+ * 驗證集合根路徑：
+ * - 必須是已存在的目錄
+ * - 若 staged/、committed/、trash/ 不存在則自動建立
+ * 當集合可使用時回傳 true。
  */
 export function isCollectionValid(root: string): boolean {
   try {
@@ -98,7 +96,7 @@ export function isCollectionValid(root: string): boolean {
 }
 
 /**
- * Derives all relevant paths from a collection root.
+ * 從集合根路徑衍生所有相關路徑。
  */
 export function getCollectionPaths(root: string): CollectionPaths {
   return {
