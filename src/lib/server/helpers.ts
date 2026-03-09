@@ -1,20 +1,9 @@
-/**
- * Shared route helpers — eliminate boilerplate across API routes.
- *
- * Provides:
- * - guardLoaded()    — returns 503 Response if DB not loaded, otherwise null
- * - getPaths()       — shorthand for getCollectionPaths(getDB().getCurrentRoot()!)
- * - getStagedFiles() — reads staged/ directory and returns sorted image filenames
- * - getTrashFiles()  — reads trash/ directory and returns sorted image filenames
- * - uniqueFilename() — find a unique filename in a directory (auto-append _1, _2, …)
- * - parseBody<T>()   — parses JSON body or returns [null, 400 Response]
- */
-
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
 import { getDB } from "./db.js";
 import { getCollectionPaths, IMG_EXTS } from "./config.js";
+import { sortCollator } from "$lib/utils.js";
 import type { CollectionPaths } from "$lib/types.js";
 
 /**
@@ -42,7 +31,7 @@ export function getStagedFiles(): string[] {
     return fs
       .readdirSync(staged)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
-      .sort((a, b) => a.localeCompare(b));
+      .sort((a, b) => sortCollator.compare(a, b));
   } catch {
     return [];
   }
@@ -58,7 +47,7 @@ export function getTrashFiles(): string[] {
     return fs
       .readdirSync(trash)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
-      .sort((a, b) => a.localeCompare(b));
+      .sort((a, b) => sortCollator.compare(a, b));
   } catch {
     return [];
   }
@@ -74,11 +63,14 @@ export function getTrashFiles(): string[] {
  */
 export function uniqueFilename(dir: string, name: string): string {
   const ext = path.extname(name);
-  const stem = path.basename(name, ext);
+  const raw = path.basename(name, ext);
+  // Strip any existing _N suffix so we don't produce _1_1
+  const match = raw.match(/^(.+?)_(\d+)$/);
+  const stem = match ? match[1] : raw;
 
   if (!fs.existsSync(path.join(dir, name))) return name;
 
-  let i = 1;
+  let i = match ? Number(match[2]) + 1 : 1;
   while (true) {
     const candidate = `${stem}_${i}${ext}`;
     if (!fs.existsSync(path.join(dir, candidate))) return candidate;

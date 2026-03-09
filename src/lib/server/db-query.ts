@@ -8,6 +8,7 @@
 
 import type { JSONDatabase } from "./db.js";
 import type { ImageRecord, ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
+import { sortCollator } from "$lib/utils.js";
 
 // ---
 
@@ -107,13 +108,7 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
     shuffle(items);
   } else {
     const dir = order === "asc" ? 1 : -1;
-    items.sort((a, b) => {
-      const va = sortKey(a, sort);
-      const vb = sortKey(b, sort);
-      if (va < vb) return -dir;
-      if (va > vb) return dir;
-      return 0;
-    });
+    items.sort((a, b) => dir * sortCollator.compare(sortKey(a, sort), sortKey(b, sort)));
   }
 
   // 3. 分頁
@@ -130,10 +125,10 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
 }
 
 /** 從圖片取出用於排序的值。 */
-function sortKey(img: ImageWithId, sort: "committedAt" | "rating" | "name"): string | number {
-  if (sort === "rating") return img.rating ?? 0;
+function sortKey(img: ImageWithId, sort: "committedAt" | "rating" | "name"): string {
+  if (sort === "rating") return String(img.rating ?? 0);
   if (sort === "name") return (img.name ?? "").toLowerCase();
-  return img.committedAt ?? 0;
+  return String(img.committedAt ?? 0);
 }
 
 /** Fisher-Yates 洗牌。 */

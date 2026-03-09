@@ -94,3 +94,12 @@ export async function batchRun<T>(
   }
   return [ok, fail];
 }
+
+/**
+ * 用於自然排序的比較器，支援數字排序與區分大小寫
+ */
+export const sortCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  numeric: true,
+  sensitivity: "variant",
+});
