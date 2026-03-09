@@ -23,7 +23,7 @@
         class="masonry-img"
         src="/img/committed/{item.id}{item.ext}?size=md"
         style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-        alt={item.originalName || item.id}
+        alt={item.name || item.id}
         loading="lazy"
         draggable="false"
         ondblclick={() => ui.handleImageDblClick(item)}

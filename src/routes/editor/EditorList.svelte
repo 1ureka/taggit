@@ -40,11 +40,11 @@
           class="editor-list-card-thumb"
           src="/img/committed/{img.id}{img.ext}?size=sm"
           style={blurhashStyle({ fit: "cover", blurhash: img.blurhash })}
-          alt={img.originalName || img.id}
+          alt={img.name || img.id}
           loading="lazy"
         />
         <div class="editor-list-card-info">
-          <div class="editor-list-card-name">{img.originalName || img.id + img.ext}</div>
+          <div class="editor-list-card-name">{img.name || img.id + img.ext}</div>
           <div class="editor-list-card-meta">
             {img.id}
             {#if img.rating}

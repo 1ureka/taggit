@@ -21,6 +21,23 @@
 
   <div class="separator"></div>
 
+  <div class="editor-name">
+    <label class="editor-name-label" for="editor-name-input">名稱</label>
+    <input
+      id="editor-name-input"
+      class="text-input"
+      type="text"
+      value={image.name}
+      onblur={ui.handleNameBlur}
+      onkeydown={ui.handleNameKeydown}
+    />
+    {#if ui.nameError}
+      <span class="editor-name-error">{ui.nameError}</span>
+    {/if}
+  </div>
+
+  <div class="separator"></div>
+
   <div class="editor-tags">
     <Autocomplete bind:tags={image.tags} variant="top" placeholder="輸入標籤..." onchange={ui.handleTagChange} />
   </div>
@@ -43,9 +60,6 @@
   <div class="editor-meta">
     <span class="editor-meta-label">ID</span>
     <span class="editor-meta-value mono">{image.id}</span>
-
-    <span class="editor-meta-label">原始檔名</span>
-    <span class="editor-meta-value">{image.originalName || "—"}</span>
 
     <span class="editor-meta-label">檔案名稱</span>
     <span class="editor-meta-value mono">{image.id}{image.ext}</span>
@@ -78,6 +92,22 @@
     align-items: center;
     justify-content: center;
     padding: 0.25rem 0;
+  }
+
+  .editor-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .editor-name-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .editor-name-error {
+    font-size: 0.6875rem;
+    color: var(--danger);
   }
 
   .editor-tags {

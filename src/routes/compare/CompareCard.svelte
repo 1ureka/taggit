@@ -13,7 +13,7 @@
       <img
         src="/img/committed/{image.id}{image.ext}"
         style={blurhashStyle({ fit: "contain", blurhash: image.blurhash, width: image.width, height: image.height })}
-        alt={image.originalName || image.id}
+        alt={image.name || image.id}
         draggable="false"
       />
     {/key}

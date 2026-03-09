@@ -4,7 +4,7 @@ import { debounce } from "$lib/utils.js";
 import { goto } from "$app/navigation";
 
 /** 排序欄位類型 */
-type Sort = "committedAt" | "rating" | "originalName" | "random";
+type Sort = "committedAt" | "rating" | "name" | "random";
 
 /**
  * 篩選表單組件的配置選項
@@ -36,7 +36,7 @@ export function createForm(options: FormOptions) {
   const sortOptions: { value: Sort; label: string }[] = [
     { value: "committedAt", label: "提交時間" },
     { value: "rating", label: "評等" },
-    { value: "originalName", label: "檔名" },
+    { value: "name", label: "名稱" },
     { value: "random", label: "隨機" },
   ];
 
@@ -83,7 +83,7 @@ export function createForm(options: FormOptions) {
     params.set("sort", sort);
 
     if (sort !== "random") {
-      params.set("order", sort === "originalName" ? "asc" : "desc");
+      params.set("order", sort === "name" ? "asc" : "desc");
     }
 
     const qs = params.toString();

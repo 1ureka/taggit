@@ -12,6 +12,9 @@ export function createEditorPanel() {
   /** Editor 詳細編輯頁面共享的 Context */
   const ctx = getEditorDetailContext();
 
+  /** 名稱驗證錯誤訊息 */
+  let nameError = $state("");
+
   // ---
 
   /** 執行儲存變更至伺服器 */
@@ -26,6 +29,7 @@ export function createEditorPanel() {
       const res = await api.patch<ImageWithId>(`/api/images/${encodeURIComponent(img.id)}`, {
         tags: img.tags,
         rating: img.rating,
+        name: img.name,
         expectedUpdatedAt: img.updatedAt,
       });
       if (!res.ok) {
@@ -67,6 +71,13 @@ export function createEditorPanel() {
   /** 標記資料為已變更 */
   function markDirty() {
     ctx.dirty = true;
+  }
+
+  /** 驗證名稱格式，回傳錯誤訊息或空字串 */
+  function validateName(value: string): string {
+    if (value.trim().length === 0) return "名稱不可為空白";
+    if (value.length > 200) return "名稱不可超過 200 字元";
+    return "";
   }
 
   // ---
@@ -122,6 +133,27 @@ export function createEditorPanel() {
 
   // ---
 
+  /** 處理名稱輸入框失焦事件，驗證名稱並標記變更 */
+  function handleNameBlur(e: FocusEvent) {
+    const input = e.target as HTMLInputElement;
+    const value = input.value;
+    const error = validateName(value);
+    nameError = error;
+    if (!error && ctx.image && value !== ctx.image.name) {
+      ctx.image.name = value;
+      markDirty();
+    }
+  }
+
+  /** 處理名稱輸入框鍵盤事件，Enter 時觸發失焦以確認變更 */
+  function handleNameKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
+  // ---
+
   /** 處理儲存按鈕點擊事件，立即儲存變更 */
   function handleSaveClick() {
     saveChanges();
@@ -165,11 +197,19 @@ export function createEditorPanel() {
     get loading() {
       return ctx.loading;
     },
+    /** 存取名稱驗證錯誤訊息的 getter */
+    get nameError() {
+      return nameError;
+    },
 
     /** 處理評等變更事件，標記為已變更 */
     handleRatingChange,
     /** 處理標籤變更事件，標記為已變更 */
     handleTagChange,
+    /** 處理名稱輸入框失焦事件，驗證名稱並標記變更 */
+    handleNameBlur,
+    /** 處理名稱輸入框鍵盤事件，Enter 時觸發失焦以確認變更 */
+    handleNameKeydown,
     /** 處理儲存按鈕點擊事件，立即儲存變更 */
     handleSaveClick,
     /** 處理刪除按鈕點擊事件，確認後將圖片移入垃圾桶 */
