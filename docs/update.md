@@ -1,6 +1,10 @@
-# 重構計畫：以 `requirePaths` / `requireDatabase` 取代 `guardLoaded` / `getPaths` / `getDB`
+# 重構計畫：伺服器端 guard 與載入機制統一化
 
 ## 目標
+
+以型別安全的 `requireDatabase` / `requirePaths` 取代散落各處的 `guardLoaded` + `getDB` + `getPaths` 組合，消除所有 `!` non-null assertion；同時將 hooks 白名單 redirect 移至 layout load，讓頁面層與 API 層各自以最合理的方式處理「集合未載入」情境：頁面 redirect、API 回 503 JSON。
+
+### 架構變更：guard + getDB/paths → requireDatabase/requirePaths
 
 消除所有 `!` non-null assertion，以型別安全的 helper 取代現行的「先 guard 再取值」兩段式慣用法。
 
@@ -9,6 +13,25 @@
 | `guardLoaded()` + `getPaths()` | `getPaths()` 內部 `getCurrentRoot()!` 需要斷言 | `requirePaths(): CollectionPaths \| null` |
 | `guardLoaded()` + `getDB()` + `getPaths()` | 呼叫端需兩段式 guard + 斷言 | `requireDatabase(): { db, paths } \| null` |
 | `getDB()` 直接使用（page.server.ts） | 隱含 loaded 假設 | `requireDatabase()` |
+
+### 架構變更：hooks 白名單制 → layout load + API 自判
+
+現行 `hooks.server.ts` 以白名單攔截所有請求，負責 redirect 到 `/settings`。此架構有以下問題：
+
+| 問題 | 說明 |
+|---|---|
+| 無法傳型別 | hooks 無法將 db/paths 傳入 page load，`event.locals` 是弱型別擴充 |
+| 白名單維護成本 | 每新增路由或靜態資源路徑（`/_app/`、`/favicon`）都要手動加入 |
+| API 語意不正確 | 外部直接呼叫 API 時收到 303 redirect 到 `/settings` 不合理，應回 503 JSON |
+| 效能浪費 | 每個請求（含靜態資源）都過 `isWhitelisted` 判斷 |
+
+**改為**：
+
+- **頁面 redirect**：新增 `+layout.server.ts`，在 layout load 中檢查 DB 狀態，未載入時 `throw redirect(303, "/settings")`。只在頁面導覽時執行，靜態資源零開銷。
+- **API guard**：各 route 用 `requireDatabase` / `requirePaths` 自行回 503 JSON。
+- **hooks 精簡**：僅保留 SIGINT/SIGTERM flush 與自動 `loadCollection`（確保首次請求時 DB ready），移除 redirect 邏輯與白名單。
+
+---
 
 ### 新 helper 簽名（定義在 `src/lib/server/helpers.ts`）
 
@@ -100,13 +123,7 @@ const { db } = loaded;
 | C2 | `routes/api/metadata/tags/+server.ts` | 2 | 2 | GET/PATCH |
 | C3 | `routes/api/metadata/stats/+server.ts` | 1 | 1 | GET |
 
-### D 類：API routes — 僅使用 `guardLoaded`
-
-| # | 檔案 | guardLoaded | 說明 |
-|---|---|---|---|
-| D1 | `routes/api/maintenance/cache/+server.ts` | 2 | GET/DELETE |
-
-### E 類：圖片 endpoint — 直接使用 `getDB().isLoaded()` + `getPaths`
+### D 類：圖片 endpoint — 直接使用 `getDB().isLoaded()` + `getPaths`
 
 | # | 檔案 | 說明 |
 |---|---|---|
@@ -128,8 +145,9 @@ const { db } = loaded;
 | # | 檔案 | 原因 |
 |---|---|---|
 | G1 | `routes/api/maintenance/setup/+server.ts` | 此 endpoint 的職責是初始化 collection，呼叫 `getDB().loadCollection(root)`，不應做 loaded 檢查 |
-| G2 | `hooks.server.ts` | hooks 層自動載入 collection，使用 `getDB()` 做生命週期管理，不適用 require pattern |
+| G2 | `hooks.server.ts` | 精簡為生命週期管理（flush + auto loadCollection），移除 redirect 白名單邏輯（見 Phase 6） |
 | G3 | `lib/server/helpers.ts` | 新 helper 的定義處；舊 helper 最終刪除 |
+| G4 | `routes/api/maintenance/cache/+server.ts` | `getCacheStats` / `clearCache` 純操作記憶體 LRU cache，與 DB、paths 完全無關。移除 `guardLoaded` 即可，不需替換為新 helper |
 
 ---
 
@@ -146,23 +164,27 @@ const { db } = loaded;
 
 ---
 
-### Phase 1：遷移 D 類（僅 guardLoaded，最簡單）
+### Phase 1：移除 cache 路由的 guard（G4）
 
-**目標**：`routes/api/maintenance/cache/+server.ts`（D1）
+**目標**：`routes/api/maintenance/cache/+server.ts`
 
-**改法**：
+**改法**：直接刪除 `guardLoaded` 呼叫及其 import。`getCacheStats` / `clearCache` 純操作記憶體 LRU cache，不依賴 DB 或 paths。
 
 ```ts
 // 前
-const err = guardLoaded();
-if (err) return err;
+import { guardLoaded } from "$lib/server/helpers.js";
+
+export const GET: RequestHandler = () => {
+  const err = guardLoaded();
+  if (err) return err;
+  return json({ ok: true, data: getCacheStats() });
+};
 
 // 後
-const loaded = requireDatabase();
-if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+export const GET: RequestHandler = () => {
+  return json({ ok: true, data: getCacheStats() });
+};
 ```
-
-> D1 不使用 db/paths，但 `requireDatabase` 兼具 guard 作用。解構可省略。
 
 ---
 
@@ -193,6 +215,8 @@ return json({ ok: true, data: queryImages(loaded.db, parseQueryParams(url)) });
 ### Phase 3：遷移 B 類（guardLoaded + getPaths）
 
 **目標**：B1、B2、B3
+
+> B 類只需要 paths 不需要 db，使用 `requirePaths` 而非 `requireDatabase`。
 
 **改法**（以 B1 `api/trash/+server.ts` 的 POST handler 為例）：
 
@@ -236,9 +260,9 @@ const image = getImage(db, id);
 
 ---
 
-### Phase 5：遷移 E 類（img endpoint）
+### Phase 5：遷移 D 類（img endpoint）
 
-**目標**：E1 `routes/img/[area]/[file]/+server.ts`
+**目標**：D1 `routes/img/[area]/[file]/+server.ts`
 
 **改法**：
 
@@ -260,9 +284,59 @@ if (!paths) {
 
 ---
 
-### Phase 6：遷移 F 類（page.server.ts 的 getDB）
+### Phase 6：hooks → layout load 重構 + F 類遷移
+
+此 Phase 將 hooks 的 redirect 邏輯移至 layout load，同時遷移 F 類 page.server.ts。
+
+#### 6a. 新增 `src/routes/+layout.server.ts`
+
+```ts
+import { redirect } from "@sveltejs/kit";
+import type { LayoutServerLoad } from "./$types.js";
+import { requireDatabase } from "$lib/server/helpers.js";
+
+export const load: LayoutServerLoad = ({ url }) => {
+  // /settings 本身不需要 DB
+  if (url.pathname.startsWith("/settings")) return {};
+
+  const loaded = requireDatabase();
+  if (!loaded) throw redirect(303, "/settings?alert=default");
+
+  return { collectionRoot: loaded.paths.root };
+};
+```
+
+> layout load 的回傳值自動流入 `$page.data`，子路由可直接取用且型別完整。
+> 靜態資源（`/_app/`、`/favicon`）不經過 layout load，無需白名單。
+
+#### 6b. 精簡 `hooks.server.ts`
+
+移除 `isWhitelisted` 函式與整個 redirect guard 區塊。保留：
+- SIGINT/SIGTERM flush
+- `ensureServerJson()`
+- 自動 `loadCollection`（確保首次請求時 DB ready）
+
+```ts
+// 精簡後的 handle
+export const handle: Handle = async ({ event, resolve }) => {
+  const jsonDB = getDB();
+  if (!jsonDB.isLoaded()) {
+    const root = config.getCollectionRoot();
+    if (root && config.isCollectionValid(root)) {
+      jsonDB.loadCollection(root);
+    }
+  }
+  return resolve(event);
+};
+```
+
+> hooks 不再做 redirect，只做「如果有 valid root 就自動載入」的最小工作。
+
+#### 6c. 遷移 F 類（page.server.ts）
 
 **目標**：F1–F6
+
+由於 layout load 已保證非 `/settings` 頁面的 DB 一定 loaded，F 類的 `getDB()` 可安全替換為 `requireDatabase()`。如果 layout redirect 已生效，這些 load 函式不會被執行。
 
 **改法**（以 F1 `routes/+page.server.ts` 為例）：
 
@@ -273,17 +347,13 @@ return { stats: { totalImages: getImageCount(db), … } };
 
 // 後
 const loaded = requireDatabase();
-return {
-  stats: {
-    totalImages: loaded ? getImageCount(loaded.db) : 0,
-    // …
-  },
-};
+if (!loaded) return { stats: { totalImages: 0, totalTags: 0, stagedCount: 0, trashCount: 0 } };
+const { db } = loaded;
+return { stats: { totalImages: getImageCount(db), … } };
 ```
 
-> Page load 不能回傳 Response（SvelteKit 限制），通常用「回傳空值」處理 not loaded 情境。
-> 或者在 layout load 中統一 redirect 到設定頁，視目前的 UX 決策而定。
-> 如果 hooks.server.ts 已保證頁面請求時 DB 一定 loaded，F 類可保持 `getDB()`（因為 hooks 做了保護），但仍建議遷移以統一風格。
+> `if (!loaded)` 是防禦性寫法 — 正常流程下 layout load 已 redirect，此分支不會被觸發。
+> 但它消除了型別上的 null 可能性，不需要 `!`。
 
 ---
 
@@ -319,21 +389,24 @@ export function getStagedFiles(): string[] {
 ### Phase 8：清除舊 API
 
 1. 從 `src/lib/server/helpers.ts` 刪除 `guardLoaded()` 和 `getPaths()`。
-2. 全專案搜尋確認無殘留引用。
-3. 移除相關 import。
-4. 確認建置通過、測試通過。
+2. 從 `hooks.server.ts` 移除 `isWhitelisted` 與舊 redirect 邏輯（若 6b 尚未做）。
+3. 全專案搜尋確認 `guardLoaded`、`getPaths` 無殘留引用。
+4. 移除相關 import。
+5. 確認建置通過、測試通過。
 
 ---
 
 ## 遷移檢查清單
 
-- [ ] Phase 0：新增 `requirePaths` + `requireDatabase`
-- [ ] Phase 1：D 類（cache）
+- [x] Phase 0：新增 `requirePaths` + `requireDatabase`
+- [x] Phase 1：移除 cache 路由的 guard（G4）
 - [ ] Phase 2：C 類（images, tags, stats）
 - [ ] Phase 3：B 類（trash, staged）
 - [ ] Phase 4：A 類（images/[id], metadata, staged/[filename], orphans, missing, backup）
-- [ ] Phase 5：E 類（img endpoint）
-- [ ] Phase 6：F 類（page.server.ts ×6）
+- [ ] Phase 5：D 類（img endpoint）
+- [ ] Phase 6a：新增 `+layout.server.ts`（redirect 邏輯）
+- [ ] Phase 6b：精簡 `hooks.server.ts`（移除白名單 redirect）
+- [ ] Phase 6c：F 類（page.server.ts ×6）
 - [ ] Phase 7：helpers.ts 內部
-- [ ] Phase 8：刪除 `guardLoaded` + `getPaths`
+- [ ] Phase 8：刪除 `guardLoaded` + `getPaths` + 清除殘留
 - [ ] 最終建置驗證
