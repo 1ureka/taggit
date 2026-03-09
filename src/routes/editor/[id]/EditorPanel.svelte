@@ -107,7 +107,7 @@
 
   .editor-name-error {
     font-size: 0.6875rem;
-    color: var(--danger);
+    color: var(--destructive);
   }
 
   .editor-tags {
