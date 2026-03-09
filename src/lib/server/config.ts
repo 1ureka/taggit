@@ -1,6 +1,17 @@
+/**
+ * @file config.ts
+ * 伺服器組態管理 —— 讀寫 `server.json` 與集合路徑。
+ *
+ * 本模組的職責：
+ *   - 確保 `server.json` 存在並提供讀寫介面。
+ *   - 管理 `collectionRoot` 設定。
+ *   - 驗證集合根目錄並自動建立必要的子目錄。
+ *   - 從集合根路徑衍生所有相關路徑（{@link getCollectionPaths}）。
+ */
+
 import fs from "fs";
 import path from "path";
-import type { ServerConfig, CollectionPaths } from "$lib/types.js";
+import type { ServerConfig, CollectionPaths, ImageArea } from "$lib/types.js";
 
 /** 支援的圖片副檔名 */
 export const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"]);
@@ -80,7 +91,7 @@ export function isCollectionValid(root: string): boolean {
   try {
     if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) return false;
 
-    const subdirs = ["staged", "committed", "trash"];
+    const subdirs: ImageArea[] = ["staged", "committed", "trash"];
     for (const sub of subdirs) {
       const dir = path.join(root, sub);
       if (!fs.existsSync(dir)) {

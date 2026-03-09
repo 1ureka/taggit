@@ -1,3 +1,14 @@
+/**
+ * @file thumbnail.ts
+ * 縮圖產生與 BlurHash 編碼。
+ *
+ * 本模組的職責：
+ *   - 依預設尺寸（sm / md）產生 WebP 縮圖，並透過 LRU 快取與
+ *     併發任務池（{@link TaskPool}）控制資源使用。
+ *   - 計算圖片的 BlurHash 字串，供前端作為載入佔位使用。
+ *   - 提供快取統計與清除介面。
+ */
+
 import sharp from "sharp";
 import { encode } from "blurhash";
 import { LRUCache, TaskPool } from "./resources.js";

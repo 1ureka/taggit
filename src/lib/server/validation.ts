@@ -1,3 +1,12 @@
+/**
+ * @file validation.ts
+ * 共用的伺服器端輸入驗證函式。
+ *
+ * 提供輕量的型別守衛（type guard），用於 API 端點在處理請求前
+ * 驗證使用者提供的路徑、ID、標籤、評分等欄位。
+ * 每個函式同時作為 TypeScript 型別收窄（narrowing）使用。
+ */
+
 import type { ImageArea, ImageSize } from "$lib/types.js";
 
 /** 16-character lowercase hex string */

@@ -1,3 +1,15 @@
+/**
+ * @file helpers.ts
+ * API 路由共用的伺服器端輔助函式。
+ *
+ * 本模組的職責：
+ *   - {@link guardLoaded}：確認資料庫已載入，否則回傳 503。
+ *   - {@link getPaths}：快速取得目前集合的所有路徑。
+ *   - {@link getStagedFiles} / {@link getTrashFiles}：列出暫存區與垃圾桶中的檔案。
+ *   - {@link uniqueFilename}：產生不衝突的檔案名稱。
+ *   - {@link parseBody}：安全解析 JSON 請求本體。
+ */
+
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
