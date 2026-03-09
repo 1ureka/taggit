@@ -1,101 +1,89 @@
 /**
  * @file db.ts
- * In-memory JSON database — class definition, persistence, and singleton.
+ * 記憶體內 JSON 資料庫 —— 類別定義、持久化與單例。
  *
- * Responsibilities of this module:
- *   - {@link JSONDatabase} class: owns all in-memory state (data, indexes, dirty flag).
- *   - HMR-safe singleton via `globalThis.__db`.
- *   - Debounced flush to `db.json` on disk.
- *   - Loading / switching the active collection.
+ * 本模組的職責：
+ *   - {@link JSONDatabase} 類別：擁有所有記憶體內狀態（資料、索引、dirty 旗標）。
+ *   - 透過 `globalThis.__db` 實現 HMR 安全的單例。
+ *   - 防抖寫入 `db.json` 至磁碟。
+ *   - 載入 / 切換目前的集合。
  *
- * Query logic lives in {@link ./db-query.ts}.
- * Mutation logic lives in {@link ./db-mutation.ts}.
- * Callers import {@link getDB} and pass the instance directly to those functions.
+ * 查詢邏輯位於 {@link ./db-query.ts}。
+ * 異動邏輯位於 {@link ./db-mutation.ts}。
+ * 呼叫端匯入 {@link getDB} 並將實例直接傳入這些函式。
  */
 
 import fs from "fs";
 import { getCollectionPaths } from "./config.js";
 import type { DBData, ImageRecord } from "$lib/types.js";
 
-// ─── JSONDatabase class ──────────────────────────────────────────────────────
-
 /**
- * Encapsulates all in-memory state for the image database together with the
- * index-maintenance and persistence logic.
+ * 封裝圖片資料庫的所有記憶體內狀態，以及索引維護與持久化邏輯。
  *
- * Instances are normally obtained via the module-level {@link store} singleton
- * rather than being constructed directly.
+ * 實例通常透過模組層級的 {@link getDB} 單例取得，
+ * 而非直接建構。
  */
 export class JSONDatabase {
-  /** Raw database payload mirroring the on-disk `db.json` structure. */
+  /** 原始資料庫內容，映射磁碟上 `db.json` 的結構。 */
   data: DBData;
 
-  /** Inverted index: tag name → set of image ids that carry that tag. */
+  /** 倒排索引：標籤名稱 → 擁有該標籤的圖片 ID 集合。 */
   tagIndex: Map<string, Set<string>>;
 
-  /** Inverted index: rating value → set of image ids with that rating. */
-  ratingIndex: Map<number, Set<string>>;
-
-  /** Whether in-memory state differs from the last persisted snapshot. */
+  /** 記憶體內狀態是否與上次持久化快照不同。 */
   dirty: boolean;
 
-  /** Handle for the debounced flush timer, or `null` when idle. */
+  /** 防抖寫入計時器的控制代碼，閒置時為 `null`。 */
   flushTimer: ReturnType<typeof setTimeout> | null;
 
-  /** Absolute path of the currently loaded collection root, or `null`. */
+  /** 目前載入的集合根目錄絕對路徑，或 `null`。 */
   currentRoot: string | null;
 
-  /** `true` once a collection has been successfully loaded. */
+  /** 集合成功載入後為 `true`。 */
   loaded: boolean;
 
-  /** Initialises all fields to safe empty defaults. */
+  /** 將所有欄位初始化為安全的空預設值。 */
   constructor() {
     this.data = { version: 1, images: {} };
     this.tagIndex = new Map();
-    this.ratingIndex = new Map();
     this.dirty = false;
     this.flushTimer = null;
     this.currentRoot = null;
     this.loaded = false;
   }
 
-  // ─── Index helpers ─────────────────────────────────────────────────────────
+  // ---
 
   /**
-   * Rebuilds both the tag index and the rating index from scratch using
-   * the current {@link data} snapshot.  Call this after bulk edits where
-   * incremental {indexAdd}/{indexRemove} updates would be impractical.
+   * 使用目前的 {@link data} 快照從頭重建標籤索引。
+   * 當增量修改已不切實際時（例如大量圖片變更或初始載入）呼叫此方法。
    */
   buildIndexes(): void {
     this.tagIndex.clear();
-    this.ratingIndex.clear();
     for (const [id, rec] of Object.entries(this.data.images)) {
       this.indexAdd(id, rec);
     }
   }
 
   /**
-   * Adds a single image record to both the tag and rating indexes.
+   * 將單一圖片記錄加入標籤索引。
    *
-   * @param id - The image identifier.
-   * @param rec - The image record whose tags and rating should be indexed.
+   * @param id - 圖片識別碼。
+   * @param rec - 需要被索引其標籤的圖片記錄。
    */
   indexAdd(id: string, rec: ImageRecord): void {
     for (const tag of rec.tags) {
       if (!this.tagIndex.has(tag)) this.tagIndex.set(tag, new Set());
       this.tagIndex.get(tag)!.add(id);
     }
-    const r = rec.rating ?? 0;
-    if (!this.ratingIndex.has(r)) this.ratingIndex.set(r, new Set());
-    this.ratingIndex.get(r)!.add(id);
   }
 
   /**
-   * Removes a single image record from both the tag and rating indexes.
-   * Empty index buckets are pruned automatically.
+   * 從標籤索引中移除單一圖片記錄。
+   * 空的索引桶會自動清除。
    *
-   * @param id - The image identifier.
-   * @param rec - The image record to deindex.
+   * @param id - 圖片識別碼。
+   * @param rec - 要從索引中移除的圖片記錄。
    */
   indexRemove(id: string, rec: ImageRecord): void {
     for (const tag of rec.tags) {
@@ -105,20 +93,13 @@ export class JSONDatabase {
         if (set.size === 0) this.tagIndex.delete(tag);
       }
     }
-    const r = rec.rating ?? 0;
-    const rSet = this.ratingIndex.get(r);
-    if (rSet) {
-      rSet.delete(id);
-      if (rSet.size === 0) this.ratingIndex.delete(r);
-    }
   }
 
-  // ─── Persistence ───────────────────────────────────────────────────────────
+  // ---
 
   /**
-   * Marks the database as having unsaved changes and schedules a debounced
-   * flush to disk after 500 ms.  Any previously scheduled flush is cancelled
-   * and rescheduled.
+   * 將資料庫標記為有未儲存的變更，並排程在 500 毫秒後防抖寫入磁碟。
+   * 先前排定的寫入會被取消並重新排程。
    */
   markDirty(): void {
     this.dirty = true;
@@ -127,11 +108,10 @@ export class JSONDatabase {
   }
 
   /**
-   * Writes the current {@link data} snapshot to `db.json` via an atomic
-   * rename of a `.tmp` file.  Clears the dirty flag on success.
+   * 透過原子性的 `.tmp` 檔案重新命名，將目前的 {@link data} 快照寫入 `db.json`。
+   * 成功後清除 dirty 旗標。
    *
-   * Calling this when the database is not dirty or has no `currentRoot` is a
-   * safe no-op.
+   * 當資料庫非 dirty 或沒有 `currentRoot` 時呼叫此方法是安全的空操作。
    */
   flush(): void {
     if (this.flushTimer) {
@@ -152,15 +132,14 @@ export class JSONDatabase {
     }
   }
 
-  // ─── Load / Switch ─────────────────────────────────────────────────────────
+  // ---
 
   /**
-   * Flushes any pending changes, then loads the `db.json` located at
-   * `rootPath`.  If the main file is missing but a `.tmp` recovery file
-   * exists it is promoted automatically.  An entirely missing database
-   * starts fresh and is immediately marked dirty so it will be persisted.
+   * 先寫入所有待處理的變更，再載入位於 `rootPath` 的 `db.json`。
+   * 若主檔案不存在但有 `.tmp` 復原檔，則自動升格使用。
+   * 若資料庫完全不存在，則以全新狀態開始並立即標記為 dirty 以便持久化。
    *
-   * @param rootPath - Absolute path to the collection root directory.
+   * @param rootPath - 集合根目錄的絕對路徑。
    */
   loadCollection(rootPath: string): void {
     this.flush();
@@ -172,7 +151,7 @@ export class JSONDatabase {
     const dbPath = getCollectionPaths(rootPath).db;
     const tmp = dbPath + ".tmp";
 
-    // Recovery: prefer .tmp if main db is missing
+    // 復原：若主資料庫不存在，優先使用 .tmp
     if (!fs.existsSync(dbPath) && fs.existsSync(tmp)) {
       console.log("[db] Recovering from tmp file");
       fs.renameSync(tmp, dbPath);
@@ -199,36 +178,34 @@ export class JSONDatabase {
   }
 
   /**
-   * Returns `true` when a collection has been loaded and the database is
-   * ready to serve queries.
+   * 當集合已載入且資料庫可供查詢時回傳 `true`。
    */
   isLoaded(): boolean {
     return this.loaded;
   }
 
   /**
-   * Returns the absolute path of the currently active collection root, or
-   * `null` if no collection has been loaded yet.
+   * 回傳目前使用中的集合根目錄絕對路徑，
+   * 若尚未載入任何集合則回傳 `null`。
    */
   getCurrentRoot(): string | null {
     return this.currentRoot;
   }
 }
 
-// ─── HMR-safe singleton ──────────────────────────────────────────────────────
+// ---
 
 declare global {
-  /** HMR guard: reuse the existing {@link JSONDatabase} instance across hot reloads. */
+  /** HMR 保護：在熱重載之間重用現有的 {@link JSONDatabase} 實例。 */
   var __db: JSONDatabase | undefined;
 }
 
 /**
- * Returns the module-level {@link JSONDatabase} singleton, creating it on
- * first access.  The instance is stored on `globalThis` so Vite HMR does not
- * reset it between reloads.
+ * 回傳模組層級的 {@link JSONDatabase} 單例，首次存取時建立。
+ * 實例儲存於 `globalThis`，使 Vite HMR 不會在重載間重設它。
  *
- * Import this in server-side modules and pass the result directly to functions
- * in `db-query.ts` or `db-mutation.ts`, or call lifecycle methods on it.
+ * 在伺服器端模組中匯入此函式，並將結果直接傳入
+ * `db-query.ts` 或 `db-mutation.ts` 中的函式，或呼叫其生命週期方法。
  *
  * @example
  * ```ts

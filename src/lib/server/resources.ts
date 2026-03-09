@@ -1,3 +1,12 @@
+/**
+ * @file resources.ts
+ * 可重用的伺服器端資源管理工具。
+ *
+ * 本模組的職責：
+ *   - {@link LRUCache}：以位元組為上限的 LRU 快取，用於縮圖等二進位資料。
+ *   - {@link TaskPool}：固定併發數的非同步任務池，防止過量的平行 I/O。
+ */
+
 /** 快取項目，包含原始 Buffer 及其位元組大小 */
 type CacheEntry = {
   buffer: Buffer;

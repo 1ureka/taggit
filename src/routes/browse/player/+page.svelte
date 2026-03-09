@@ -133,7 +133,7 @@
         } else {
           el = document.createElement("img");
           el.src = committedUrl(images[info.imgIdx]);
-          el.alt = images[info.imgIdx].originalName || "";
+          el.alt = images[info.imgIdx].name || "";
           el.draggable = false;
           el.dataset.idx = String(info.imgIdx);
 

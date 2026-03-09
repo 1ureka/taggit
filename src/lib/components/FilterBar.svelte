@@ -36,7 +36,7 @@
   const sortOptions = [
     { value: "committedAt", label: "時間" },
     { value: "rating", label: "評分" },
-    { value: "originalName", label: "檔名" },
+    { value: "name", label: "名稱" },
     { value: "random", label: "隨機" },
   ];
 

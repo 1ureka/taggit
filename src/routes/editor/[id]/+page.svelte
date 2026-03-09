@@ -25,7 +25,7 @@
 
 <svelte:head>
   <title>
-    {ctx.image?.originalName || ctx.image?.id || "Editor"} — Image Manager
+    {ctx.image?.name || ctx.image?.id || "Editor"} — Image Manager
   </title>
 </svelte:head>
 
@@ -36,7 +36,7 @@
       返回搜尋
     </a>
     <span class="page-header-title">
-      {ctx.image?.originalName || ctx.image?.id || ""}
+      {ctx.image?.name || ctx.image?.id || ""}
     </span>
     {#if ctx.loading}
       <div class="editor-header-loading">
