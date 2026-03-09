@@ -1,21 +1,20 @@
 import fs from "fs";
 import path from "path";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import { guardLoaded, getStagedFiles, getPaths, uniqueFilename } from "$lib/server/helpers.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
+import { getStagedFiles, uniqueFilename, requirePaths } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 
 /** GET /api/staged — list staged image filenames */
 export const GET: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
-  return json({ ok: true, data: { files: getStagedFiles() } });
+  const paths = requirePaths();
+  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  return json({ ok: true, data: { files: getStagedFiles(paths) } });
 };
 
 /** POST /api/staged — upload (copy) image files into the staged directory */
 export const POST: RequestHandler = async ({ request }) => {
-  const err = guardLoaded();
-  if (err) return err;
+  const paths = requirePaths();
+  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
@@ -34,7 +33,6 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "No files provided" }, { status: 400 });
   }
 
-  const paths = getPaths();
   const added: string[] = [];
   const errors: string[] = [];
 

@@ -8,14 +8,14 @@ export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const { db } = loaded;
+  const { db, paths } = loaded;
   return json({
     ok: true,
     data: {
       totalImages: getImageCount(db),
       totalTags: getTagCount(db),
-      stagedCount: getStagedFiles().length,
-      trashCount: getTrashFiles().length,
+      stagedCount: getStagedFiles(paths).length,
+      trashCount: getTrashFiles(paths).length,
     },
   });
 };

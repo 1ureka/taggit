@@ -27,9 +27,9 @@
 
 **改為**：
 
-- **頁面 redirect**：新增 `+layout.server.ts`，在 layout load 中檢查 DB 狀態，未載入時 `throw redirect(303, "/settings")`。只在頁面導覽時執行，靜態資源零開銷。
+- **頁面 redirect + 載入**：新增 `+layout.server.ts`，在 layout load 中檢查 DB 狀態，必要時執行 `loadCollection`，無法載入時 `throw redirect(303, "/settings")`。只在頁面導覽時執行，靜態資源零開銷。
 - **API guard**：各 route 用 `requireDatabase` / `requirePaths` 自行回 503 JSON。
-- **hooks 精簡**：僅保留 SIGINT/SIGTERM flush 與自動 `loadCollection`（確保首次請求時 DB ready），移除 redirect 邏輯與白名單。
+- **hooks 精簡**：僅保留 SIGINT/SIGTERM flush，移除 redirect 邏輯、白名單與 `loadCollection`。
 
 ---
 
@@ -145,7 +145,7 @@ const { db } = loaded;
 | # | 檔案 | 原因 |
 |---|---|---|
 | G1 | `routes/api/maintenance/setup/+server.ts` | 此 endpoint 的職責是初始化 collection，呼叫 `getDB().loadCollection(root)`，不應做 loaded 檢查 |
-| G2 | `hooks.server.ts` | 精簡為生命週期管理（flush + auto loadCollection），移除 redirect 白名單邏輯（見 Phase 6） |
+| G2 | `hooks.server.ts` | 精簡為純生命週期管理（SIGINT/SIGTERM flush），移除 redirect 白名單過濾與 `loadCollection`（見 Phase 6） |
 | G3 | `lib/server/helpers.ts` | 新 helper 的定義處；舊 helper 最終刪除 |
 | G4 | `routes/api/maintenance/cache/+server.ts` | `getCacheStats` / `clearCache` 純操作記憶體 LRU cache，與 DB、paths 完全無關。移除 `guardLoaded` 即可，不需替換為新 helper |
 
@@ -157,12 +157,7 @@ const { db } = loaded;
 
 **變更檔案**：`src/lib/server/helpers.ts`
 
-1. 新增 `requirePaths()` 與 `requireDatabase()` 兩個函式（如上方簽名）。
-2. 新增 `import { type JSONDatabase }` 以便在回傳型別中使用。
-3. **保留** `guardLoaded()` 和 `getPaths()` 不動。
-4. 確認建置通過。
-
----
+> 已完成
 
 ### Phase 1：移除 cache 路由的 guard（G4）
 
@@ -170,21 +165,7 @@ const { db } = loaded;
 
 **改法**：直接刪除 `guardLoaded` 呼叫及其 import。`getCacheStats` / `clearCache` 純操作記憶體 LRU cache，不依賴 DB 或 paths。
 
-```ts
-// 前
-import { guardLoaded } from "$lib/server/helpers.js";
-
-export const GET: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
-  return json({ ok: true, data: getCacheStats() });
-};
-
-// 後
-export const GET: RequestHandler = () => {
-  return json({ ok: true, data: getCacheStats() });
-};
-```
+> 已完成
 
 ---
 
@@ -194,19 +175,7 @@ export const GET: RequestHandler = () => {
 
 **改法**（以 C1 `api/images/+server.ts` 為例）：
 
-```ts
-// 前
-const err = guardLoaded();
-if (err) return err;
-return json({ ok: true, data: queryImages(getDB(), parseQueryParams(url)) });
-
-// 後
-const loaded = requireDatabase();
-if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
-return json({ ok: true, data: queryImages(loaded.db, parseQueryParams(url)) });
-```
-
-> 只需要 db 時可直接 `loaded.db`，或解構 `const { db } = loaded`。
+> 已完成
 
 此階段完成後，所有 `guardLoaded` + `getDB` 組合都已被 `requireDatabase` 取代。
 
@@ -220,18 +189,7 @@ return json({ ok: true, data: queryImages(loaded.db, parseQueryParams(url)) });
 
 **改法**（以 B1 `api/trash/+server.ts` 的 POST handler 為例）：
 
-```ts
-// 前
-const err = guardLoaded();
-if (err) return err;
-const paths = getPaths();
-
-// 後
-const paths = requirePaths();
-if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
-```
-
-不需要 `!`，`paths` 在 if 之後已 narrowed 為 `CollectionPaths`。
+> 已完成
 
 ---
 
@@ -286,51 +244,57 @@ if (!paths) {
 
 ### Phase 6：hooks → layout load 重構 + F 類遷移
 
-此 Phase 將 hooks 的 redirect 邏輯移至 layout load，同時遷移 F 類 page.server.ts。
+此 Phase 將 hooks 的 redirect 過濾與 `loadCollection` 全部移至 layout load，同時遷移 F 類 page.server.ts。
+
+**為何 `loadCollection` 也移出 hooks：**
+
+原本計畫是 hooks 負責 `loadCollection`、layout load 負責 redirect，但這會製造時序問題：伺服器重啟後使用者首次進入主頁時，hooks 尚未來得及處理該請求之前 layout load 就可能拿到 null，導致錯誤 redirect 至 `/settings`。正確做法是將 `loadCollection` 和 redirect 判斷放在同一處，保證正確的執行順序：
+
+1. 讀 server.json 取得 root
+2. 若無 root → redirect
+3. 若 root 無效 → redirect
+4. 若 DB 未載入 → loadCollection
+5. 繼續正常流程
+
+此外，這是全端 SvelteKit 專案，正常使用必定是先開頁面（觸發 layout load），API 在頁面 mount 後才會調用。外部直接打 API 導致冷啟動收到 503 是正確語意，不是問題。
 
 #### 6a. 新增 `src/routes/+layout.server.ts`
 
+layout load 同時負責 loadCollection 與 redirect 判斷：
+
 ```ts
-import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types.js";
-import { requireDatabase } from "$lib/server/helpers.js";
+import { redirect } from "@sveltejs/kit";
+import { getDB } from "$lib/server/db.js";
+import { getCollectionRoot, isCollectionValid } from "$lib/server/config.js";
 
 export const load: LayoutServerLoad = ({ url }) => {
   // /settings 本身不需要 DB
   if (url.pathname.startsWith("/settings")) return {};
 
-  const loaded = requireDatabase();
-  if (!loaded) throw redirect(303, "/settings?alert=default");
+  const jsonDB = getDB();
+  const root = jsonDB.getCurrentRoot() ?? getCollectionRoot();
 
-  return { collectionRoot: loaded.paths.root };
+  if (!root) throw redirect(303, "/settings?alert=default");
+  if (!isCollectionValid(root)) throw redirect(303, "/settings?alert=error");
+
+  if (!jsonDB.isLoaded() || jsonDB.getCurrentRoot() !== root) {
+    jsonDB.loadCollection(root);
+  }
 };
 ```
 
 > layout load 的回傳值自動流入 `$page.data`，子路由可直接取用且型別完整。
 > 靜態資源（`/_app/`、`/favicon`）不經過 layout load，無需白名單。
+> 首次請求會有同步 I/O（讀 db.json）的冷啟動開銷，但只發生一次，後續請求 `isLoaded()` 短路不會再讀。
 
 #### 6b. 精簡 `hooks.server.ts`
 
-移除 `isWhitelisted` 函式與整個 redirect guard 區塊。保留：
+移除整個 `Redirect Guard` 區塊（`isWhitelisted` 函式、`handle` 內的 redirect 過濾與 `loadCollection` 邏輯）。僅保留：
 - SIGINT/SIGTERM flush
 - `ensureServerJson()`
-- 自動 `loadCollection`（確保首次請求時 DB ready）
 
-```ts
-// 精簡後的 handle
-export const handle: Handle = async ({ event, resolve }) => {
-  const jsonDB = getDB();
-  if (!jsonDB.isLoaded()) {
-    const root = config.getCollectionRoot();
-    if (root && config.isCollectionValid(root)) {
-      jsonDB.loadCollection(root);
-    }
-  }
-  return resolve(event);
-};
-```
-
-> hooks 不再做 redirect，只做「如果有 valid root 就自動載入」的最小工作。
+hooks 不再 export `handle`（或只包含無側效的 passthrough）。
 
 #### 6c. 遷移 F 類（page.server.ts）
 
@@ -389,10 +353,9 @@ export function getStagedFiles(): string[] {
 ### Phase 8：清除舊 API
 
 1. 從 `src/lib/server/helpers.ts` 刪除 `guardLoaded()` 和 `getPaths()`。
-2. 從 `hooks.server.ts` 移除 `isWhitelisted` 與舊 redirect 邏輯（若 6b 尚未做）。
-3. 全專案搜尋確認 `guardLoaded`、`getPaths` 無殘留引用。
-4. 移除相關 import。
-5. 確認建置通過、測試通過。
+2. 全專案搜尋確認 `guardLoaded`、`getPaths` 無殘留引用。
+3. 移除相關 import。
+4. 確認建置通過、測試通過。
 
 ---
 
@@ -400,12 +363,12 @@ export function getStagedFiles(): string[] {
 
 - [x] Phase 0：新增 `requirePaths` + `requireDatabase`
 - [x] Phase 1：移除 cache 路由的 guard（G4）
-- [ ] Phase 2：C 類（images, tags, stats）
-- [ ] Phase 3：B 類（trash, staged）
+- [x] Phase 2：C 類（images, tags, stats）
+- [x] Phase 3：B 類（trash, staged）
 - [ ] Phase 4：A 類（images/[id], metadata, staged/[filename], orphans, missing, backup）
 - [ ] Phase 5：D 類（img endpoint）
-- [ ] Phase 6a：新增 `+layout.server.ts`（redirect 邏輯）
-- [ ] Phase 6b：精簡 `hooks.server.ts`（移除白名單 redirect）
+- [ ] Phase 6a：新增 `+layout.server.ts`（loadCollection + redirect）
+- [ ] Phase 6b：精簡 `hooks.server.ts`（移除整個 Redirect Guard 區塊）
 - [ ] Phase 6c：F 類（page.server.ts ×6）
 - [ ] Phase 7：helpers.ts 內部
 - [ ] Phase 8：刪除 `guardLoaded` + `getPaths` + 清除殘留

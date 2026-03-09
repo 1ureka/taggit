@@ -53,9 +53,8 @@ export function getPaths(): CollectionPaths {
 // ---
 
 /** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
-export function getStagedFiles(): string[] {
+export function getStagedFiles({ staged }: CollectionPaths): string[] {
   try {
-    const staged = getPaths().staged;
     return fs
       .readdirSync(staged)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
@@ -66,9 +65,8 @@ export function getStagedFiles(): string[] {
 }
 
 /** 列出 trash/ 目錄中的圖片檔名，依字母排序。 */
-export function getTrashFiles(): string[] {
+export function getTrashFiles({ trash }: CollectionPaths): string[] {
   try {
-    const trash = getPaths().trash;
     return fs
       .readdirSync(trash)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
