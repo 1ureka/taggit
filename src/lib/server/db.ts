@@ -33,9 +33,6 @@ export class JSONDatabase {
   /** Inverted index: tag name → set of image ids that carry that tag. */
   tagIndex: Map<string, Set<string>>;
 
-  /** Inverted index: rating value → set of image ids with that rating. */
-  ratingIndex: Map<number, Set<string>>;
-
   /** Whether in-memory state differs from the last persisted snapshot. */
   dirty: boolean;
 
@@ -52,7 +49,6 @@ export class JSONDatabase {
   constructor() {
     this.data = { version: 1, images: {} };
     this.tagIndex = new Map();
-    this.ratingIndex = new Map();
     this.dirty = false;
     this.flushTimer = null;
     this.currentRoot = null;
@@ -62,36 +58,31 @@ export class JSONDatabase {
   // ─── Index helpers ─────────────────────────────────────────────────────────
 
   /**
-   * Rebuilds both the tag index and the rating index from scratch using
-   * the current {@link data} snapshot.  Call this after bulk edits where
-   * incremental {indexAdd}/{indexRemove} updates would be impractical.
+   * Rebuilds the tag index from scratch using the current {@link data} snapshot.
+   * Call this after bulk edits where incremental updates would be impractical.
    */
   buildIndexes(): void {
     this.tagIndex.clear();
-    this.ratingIndex.clear();
     for (const [id, rec] of Object.entries(this.data.images)) {
       this.indexAdd(id, rec);
     }
   }
 
   /**
-   * Adds a single image record to both the tag and rating indexes.
+   * Adds a single image record to the tag index.
    *
    * @param id - The image identifier.
-   * @param rec - The image record whose tags and rating should be indexed.
+   * @param rec - The image record whose tags should be indexed.
    */
   indexAdd(id: string, rec: ImageRecord): void {
     for (const tag of rec.tags) {
       if (!this.tagIndex.has(tag)) this.tagIndex.set(tag, new Set());
       this.tagIndex.get(tag)!.add(id);
     }
-    const r = rec.rating ?? 0;
-    if (!this.ratingIndex.has(r)) this.ratingIndex.set(r, new Set());
-    this.ratingIndex.get(r)!.add(id);
   }
 
   /**
-   * Removes a single image record from both the tag and rating indexes.
+   * Removes a single image record from the tag index.
    * Empty index buckets are pruned automatically.
    *
    * @param id - The image identifier.
@@ -104,12 +95,6 @@ export class JSONDatabase {
         set.delete(id);
         if (set.size === 0) this.tagIndex.delete(tag);
       }
-    }
-    const r = rec.rating ?? 0;
-    const rSet = this.ratingIndex.get(r);
-    if (rSet) {
-      rSet.delete(id);
-      if (rSet.size === 0) this.ratingIndex.delete(r);
     }
   }
 
