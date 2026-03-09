@@ -10,7 +10,8 @@
  *
  * 查詢邏輯位於 {@link ./db-query.ts}。
  * 異動邏輯位於 {@link ./db-mutation.ts}。
- * 呼叫端匯入 {@link getDB} 並將實例直接傳入這些函式。
+ * 業務邏輯應透過 `helpers.ts` 的 `requireDatabase` / `requirePaths` 取得 db 與 paths，
+ * 而非直接呼叫 {@link getDB}。
  */
 
 import fs from "fs";
@@ -204,16 +205,15 @@ declare global {
  * 回傳模組層級的 {@link JSONDatabase} 單例，首次存取時建立。
  * 實例儲存於 `globalThis`，使 Vite HMR 不會在重載間重設它。
  *
- * 在伺服器端模組中匯入此函式，並將結果直接傳入
- * `db-query.ts` 或 `db-mutation.ts` 中的函式，或呼叫其生命週期方法。
+ * @deprecated 業務路由與 SSR 邏輯請改用 `requireDatabase()` / `requirePaths()`
+ * （來自 `$lib/server/helpers.js`），它們提供型別安全的 null check
+ * 並一次回傳 db + paths bundle。
  *
- * @example
- * ```ts
- * import { getDB } from "$lib/server/db.js";
- * import { queryImages } from "$lib/server/db-query.js";
- *
- * const images = queryImages(getDB(), { tags: ["cat"] });
- * ```
+ * 僅限基礎設施層直接使用:
+ * - hooks（flush）
+ * - layout load（loadCollection）
+ * - setup endpoint（loadCollection）
+ * - helpers.ts 內部封裝。
  */
 export function getDB(): JSONDatabase {
   if (!globalThis.__db) {
