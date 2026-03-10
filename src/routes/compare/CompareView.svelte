@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/types.js";
+  import { navigating } from "$app/state";
   import { IconArrowLeft, IconArrowsShuffle } from "@tabler/icons-svelte";
   import AutocompleteCompact from "$lib/components/AutocompleteCompact.svelte";
   import Rating from "$lib/components/Rating.svelte";
@@ -14,26 +15,7 @@
 
   let { pairA, pairB, total }: Props = $props();
 
-  const ui = createCompareView({
-    get pairA() {
-      return pairA;
-    },
-    set pairA(value) {
-      pairA = value;
-    },
-    get pairB() {
-      return pairB;
-    },
-    set pairB(value) {
-      pairB = value;
-    },
-    get total() {
-      return total;
-    },
-    set total(value) {
-      total = value;
-    },
-  });
+  const ui = createCompareView();
 </script>
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
@@ -45,25 +27,25 @@
   </a>
   <span class="page-header-title">比較</span>
   <div class="compare-header-filter">
-    <AutocompleteCompact bind:tags={ui.filterTags} placeholder="標籤篩選..." onchange={ui.handleFilterTagChange} />
-    <Rating bind:value={ui.filterMinRating} size="1rem" onchange={ui.handleFilterRatingChange} />
-    <span class="compare-count">{ui.totalCount} 張</span>
+    <AutocompleteCompact bind:tags={ui.filterTags} placeholder="標籤篩選..." onchange={ui.handleFilterChange} />
+    <Rating bind:value={ui.filterMinRating} size="1rem" onchange={ui.handleFilterChange} />
+    <span class="compare-count">{total} 張</span>
   </div>
 </header>
 
 <main class="compare-main">
-  {#if ui.showLoading}
+  {#if navigating.to}
     <div class="compare-empty">載入中…</div>
-  {:else if ui.errorMsg}
-    <div class="compare-empty">{ui.errorMsg}</div>
-  {:else if ui.pairA && ui.pairB}
-    <CompareCard image={ui.pairA} onclick={() => ui.handleCardClick(ui.pairA)} />
-    <CompareCard image={ui.pairB} onclick={() => ui.handleCardClick(ui.pairB)} />
+  {:else if !pairA || !pairB}
+    <div class="compare-empty">篩選條件下的圖片不足兩張</div>
+  {:else}
+    <CompareCard image={pairA} onclick={() => ui.handleCardClick(pairA.id)} />
+    <CompareCard image={pairB} onclick={() => ui.handleCardClick(pairB.id)} />
   {/if}
 </main>
 
 <footer class="compare-footer">
-  <button class="btn btn-primary" onclick={ui.handleShuffleClick} disabled={ui.loading}>
+  <button class="btn btn-primary" onclick={ui.handleShuffleClick} disabled={!!navigating.to}>
     <IconArrowsShuffle size={18} />
     換一組 <span class="kbd">Space</span>
   </button>
