@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { imgSrc } from "$lib/client/api.js";
   import { getTaggerContext } from "./context.svelte.js";
   import { createTaggerList } from "./taggerList.svelte.js";
 
@@ -22,7 +23,7 @@
         >
           <img
             class="tagger-thumb-img"
-            src="/img/staged/{encodeURIComponent(item.filename)}?size=sm"
+            src={imgSrc("staged", item.filename, "sm")}
             alt={item.filename}
             loading="lazy"
           />

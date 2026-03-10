@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { blurhashStyle } from "$lib/client/blurhash.js";
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
+  import { imgSrc } from "$lib/client/api.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
   import { getTrashContext } from "./context.svelte.js";
   import { createTrashList } from "./trashList.svelte.js";
 
@@ -38,7 +39,7 @@
       >
         <img
           class="trash-card-thumb"
-          src="/img/trash/{filename}?size=sm"
+          src={imgSrc("trash", filename, "sm")}
           style={blurhashStyle()}
           alt={filename}
           loading="lazy"
