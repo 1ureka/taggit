@@ -1,15 +1,10 @@
 import { api } from "$lib/client/api.js";
-import { getSettingsContext } from "./context.svelte.js";
+import { requestConfirm } from "$lib/client/dom.js";
 
 /**
  * 建立系統維護邏輯的核心工廠函數
  */
 export function createSettingsMaintenance() {
-  /** Settings 頁面共享的 Context */
-  const ctx = getSettingsContext();
-
-  // ─── 孤立檔案 ──────────────────────────────────────
-
   /** 孤立檔案檢查結果訊息 */
   let orphanResult = $state("");
   /** 孤立檔案列表 */
@@ -17,7 +12,7 @@ export function createSettingsMaintenance() {
   /** 是否正在處理孤立檔案 */
   let orphanBusy = $state(false);
 
-  // ─── 缺失檔案 ──────────────────────────────────────
+  // ---
 
   /** 缺失檔案檢查結果訊息 */
   let missingResult = $state("");
@@ -26,28 +21,19 @@ export function createSettingsMaintenance() {
   /** 是否正在處理缺失檔案 */
   let missingBusy = $state(false);
 
-  // ─── 備份 ──────────────────────────────────────────
+  // ---
 
   /** 備份結果訊息 */
   let backupResult = $state("");
   /** 是否正在備份 */
   let backupBusy = $state(false);
 
-  // ─── 清空垃圾桶 ────────────────────────────────────
+  // ---
 
   /** 清空垃圾桶結果訊息 */
   let trashResult = $state("");
   /** 是否正在清空垃圾桶 */
   let trashBusy = $state(false);
-
-  // ---
-
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirm(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
 
   // ---
 
@@ -69,7 +55,7 @@ export function createSettingsMaintenance() {
 
   /** 處理「刪除孤立檔案」按鈕點擊事件，刪除所有孤立檔案 */
   async function handleOrphanDeleteClick() {
-    if (!(await confirm(`確定要刪除 ${orphanList.length} 個孤立檔案？此操作無法復原。`))) return;
+    if (!(await requestConfirm(`確定要刪除 ${orphanList.length} 個孤立檔案？此操作無法復原。`))) return;
 
     orphanBusy = true;
     const res = await api.del<{ deleted: number }>("/api/maintenance/orphans");
@@ -102,7 +88,7 @@ export function createSettingsMaintenance() {
 
   /** 處理「刪除缺失記錄」按鈕點擊事件，刪除所有缺失記錄 */
   async function handleMissingDeleteClick() {
-    if (!(await confirm(`確定要刪除 ${missingList.length} 個缺失記錄？此操作無法復原。`))) return;
+    if (!(await requestConfirm(`確定要刪除 ${missingList.length} 個缺失記錄？此操作無法復原。`))) return;
 
     missingBusy = true;
     const res = await api.del<{ deleted: number }>("/api/maintenance/missing");
@@ -135,7 +121,7 @@ export function createSettingsMaintenance() {
 
   /** 處理「清空垃圾桶」按鈕點擊事件，永久刪除所有垃圾桶檔案 */
   async function handleEmptyTrashClick() {
-    if (!(await confirm("確定要清空垃圾桶？此操作無法復原。"))) return;
+    if (!(await requestConfirm("確定要清空垃圾桶？此操作無法復原。"))) return;
 
     trashBusy = true;
     trashResult = "";

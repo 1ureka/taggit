@@ -56,11 +56,6 @@ export class TaggerContext {
 
   /** 圖片切換載入狀態（與 loading 互不干擾） */
   imageLoading = $state(false);
-
-  // ─── UI 狀態 ─────────────────────────────────────────
-
-  /** 待確認對話框 */
-  pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
 }
 
 export const [getTaggerContext, setTaggerContext] = createContext<TaggerContext>();

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import CircularProgress from "$lib/components/CircularProgress.svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
@@ -50,20 +49,6 @@
     <EditorPanel />
   </main>
 </div>
-
-{#if ctx.pendingConfirm}
-  <ConfirmModal
-    message={ctx.pendingConfirm.message}
-    onconfirm={() => {
-      ctx.pendingConfirm?.resolve(true);
-      ctx.pendingConfirm = null;
-    }}
-    oncancel={() => {
-      ctx.pendingConfirm?.resolve(false);
-      ctx.pendingConfirm = null;
-    }}
-  />
-{/if}
 
 <style>
   .page {

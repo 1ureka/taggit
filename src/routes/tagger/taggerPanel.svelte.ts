@@ -1,6 +1,6 @@
 import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
-import { addToast, isInEditable, scrollToActive } from "$lib/client/dom.js";
+import { addToast, isInEditable, scrollToActive, requestConfirm } from "$lib/client/dom.js";
 import { tagCache } from "$lib/client/cache.js";
 import { getTaggerContext } from "./context.svelte.js";
 
@@ -67,13 +67,6 @@ export function createTaggerPanel() {
     tagInputWrapEl?.querySelector("input")?.focus();
   }
 
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirmDialog(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
-
   /** 提交已選取的圖片 */
   async function doCommit() {
     if (ctx.loading || ctx.selected.size === 0 || ctx.cursor < 0) return;
@@ -115,7 +108,7 @@ export function createTaggerPanel() {
 
     const n = ctx.selected.size;
     const msg = n === 1 ? `確定要將「${ctx.list[ctx.cursor]}」移至垃圾桶？` : `確定要將選取的 ${n} 張圖片移至垃圾桶？`;
-    if (!(await confirmDialog(msg))) return;
+    if (!(await requestConfirm(msg))) return;
 
     ctx.loading = true;
     const names = selectedFilenames();

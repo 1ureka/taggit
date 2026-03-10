@@ -1,7 +1,7 @@
 import type { ImageWithId } from "$lib/types.js";
 import { goto } from "$app/navigation";
 import { api } from "$lib/client/api.js";
-import { addToast, isInEditable } from "$lib/client/dom.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
 import { getEditorDetailContext } from "./context.svelte.js";
 
 /**
@@ -90,18 +90,11 @@ export function createEditorPanel() {
 
   // ---
 
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirmDialog(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
-
   /** 將圖片移入垃圾桶 */
   async function doTrash() {
     const img = ctx.image;
     if (!img || ctx.loading) return;
-    const ok = await confirmDialog("確定要將此圖片移入垃圾桶嗎？");
+    const ok = await requestConfirm("確定要將此圖片移入垃圾桶嗎？");
     if (!ok) return;
 
     ctx.loading = true;

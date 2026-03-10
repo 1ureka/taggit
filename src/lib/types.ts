@@ -181,3 +181,16 @@ export interface ToastPayload {
   message: string;
   duration: number;
 }
+
+/**
+ * 前端 Confirm CustomEvent 的事件名稱
+ */
+export type ConfirmEventName = "confirm:request";
+
+/**
+ * 前端 Confirm CustomEvent 攜帶的資料
+ */
+export interface ConfirmPayload {
+  message: string;
+  resolve: (value: boolean) => void;
+}

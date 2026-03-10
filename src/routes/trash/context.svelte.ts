@@ -55,11 +55,6 @@ export class TrashContext {
 
   /** 已選取的檔案名稱集合 */
   selected = $state<Set<string>>(new Set());
-
-  // ─── UI 狀態 ─────────────────────────────────────────
-
-  /** 待確認對話框 */
-  pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
 }
 
 export const [getTrashContext, setTrashContext] = createContext<TrashContext>();
