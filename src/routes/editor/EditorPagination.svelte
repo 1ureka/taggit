@@ -1,29 +1,30 @@
 <script lang="ts">
-  import { getEditorContext } from "./context.svelte.js";
   import { createEditorPagination } from "./editorPagination.svelte.js";
 
-  const ctx = getEditorContext();
-  const ui = createEditorPagination();
+  type Props = { page: number; pages: number };
+  let { page, pages }: Props = $props();
+
+  const ui = createEditorPagination({
+    get pages() {
+      return pages;
+    },
+  });
 </script>
 
-{#if ctx.pages > 1}
+{#if pages > 1}
   <div class="editor-pagination">
-    <button class="btn btn-sm" disabled={ctx.page <= 1} onclick={() => ui.handlePageClick(ctx.page - 1)}>
-      上一頁
-    </button>
-    {#each Array.from({ length: Math.min(ctx.pages, 7) }, (_, i) => {
-      if (ctx.pages <= 7) return i + 1;
-      if (ctx.page <= 4) return i + 1;
-      if (ctx.page >= ctx.pages - 3) return ctx.pages - 6 + i;
-      return ctx.page - 3 + i;
+    <button class="btn btn-sm" disabled={page <= 1} onclick={() => ui.handlePageClick(page - 1)}> 上一頁 </button>
+    {#each Array.from({ length: Math.min(pages, 7) }, (_, i) => {
+      if (pages <= 7) return i + 1;
+      if (page <= 4) return i + 1;
+      if (page >= pages - 3) return pages - 6 + i;
+      return page - 3 + i;
     }) as p}
-      <button class="btn btn-sm" class:btn-primary={p === ctx.page} onclick={() => ui.handlePageClick(p)}>
+      <button class="btn btn-sm" class:btn-primary={p === page} onclick={() => ui.handlePageClick(p)}>
         {p}
       </button>
     {/each}
-    <button class="btn btn-sm" disabled={ctx.page >= ctx.pages} onclick={() => ui.handlePageClick(ctx.page + 1)}>
-      下一頁
-    </button>
+    <button class="btn btn-sm" disabled={page >= pages} onclick={() => ui.handlePageClick(page + 1)}> 下一頁 </button>
   </div>
 {/if}
 
