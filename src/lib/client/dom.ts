@@ -1,4 +1,4 @@
-import type { ToastEventName, ToastPayload, ToastType } from "$lib/types";
+import type { ConfirmEventName, ConfirmPayload, ToastEventName, ToastPayload, ToastType } from "$lib/types";
 
 /**
  * 判斷指定元素是否為可編輯的輸入元素（input、textarea 或 contentEditable）。
@@ -31,4 +31,15 @@ export function scrollToActive(listEl: HTMLElement | null, idx: number, itemH: n
 export function addToast(message: string, type: ToastType = "info", duration = 3000): void {
   const eventName: ToastEventName = "toast:add";
   window.dispatchEvent(new CustomEvent<ToastPayload>(eventName, { detail: { message, type, duration } }));
+}
+
+/**
+ * 顯示全域確認對話框並等待使用者回應。
+ * 內部透過 CustomEvent 將請求派發至 ConfirmModal 的無頭 UI。
+ */
+export function requestConfirm(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const eventName: ConfirmEventName = "confirm:request";
+    window.dispatchEvent(new CustomEvent<ConfirmPayload>(eventName, { detail: { message, resolve } }));
+  });
 }
