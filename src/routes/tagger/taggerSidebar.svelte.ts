@@ -28,15 +28,19 @@ export function createTaggerSidebar() {
   /** 重新掃描 staged 資料夾（不管理 loading 狀態） */
   async function refreshList() {
     const res = await api.get<{ files: string[] }>("/api/staged");
-    if (!res.ok || !res.data) return;
+    if (!res.ok || !res.data) {
+      addToast(res.error || "無法獲取檔案列表", "error");
+      return;
+    }
 
+    // 快照舊列表長度和游標位置對應的檔案
     const oldLen = ctx.list.length;
     const oldFile = ctx.cursor >= 0 && ctx.cursor < ctx.list.length ? ctx.list[ctx.cursor] : null;
 
     ctx.list = res.data.files;
     ctx.selected = new Set();
 
-    // ── 重新定位游標 ──
+    // 重新定位游標
     if (ctx.list.length === 0) {
       ctx.cursor = -1;
     } else {
@@ -45,7 +49,7 @@ export function createTaggerSidebar() {
       selectSingle(Math.max(nextIdx, 0));
     }
 
-    // ── Toast 通知 ──
+    // Toast 通知
     const diff = ctx.list.length - oldLen;
     if (diff > 0) {
       ctx.total = ctx.total === 0 ? ctx.list.length : ctx.total + diff;
@@ -85,18 +89,21 @@ export function createTaggerSidebar() {
       const body = new FormData();
       for (const f of input.files) body.append("files", f);
 
-      const res = await fetch("/api/staged", { method: "POST", body });
-      const json = await res.json();
+      const res = await api.post<{ added: string[]; errors: string[] }>("/api/staged", body);
 
-      if (json.ok && json.data) {
-        const { added, errors } = json.data as { added: string[]; errors: string[] };
-        if (added.length) {
-          addToast(`已加入 ${added.length} 張圖片`, "success");
-          await refreshList();
-        }
-        if (errors.length) addToast(`${errors.length} 個檔案失敗`, "error");
-      } else {
-        addToast(json.error || "上傳失敗", "error");
+      if (!res.ok || !res.data) {
+        addToast(res.error || "上傳失敗", "error");
+        return;
+      }
+
+      const { added, errors } = res.data;
+
+      if (errors.length) {
+        addToast(`${errors.length} 個檔案加入失敗`, "error");
+      }
+
+      if (added.length) {
+        await refreshList();
       }
     } catch {
       addToast("上傳請求失敗", "error");
