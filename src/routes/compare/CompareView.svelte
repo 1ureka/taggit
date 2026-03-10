@@ -33,11 +33,11 @@
   </div>
 </header>
 
-<main class="compare-main">
-  {#if navigating.to}
-    <div class="compare-empty">載入中…</div>
-  {:else if !pairA || !pairB}
-    <div class="compare-empty">篩選條件下的圖片不足兩張</div>
+<main class="compare-main" style:opacity={navigating.to ? 0.4 : 1}>
+  {#if !pairA || !pairB}
+    {#if !navigating.to}
+      <div class="compare-empty">篩選條件下的圖片不足兩張</div>
+    {/if}
   {:else}
     <CompareCard image={pairA} onclick={() => ui.handleCardClick(pairA.id)} />
     <CompareCard image={pairB} onclick={() => ui.handleCardClick(pairB.id)} />
@@ -74,6 +74,7 @@
     padding: 1rem;
     flex: 1;
     min-height: 0;
+    transition: opacity 0s step-end 0.2s;
   }
 
   .compare-empty {
