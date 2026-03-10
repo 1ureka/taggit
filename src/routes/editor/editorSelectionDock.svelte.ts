@@ -1,6 +1,6 @@
 import type { QueryResult } from "$lib/types.js";
 import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/dom.js";
+import { addToast, requestConfirm } from "$lib/client/dom.js";
 import { getEditorContext } from "./context.svelte.js";
 
 /**
@@ -58,13 +58,6 @@ export function createEditorSelectionDock() {
     ctx.selected = new Set();
   }
 
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirmDialog(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
-
   // ---
 
   /** 處理關閉按鈕點擊事件，清除所有選取 */
@@ -77,7 +70,7 @@ export function createEditorSelectionDock() {
     const ids = [...ctx.selected];
     if (ids.length === 0) return;
 
-    const ok = await confirmDialog(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
+    const ok = await requestConfirm(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
     if (!ok) return;
 
     let successCount = 0;

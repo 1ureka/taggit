@@ -1,5 +1,5 @@
 import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/dom.js";
+import { addToast, requestConfirm } from "$lib/client/dom.js";
 import { getTrashContext } from "./context.svelte.js";
 
 /**
@@ -51,13 +51,6 @@ export function createTrashSelectionDock() {
     ctx.selected = new Set();
   }
 
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirmDialog(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
-
   // ---
 
   /** 處理關閉按鈕點擊事件，清除所有選取 */
@@ -97,7 +90,7 @@ export function createTrashSelectionDock() {
     const filenames = [...ctx.selected];
     if (filenames.length === 0) return;
 
-    const ok = await confirmDialog(`確定要永久刪除已選取的 ${filenames.length} 張圖片嗎？此操作無法復原。`);
+    const ok = await requestConfirm(`確定要永久刪除已選取的 ${filenames.length} 張圖片嗎？此操作無法復原。`);
     if (!ok) return;
 
     let successCount = 0;

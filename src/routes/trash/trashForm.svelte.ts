@@ -1,5 +1,5 @@
 import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/dom.js";
+import { addToast, requestConfirm } from "$lib/client/dom.js";
 import { getTrashContext } from "./context.svelte.js";
 
 /**
@@ -53,13 +53,6 @@ export function createTrashForm() {
     }
   }
 
-  /** 顯示確認對話框並等待使用者回應 */
-  function confirmDialog(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      ctx.pendingConfirm = { message, resolve };
-    });
-  }
-
   // ---
 
   /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
@@ -70,7 +63,7 @@ export function createTrashForm() {
 
   /** 處理還原全部按鈕點擊事件，還原垃圾桶中的所有圖片 */
   async function handleRestoreAllClick() {
-    const ok = await confirmDialog("確定要還原垃圾桶中的所有圖片嗎？它們會被移回待審查區。");
+    const ok = await requestConfirm("確定要還原垃圾桶中的所有圖片嗎？它們會被移回待審查區。");
     if (!ok) return;
 
     const res = await api.post<{ restored: number }>("/api/trash");
@@ -86,7 +79,7 @@ export function createTrashForm() {
 
   /** 處理清空按鈕點擊事件，永久刪除垃圾桶中的所有圖片 */
   async function handleEmptyTrashClick() {
-    const ok = await confirmDialog("確定要清空整個垃圾桶嗎？所有圖片將被永久刪除，此操作無法復原。");
+    const ok = await requestConfirm("確定要清空整個垃圾桶嗎？所有圖片將被永久刪除，此操作無法復原。");
     if (!ok) return;
 
     const res = await api.del<{ deleted: number }>("/api/trash");

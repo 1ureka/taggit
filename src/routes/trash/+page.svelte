@@ -1,6 +1,5 @@
 <script lang="ts">
   import { IconArrowLeft } from "@tabler/icons-svelte";
-  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import type { PageData } from "./$types.js";
 
   import { TrashContext, setTrashContext } from "./context.svelte.js";
@@ -67,20 +66,6 @@
 </div>
 
 <TrashSelectionDock />
-
-{#if ctx.pendingConfirm}
-  <ConfirmModal
-    message={ctx.pendingConfirm.message}
-    onconfirm={() => {
-      ctx.pendingConfirm?.resolve(true);
-      ctx.pendingConfirm = null;
-    }}
-    oncancel={() => {
-      ctx.pendingConfirm?.resolve(false);
-      ctx.pendingConfirm = null;
-    }}
-  />
-{/if}
 
 <style>
   .page {

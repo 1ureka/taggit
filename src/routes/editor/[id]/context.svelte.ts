@@ -21,9 +21,6 @@ export class EditorDetailContext {
   dirty = $state(false);
   /** 操作載入狀態（儲存、刪除等） */
   loading = $state(false);
-
-  /** 待確認對話框 */
-  pendingConfirm = $state<{ message: string; resolve: (v: boolean) => void } | null>(null);
 }
 
 export const [getEditorDetailContext, setEditorDetailContext] = createContext<EditorDetailContext>();
