@@ -51,6 +51,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const stat = fs.statSync(srcPath);
+    // 先移動檔案再取 metadata：若 getImageMeta 失敗，檔案會留在 committed/ 成為孤立檔案。
+    // 此情況可透過「設定 → 系統維護 → 孤立檔案檢查」偵測並清除，風險可控。
     fs.renameSync(srcPath, destPath);
 
     const now = Date.now();

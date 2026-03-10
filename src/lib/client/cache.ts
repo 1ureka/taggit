@@ -1,4 +1,4 @@
-import { addToast } from "$lib/client/toast.js";
+import { addToast } from "$lib/client/dom.js";
 import type { TagInfo } from "$lib/types.js";
 import { api } from "./api.js";
 

@@ -1,3 +1,5 @@
+import type { ToastEventName, ToastPayload, ToastType } from "$lib/types";
+
 /**
  * 判斷指定元素是否為可編輯的輸入元素（input、textarea 或 contentEditable）。
  * 常用於鍵盤事件處理中，避免在使用者正在輸入時攔截按鍵。
@@ -21,4 +23,12 @@ export function scrollToActive(listEl: HTMLElement | null, idx: number, itemH: n
   } else if (bottom > listEl.scrollTop + viewH) {
     listEl.scrollTop = bottom - viewH;
   }
+}
+
+/**
+ * 顯示一則 toast 通知，內部透過 CustomEvent 將訊息派發至 toast.svelte.ts 的無頭 UI。
+ */
+export function addToast(message: string, type: ToastType = "info", duration = 3000): void {
+  const eventName: ToastEventName = "toast:add";
+  window.dispatchEvent(new CustomEvent<ToastPayload>(eventName, { detail: { message, type, duration } }));
 }

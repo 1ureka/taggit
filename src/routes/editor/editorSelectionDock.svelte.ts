@@ -1,6 +1,6 @@
-import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/toast.js";
 import type { QueryResult } from "$lib/types.js";
+import { api } from "$lib/client/api.js";
+import { addToast } from "$lib/client/dom.js";
 import { getEditorContext } from "./context.svelte.js";
 
 /**
@@ -43,6 +43,7 @@ export function createEditorSelectionDock() {
       if (res.ok && res.data) {
         ctx.items = res.data.items;
         ctx.total = res.data.total;
+        ctx.page = res.data.page;
         ctx.pages = res.data.pages;
       }
     } finally {

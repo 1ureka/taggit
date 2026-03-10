@@ -1,8 +1,7 @@
-import { goto } from "$app/navigation";
-import { isInEditable } from "$lib/client/dom.js";
-import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/toast.js";
 import type { ImageWithId } from "$lib/types.js";
+import { goto } from "$app/navigation";
+import { api } from "$lib/client/api.js";
+import { addToast, isInEditable } from "$lib/client/dom.js";
 import { getEditorDetailContext } from "./context.svelte.js";
 
 /**

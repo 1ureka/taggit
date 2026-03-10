@@ -4,139 +4,34 @@
   Position: top-center, stacked & collapsible, expands on hover.
 -->
 <script lang="ts">
-  import { tick } from "svelte";
   import { IconX, IconCircleCheck, IconAlertCircle, IconInfoCircle } from "@tabler/icons-svelte";
-  import { toasts, dismissToast, finalizeRemoval, pauseAll, resumeAll } from "$lib/client/toast.js";
-  import type { ToastItem } from "$lib/client/toast.js";
+  import { createToast } from "$lib/client/toast.svelte.js";
 
-  const GAP = 8;
-  const COLLAPSED_OFFSET = 8;
-  const COLLAPSED_SCALE_STEP = 0.05;
-  const COLLAPSED_OPACITY_STEP = 0.15;
-  const MAX_VISIBLE = 5;
-
-  let items: ToastItem[] = $state([]);
-  let hovered = $state(false);
-  let heights: Map<number, number> = $state(new Map());
-  let entering: Set<number> = $state(new Set());
-
-  toasts.subscribe((v) => {
-    // Detect newly added toasts (items that weren't in the previous list)
-    const prevIds = new Set(items.map((t) => t.id));
-    const newIds = v.filter((t) => !prevIds.has(t.id)).map((t) => t.id);
-
-    items = v;
-
-    if (newIds.length > 0) {
-      entering = new Set([...entering, ...newIds]);
-      // Remove entering class after one frame so CSS transition kicks in
-      tick().then(() => {
-        requestAnimationFrame(() => {
-          entering = new Set();
-        });
-      });
-    }
+  const ui = createToast({
+    gap: 8,
+    collapsedOffset: 8,
+    collapsedScaleStep: 0.05,
+    collapsedOpacityStep: 0.15,
+    maxVisible: 5,
   });
-
-  function getOffset(index: number): number {
-    if (hovered) {
-      // Expanded: stack with actual heights + gap
-      let y = 0;
-      for (let i = 0; i < index; i++) {
-        const h = heights.get(items[i]?.id ?? -1) ?? 48;
-        y += h + GAP;
-      }
-      return y;
-    }
-    // Collapsed: small fixed offset per index
-    return index * COLLAPSED_OFFSET;
-  }
-
-  function getScale(index: number): number {
-    if (hovered) return 1;
-    return Math.max(0.9, 1 - index * COLLAPSED_SCALE_STEP);
-  }
-
-  function getOpacity(index: number, toast: ToastItem): number {
-    if (toast.removing) return 0;
-    if (hovered) return index < MAX_VISIBLE ? 1 : 0;
-    return Math.max(0, 1 - index * COLLAPSED_OPACITY_STEP);
-  }
-
-  function handleTransitionEnd(e: TransitionEvent, toast: ToastItem) {
-    // Only react to opacity transition ending on the toast-item itself
-    if (e.propertyName !== "opacity" || e.target !== e.currentTarget) return;
-    if (toast.removing) {
-      finalizeRemoval(toast.id);
-    }
-  }
-
-  function measureHeight(id: number, el: HTMLDivElement | null) {
-    if (!el) return;
-    const h = el.offsetHeight;
-    if (heights.get(id) !== h) {
-      heights = new Map(heights).set(id, h);
-    }
-  }
-
-  /** Svelte action: measure element height on mount & mutation */
-  function measureEl(node: HTMLDivElement, id: number) {
-    measureHeight(id, node);
-    const ro = new ResizeObserver(() => measureHeight(id, node));
-    ro.observe(node);
-    return {
-      destroy() {
-        ro.disconnect();
-        // Clean up height entry
-        const m = new Map(heights);
-        m.delete(id);
-        heights = m;
-      },
-    };
-  }
-
-  /** Compute total container height so hover zone works (children are absolute) */
-  function getContainerHeight(): number {
-    const visibleItems = items.filter((t) => !t.removing);
-    if (visibleItems.length === 0) return 0;
-
-    if (hovered) {
-      let total = 0;
-      for (let i = 0; i < visibleItems.length && i < MAX_VISIBLE; i++) {
-        total += (heights.get(visibleItems[i].id) ?? 48) + GAP;
-      }
-      return total - GAP; // remove trailing gap
-    }
-
-    // Collapsed: last item offset + its height
-    const lastIdx = Math.min(visibleItems.length - 1, MAX_VISIBLE - 1);
-    const lastH = heights.get(visibleItems[0]?.id ?? -1) ?? 48;
-    return lastIdx * COLLAPSED_OFFSET + lastH;
-  }
 </script>
 
 <!-- Viewport always mounted (no {#if}) so out-animations always run -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="toaster"
-  class:toaster-active={items.length > 0}
+  class:toaster-active={ui.items.length > 0}
   role="region"
   aria-label="通知"
-  style="height: {getContainerHeight()}px;"
-  onmouseenter={() => {
-    hovered = true;
-    pauseAll();
-  }}
-  onmouseleave={() => {
-    hovered = false;
-    resumeAll();
-  }}
+  style="height: {ui.getContainerHeight()}px;"
+  onmouseenter={ui.handleContainerMouseEnter}
+  onmouseleave={ui.handleContainerMouseLeave}
 >
-  {#each items as toast, i (toast.id)}
-    {@const y = getOffset(i)}
-    {@const scale = getScale(i)}
-    {@const opacity = getOpacity(i, toast)}
-    {@const isEntering = entering.has(toast.id)}
+  {#each ui.items as toast, i (toast.id)}
+    {@const y = ui.getOffset(i)}
+    {@const scale = ui.getScale(i)}
+    {@const opacity = ui.getOpacity(i, toast)}
+    {@const isEntering = ui.entering.has(toast.id)}
     <div
       class="toast-item"
       class:removing={toast.removing}
@@ -144,12 +39,12 @@
       style="
         transform: translateY({isEntering ? '-100%' : `${y}px`}) scale({isEntering ? 1 : scale});
         opacity: {isEntering ? 0 : opacity};
-        z-index: {items.length - i};
+        z-index: {ui.items.length - i};
       "
       role="status"
       aria-live="polite"
-      ontransitionend={(e) => handleTransitionEnd(e, toast)}
-      use:measureEl={toast.id}
+      ontransitionend={(e) => ui.handleTransitionEnd(e, toast)}
+      use:ui.measureEl={toast.id}
     >
       <span class="toast-icon toast-icon-{toast.type}">
         {#if toast.type === "success"}
@@ -161,7 +56,7 @@
         {/if}
       </span>
       <span class="toast-msg">{toast.message}</span>
-      <button class="toast-close" aria-label="關閉" onclick={() => dismissToast(toast.id)}>
+      <button class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
         <IconX size={14} stroke={2} />
       </button>
     </div>

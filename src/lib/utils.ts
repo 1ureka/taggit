@@ -1,3 +1,11 @@
+/**
+ * @file 前後端共用的通用工具函數。
+ *
+ * 本檔案僅收錄瀏覽器與 Node.js 環境皆可執行的函數。
+ * 若函數依賴僅限於特定環境的 API（例如 DOM、`fs`），
+ * 請放置於 `client/` 或 `server/` 對應目錄。
+ */
+
 import type { QueryOptions } from "$lib/types.js";
 
 /**
@@ -13,6 +21,15 @@ export function parseTags(raw: string | null): string[] {
 }
 
 /**
+ * 將字串轉為有限整數，無效值回傳 undefined（避免 NaN 污染下游邏輯）
+ */
+export function safeInt(raw: string | null): number | undefined {
+  if (raw == null) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}
+
+/**
  * 從 URL 的 searchParams 中提取 {@link QueryOptions}。
  * 處理 tags、rating、ratingOp、sort、order、page、limit。
  */
@@ -21,12 +38,12 @@ export function parseQueryParams(url: URL): QueryOptions {
   return {
     search: p.get("search") ?? undefined,
     tags: parseTags(p.get("tags")),
-    rating: p.has("rating") ? Number(p.get("rating")) : undefined,
+    rating: safeInt(p.get("rating")),
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
     sort: (p.get("sort") as "committedAt" | "rating" | "name" | "random") ?? "committedAt",
     order: (p.get("order") as "asc" | "desc") ?? "desc",
-    page: p.has("page") ? Number(p.get("page")) : undefined,
-    limit: p.has("limit") ? Number(p.get("limit")) : undefined,
+    page: safeInt(p.get("page")),
+    limit: safeInt(p.get("limit")),
   };
 }
 

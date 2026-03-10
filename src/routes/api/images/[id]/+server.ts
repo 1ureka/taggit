@@ -84,14 +84,16 @@ export const DELETE: RequestHandler = ({ params }) => {
 
   const src = path.join(paths.committed, id + image.ext);
 
-  // Move file to trash with id-based name (auto-rename on collision)
+  // 先移動檔案至垃圾桶，再刪除 DB 記錄。兩步驟非原子操作，理論上可能不一致：
+  // - 檔案已移走但 DB 記錄殘留 → 「設定 → 缺失檔案檢查」可偵測並清除
+  // - DB 已刪但檔案殘留 → 「設定 → 孤立檔案檢查」可偵測並清除
+  // removeImage 僅操作記憶體物件，實務上幾乎不會失敗，風險可控。
   if (fs.existsSync(src)) {
     const trashName = uniqueFilename(paths.trash, id + image.ext);
     const dest = path.join(paths.trash, trashName);
     fs.renameSync(src, dest);
   }
 
-  // Remove DB record — metadata is lost after this point
   removeImage(db, id);
 
   return json({ ok: true, data: { id } });
