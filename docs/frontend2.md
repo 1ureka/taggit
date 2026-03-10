@@ -11,11 +11,33 @@
 1. **每個含有互動邏輯的元件，都必須拆為一對檔案**：`*.svelte`（結構 + 樣式）與 `*.svelte.ts`（無頭 UI 邏輯）。
 2. **每個路由，無論多麼簡單，`+page.svelte` 都至少委託一個子元件**——頁面層只做資料接收、狀態初始化、子元件組裝。
 
-### 1.1 `+page.server.ts` — SSR 資料
+### 1.1 資料來源：SSR `data` 與 URL 狀態
 
-負責查詢資料庫、組裝回傳的 `data` 物件。**不含任何 UI 邏輯。**
+本專案的元件有兩種外部資料來源，取用規則不同：
 
-命名慣例：SSR 的資料變數不得使用 `initial`, `preload` 等詞彙，應使用純粹的名稱，如 `total`, `count`, `items` 等。
+**SSR `data`（`+page.server.ts`）**
+
+`+page.server.ts` 負責查詢資料庫、組裝回傳的 `data` 物件。**不含任何 UI 邏輯。**
+
+- 命名慣例：SSR 的資料變數不得使用 `initial`, `preload` 等詞彙，應使用純粹的名稱，如 `total`, `count`, `items` 等。
+- SSR `data` 由 `+page.svelte` 接收後，**透過 props 傳給子元件**，不額外中轉。
+
+**URL 狀態（`$page.url.searchParams`）**
+
+URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件就近獲取**，不從上層以 props 傳入：
+
+- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `$page.url.searchParams` 讀取。
+- **讀寫**：在無頭 UI（`*.svelte.ts`）中透過 options 傳入 getter 讀取，並以 `goto()` 寫入。
+
+```svelte
+<!-- 唯讀示例：元件自行從 URL 讀取 -->
+<script lang="ts">
+  import { page } from "$app/stores";
+  const tab = $derived($page.url.searchParams.get("tab") ?? "default");
+</script>
+```
+
+這讓 URL 狀態的消費者與來源之間不經過 `+page.svelte` 中轉，避免不必要的 prop 傳遞。
 
 ### 1.2 `+page.svelte` — 頁面殼
 
@@ -56,7 +78,7 @@
 
 當開發者真的遇到 prop drilling 時，請先嘗試下列三種方案:
 
-1. 提取成 url query（如 `?tab=xxx`），讓子元件從 `$page.url.searchParams` 讀取
+1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `$page.url.searchParams` 讀取
 2. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
 3. 提取出新的共用元件，從而在心智上不再認為多一層級
 
@@ -83,6 +105,42 @@
   });
 </script>
 ```
+
+### 1.4 跨元件共享非響應式引用
+
+若多個子元件需要共享**非響應式引用**（如 timer ID、AbortController 等協調用物件），在 `+page.svelte` 建立普通物件，以 prop 傳下去即可。JS 物件是 pass-by-reference，所有子元件操作的是同一塊記憶體：
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  const timers = {
+    loading: null as ReturnType<typeof setTimeout> | null,
+    search: null as ReturnType<typeof setTimeout> | null,
+  };
+</script>
+
+<EditorForm {timers} ... />
+<EditorPagination {timers} ... />
+```
+
+```ts
+// editorForm.svelte.ts
+type Options = {
+  timers: { loading: ReturnType<typeof setTimeout> | null; search: ReturnType<typeof setTimeout> | null };
+  // ...
+};
+
+export function createEditorForm(options: Options) {
+  async function doSearch() {
+    if (options.timers.loading) clearTimeout(options.timers.loading);
+    options.timers.loading = setTimeout(() => { /* ... */ }, 200);
+  }
+}
+```
+
+**要點：**
+- 這類引用不需要驅動 UI 重繪，因此**刻意不用 `$state`**，沒有響應式開銷。
+- 資料流與共享狀態一致：`+page.svelte` 是 owner，透過 props 向下傳遞。
 
 ---
 
