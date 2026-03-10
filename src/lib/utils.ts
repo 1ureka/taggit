@@ -48,6 +48,24 @@ export function parseQueryParams(url: URL): QueryOptions {
 }
 
 /**
+ * 將篩選條件構建為 query string（預設值省略）。為 {@link parseQueryParams} 的反向操作。
+ */
+export function buildQueryString(opts: QueryOptions): string {
+  const params = new URLSearchParams();
+  if (opts.search?.trim()) params.set("search", opts.search.trim());
+  if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
+  if (opts.rating !== undefined) {
+    params.set("rating", String(opts.rating));
+    if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
+  }
+  if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);
+  if (opts.order && opts.order !== "desc") params.set("order", opts.order);
+  if (opts.page && opts.page > 1) params.set("page", String(opts.page));
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/**
  * 將 Unix 毫秒時間戳格式化為本地日期時間字串。
  */
 export function formatDate(ms: number): string {
