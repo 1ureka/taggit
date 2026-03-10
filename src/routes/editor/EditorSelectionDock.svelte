@@ -1,45 +1,43 @@
 <script lang="ts">
-  import { IconTrash } from "@tabler/icons-svelte";
-  import Rating from "$lib/components/Rating.svelte";
+  import { IconTrash, IconArrowBackUp } from "@tabler/icons-svelte";
   import SelectionDock from "$lib/components/SelectionDock.svelte";
   import { createEditorSelectionDock } from "./editorSelectionDock.svelte.js";
 
-  const ui = createEditorSelectionDock();
+  type Props = { selected: Set<string> };
+  let { selected = $bindable() }: Props = $props();
 
-  let dockRating = $state(0);
-
-  $effect(() => {
-    ui.count;
-    dockRating = 0;
+  const ui = createEditorSelectionDock({
+    get selected() {
+      return selected;
+    },
+    set selected(v) {
+      selected = v;
+    },
   });
 </script>
 
 <SelectionDock count={ui.count} onclose={ui.handleCloseClick}>
-  <div
-    class="dock-rating"
-    style="--rating-color: color-mix(in oklch, var(--bg) 35%, var(--text)); --rating-color-active: var(--bg)"
-  >
-    <Rating bind:value={dockRating} size="1.125rem" onchange={ui.handleRatingChange} />
-  </div>
+  <button class="btn btn-sm dock-unstage" disabled={ui.loading} onclick={ui.handleUnstageClick}>
+    <IconArrowBackUp size={14} />
+    退回
+  </button>
 
-  <div class="dock-separator"></div>
-
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick}>
+  <button class="btn btn-destructive btn-sm" disabled={ui.loading} onclick={ui.handleDeleteClick}>
     <IconTrash size={14} />
     刪除
   </button>
 </SelectionDock>
 
 <style>
-  .dock-rating {
-    display: flex;
-    align-items: center;
+  .dock-unstage {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--border);
   }
 
-  .dock-separator {
-    width: 1px;
-    height: 1.25rem;
-    background: hsla(from var(--bg) h s l / 0.15);
-    flex-shrink: 0;
+  .dock-unstage:hover {
+    background: hsla(from var(--bg) h s l / 0.05);
+    color: var(--bg);
+    border-color: var(--border-hover);
   }
 </style>

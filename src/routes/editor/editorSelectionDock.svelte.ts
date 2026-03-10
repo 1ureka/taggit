@@ -1,61 +1,29 @@
-import type { QueryResult } from "$lib/types.js";
+import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/client/api.js";
 import { addToast, requestConfirm } from "$lib/client/dom.js";
-import { getEditorContext } from "./context.svelte.js";
+
+/**
+ * EditorSelectionDock 的配置選項
+ */
+type EditorSelectionDockOptions = {
+  /** 雙向綁定：已選取的圖片 ID 集合 */
+  selected: Set<string>;
+};
 
 /**
  * 建立批次操作面板邏輯的核心工廠函數
  */
-export function createEditorSelectionDock() {
-  /** Editor 頁面共享的 Context */
-  const ctx = getEditorContext();
-
-  // ---
-
+export function createEditorSelectionDock(options: EditorSelectionDockOptions) {
   /** 已選取的圖片數量 */
-  const count = $derived(ctx.selected.size);
+  const count = $derived(options.selected.size);
+  /** 是否正在執行批次操作 */
+  let loading = $state(false);
 
   // ---
-
-  /** 執行伺服器查詢（不重置頁碼）並更新 Context 狀態 */
-  async function doSearch() {
-    ctx.loading = true;
-
-    if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-    ctx.loadingTimer = setTimeout(() => {
-      if (ctx.loading) ctx.showLoading = true;
-    }, ctx.LOADING_DELAY);
-
-    try {
-      const params = new URLSearchParams();
-      params.set("limit", String(ctx.PAGE_SIZE));
-      params.set("page", String(ctx.page));
-      params.set("sort", ctx.sort);
-      params.set("order", ctx.order);
-      if (ctx.searchText.trim()) params.set("search", ctx.searchText.trim());
-      if (ctx.selectedTags.length > 0) params.set("tags", ctx.selectedTags.join(","));
-      if (ctx.rating !== undefined) {
-        params.set("rating", String(ctx.rating));
-        params.set("ratingOp", ctx.ratingOp);
-      }
-
-      const res = await api.get<QueryResult>(`/api/images?${params.toString()}`);
-      if (res.ok && res.data) {
-        ctx.items = res.data.items;
-        ctx.total = res.data.total;
-        ctx.page = res.data.page;
-        ctx.pages = res.data.pages;
-      }
-    } finally {
-      ctx.loading = false;
-      if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-      ctx.showLoading = false;
-    }
-  }
 
   /** 清除所有選取 */
   function clearSelection() {
-    ctx.selected = new Set();
+    options.selected = new Set();
   }
 
   // ---
@@ -67,67 +35,38 @@ export function createEditorSelectionDock() {
 
   /** 處理刪除按鈕點擊事件，批次刪除已選取的圖片 */
   async function handleDeleteClick() {
-    const ids = [...ctx.selected];
+    if (loading) return;
+    const ids = [...options.selected];
     if (ids.length === 0) return;
 
     const ok = await requestConfirm(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
     if (!ok) return;
 
+    loading = true;
     let successCount = 0;
     let failCount = 0;
 
     for (const id of ids) {
-      const res = await api.del(`/api/images/${encodeURIComponent(id)}`);
-      if (res.ok) {
-        successCount++;
-      } else {
+      try {
+        const res = await api.del(`/api/images/${encodeURIComponent(id)}`);
+        if (res.ok) successCount++;
+        else failCount++;
+      } catch {
         failCount++;
       }
     }
 
-    clearSelection();
-    await doSearch();
+    await invalidateAll(); // 其會觸發 load 重新讀取圖片列表，從而觸發 +page.svelte 的驗證選取邏輯
 
-    if (failCount > 0) {
-      addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
-    } else {
-      addToast(`已刪除 ${successCount} 張圖片`, "success");
-    }
+    if (failCount > 0) addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
+    else addToast(`已刪除 ${successCount} 張圖片`, "success");
+
+    loading = false;
   }
 
-  /** 處理評等變更事件，批次設定已選取圖片的評等 */
-  async function handleRatingChange(rating: number) {
-    const ids = [...ctx.selected];
-    if (ids.length === 0) return;
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const id of ids) {
-      const image = ctx.items.find((item) => item.id === id);
-      if (!image) {
-        failCount++;
-        continue;
-      }
-      const res = await api.patch<{ updatedAt?: number }>(`/api/images/${encodeURIComponent(id)}`, {
-        rating,
-        expectedUpdatedAt: image.updatedAt,
-      });
-      if (res.ok) {
-        successCount++;
-        ctx.items = ctx.items.map((item) =>
-          item.id === id ? { ...item, rating, updatedAt: res.data?.updatedAt ?? item.updatedAt } : item,
-        );
-      } else {
-        failCount++;
-      }
-    }
-
-    if (failCount > 0) {
-      addToast(`已設定 ${successCount} 張，${failCount} 張失敗`, "error");
-    } else {
-      addToast(`已設定 ${successCount} 張圖片為 ${rating} 星`, "success");
-    }
+  /** 處理退回按鈕點擊事件（空殼，後續實作） */
+  async function handleUnstageClick() {
+    // 後續實作：committed → staged
   }
 
   // ---
@@ -137,12 +76,16 @@ export function createEditorSelectionDock() {
     get count() {
       return count;
     },
+    /** 存取批次操作載入狀態的 getter */
+    get loading() {
+      return loading;
+    },
 
     /** 處理關閉按鈕點擊事件，清除所有選取 */
     handleCloseClick,
     /** 處理刪除按鈕點擊事件，批次刪除已選取的圖片 */
     handleDeleteClick,
-    /** 處理評等變更事件，批次設定已選取圖片的評等 */
-    handleRatingChange,
+    /** 處理退回按鈕點擊事件（空殼，後續實作） */
+    handleUnstageClick,
   };
 }
