@@ -103,3 +103,10 @@ export const sortCollator = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "variant",
 });
+
+/**
+ * 檢查物件是否包含特定 key，並縮小其型別範圍
+ */
+export function hasKey<K extends string>(obj: unknown, key: K): obj is Record<K, unknown> {
+  return typeof obj === "object" && obj !== null && key in obj;
+}
