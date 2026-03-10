@@ -1,220 +1,176 @@
-# `/editor` URL 化改造 — 實作計畫（v2：Props 取代 Proxy）
+# `/scroll` 路由 URL Query Params 遷移計畫
 
-> Report5 基礎上的修正：查詢結果改為 **props 向下傳遞**，不再透過 ctx 或 proxy 同步。
-> ctx 瘦身至只剩 `selected`。SSR 自然運作，無需 proxy、無需 `$effect` 同步。
-
----
-
-## 一、架構變更總覽
-
-### Before（現行）
-
-```
-使用者改篩選 → ctx 更新 → doSearch() → API call → ctx 結果更新
-                ctx 持有: searchText, selectedTags, rating, ratingOp, sort, order,
-                          items, total, page, pages, loading, showLoading, selected
-
-+page.svelte: proxy 包裝 data → 同步寫入 ctx（繞過 Svelte 5 reactivity 限制）
-三處各 copy 一份 doSearch()（editorForm / editorPagination / editorSelectionDock）
-```
-
-### After（改造後）
-
-```
-使用者改篩選 → editorForm local state 更新 → goto(URL) → load(SSR) → data 更新
-                                                                         ↓
-                                                              +page.svelte 透過 props 傳遞
-
-+page.svelte: 把 data.result 拆散成 props 傳給子元件（SSR 自然運作）
-ctx 只持有: selected
-loading → editorList 內部（追蹤 $navigating）
-unified loading → editorSelectionDock 內部（所有操作互斥 + buttons disabled）
-篩選狀態 → editorForm 的 local $state
-Rating → 從 dock 移除，改為「退回 staged」按鈕（本階段先空殼）
-doSearch() → 不再存在
-```
-
-### 為什麼不用 proxy / `$effect` 同步？
-
-現行 `+page.svelte` 用 proxy 把 `data.recent` 包裝後寫入 ctx，是為了繞過 Svelte 5 的限制：
-
-- 直接在 script 頂層寫 `ctx.items = data.result.items` → 編譯器警告「This reference only captures the initial value of `data`」
-- 用 `$effect` 同步 → SSR 時 `$effect` 不執行，首屏 HTML 沒有資料
-
-Props 是最乾淨的解法：`data` 本來就是 `$props()` 的一部分，直接拆散傳下去，Svelte 自動追蹤 prop 變更，SSR 時 props 照常運作。
+> 將 `/scroll` 的篩選狀態從 `ScrollContext`（`$state`）遷移為 URL query params 驅動，同時依據 `docs/frontend.md` 規範移除 Context，改以 props / `bind` 傳遞狀態。
 
 ---
 
-## 二、URL 格式
+## 一、現況分析
+
+### 1.1 目前架構
 
 ```
-/editor?search=cat&tags=animal,cute&rating=3&ratingOp=gte&sort=rating&order=desc&page=2
++page.server.ts          SSR 查詢：無篩選、回傳全量圖片
++page.svelte             建立 ScrollContext，注入 data，組裝子元件
+context.svelte.ts        ScrollContext class（createContext）
+ScrollForm.svelte         getScrollContext() 讀寫篩選狀態
+  scrollForm.svelte.ts    doSearch() client-side API 呼叫
+ScrollMasonry.svelte      getScrollContext() 讀取 items/columns
+  scrollMasonry.svelte.ts getScrollContext() 讀取 items/columns/pageContentEl
+ScrollFab.svelte          getScrollContext() 讀取 pageContentEl
+  scrollFab.svelte.ts     getScrollContext() 監聽 scrollTop
 ```
 
-| 參數 | 預設值 | 省略規則 |
-|------|--------|---------|
-| `search` | `""` | 空字串時省略 |
-| `tags` | `[]` | 無標籤時省略 |
-| `rating` | — | 未設定時省略 |
-| `ratingOp` | `"gte"` | 為預設值時省略 |
-| `sort` | `"committedAt"` | 為預設值時省略 |
-| `order` | `"desc"` | 為預設值時省略 |
-| `page` | `1` | 第 1 頁時省略 |
+### 1.2 問題
 
-無篩選時 URL 就是 `/editor`。
+1. **使用了 `createContext`**：違反 `frontend.md` §1.2 「不使用 Context」規範。所有子元件透過 `getScrollContext()` 存取共享狀態，應改為 props / `bind`。
+2. **SSR 載入全量資料**：`+page.server.ts` 執行 `queryImages(db, { sort: "committedAt", order: "desc" })`，不帶篩選條件，首次載入資料量過大。
+3. **篩選由 client API 驅動**：`scrollForm.svelte.ts` 的 `doSearch()` 以 `api.get('/api/images?...')` 取得篩選結果，無法利用 SvelteKit 的 SSR 與 `invalidateAll` 機制。
+4. **F5 / 返回鍵遺失狀態**：篩選條件存於記憶體 `$state`，重整或瀏覽器返回後歸零。
 
 ---
 
-## 三、檔案變更清單
+## 二、遷移目標
 
-### 3.1 `$lib/utils.ts` — 新增 `buildQueryString()`
+| 項目 | 遷移前 | 遷移後 |
+| --- | --- | --- |
+| 篩選狀態來源 | `ScrollContext` (`$state`) | URL query params |
+| 資料來源 | SSR 全量 + client API 篩選 | SSR 依 URL params 查詢 |
+| 跨元件傳遞 | `createContext` / `getScrollContext` | props / `bind` |
+| 重整/返回 | 狀態遺失 | URL 自動恢復 |
+| `columns` | `ScrollContext` `$state` | `+page.svelte` `$state`（UI 偏好不入 URL） |
+| `pageContentEl` | `ScrollContext` `$state` | `+page.svelte` 傳 prop |
+
+---
+
+## 三、URL 參數設計
+
+沿用 `$lib/utils.ts` 的 `parseQueryParams()` / `buildQueryString()`，格式與 `/editor` 一致：
+
+```
+/scroll?tags=landscape,nature&rating=4&ratingOp=gte&sort=committedAt&order=desc
+```
+
+| 參數 | 預設值 | 省略條件 |
+| --- | --- | --- |
+| `tags` | `[]`（空） | 無選擇時省略 |
+| `rating` | `undefined` | 未設定時省略 |
+| `ratingOp` | `gte` | 為 `gte` 時省略 |
+| `sort` | `committedAt` | 為 `committedAt` 時省略 |
+| `order` | `desc` | 為 `desc` 時省略 |
+
+**不入 URL 的狀態**：`columns`（UI 偏好，由元件內部 breakpoint 偵測初始化，使用者可手動調整）。
+
+---
+
+## 四、逐檔改動計畫
+
+### 4.1 刪除 `context.svelte.ts`
+
+整個檔案刪除。`ScrollContext` class 與 `createContext` 將被 props / `bind` 取代。
+
+### 4.2 `+page.server.ts` — SSR 依 URL 查詢
+
+**改動**：從 URL 讀取篩選條件，傳入 `queryImages`。由於 scroll 為不分頁的瀑布流，不設 `limit`（回傳全量）。
 
 ```ts
-import type { QueryOptions } from "$lib/types.js";
-
-/** 將篩選條件構建為 query string（預設值省略）。為 parseQueryParams 的反向操作。 */
-export function buildQueryString(opts: QueryOptions): string {
-  const params = new URLSearchParams();
-  if (opts.search?.trim()) params.set("search", opts.search.trim());
-  if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
-  if (opts.rating !== undefined) {
-    params.set("rating", String(opts.rating));
-    if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
-  }
-  if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);
-  if (opts.order && opts.order !== "desc") params.set("order", opts.order);
-  if (opts.page && opts.page > 1) params.set("page", String(opts.page));
-  if (opts.limit) params.set("limit", String(opts.limit));
-  const qs = params.toString();
-  return qs ? `?${qs}` : "";
-}
-```
-
-- 參數型別直接用 `QueryOptions`——與 `parseQueryParams` 對稱
-- 放在 `parseQueryParams()` 旁邊，一對 parse/build 讀寫運算
-
----
-
-### 3.2 `context.svelte.ts` — 只剩 `selected`
-
-```ts
-import { createContext } from "svelte";
-
-export class EditorContext {
-  selected = $state<Set<string>>(new Set());
-}
-
-export const [getEditorContext, setEditorContext] = createContext<EditorContext>();
-```
-
-移除清單：
-- ❌ `PAGE_SIZE`、`LOADING_DELAY`、`SEARCH_DEBOUNCE`（常數跟隨各自使用處下放）
-- ❌ `loadingTimer`、`searchTimer`（各自成為使用處的 local 變數）
-- ❌ `searchText`、`selectedTags`、`rating`、`ratingOp`、`sort`、`order`（下放至 editorForm local $state）
-- ❌ `items`、`total`、`page`、`pages`（改為 props 傳遞）
-- ❌ `loading`、`showLoading`（下放至 editorList）
-
----
-
-### 3.3 `+page.server.ts` — 從 URL 查詢
-
-```ts
+import type { PageServerLoad } from "./$types.js";
+import { redirect } from "@sveltejs/kit";
+import { queryImages } from "$lib/server/db-query.js";
+import { requireDatabase } from "$lib/server/helpers.js";
 import { parseQueryParams } from "$lib/utils.js";
 
 export const load: PageServerLoad = ({ url }) => {
   const loaded = requireDatabase();
   if (!loaded) throw redirect(303, "/settings?alert=error");
 
-  const result = queryImages(loaded.db, { ...parseQueryParams(url), limit: 60 });
-  return { result };
+  const result = queryImages(loaded.db, parseQueryParams(url));
+  return { items: result.items, total: result.total };
 };
 ```
 
-- 復用已有的 `parseQueryParams()`
-- 只回傳 `result`，不回傳 `filters`——前端直接從 `$page.url` 讀取
+### 4.3 `+page.svelte` — 頁面殼重構
 
----
+**職責**：接收 SSR `data`，宣告頁面級 `$state`（`columns`、`pageContentEl`），組裝子元件並以 props / `bind` 傳遞。
 
-### 3.4 `+page.svelte` — Props 向下傳遞（核心變更）
+**主要改動**：
+
+1. 移除 `ScrollContext` 與 `setScrollContext` 的匯入及使用
+2. 移除 `proxy` 物件（不再需要手動同步 data → context）
+3. 以 `$state` 宣告 `columns` 和 `pageContentEl`
+4. `data.items`、`data.total` 直接透過 props 傳給子元件（SvelteKit 的 `data` 自身是響應式的）
+5. 保留 `columnOptions` 和 `Select` 元件（`columns` 綁定至本地 `$state`）
 
 ```svelte
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import { EditorContext, setEditorContext } from "./context.svelte.js";
-  import EditorForm from "./EditorForm.svelte";
-  import EditorList from "./EditorList.svelte";
-  import EditorPagination from "./EditorPagination.svelte";
-  import EditorSelectionDock from "./EditorSelectionDock.svelte";
+  import { IconArrowLeft } from "@tabler/icons-svelte";
+  import Select from "$lib/components/Select.svelte";
+  import ScrollFab from "./ScrollFab.svelte";
+  import ScrollForm from "./ScrollForm.svelte";
+  import ScrollMasonry from "./ScrollMasonry.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  const ctx = setEditorContext(new EditorContext());
+  let columns = $state(3);
+  let pageContentEl = $state<HTMLElement | null>(null);
+
+  const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({
+    value: n,
+    label: `${n} 欄`,
+  }));
 </script>
 
-<!-- ...header 略... -->
+<svelte:head>
+  <title>Scroll — Image Manager</title>
+</svelte:head>
 
-<EditorForm />
-<EditorList
-  items={data.result.items}
-  total={data.result.total}
-  page={data.result.page}
-  pages={data.result.pages}
-/>
-<EditorPagination page={data.result.page} pages={data.result.pages} />
-<EditorSelectionDock />
+<div class="page">
+  <header class="page-header">
+    <a href="/" class="btn btn-ghost btn-sm">
+      <IconArrowLeft size={16} />
+      首頁
+    </a>
+    <span class="page-header-title">垂直瀏覽</span>
+    <div class="select-wrapper">
+      <Select bind:value={columns} options={columnOptions} />
+    </div>
+  </header>
+
+  <main class="page-content slide-up" bind:this={pageContentEl}>
+    <ScrollForm total={data.total} />
+    <ScrollMasonry items={data.items} {columns} {pageContentEl} />
+  </main>
+</div>
+
+<ScrollFab {pageContentEl} />
 ```
 
-**為什麼這樣寫可行：**
+### 4.4 `scrollForm.svelte.ts` — 篩選 → URL 導航
 
-- `data` 是 `$props()` 的一部分，Svelte 會追蹤整個 `data` 的變更
-- 當 `goto()` 觸發 `load` 重跑後，`data.result` 更新 → props 自動更新 → 子元件響應式重繪
-- SSR 時 props 正常傳遞，首屏 HTML 就有完整資料
-- 不需要 proxy，不需要 `$effect` 同步，不需要把結果塞進 ctx
+**改動**：將原本的 client API 呼叫 (`doSearch`) 替換為 `goto()` URL 導航，模式與 editor 的 `editorForm.svelte.ts` 一致。
 
-**validateSelection 移至 `$effect`：**
-
-```svelte
-<script lang="ts">
-  // ...同上...
-
-  $effect(() => {
-    // data.result.items 變更時，清理不在當前頁的 selected
-    const visibleIds = new Set(data.result.items.map((i) => i.id));
-    const next = new Set([...ctx.selected].filter((id) => visibleIds.has(id)));
-    if (next.size !== ctx.selected.size) ctx.selected = next;
-  });
-</script>
-```
-
-`validateSelection` 只在此處執行一次，不再散落在三個 `doSearch` 中。 `$effect` 追蹤的是 `data.result.items`（來自 `$props()`），所以 `data` 的 reactivity 沒問題。
-
----
-
-### 3.5 `editorForm.svelte.ts` — 篩選狀態下放為 local $state
+1. 從 `page.url` 以 `parseQueryParams()` 初始化所有篩選 `$state`
+2. 篩選變更時透過 `buildQueryString()` 組裝 query string，以 `goto()` 導航（觸發 SSR `load` 重跑）
+3. 以 `afterNavigate({ type: "popstate" })` 監聽瀏覽器返回，從 URL 同步篩選值
+4. 不再匯入 `getScrollContext`、`api`、`addToast`
 
 ```ts
 import { goto, afterNavigate } from "$app/navigation";
 import { page } from "$app/state";
 import { parseQueryParams, buildQueryString } from "$lib/utils.js";
 
-export function createEditorForm() {
-  // 注意：不再 getEditorContext()
-
-  // ─── 從 URL 讀取初始值 ──────────────────────────────
+export function createScrollForm() {
   const init = parseQueryParams(page.url);
 
-  let searchValue = $state(init.search ?? "");
   let selectedTags = $state<string[]>(init.tags ?? []);
   let rating = $state<number | undefined>(init.rating);
   let ratingOp = $state<"gte" | "lte" | "eq">(init.ratingOp ?? "gte");
-  let sort = $state(init.sort ?? "committedAt");
-  let order = $state(init.order ?? "desc");
+  let sort = $state<"committedAt" | "rating" | "name" | "random">(init.sort ?? "committedAt");
+  let order = $state<"asc" | "desc">(init.order ?? "desc");
 
-  // ─── Popstate 同步 ──────────────────────────────────
   afterNavigate(({ type }) => {
     if (type === "popstate") {
       const vals = parseQueryParams(page.url);
-      searchValue = vals.search ?? "";
       selectedTags = vals.tags ?? [];
       rating = vals.rating;
       ratingOp = vals.ratingOp ?? "gte";
@@ -223,31 +179,15 @@ export function createEditorForm() {
     }
   });
 
-  // ─── URL 導航 ───────────────────────────────────────
   function currentQueryString(): string {
-    return buildQueryString({
-      search: searchValue, tags: selectedTags,
-      rating, ratingOp, sort, order,
-    });
-  }
-
-  let searchTimer: ReturnType<typeof setTimeout> | null = null;
-  const SEARCH_DEBOUNCE = 300;
-
-  function handleSearchInput() {
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      goto(`/editor${currentQueryString()}`, { replaceState: true, noScroll: true });
-    }, SEARCH_DEBOUNCE);
+    return buildQueryString({ tags: selectedTags, rating, ratingOp, sort, order });
   }
 
   function handleFilterChange() {
-    goto(`/editor${currentQueryString()}`, { replaceState: true, noScroll: true });
+    goto(`/scroll${currentQueryString()}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
   return {
-    get searchValue() { return searchValue; },
-    set searchValue(v: string) { searchValue = v; },
     get selectedTags() { return selectedTags; },
     set selectedTags(v: string[]) { selectedTags = v; },
     get rating() { return rating; },
@@ -255,543 +195,243 @@ export function createEditorForm() {
     get ratingOp() { return ratingOp; },
     set ratingOp(v: "gte" | "lte" | "eq") { ratingOp = v; },
     get sort() { return sort; },
-    set sort(v: string) { sort = v; },
+    set sort(v: "committedAt" | "rating" | "name" | "random") { sort = v; },
     get order() { return order; },
-    set order(v: string) { order = v; },
-    handleSearchInput,
+    set order(v: "asc" | "desc") { order = v; },
     handleFilterChange,
   };
 }
 ```
 
-**差異**：
-- ❌ 刪除 `doSearch()`、`validateSelection()`、`import { api }`
-- ❌ 不再 `getEditorContext()`——editorForm 完全不依賴 ctx
-- ✅ 篩選狀態全部 local
-- ✅ `afterNavigate` popstate 同步
-- ✅ `buildQueryString` + `goto()` 取代 API call
+### 4.5 `ScrollForm.svelte` — 接收 `total` 為 prop
 
----
+**改動**：
 
-### 3.6 `EditorForm.svelte` — 不變
+1. 移除 `getScrollContext` 匯入
+2. 不再從 context 讀取 `selectedTags`、`rating` 等——改為直接綁定 `createScrollForm()` 回傳的 `ui` 物件
+3. `total` 改為由 `+page.svelte` 透過 prop 傳入（SSR data 驅動）
 
 ```svelte
 <script lang="ts">
-  import { createEditorForm } from "./editorForm.svelte.js";
-  const ui = createEditorForm();
+  import FilterBar from "$lib/components/FilterBar.svelte";
+  import { createScrollForm } from "./scrollForm.svelte.js";
+
+  let { total }: { total: number } = $props();
+  const ui = createScrollForm();
 </script>
 
-<!-- bind:value={ui.searchValue} 等，與 report5 相同 -->
+<div class="scroll-filter-area">
+  <FilterBar
+    bind:selectedTags={ui.selectedTags}
+    bind:rating={ui.rating}
+    bind:ratingOp={ui.ratingOp}
+    bind:sort={ui.sort}
+    bind:order={ui.order}
+    onchange={ui.handleFilterChange}
+  />
+  <div class="scroll-result-count">
+    <span>{total} 張結果</span>
+  </div>
+</div>
 ```
 
-EditorForm 不接收任何 prop，不讀 ctx。
+### 4.6 `scrollMasonry.svelte.ts` — 改為 options 接收 props
 
----
+**改動**：
 
-### 3.7 `editorList.svelte.ts` — 接收 options，loading 下放
+1. 移除 `getScrollContext` 匯入
+2. 接收 `items`、`columns`、`pageContentEl` 為 getter-based options（符合 `frontend.md` §1.3 無頭 UI 接收 props 規範）
+3. `detectBreakpoint` 改為回傳值而非直接寫入 context，讓 `+page.svelte` 的 `columns` 初始化可由 `onMount` 或移至此處處理
 
 ```ts
-import { navigating } from "$app/state";
-import type { ImageWithId } from "$lib/types.js";
-import { getEditorContext } from "./context.svelte.js";
+type ScrollMasonryOptions = {
+  items: ImageWithId[];
+  columns: number;
+  pageContentEl: HTMLElement | null;
+};
 
-interface EditorListOptions {
-  readonly items: ImageWithId[];
+export function createScrollMasonry(options: ScrollMasonryOptions) {
+  let containerEl = $state<HTMLElement | null>(null);
+
+  const layout = $derived(createWeightBasedLayout(options.items, options.columns));
+
+  const virtualizer = createVirtualizer(
+    () => layout,
+    () => containerEl,
+    () => options.pageContentEl,
+  );
+
+  // ... detectBreakpoint / handleImageDblClick 不變
 }
+```
 
-export function createEditorList(options: EditorListOptions) {
-  const ctx = getEditorContext(); // 只拿 selected
+### 4.7 `ScrollMasonry.svelte` — 接收 props 取代 context
 
-  // ─── Loading（追蹤 navigating）──────────────────────
-  const LOADING_DELAY = 200;
-  let showLoading = $state(false);
+**改動**：
+
+1. 移除 `getScrollContext` 匯入
+2. 宣告 Props 接收 `items`、`columns`、`pageContentEl`
+3. 將 `$props()` 以 getter-based options 傳入 `createScrollMasonry()`
+4. `loading` 狀態：遷移後由 SvelteKit 的 `navigating` store 驅動（見 §4.9），改為 prop 或元件自行讀取 `navigating`
+
+```svelte
+<script lang="ts">
+  import { navigating } from "$app/state";
+  import type { ImageWithId } from "$lib/types.js";
+  import { imgSrc } from "$lib/client/api.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
+  import { createScrollMasonry } from "./scrollMasonry.svelte.js";
+
+  type Props = {
+    items: ImageWithId[];
+    columns: number;
+    pageContentEl: HTMLElement | null;
+  };
+
+  let { items, columns, pageContentEl }: Props = $props();
+
+  const ui = createScrollMasonry({
+    get items() { return items; },
+    get columns() { return columns; },
+    get pageContentEl() { return pageContentEl; },
+  });
+</script>
+
+{#if items.length === 0 && !navigating}
+  <div class="scroll-empty">找不到符合的圖片</div>
+{/if}
+
+<!-- masonry 模板不變，使用 ui.containerEl / ui.visibleItems / ui.totalHeight -->
+
+{#if navigating}
+  <div class="scroll-loading">載入中…</div>
+{/if}
+```
+
+### 4.8 `scrollFab.svelte.ts` — 改為 options 接收 `pageContentEl`
+
+**改動**：
+
+1. 移除 `getScrollContext` 匯入
+2. 接收 `pageContentEl` 為 getter-based option
+
+```ts
+type ScrollFabOptions = {
+  pageContentEl: HTMLElement | null;
+};
+
+export function createScrollFab(options: ScrollFabOptions) {
+  let showFab = $state(false);
 
   $effect(() => {
-    if (navigating.to) {
-      const timer = setTimeout(() => { showLoading = true; }, LOADING_DELAY);
-      return () => {
-        clearTimeout(timer);
-        showLoading = false;
-      };
-    }
+    const el = options.pageContentEl;
+    if (!el) return;
+    const onScroll = throttle(() => { showFab = el.scrollTop > 300; }, 150);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   });
 
-  // ─── 選取邏輯（與現行相同，只用 ctx.selected）─────────
-
-  function isSelecting(): boolean {
-    return ctx.selected.size > 0;
+  function handleFabClick() {
+    options.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  function selectAll() {
-    ctx.selected = new Set(options.items.map((item) => item.id));
-  }
-
-  function invertSelection() {
-    const next = new Set<string>();
-    for (const item of options.items) {
-      if (!ctx.selected.has(item.id)) next.add(item.id);
-    }
-    ctx.selected = next;
-  }
-
-  function clearSelection() {
-    ctx.selected = new Set();
-  }
-
-  function toggleSelect(id: string) {
-    const next = new Set(ctx.selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    ctx.selected = next;
-  }
-
-  // ... handleCardClick, handleCheckboxChange, handleWindowKeydown 不變 ...
 
   return {
-    get showLoading() { return showLoading; },
-    handleCardClick,
-    handleCheckboxChange,
-    handleWindowKeydown,
+    get showFab() { return showFab; },
+    handleFabClick,
   };
 }
 ```
 
-**重點**：`options.items` 透過 getter 取值（見 3.8），所以 props 更新時 `selectAll()` / `invertSelection()` 自動拿到新值。
-
----
-
-### 3.8 `EditorList.svelte` — 接收 props，傳遞 getter 給 headless UI
+### 4.9 `ScrollFab.svelte` — 接收 `pageContentEl` 為 prop
 
 ```svelte
 <script lang="ts">
-  import type { ImageWithId } from "$lib/types.js";
-  import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
-  import { getEditorContext } from "./context.svelte.js";
-  import { createEditorList } from "./editorList.svelte.js";
+  import { IconArrowUp } from "@tabler/icons-svelte";
+  import { fly } from "svelte/transition";
+  import { createScrollFab } from "./scrollFab.svelte.js";
 
-  type Props = { items: ImageWithId[]; total: number; page: number; pages: number };
-  let { items, total, page, pages }: Props = $props();
+  let { pageContentEl }: { pageContentEl: HTMLElement | null } = $props();
 
-  const ctx = getEditorContext(); // 讀 selected（template 需要）
-  const ui = createEditorList({
-    get items() { return items; },
+  const ui = createScrollFab({
+    get pageContentEl() { return pageContentEl; },
   });
 </script>
-
-{#if total > 0}
-  <div class="editor-list-info">
-    <span>{total} 張圖片</span>
-    {#if pages > 1}
-      <span class="editor-list-pager">第 {page} / {pages} 頁</span>
-    {/if}
-  </div>
-{/if}
-
-{#if ui.showLoading}
-  <div class="editor-list-status">搜尋中...</div>
-{:else if items.length === 0}
-  <div class="editor-list-status">找不到符合的圖片</div>
-{:else}
-  <div class="editor-list-results">
-    {#each items as img (img.id)}
-      {@const selected = ctx.selected.has(img.id)}
-      <!-- ...card 內容不變... -->
-    {/each}
-  </div>
-{/if}
+<!-- 模板不變 -->
 ```
-
-**差異**：
-- ✅ `items`、`total`、`page`、`pages` 全改為 props
-- ✅ `ui.showLoading` 取代 `ctx.showLoading`
-- ✅ `ctx` 只用於讀 `selected`（template 內的 `ctx.selected.has()`）
-- ✅ `createEditorList({ get items() { return items; } })` — getter 確保 headless UI 讀到最新 props
 
 ---
 
-### 3.9 `editorPagination.svelte.ts` — 大幅簡化
+## 五、載入狀態處理
+
+**遷移前**：`ctx.loading` 由 `doSearch()` 手動設置 `true`/`false`。
+
+**遷移後**：篩選變更觸發 `goto()` → SvelteKit 重跑 `load` → `data` 自動更新。載入期間的 pending 狀態改用 SvelteKit 內建的 `navigating` store：
+
+```svelte
+import { navigating } from "$app/state";
+<!-- navigating 為 truthy 時表示正在導航（即正在載入） -->
+{#if navigating}
+  <div class="scroll-loading">載入中…</div>
+{/if}
+```
+
+這移除了手動管理 `loading` 狀態的需求。
+
+---
+
+## 六、`columns` 初始化策略
+
+`columns` 不入 URL，保留為 UI 偏好狀態。
+
+`scrollMasonry.svelte.ts` 現有的 `detectBreakpoint()` 在 `onMount` 時依瀏覽器寬度設定初始欄數（需改為 setter callback 或由 `+page.svelte` 處理）。
+
+建議維持 `detectBreakpoint` 在 `scrollMasonry.svelte.ts` 中，但透過 options 的 setter 回寫：
 
 ```ts
-import { goto } from "$app/navigation";
-import { page } from "$app/state";
-
-interface EditorPaginationOptions {
-  readonly pages: number;
-}
-
-export function createEditorPagination(options: EditorPaginationOptions) {
-  // 不再 getEditorContext()
-
-  function handlePageClick(p: number) {
-    if (p < 1 || p > options.pages) return;
-    const params = new URLSearchParams(page.url.searchParams);
-    if (p > 1) params.set("page", String(p));
-    else params.delete("page");
-    const qs = params.toString();
-    goto(`/editor${qs ? `?${qs}` : ""}`, { noScroll: true });
-  }
-
-  return { handlePageClick };
-}
-```
-
-- ❌ 刪除 `doSearch()`（~30 行）、`validateSelection()`、`import { api }`
-- ❌ 不再 `getEditorContext()`——pagination 完全不依賴 ctx
-- ✅ 複製當前 URL params → 只改 `page` → `goto()`
-
----
-
-### 3.10 `EditorPagination.svelte` — 接收 props
-
-```svelte
-<script lang="ts">
-  import { createEditorPagination } from "./editorPagination.svelte.js";
-
-  type Props = { page: number; pages: number };
-  let { page, pages }: Props = $props();
-
-  const ui = createEditorPagination({
-    get pages() { return pages; },
-  });
-</script>
-
-{#if pages > 1}
-  <div class="editor-pagination">
-    <button class="btn btn-sm" disabled={page <= 1} onclick={() => ui.handlePageClick(page - 1)}>
-      上一頁
-    </button>
-    {#each Array.from({ length: Math.min(pages, 7) }, (_, i) => {
-      if (pages <= 7) return i + 1;
-      if (page <= 4) return i + 1;
-      if (page >= pages - 3) return pages - 6 + i;
-      return page - 3 + i;
-    }) as p}
-      <button class="btn btn-sm" class:btn-primary={p === page} onclick={() => ui.handlePageClick(p)}>
-        {p}
-      </button>
-    {/each}
-    <button class="btn btn-sm" disabled={page >= pages} onclick={() => ui.handlePageClick(page + 1)}>
-      下一頁
-    </button>
-  </div>
-{/if}
-```
-
-**差異**：
-- ❌ 不再 `getEditorContext()`
-- ✅ `page`、`pages` 改為 props
-- template 中所有 `ctx.page` → `page`，`ctx.pages` → `pages`
-
----
-
-### 3.11 `editorSelectionDock.svelte.ts` — 移除 Rating、unified loading
-
-```ts
-import { invalidateAll } from "$app/navigation";
-import { api } from "$lib/client/api.js";
-import { addToast, requestConfirm } from "$lib/client/dom.js";
-import { getEditorContext } from "./context.svelte.js";
-
-export function createEditorSelectionDock() {
-  const ctx = getEditorContext(); // 只用 selected
-
-  const count = $derived(ctx.selected.size);
-
-  // ─── Unified Loading ─────────────────────────────────
-  let loading = $state(false);
-
-  function clearSelection() {
-    ctx.selected = new Set();
-  }
-
-  async function handleDeleteClick() {
-    if (loading) return;
-    const ids = [...ctx.selected];
-    if (ids.length === 0) return;
-
-    const ok = await requestConfirm(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
-    if (!ok) return;
-
-    loading = true;
-    try {
-      let successCount = 0;
-      let failCount = 0;
-      for (const id of ids) {
-        const res = await api.del(`/api/images/${encodeURIComponent(id)}`);
-        if (res.ok) successCount++;
-        else failCount++;
-      }
-      clearSelection();
-      await invalidateAll(); // 重跑 load → data 更新 → props 更新
-      if (failCount > 0) addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
-      else addToast(`已刪除 ${successCount} 張圖片`, "success");
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function handleUnstageClick() {
-    // 本階段先空殼，見「七、退回 staged 功能規劃」
-  }
-
-  function handleCloseClick() {
-    clearSelection();
-  }
-
-  return {
-    get count() { return count; },
-    get loading() { return loading; },
-    handleCloseClick,
-    handleDeleteClick,
-    handleUnstageClick,
-  };
-}
-```
-
-**差異**：
-- ❌ 刪除 `doSearch()`（~30 行）、`handleRatingChange()`（~25 行）
-- ✅ `invalidateAll()` 取代 `doSearch()`——load 重跑 → data 更新 → props 自動傳遞
-- ✅ unified loading：`if (loading) return` + `try/finally`
-
----
-
-### 3.12 `EditorSelectionDock.svelte` — 移除 Rating，新增退回按鈕
-
-```svelte
-<script lang="ts">
-  import { IconTrash, IconArrowBackUp } from "@tabler/icons-svelte";
-  import SelectionDock from "$lib/components/SelectionDock.svelte";
-  import { createEditorSelectionDock } from "./editorSelectionDock.svelte.js";
-
-  const ui = createEditorSelectionDock();
-</script>
-
-<SelectionDock count={ui.count} onclose={ui.handleCloseClick}>
-  <button class="btn btn-sm" disabled={ui.loading} onclick={ui.handleUnstageClick}>
-    <IconArrowBackUp size={14} />
-    退回
-  </button>
-
-  <div class="dock-separator"></div>
-
-  <button class="btn btn-destructive btn-sm" disabled={ui.loading} onclick={ui.handleDeleteClick}>
-    <IconTrash size={14} />
-    刪除
-  </button>
-</SelectionDock>
-```
-
-- ❌ 移除 `Rating` 元件、`dockRating` 狀態、重置 `$effect`
-- ✅ 新增「退回」按鈕（空殼）、所有按鈕加 `disabled={ui.loading}`
-
----
-
-### 3.13 不需變更的檔案
-
-| 檔案 | 原因 |
-|------|------|
-| `FilterBar.svelte` | 共用元件，props 介面不變 |
-
----
-
-## 四、資料流
-
-### 4.1 篩選條件變更
-
-```
-使用者改 sort
-    ↓
-editorForm local $state 立即更新（UI 即時反映）
-    ↓
-handleFilterChange() → goto("/editor?sort=name", { replaceState, noScroll })
-    ↓
-SvelteKit 跑 +page.server.ts load（parseQueryParams → queryImages）
-    ↓
-data.result 更新
-    ↓
-+page.svelte 的 props 自動傳遞 → EditorList / EditorPagination 重繪
-```
-
-### 4.2 搜尋文字輸入
-
-```
-使用者打 "cat"
-    ↓
-editorForm searchValue = "cat"（input 立即顯示）
-    ↓
-handleSearchInput() → 300ms debounce → goto("/editor?search=cat", { replaceState, noScroll })
-    ↓
-（同 4.1 後半段）
-```
-
-### 4.3 翻頁
-
-```
-使用者點第 3 頁
-    ↓
-handlePageClick(3) → 複製當前 URL params → 設 page=3 → goto()（不加 replaceState → 歷史記錄）
-    ↓
-（同 4.1 後半段）
-```
-
-### 4.4 批次刪除
-
-```
-使用者刪除 5 張圖
-    ↓
-handleDeleteClick() → loading = true → buttons disabled
-    ↓
-API 呼叫 → clearSelection() → invalidateAll() → load 重跑
-    ↓
-data.result 更新 → props 自動傳遞 → finally → loading = false → buttons re-enabled
-```
-
-### 4.5 瀏覽器上/下一步（popstate）
-
-```
-使用者按瀏覽器返回
-    ↓
-URL 被瀏覽器歷史改為舊的（例如 /editor?search=dog）
-    ↓
-SvelteKit 跑 load → data 更新 → props 傳遞 → EditorList / EditorPagination 重繪
-    ↓
-afterNavigate(type='popstate') → parseQueryParams(page.url) → 同步 editorForm local state
-    ↓
-搜尋欄顯示 "dog"，FilterBar 顯示舊設定
-```
-
----
-
-## 五、各元件的資料來源對照
-
-| 元件 | 以前從哪拿 | 改造後從哪拿 |
-|------|-----------|-------------|
-| EditorForm — 篩選值 | `ctx.searchText` 等 | local `$state` + `$page.url` |
-| EditorList — items | `ctx.items` | **props** (from `+page.svelte`) |
-| EditorList — total/page/pages | `ctx.total` 等 | **props** |
-| EditorList — showLoading | `ctx.showLoading` | local `$state`（追蹤 `$navigating`） |
-| EditorList — selected | `ctx.selected` | **ctx**（唯一仍從 ctx 讀取的） |
-| EditorPagination — page/pages | `ctx.page`, `ctx.pages` | **props** |
-| EditorSelectionDock — count | `ctx.selected.size` | **ctx** |
-| EditorSelectionDock — loading | 無（改造新增） | local `$state` |
-
----
-
-## 六、Loading 處理
-
-| 位置 | 用途 | 機制 |
-|------|------|------|
-| `editorList.svelte.ts` | 顯示「搜尋中…」 | `$effect` 追蹤 `navigating`，延遲 200ms 顯示 |
-| `editorSelectionDock.svelte.ts` | 防止操作重複提交 + buttons disabled | unified `loading` 旗標，`try/finally` 管理 |
-
-ctx 不再持有任何 timer 引用或 loading 狀態。
-
----
-
-## 七、退回 staged 功能規劃
-
-> 後續階段。本次只在 dock 中放空殼按鈕。
-
-### 動機
-
-原本 SelectionDock 的批次評等（逐筆 PATCH）有四個問題：
-1. **只能改 rating**——tags 改不了
-2. **N 張 = N 次 API**——存在 partial failure
-3. **sort=rating 時排序錯亂**——需額外 `invalidateAll()` 處理
-4. **本質是覆蓋**——而 staging 流程本就是設定 rating/tags 的地方
-
-### 方案
-
-| 步驟 | 內容 | 影響範圍 |
-|------|------|----------|
-| 1 | dock 移除 Rating → 改為「退回」按鈕 | 已包含在本次計畫（空殼） |
-| 2 | 新增 API：committed → staged | 新端點 + DB 操作 |
-| 3 | staged 列表排序改為由新到舊 | 修改 staged 查詢的排序 |
-
-### 使用者流程
-
-```
-editor 選取圖片 → 點「退回」→ API 移回 staged → invalidateAll() → 列表更新
-    ↓
-staged 頁面 → 退回的圖在最上方 → 重新設定 rating/tags → commit
-```
-
----
-
-## 八、設計決策 Q&A
-
-### Q1：為什麼從 ctx 改為 props 傳遞查詢結果？
-
-Svelte 5 的 `$props()` 解構出的 `data` 如果直接在頂層同步寫入 ctx，會觸發編譯器警告「This reference only captures the initial value of `data`」。現行的 proxy 包裝雖然繞過了警告，但本質是個 hack。
-
-Props 是 Svelte 原生的響應式傳遞機制：
-- `data.result.items` 變更 → 子元件的 `items` prop 自動更新
-- SSR 時 props 正常運作，首屏 HTML 有完整資料
-- 不需要 proxy、不需要 `$effect` 同步、不需要 ctx 中轉
-
-### Q2：ctx 為什麼只剩 `selected`？
-
-逐項檢查：
-- **篩選值**：只有 EditorForm 讀寫 → local state
-- **查詢結果**：只從上往下流 → props
-- **loading**：只有 EditorList 用 → local state
-- **selected**：EditorList（讀寫 + template）和 EditorSelectionDock（讀）都需要 → **唯一需要跨元件共享的狀態**
-
-### Q3：headless UI 怎麼接收 props？
-
-透過 getter-based options 物件。Svelte 元件把 `$props()` 解構出的值透過 getter 傳給 factory function：
-
-```svelte
-const ui = createEditorList({
-  get items() { return items; },
+type ScrollMasonryOptions = {
+  // ...
+  columns: number;  // getter + setter
+};
+
+// onMount 中：
+onMount(() => {
+  const cols = detectBreakpoint();
+  options.columns = cols;  // 透過 setter 回寫至 +page.svelte 的 $state
 });
 ```
 
-headless UI 內部呼叫 `options.items` 時，走 getter 拿到**當下最新的** prop 值。跟共用元件（如 FilterBar 透過 props + bind）的思路一樣——資料從上往下流。
+`+page.svelte` 傳入時以 `bind:` 或 getter/setter 形式：
 
-### Q4：篩選 local state 為什麼放 editorForm 而不是 ctx？
-
-篩選值只有 EditorForm 需要讀寫（FilterBar 透過 bind 連接）。其他元件只關心查詢結果，不需要知道 sort / search 是什麼。
-
-### Q5：popstate 同步為什麼用 `afterNavigate` 而非 `$effect`？
-
-`$effect` 監聯 `$page.url.searchParams` 會在**每次**導航時觸發。問題場景：
-
-1. 使用者打 "c" → debounce 未觸發
-2. 使用者打 "ca" → debounce 觸發 → goto
-3. 使用者打 "cat" → local = "cat"
-4. goto for "ca" 完成 → `$effect` 讀到 "ca" → 覆蓋回 "ca" ← **錯誤**
-
-`afterNavigate` + `type === "popstate"` 只在瀏覽器上下步時同步，避免此問題。
-
-### Q6：`buildQueryString` 為什麼放 `$lib/utils.ts`？
-
-它是 `parseQueryParams()` 的反向操作，放在一起直覺。`URLSearchParams` 在 Node.js 與瀏覽器行為一致，無環境問題。未來其他路由 URL 化時可直接復用。
-
-### Q7：為什麼移除 Rating 改用「退回 staged」？
-
-批次評等有四個問題（只能改 rating、逐筆 PATCH、排序錯亂、本質是覆蓋）。退回 staged 用已有的 staging 流程解決所有問題——可同時改 rating 和 tags，單一 API 呼叫，零新增 UI。
-
-### Q8：EditorPagination 為什麼複製 URL 而非用 `buildQueryString`？
-
-翻頁只需複製當前 URL 再改 `page`，完全解耦於篩選邏輯。未來新增篩選欄位時不需要動它。
-
-### Q9：`validateSelection` 為什麼放在 `+page.svelte` 的 `$effect` 裡？
-
-它需要同時存取 `data.result.items`（props 層級）和 `ctx.selected`（ctx 層級）。放在 `+page.svelte` 是唯一兩者都可得的位置。且所有導致 items 變更的情境（goto、popstate、invalidateAll）都會觸發此 `$effect`。
+```svelte
+<ScrollMasonry items={data.items} bind:columns {pageContentEl} />
+```
 
 ---
 
-## 九、刪除的程式碼統計
+## 七、遷移後檔案結構
 
-| 被刪除的內容 | 來源 | 約行數 |
-|-------------|------|--------|
-| `doSearch()` + `validateSelection()` | `editorForm.svelte.ts` | ~40 |
-| `doSearch()` + `validateSelection()` | `editorPagination.svelte.ts` | ~40 |
-| `doSearch()` + `handleRatingChange()` | `editorSelectionDock.svelte.ts` | ~55 |
-| Rating 元件 + dockRating + reset $effect | `EditorSelectionDock.svelte` | ~10 |
-| 篩選欄位 × 6 + 結果欄位 × 4 | `context.svelte.ts` | ~20 |
-| loading/showLoading + timer × 2 + 常數 | `context.svelte.ts` | ~12 |
-| proxy 包裝 | `+page.svelte` | ~12 |
-| `import { api }` + `QueryResult` | 三個 `.svelte.ts` | ~6 |
-| **合計** | | **~195** |
+```
++page.server.ts          SSR：parseQueryParams(url) → queryImages
++page.svelte             接收 data，宣告 columns/$state，props 傳遞
+ScrollForm.svelte         接收 total prop，綁定 createScrollForm 的篩選狀態
+  scrollForm.svelte.ts    URL 初始化 + goto() 導航 + popstate 同步
+ScrollMasonry.svelte      接收 items/columns/pageContentEl props
+  scrollMasonry.svelte.ts 接收 options，佈局/虛擬化邏輯不變
+ScrollFab.svelte          接收 pageContentEl prop
+  scrollFab.svelte.ts     接收 options，監聽 scrollTop
+masonry/                  不改動
+```
+
+**刪除**：`context.svelte.ts`
+
+---
+
+## 八、注意事項
+
+1. **`noScroll: true`**：`goto()` 時必須設定，避免篩選變更後瀑布流自動捲回頂部。
+2. **`replaceState: true`**：篩選變更使用 `replaceState`，避免每次調整都產生歷史記錄。翻頁不適用此頁面（無分頁）。
+3. **`keepFocus: true`**：維持使用者焦點，避免 `goto()` 導航後焦點跳離。
+4. **masonry 子資料夾不改動**：`masonry-layout.ts`、`raf-aggregator.ts`、`virtualizer.svelte.ts` 為純邏輯模組，不依賴 Context，無需改動。
+5. **全量載入**：此路由為瀑布流無限捲動，不使用分頁，SSR 查詢時不設 `limit`。這與 `/editor`（`limit: 30`）不同。
+6. **JSDoc**：所有新增/修改的 `$state`、handler、return 成員須依 `frontend.md` §2.7 規範撰寫 JSDoc。
+7. **程式碼編排**：工廠函數內部依 `frontend.md` §2.6 段落順序排列：`$state` → `$derived` → 常數 → private helpers → handlers → `$effect` → return。
