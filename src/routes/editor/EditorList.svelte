@@ -1,40 +1,59 @@
 <script lang="ts">
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
+  import type { ImageWithId } from "$lib/types.js";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
-  import { getEditorContext } from "./context.svelte.js";
   import { createEditorList } from "./editorList.svelte.js";
 
-  const ctx = getEditorContext();
-  const ui = createEditorList();
+  type Props = {
+    items: ImageWithId[];
+    total: number;
+    page: number;
+    pages: number;
+    selected: Set<string>;
+  };
+
+  let { items, total, page, pages, selected = $bindable() }: Props = $props();
+
+  const ui = createEditorList({
+    get items() {
+      return items;
+    },
+    get selected() {
+      return selected;
+    },
+    set selected(v) {
+      selected = v;
+    },
+  });
 </script>
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-{#if ctx.total > 0}
+{#if total > 0}
   <div class="editor-list-info">
-    <span>{ctx.total} 張圖片</span>
-    {#if ctx.pages > 1}
+    <span>{total} 張圖片</span>
+    {#if pages > 1}
       <span class="editor-list-pager">
-        第 {ctx.page} / {ctx.pages} 頁
+        第 {page} / {pages} 頁
       </span>
     {/if}
   </div>
 {/if}
 
-{#if ctx.showLoading}
+{#if ui.showLoading}
   <div class="editor-list-status">搜尋中...</div>
-{:else if ctx.items.length === 0}
+{:else if items.length === 0}
   <div class="editor-list-status">找不到符合的圖片</div>
 {:else}
   <div class="editor-list-results">
-    {#each ctx.items as img (img.id)}
-      {@const selected = ctx.selected.has(img.id)}
+    {#each items as img (img.id)}
+      {@const sel = selected.has(img.id)}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="editor-list-card select-checkbox-host"
-        class:editor-list-card-selected={selected}
+        class:editor-list-card-selected={sel}
         onclick={() => ui.handleCardClick(img.id)}
       >
         <img
@@ -58,7 +77,7 @@
             </div>
           {/if}
         </div>
-        <SelectCheckbox checked={selected} size="sm" onchange={() => ui.handleCheckboxChange(img.id)} />
+        <SelectCheckbox checked={sel} size="sm" onchange={() => ui.handleCheckboxChange(img.id)} />
       </div>
     {/each}
   </div>

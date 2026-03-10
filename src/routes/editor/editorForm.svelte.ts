@@ -27,6 +27,9 @@ export function createEditorForm() {
   /** 搜尋文字 debounce 毫秒數 */
   const SEARCH_DEBOUNCE = 300;
 
+  /** 搜尋文字 debounce 計時器 */
+  let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   // ---
 
   /** Popstate 時從 URL 同步篩選狀態，避免與 goto 導航衝突 */
@@ -46,9 +49,6 @@ export function createEditorForm() {
   function currentQueryString(): string {
     return buildQueryString({ search: searchValue, tags: selectedTags, rating, ratingOp, sort, order });
   }
-
-  /** 搜尋文字 debounce 計時器 */
-  let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ---
 
