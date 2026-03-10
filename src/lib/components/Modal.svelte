@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { createModal } from "$lib/client/modal.svelte.js";
+  import { createModal } from "$lib/ui/modal.svelte.js";
 
   type Props = {
     /** 是否開啟 Modal */

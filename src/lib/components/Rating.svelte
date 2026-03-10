@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconStar, IconStarFilled } from "@tabler/icons-svelte";
-  import { createRating } from "$lib/client/rating.svelte.js";
+  import { createRating } from "$lib/ui/rating.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前分數（0–5），0 = 未評分 */

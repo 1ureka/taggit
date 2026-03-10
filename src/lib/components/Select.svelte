@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconChevronDown } from "@tabler/icons-svelte";
   import { float } from "$lib/client/float.js";
-  import { createSelect, type SelectItem } from "$lib/client/select.svelte.js";
+  import { createSelect, type SelectItem } from "$lib/ui/select.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前選中的值 */
