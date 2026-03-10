@@ -1,34 +1,38 @@
 <script lang="ts">
-  let {
-    message,
-    onconfirm,
-    oncancel,
-  }: {
-    message: string;
-    onconfirm: () => void;
-    oncancel: () => void;
-  } = $props();
+  import Modal from "./Modal.svelte";
+  import { createConfirmModal } from "$lib/client/confirmModal.svelte.js";
 
-  function handleOverlayClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) oncancel();
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") oncancel();
-  }
+  const ui = createConfirmModal();
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={handleOverlayClick}>
-  <div class="modal scale-in">
+<Modal bind:open={ui.open} onclose={ui.handleModalClose} label="確認對話框">
+  {#snippet children()}
     <div class="modal-title">確認</div>
-    <div class="modal-body">{message}</div>
+    <div class="modal-body">{ui.message}</div>
     <div class="modal-actions">
-      <button class="btn" onclick={oncancel}>取消</button>
-      <button class="btn btn-primary" onclick={onconfirm}>確認</button>
+      <button class="btn" onclick={ui.handleCancelClick}>取消</button>
+      <button class="btn btn-primary" onclick={ui.handleConfirmClick}>確認</button>
     </div>
-  </div>
-</div>
+  {/snippet}
+</Modal>
+
+<style>
+  .modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-body {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+</style>

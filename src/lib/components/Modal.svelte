@@ -26,10 +26,31 @@
 </script>
 
 {#if open}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="modal-overlay" onclick={ui.handleOverlayClick} onkeydown={ui.handleOverlayKeydown}>
+  <div class="modal-overlay" role="presentation" onclick={ui.handleOverlayClick} onkeydown={ui.handleOverlayKeydown}>
     <div class="modal scale-in" role="dialog" aria-modal="true" aria-label={label} bind:this={ui.dialogEl}>
       {@render children()}
     </div>
   </div>
 {/if}
+
+<style>
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    padding: 1.5rem;
+    max-width: 28rem;
+    width: 90%;
+  }
+</style>
