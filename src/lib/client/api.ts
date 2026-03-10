@@ -1,96 +1,68 @@
-/**
- * @file client/api.ts
- * Lightweight fetch wrappers for client-side use.
- *
- * Used by client-heavy pages (tagger, editor, browse, scroll, compare).
- * Must NOT be imported from server-only modules — it relies on the browser
- * `fetch` global and is bundled into the client JavaScript bundle.
- */
+import { hasKey } from "$lib/utils";
 
-/**
- * Internal helper that executes a fetch request and normalises the response
- * into a consistent shape.
- *
- * @param method - HTTP verb (`GET`, `POST`, `PATCH`, `DELETE`, …).
- * @param url - The URL to fetch.
- * @param body - Optional request body; will be JSON-serialised.
- * @returns A promise resolving to `{ ok, data?, error?, status }`.
- */
-async function request<T>(
-  method: string,
-  url: string,
-  body?: unknown,
-): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
+/** 所有 API 端點的統一回應格式。 */
+interface ApiResponse<T = unknown> {
+  /** 請求是否成功 */
+  ok: boolean;
+  /** 回應資料（僅在成功時存在） */
+  data?: T;
+  /** 錯誤訊息（僅在失敗時存在） */
+  error?: string;
+  /** HTTP 狀態碼 */
+  status: number;
+}
+
+/** 內部共用的請求函式，統一處理回應格式。 */
+async function request<T>(method: string, url: string, body?: unknown): Promise<ApiResponse<T>> {
   const opts: RequestInit = { method };
 
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    opts.body = body;
+  } else if (body !== undefined && body !== null) {
     opts.headers = { "Content-Type": "application/json" };
     opts.body = JSON.stringify(body);
   }
 
   const res = await fetch(url, opts);
-  let data: unknown;
+  let json: unknown;
   try {
-    data = await res.json();
+    json = await res.json();
   } catch {
-    data = null;
+    json = null;
   }
 
   if (!res.ok) {
-    const error =
-      typeof data === "object" && data !== null && "error" in data
-        ? String((data as Record<string, unknown>).error)
-        : res.statusText;
+    const error = hasKey(json, "error") ? String(json.error) : res.statusText;
     return { ok: false, error, status: res.status };
   }
 
-  // Unwrap the server's { ok, data } envelope so callers receive the inner payload directly.
-  if (typeof data === "object" && data !== null && "data" in data) {
-    return { ok: true, data: (data as Record<string, unknown>).data as T, status: res.status };
+  // 拆開伺服器的 { ok, data } 封包，讓呼叫端直接取得內層資料
+  if (hasKey(json, "data")) {
+    return { ok: true, data: json.data as T, status: res.status };
+  } else {
+    return { ok: true, data: json as T, status: res.status };
   }
-  return { ok: true, data: data as T, status: res.status };
 }
 
 /**
- * Typed HTTP helpers for reaching the SvelteKit API routes.
+ * 統一的 HTTP 請求工具，對應 SvelteKit API 路由。
  *
  * @example
  * ```ts
- * import { api } from "$lib/client/api.js";
- *
  * const res = await api.get<{ images: ImageWithId[] }>("/api/images?limit=20");
  * if (res.ok) console.log(res.data);
  * ```
  */
 export const api = {
-  /**
-   * Sends a GET request.
-   *
-   * @param url - The endpoint URL.
-   */
+  /** 發送 GET 請求。 */
   get: <T>(url: string) => request<T>("GET", url),
 
-  /**
-   * Sends a POST request with an optional JSON body.
-   *
-   * @param url - The endpoint URL.
-   * @param body - Optional payload to JSON-serialise.
-   */
+  /** 發送 POST 請求，可附帶 JSON 或 FormData。 */
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body),
 
-  /**
-   * Sends a PATCH request with an optional JSON body.
-   *
-   * @param url - The endpoint URL.
-   * @param body - Optional payload to JSON-serialise.
-   */
+  /** 發送 PATCH 請求，可附帶 JSON body。 */
   patch: <T>(url: string, body?: unknown) => request<T>("PATCH", url, body),
 
-  /**
-   * Sends a DELETE request with an optional JSON body.
-   *
-   * @param url - The endpoint URL.
-   * @param body - Optional payload to JSON-serialise.
-   */
+  /** 發送 DELETE 請求，可附帶 JSON body。 */
   del: <T>(url: string, body?: unknown) => request<T>("DELETE", url, body),
 };

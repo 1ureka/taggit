@@ -160,19 +160,3 @@ export interface Stats {
   /** 垃圾桶中的檔案數量 */
   trashCount: number;
 }
-
-// ---
-
-/**
- * 所有 API 端點的統一回應格式。
- * 成功時 `ok` 為 `true` 且 `data` 包含回應資料；
- * 失敗時 `ok` 為 `false` 且 `error` 包含錯誤訊息。
- */
-export interface ApiResponse<T = unknown> {
-  /** 請求是否成功 */
-  ok: boolean;
-  /** 回應資料（僅在成功時存在） */
-  data?: T;
-  /** 錯誤訊息（僅在失敗時存在） */
-  error?: string;
-}
