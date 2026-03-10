@@ -1,4 +1,7 @@
+import type { ImageArea, ImageSize } from "$lib/types";
 import { hasKey } from "$lib/utils";
+
+// ---
 
 /** 所有 API 端點的統一回應格式。 */
 interface ApiResponse<T = unknown> {
@@ -44,6 +47,8 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   }
 }
 
+// ---
+
 /**
  * 統一的 HTTP 請求工具，對應 SvelteKit API 路由。
  *
@@ -66,3 +71,18 @@ export const api = {
   /** 發送 DELETE 請求，可附帶 JSON body。 */
   del: <T>(url: string, body?: unknown) => request<T>("DELETE", url, body),
 };
+
+/**
+ * 構建 `/img/{area}/{file}` 的圖片 URL，自動處理 URL 編碼與尺寸參數。
+ *
+ * @example
+ * ```ts
+ * const url = imgSrc("committed", "一張圖片.jpg", "md");
+ * // url 會是 "/img/committed/%E4%B8%80%E5%BC%B5%E5%9C%96%E7%89%87.jpg?size=md"
+ * ```
+ */
+export function imgSrc(area: ImageArea, file: string, size?: ImageSize): string {
+  const encoded = encodeURIComponent(file);
+  const sizeParam = size ? `?size=${size}` : "";
+  return `/img/${area}/${encoded}${sizeParam}`;
+}
