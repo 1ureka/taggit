@@ -103,6 +103,9 @@ export function resumeAll() {
       const remaining = t.remaining;
       if (remaining > 0) {
         scheduleRemoval(t.id, remaining);
+      } else {
+        // Toast expired during pause — dismiss immediately
+        scheduleRemoval(t.id, 0);
       }
       return { ...t, createdAt: now, remaining };
     }),
