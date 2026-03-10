@@ -1,21 +1,32 @@
 import { throttle } from "$lib/utils.js";
-import { getScrollContext } from "./context.svelte.js";
+
+/**
+ * ScrollFab 的配置選項
+ */
+type ScrollFabOptions = {
+  /** 頁面捲動容器 DOM 引用 */
+  pageContentEl: HTMLElement | null;
+};
 
 /**
  * 建立回到頂部按鈕邏輯的核心工廠函數
  */
-export function createScrollFab() {
-  /** Scroll 頁面共享的 Context */
-  const ctx = getScrollContext();
-
+export function createScrollFab(options: ScrollFabOptions) {
   /** 是否顯示回到頂部按鈕 */
   let showFab = $state(false);
 
   // ---
 
+  /** 處理 FAB 點擊事件，滾動到頂部 */
+  function handleFabClick() {
+    options.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ---
+
   // 監聽頁面捲動事件以控制回到頂部按鈕顯示
   $effect(() => {
-    const el = ctx.pageContentEl;
+    const el = options.pageContentEl;
     if (!el) return;
 
     const onScroll = throttle(() => {
@@ -25,13 +36,6 @@ export function createScrollFab() {
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   });
-
-  // ---
-
-  /** 處理 FAB 點擊事件，滾動到頂部 */
-  function handleFabClick() {
-    ctx.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
-  }
 
   // ---
 

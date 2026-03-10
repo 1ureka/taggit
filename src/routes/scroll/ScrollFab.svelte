@@ -3,7 +3,13 @@
   import { fly } from "svelte/transition";
   import { createScrollFab } from "./scrollFab.svelte.js";
 
-  const ui = createScrollFab();
+  let { pageContentEl }: { pageContentEl: HTMLElement | null } = $props();
+
+  const ui = createScrollFab({
+    get pageContentEl() {
+      return pageContentEl;
+    },
+  });
 </script>
 
 {#if ui.showFab}
