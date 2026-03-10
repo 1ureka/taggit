@@ -28,9 +28,9 @@ export function createSettingsImages() {
     cacheBusy = true;
     cacheResult = "";
 
-    const res = await api.del("/api/maintenance/cache");
-    if (res.ok) {
-      cacheResult = "已清空圖片快取";
+    const res = await api.del<{ cleared: number }>("/api/maintenance/cache");
+    if (res.ok && res.data) {
+      cacheResult = `已清空 ${res.data.cleared} 筆快取`;
       ctx.cacheEntries = 0;
       ctx.cacheBytes = 0;
     } else {

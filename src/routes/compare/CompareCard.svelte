@@ -2,6 +2,7 @@
   import type { ImageWithId } from "$lib/types.js";
   import Rating from "$lib/components/Rating.svelte";
   import { blurhashStyle } from "$lib/client/blurhash";
+  import { imgSrc } from "$lib/client/api";
 
   type Props = { image: ImageWithId; onclick: () => void };
   let { image, onclick }: Props = $props();
@@ -11,7 +12,7 @@
   <div class="compare-card-image">
     {#key image.id}
       <img
-        src="/img/committed/{image.id}{image.ext}"
+        src={imgSrc("committed", `${image.id}${image.ext}`)}
         style={blurhashStyle({ fit: "contain", blurhash: image.blurhash, width: image.width, height: image.height })}
         alt={image.name || image.id}
         draggable="false"

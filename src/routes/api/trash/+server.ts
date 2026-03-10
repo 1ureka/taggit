@@ -1,9 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
+import { getTrashFiles, requirePaths, uniqueFilename } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
-import { guardLoaded, getPaths, getTrashFiles, uniqueFilename } from "$lib/server/helpers.js";
 
 /**
  * GET /api/trash — list trash filenames with pagination & optional search.
@@ -14,10 +13,10 @@ import { guardLoaded, getPaths, getTrashFiles, uniqueFilename } from "$lib/serve
  *   search — substring filter on filename (case-insensitive)
  */
 export const GET: RequestHandler = ({ url }) => {
-  const err = guardLoaded();
-  if (err) return err;
+  const paths = requirePaths();
+  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  let allFiles = getTrashFiles();
+  let allFiles = getTrashFiles(paths);
 
   // Optional filename search
   const search = url.searchParams.get("search")?.trim().toLowerCase();
@@ -44,10 +43,9 @@ export const GET: RequestHandler = ({ url }) => {
  * POST /api/trash — restore ALL files in trash/ back to staged/.
  */
 export const POST: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
+  const paths = requirePaths();
+  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const paths = getPaths();
   const trashDir = paths.trash;
   let restored = 0;
 
@@ -74,10 +72,10 @@ export const POST: RequestHandler = () => {
  * DELETE /api/trash — permanently delete ALL files in trash/.
  */
 export const DELETE: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
+  const paths = requirePaths();
+  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const trashDir = getPaths().trash;
+  const trashDir = paths.trash;
   let deleted = 0;
 
   try {

@@ -1,97 +1,162 @@
-// ─── Image ─────────────────────────────────────────────────────────────
-
+/**
+ * 已提交圖片的中繼資料紀錄。
+ * 每張圖片在提交至收藏庫時，伺服器會擷取檔案資訊與影像屬性，
+ * 連同使用者可編輯的名稱、標籤、評分一併持久化至 db.json。
+ */
 export interface ImageRecord {
-  ext: string; // '.png', '.jpg', etc.
-  name: string; // user-editable image name
-  tags: string[]; // tag list
-  rating: number; // 0-5
-  committedAt: number; // Unix ms
-  updatedAt: number; // Unix ms (conflict detection)
-  fileSize: number; // bytes
-  width: number; // px, 0 = unknown
-  height: number; // px, 0 = unknown
-  blurhash: string; // BlurHash string, empty = unable to compute
+  /** 檔案副檔名，含前導點號（如 `".png"`、`".jpg"`） */
+  ext: string;
+  /** 使用者可編輯的圖片名稱 */
+  name: string;
+  /** 使用者指派的標籤列表 */
+  tags: string[];
+  /** 使用者評分，範圍 0–5；0 表示未評分 */
+  rating: number;
+  /** 圖片首次提交至收藏庫的時間戳（Unix 毫秒），提交後不再變動 */
+  committedAt: number;
+  /** 中繼資料最後更新的時間戳（Unix 毫秒），用於樂觀並行控制的衝突偵測 */
+  updatedAt: number;
+  /** 原始檔案大小（位元組） */
+  fileSize: number;
+  /** 圖片寬度（像素）；0 表示無法取得 */
+  width: number;
+  /** 圖片高度（像素）；0 表示無法取得 */
+  height: number;
+  /** BlurHash 編碼字串，作為圖片載入前的模糊佔位圖；空字串表示無法計算 */
+  blurhash: string;
 }
 
+/**
+ * 帶有唯一識別碼的圖片紀錄。
+ * `id` 為提交時隨機產生的 16 字元十六進位字串，
+ * 同時作為 db.json 中的鍵與磁碟上 committed 目錄的檔名前綴。
+ */
 export interface ImageWithId extends ImageRecord {
+  /** 圖片的唯一識別碼（16 字元十六進位字串） */
   id: string;
 }
 
+/**
+ * 圖片所在的區域。
+ * - `"staged"`：新匯入待審查的暫存區
+ * - `"committed"`：已提交並建檔的收藏區
+ * - `"trash"`：已刪除的垃圾桶
+ */
 export type ImageArea = "committed" | "staged" | "trash";
 
+/**
+ * 圖片尺寸預設。
+ * - `"sm"`：小型縮圖（最大 512×512 像素）
+ * - `"md"`：中型縮圖（最大 1024×1024 像素）
+ * - `"xl"`：原始尺寸，不經過縮放直接提供
+ */
 export type ImageSize = "sm" | "md" | "xl";
 
-// ─── Server Config ────────────────────────────────────────────────────────────
+// ---
 
+/**
+ * 伺服器組態。
+ * 持久化於專案根目錄的 server.json，記錄使用者指定的收藏庫路徑。
+ */
 export interface ServerConfig {
-  collectionRoot?: string; // abs path; undefined = not yet set
+  /** 收藏庫根目錄的絕對路徑；`undefined` 表示尚未設定 */
+  collectionRoot?: string;
 }
 
-// ─── Collection Paths ─────────────────────────────────────────────────────────
-
+/**
+ * 由收藏庫根目錄衍生的完整路徑集合。
+ * 包含暫存、已提交、垃圾桶三個子目錄，以及資料庫檔案的路徑。
+ */
 export interface CollectionPaths {
+  /** 收藏庫根目錄 */
   root: string;
+  /** 暫存區目錄（`<root>/staged`） */
   staged: string;
+  /** 已提交區目錄（`<root>/committed`） */
   committed: string;
+  /** 垃圾桶目錄（`<root>/trash`） */
   trash: string;
+  /** 資料庫檔案路徑（`<root>/db.json`） */
   db: string;
 }
 
-// ─── DB ──────────────────────────────────────────────────────────────────────
+// ---
 
 /**
- * db.json structure
+ * db.json 的頂層結構。
+ * 以 JSON 檔案形式持久化於收藏庫根目錄，
+ * 在伺服器啟動時載入記憶體，並透過防抖寫回機制同步至磁碟。
  */
 export interface DBData {
+  /** 資料庫結構版本號 */
   version: number;
+  /** 圖片紀錄對映表，鍵為圖片 ID */
   images: Record<string, ImageRecord>;
 }
 
-// ─── Query ───────────────────────────────────────────────────────────────────
-
 /**
- * Unified query options for image listing.
- * - If `limit` is set (> 0), results are paginated.
- * - If `limit` is omitted or 0, ALL matching results are returned (no pagination).
+ * 圖片列表的統一查詢選項。
+ * 所有欄位皆為可選；當 `limit` 大於 0 時啟用分頁，
+ * 若 `limit` 為 0 或未指定則回傳所有符合條件的結果。
  */
 export interface QueryOptions {
-  search?: string; // name substring search
+  /** 圖片名稱的子字串搜尋（不區分大小寫） */
+  search?: string;
+  /** 標籤篩選，須同時符合所有指定標籤（AND 語意） */
   tags?: string[];
+  /** 評分篩選的閾值 */
   rating?: number;
+  /** 評分比較運算子：大於等於、小於等於、等於 */
   ratingOp?: "gte" | "lte" | "eq";
+  /** 排序欄位；`"random"` 會以 Fisher-Yates 洗牌隨機排列 */
   sort?: "committedAt" | "rating" | "name" | "random";
+  /** 排序方向 */
   order?: "asc" | "desc";
+  /** 頁碼（從 1 開始） */
   page?: number;
-  limit?: number; // 0 or undefined = return all
+  /** 每頁筆數；0 或未指定表示不分頁，回傳全部結果 */
+  limit?: number;
 }
 
+/**
+ * 圖片查詢的回傳結果。
+ * 包含當前頁的圖片清單以及分頁資訊。
+ */
 export interface QueryResult {
+  /** 當前頁的圖片清單 */
   items: ImageWithId[];
+  /** 符合篩選條件的總筆數 */
   total: number;
+  /** 當前頁碼 */
   page: number;
+  /** 總頁數 */
   pages: number;
 }
 
-// ─── Tag ─────────────────────────────────────────────────────────────────────
+// ---
 
+/**
+ * 標籤的聚合資訊。
+ * 用於標籤自動完成與統計介面，依使用次數由多至少排序。
+ */
 export interface TagInfo {
+  /** 標籤名稱 */
   name: string;
+  /** 使用該標籤的圖片數量 */
   count: number;
 }
 
-// ─── Stats ───────────────────────────────────────────────────────────────────
-
+/**
+ * 收藏庫的整體統計數據。
+ * 用於首頁儀表板，呈現收藏庫的概覽資訊。
+ */
 export interface Stats {
+  /** 已提交的圖片總數 */
   totalImages: number;
+  /** 不重複的標籤總數 */
   totalTags: number;
+  /** 暫存區中待審查的檔案數量 */
   stagedCount: number;
+  /** 垃圾桶中的檔案數量 */
   trashCount: number;
-}
-
-// ─── API Response ─────────────────────────────────────────────────────────────
-
-export interface ApiResponse<T = unknown> {
-  ok: boolean;
-  data?: T;
-  error?: string;
 }

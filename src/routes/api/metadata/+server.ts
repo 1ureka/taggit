@@ -1,17 +1,14 @@
 import path from "path";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import { getDB } from "$lib/server/db.js";
-import { guardLoaded, getPaths } from "$lib/server/helpers.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
+import { requireDatabase } from "$lib/server/helpers.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /** POST /api/metadata — 為缺少 blurhash/寬高 的圖片補算元資料 */
 export const POST: RequestHandler = async () => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const db = getDB();
-  const paths = getPaths();
+  const { db, paths } = loaded;
   const images = db.data.images;
 
   let updated = 0;
@@ -44,10 +41,10 @@ export const POST: RequestHandler = async () => {
 
 /** GET /api/metadata — 檢查缺少元資料的圖片數量 */
 export const GET: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const images = getDB().data.images;
+  const images = loaded.db.data.images;
   let missing = 0;
 
   for (const record of Object.values(images)) {

@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { isInEditable } from "$lib/client/dom.js";
   import { IconPlayerPause, IconPlayerPlay, IconFilter } from "@tabler/icons-svelte";
   import type { ImageWithId } from "$lib/types.js";
   import type { PageData } from "./$types.js";
+
+  import { isInEditable } from "$lib/client/dom.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
+  import { imgSrc } from "$lib/client/api.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -28,11 +30,6 @@
   let playBtnEl: HTMLButtonElement | undefined = $state();
   let backBtnEl: HTMLButtonElement | undefined = $state();
   let feedbackEl: HTMLDivElement | undefined = $state();
-
-  // Build committed image URL
-  function committedUrl(img: ImageWithId): string {
-    return `/img/committed/${img.id}${img.ext}`;
-  }
 
   onMount(() => {
     const images: ImageWithId[] = data.images;
@@ -131,13 +128,14 @@
         if (el) {
           pool.delete(info.imgIdx);
         } else {
+          const img = images[info.imgIdx];
+
           el = document.createElement("img");
-          el.src = committedUrl(images[info.imgIdx]);
-          el.alt = images[info.imgIdx].name || "";
+          el.src = imgSrc("committed", `${img.id}${img.ext}`);
+          el.alt = img.name || "";
           el.draggable = false;
           el.dataset.idx = String(info.imgIdx);
 
-          const img = images[info.imgIdx];
           el.style.cssText = blurhashStyle({
             fit: "contain",
             blurhash: img.blurhash,
@@ -146,7 +144,7 @@
           });
 
           el.style.width = widths[info.imgIdx] + "px";
-          carouselEl!.appendChild(el);
+          carouselEl.appendChild(el);
         }
         el.style.left = info.left + "px";
         renderedMap.set(key, { el, left: info.left });

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { blurhashStyle } from "$lib/client/blurhash.js";
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
+  import { imgSrc } from "$lib/client/api.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
   import { getEditorContext } from "./context.svelte.js";
   import { createEditorList } from "./editorList.svelte.js";
 
@@ -38,7 +39,7 @@
       >
         <img
           class="editor-list-card-thumb"
-          src="/img/committed/{img.id}{img.ext}?size=sm"
+          src={imgSrc("committed", `${img.id}${img.ext}`, "sm")}
           style={blurhashStyle({ fit: "cover", blurhash: img.blurhash })}
           alt={img.name || img.id}
           loading="lazy"

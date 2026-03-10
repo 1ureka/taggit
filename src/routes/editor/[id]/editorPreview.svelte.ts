@@ -1,3 +1,4 @@
+import { imgSrc } from "$lib/client/api.js";
 import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
 import { getEditorDetailContext } from "./context.svelte.js";
 
@@ -11,7 +12,7 @@ export function createEditorPreview() {
   /** 目前預覽的檔案名稱 */
   const previewFilename = $derived(ctx.image ? ctx.image.id + ctx.image.ext : null);
   /** 目前預覽的圖片路徑 */
-  const previewSrc = $derived(previewFilename ? `/img/committed/${previewFilename}` : "");
+  const previewSrc = $derived(previewFilename ? imgSrc("committed", previewFilename) : "");
 
   // ---
 

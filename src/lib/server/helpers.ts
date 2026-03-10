@@ -6,33 +6,39 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import { getDB } from "./db.js";
+import { getDB, type JSONDatabase } from "./db.js";
 import { getCollectionPaths, IMG_EXTS } from "./config.js";
 import { sortCollator } from "$lib/utils.js";
 import type { CollectionPaths } from "$lib/types.js";
 
 /**
- * 若資料庫未載入，回傳 503 錯誤回應；否則回傳 `null`。
- * 用法：`const err = guardLoaded(); if (err) return err;`
+ * 若集合已知路徑，回傳 CollectionPaths；否則回傳 null。
+ * 已知路徑不代表集合已載入 (DB 可能尚未載入或載入失敗)
  */
-export function guardLoaded(): Response | null {
-  if (!getDB().isLoaded()) {
-    return json({ ok: false, error: "No collection loaded" }, { status: 503 });
-  }
-  return null;
+export function requirePaths(): CollectionPaths | null {
+  const db = getDB();
+  const root = db.getCurrentRoot();
+  if (!root) return null;
+  return getCollectionPaths(root);
 }
 
-/** `getCollectionPaths(getDB().getCurrentRoot()!)` 的簡寫。 */
-export function getPaths(): CollectionPaths {
-  return getCollectionPaths(getDB().getCurrentRoot()!);
+/**
+ * 若集合已載入，回傳 JSONDatabase 實例；否則回傳 null。
+ * 呼叫端需自行回傳 503。
+ */
+export function requireDatabase(): { db: JSONDatabase; paths: CollectionPaths } | null {
+  const db = getDB();
+  if (!db.isLoaded()) return null;
+  const paths = requirePaths();
+  if (!paths) return null;
+  return { db, paths };
 }
 
 // ---
 
 /** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
-export function getStagedFiles(): string[] {
+export function getStagedFiles({ staged }: CollectionPaths): string[] {
   try {
-    const staged = getPaths().staged;
     return fs
       .readdirSync(staged)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
@@ -43,9 +49,8 @@ export function getStagedFiles(): string[] {
 }
 
 /** 列出 trash/ 目錄中的圖片檔名，依字母排序。 */
-export function getTrashFiles(): string[] {
+export function getTrashFiles({ trash }: CollectionPaths): string[] {
   try {
-    const trash = getPaths().trash;
     return fs
       .readdirSync(trash)
       .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))

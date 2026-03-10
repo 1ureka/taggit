@@ -72,11 +72,11 @@ export function updateImage(jsonDB: JSONDatabase, id: string, patch: UpdateImage
   const rec = jsonDB.data.images[id];
 
   if (!rec) {
-    throw new Error("Image not found: " + id);
+    throw Object.assign(new Error("Image not found"), { status: 404 });
   }
 
   if (rec.updatedAt !== patch.expectedUpdatedAt) {
-    throw Object.assign(new Error("Conflict"), { status: 409, record: { id, ...rec } });
+    throw Object.assign(new Error("Conflict"), { status: 409 });
   }
 
   jsonDB.indexRemove(id, rec);

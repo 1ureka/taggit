@@ -1,18 +1,16 @@
 import fs from "fs";
 import path from "path";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import { getDB } from "$lib/server/db.js";
-import { guardLoaded, getPaths } from "$lib/server/helpers.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
+import { requireDatabase } from "$lib/server/helpers.js";
 
 /** POST /api/maintenance/backup — create a timestamped backup of db.json */
 export const POST: RequestHandler = () => {
-  const err = guardLoaded();
-  if (err) return err;
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  getDB().flush();
+  const { db, paths } = loaded;
+  db.flush();
 
-  const paths = getPaths();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const backupPath = path.join(paths.root, `db.backup.${timestamp}.json`);
 

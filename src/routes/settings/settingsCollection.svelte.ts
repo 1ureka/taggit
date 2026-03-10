@@ -1,3 +1,4 @@
+import { api } from "$lib/client/api.js";
 import { getSettingsContext } from "./context.svelte.js";
 
 /**
@@ -25,21 +26,16 @@ export function createSettingsCollection() {
     message = "";
     isError = false;
 
-    const res = await fetch("/api/maintenance/setup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ collectionRoot: inputValue.trim() }),
-    });
-    const json = await res.json();
+    const res = await api.post("/api/maintenance/setup", { collectionRoot: inputValue.trim() });
     saving = false;
 
-    if (json.ok) {
+    if (res.ok) {
       message = "儲存成功";
       isError = false;
       window.location.href = "/settings";
     } else {
       isError = true;
-      message = json.error ?? "未知錯誤";
+      message = res.error ?? "未知錯誤";
     }
   }
 

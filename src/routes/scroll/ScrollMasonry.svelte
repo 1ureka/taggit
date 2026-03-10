@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { getScrollContext } from "./context.svelte.js";
   import { createScrollMasonry } from "./scrollMasonry.svelte.js";
@@ -21,7 +22,7 @@
     >
       <img
         class="masonry-img"
-        src="/img/committed/{item.id}{item.ext}?size=md"
+        src={imgSrc("committed", `${item.id}${item.ext}`, "md")}
         style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
         alt={item.name || item.id}
         loading="lazy"

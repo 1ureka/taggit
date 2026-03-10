@@ -1,3 +1,4 @@
+import { imgSrc } from "$lib/client/api.js";
 import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
 import { getTaggerContext } from "./context.svelte.js";
 
@@ -15,7 +16,7 @@ export function createTaggerPreview() {
   /** 目前游標所指的檔案名稱 */
   const currentFile = $derived(ctx.cursor >= 0 && ctx.cursor < ctx.list.length ? ctx.list[ctx.cursor] : null);
   /** 預覽圖片的 URL */
-  const previewSrc = $derived(currentFile ? `/img/staged/${encodeURIComponent(currentFile)}` : "");
+  const previewSrc = $derived(currentFile ? imgSrc("staged", currentFile) : "");
   /** 已選取的圖片數量 */
   const selectedCount = $derived(ctx.selected.size);
 
