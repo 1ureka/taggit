@@ -63,5 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (added.length > 0) {
     return json({ ok: true, data: { added, errors } }, { status: 201 });
   }
-  return json({ ok: false, data: { added, errors } }, { status: 400 });
+
+  const summary = errors.length === 1 ? errors[0] : `${errors.length} file(s) failed to upload`;
+  return json({ ok: false, error: summary }, { status: 400 });
 };

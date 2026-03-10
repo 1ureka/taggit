@@ -61,14 +61,9 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
     return json({ ok: true, data: updated });
   } catch (e) {
-    if ((e as any).status === 409) {
-      return json({ ok: false, error: "Conflict", data: (e as any).record }, { status: 409 });
+    if (e instanceof Error && "status" in e && typeof e.status === "number") {
+      return json({ ok: false, error: e.message }, { status: e.status });
     }
-
-    if ((e as Error).message?.includes("not found")) {
-      return json({ ok: false, error: "Image not found" }, { status: 404 });
-    }
-
     throw e;
   }
 };
