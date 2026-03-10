@@ -37,7 +37,8 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 </script>
 ```
 
-這讓 URL 狀態的消費者與來源之間不經過 `+page.svelte` 中轉，避免不必要的 prop 傳遞。
+這讓 URL 狀態的消費者與來源之間不經過 `+page.svelte` 中轉，避免不必要的 prop 傳遞；
+此外，使用 `goto()` 時，要記得有三個重要選項 `{ replaceState: boolean, noScroll: boolean, keepFocus: boolean }`，確保 URL 更新不會干擾使用者體驗。
 
 ### 1.2 `+page.svelte` — 頁面殼
 
