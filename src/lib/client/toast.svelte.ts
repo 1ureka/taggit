@@ -1,6 +1,25 @@
 import { tick } from "svelte";
-import { toasts, dismissToast, finalizeRemoval, pauseAll, resumeAll } from "$lib/client/toast.js";
-import type { ToastItem } from "$lib/client/toast.js";
+import { TOAST_EVENT, type ToastPayload, type ToastType } from "$lib/client/toast.js";
+
+/**
+ * Toast 項目資料結構
+ */
+interface ToastItem {
+  /** 唯一識別 ID */
+  id: number;
+  /** Toast 訊息內容 */
+  message: string;
+  /** Toast 類型 */
+  type: ToastType;
+  /** 顯示時間 (ms) */
+  duration: number;
+  /** 是否正在移除中 */
+  removing: boolean;
+  /** 建立時間戳 */
+  createdAt: number;
+  /** 剩餘顯示時間 (ms) */
+  remaining: number;
+}
 
 /**
  * Toast 堆疊通知組件的配置選項
@@ -31,22 +50,100 @@ export function createToast(options: ToastOptions) {
   /** 正在進入動畫中的 toast ID 集合 */
   let entering: Set<number> = $state(new Set());
 
-  // 訂閱全域 toast store
-  toasts.subscribe((v) => {
-    const prevIds = new Set(items.map((t) => t.id));
-    const newIds = v.filter((t) => !prevIds.has(t.id)).map((t) => t.id);
+  /** 遞增 ID 計數器 */
+  let nextId = 0;
+  /** 計時器映射：toast id → setTimeout handle */
+  const timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-    items = v;
+  // ---
 
-    if (newIds.length > 0) {
-      entering = new Set([...entering, ...newIds]);
-      tick().then(() => {
-        requestAnimationFrame(() => {
-          entering = new Set();
-        });
-      });
+  /** 清除指定 toast 的待執行計時器 */
+  function clearTimer(id: number) {
+    const handle = timers.get(id);
+    if (handle !== undefined) {
+      clearTimeout(handle);
+      timers.delete(id);
     }
-  });
+  }
+
+  /** 排程指定 toast 在延遲後開始退出動畫 */
+  function scheduleRemoval(id: number, delay: number) {
+    clearTimer(id);
+    const handle = setTimeout(() => {
+      timers.delete(id);
+      dismiss(id);
+    }, delay);
+    timers.set(id, handle);
+  }
+
+  // ---
+
+  /** 新增一筆 toast 項目（由 custom event 觸發） */
+  function addItem(payload: ToastPayload) {
+    const id = nextId++;
+    const now = Date.now();
+    const item: ToastItem = { id, ...payload, removing: false, createdAt: now, remaining: payload.duration };
+
+    const next = [item, ...items];
+    for (let i = options.maxVisible; i < next.length; i++) {
+      if (!next[i].removing) {
+        scheduleRemoval(next[i].id, 0);
+      }
+    }
+    items = next;
+
+    if (payload.duration > 0) {
+      scheduleRemoval(id, payload.duration);
+    }
+
+    // 進入動畫追蹤
+    entering = new Set([...entering, id]);
+    tick().then(() => {
+      requestAnimationFrame(() => {
+        entering = new Set();
+      });
+    });
+  }
+
+  /** 標記 toast 為移除中，觸發退出動畫 */
+  function dismiss(id: number) {
+    clearTimer(id);
+    items = items.map((t) => (t.id === id ? { ...t, removing: true } : t));
+  }
+
+  /** 從列表中完全移除 toast（退出動畫結束後呼叫） */
+  function finalizeRemoval(id: number) {
+    items = items.filter((t) => t.id !== id);
+  }
+
+  /** 暫停所有自動移除計時器（hover 時） */
+  function pauseAll() {
+    const now = Date.now();
+
+    for (const [, handle] of timers) clearTimeout(handle);
+    timers.clear();
+
+    items = items.map((t) => {
+      if (t.removing || t.duration <= 0) return t;
+      const elapsed = now - t.createdAt;
+      return { ...t, remaining: Math.max(0, t.remaining - elapsed) };
+    });
+  }
+
+  /** 恢復所有自動移除計時器（hover 結束時） */
+  function resumeAll() {
+    const now = Date.now();
+    items = items.map((t) => {
+      if (t.removing || t.duration <= 0) return t;
+      const remaining = t.remaining;
+      if (remaining > 0) {
+        scheduleRemoval(t.id, remaining);
+      } else {
+        scheduleRemoval(t.id, 0);
+      }
+      return { ...t, createdAt: now, remaining };
+    });
+  }
 
   // ---
 
@@ -127,7 +224,7 @@ export function createToast(options: ToastOptions) {
 
   /** 處理關閉按鈕點擊事件，立即開始移除指定 toast */
   function handleCloseClick(id: number) {
-    dismissToast(id);
+    dismiss(id);
   }
 
   // ---
@@ -146,6 +243,17 @@ export function createToast(options: ToastOptions) {
       },
     };
   }
+
+  // ---
+
+  /** 監聯 window custom event，接收外部 addToast 派發的通知 */
+  $effect(() => {
+    function onToastAdd(e: Event) {
+      addItem((e as CustomEvent<ToastPayload>).detail);
+    }
+    window.addEventListener(TOAST_EVENT, onToastAdd);
+    return () => window.removeEventListener(TOAST_EVENT, onToastAdd);
+  });
 
   // ---
 
