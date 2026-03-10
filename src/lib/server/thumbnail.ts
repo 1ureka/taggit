@@ -95,6 +95,8 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
   const tw = bw * k;
   const th = bh * k;
 
+  // 當 gcd(w,h) ≈ 1 時，baseArea ≈ w*h > maxPixels → k 被迫為 1 → tw*th = 原始尺寸。
+  // 此時改用連續比例縮放作為 fallback，確保結果不超過 maxPixels 太多。
   if (tw * th > maxPixels * 1.5) {
     const ratio = Math.sqrt(maxPixels / (w * h));
     return {
