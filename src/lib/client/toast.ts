@@ -6,20 +6,12 @@
  * 內部透過 CustomEvent 將訊息派發至 toast.svelte.ts 的無頭 UI。
  */
 
-/** Toast 類型 */
-export type ToastType = "success" | "error" | "info";
+import type { ToastEventName, ToastPayload, ToastType } from "$lib/types";
 
-/** CustomEvent 攜帶的資料 */
-export interface ToastPayload {
-  message: string;
-  type: ToastType;
-  duration: number;
-}
-
-/** 事件名稱常數 */
-export const TOAST_EVENT = "toast:add";
-
-/** 顯示一則 toast 通知 */
+/**
+ * 顯示一則 toast 通知，內部透過 CustomEvent 將訊息派發至 toast.svelte.ts 的無頭 UI。
+ */
 export function addToast(message: string, type: ToastType = "info", duration = 3000): void {
-  window.dispatchEvent(new CustomEvent<ToastPayload>(TOAST_EVENT, { detail: { message, type, duration } }));
+  const eventName: ToastEventName = "toast:add";
+  window.dispatchEvent(new CustomEvent<ToastPayload>(eventName, { detail: { message, type, duration } }));
 }

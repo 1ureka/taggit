@@ -160,3 +160,24 @@ export interface Stats {
   /** 垃圾桶中的檔案數量 */
   trashCount: number;
 }
+
+// ---
+
+/**
+ * 前端 Toast 類型
+ */
+export type ToastType = "success" | "error" | "info";
+
+/**
+ * 前端 Toast CustomEvent 的事件名稱
+ */
+export type ToastEventName = "toast:add";
+
+/**
+ * 前端 Toast CustomEvent 攜帶的資料
+ */
+export interface ToastPayload {
+  type: ToastType;
+  message: string;
+  duration: number;
+}

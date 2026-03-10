@@ -1,5 +1,5 @@
 import { tick } from "svelte";
-import { TOAST_EVENT, type ToastPayload, type ToastType } from "$lib/client/toast.js";
+import type { ToastEventName, ToastPayload, ToastType } from "$lib/types";
 
 /**
  * Toast 項目資料結構
@@ -251,8 +251,10 @@ export function createToast(options: ToastOptions) {
     function onToastAdd(e: Event) {
       addItem((e as CustomEvent<ToastPayload>).detail);
     }
-    window.addEventListener(TOAST_EVENT, onToastAdd);
-    return () => window.removeEventListener(TOAST_EVENT, onToastAdd);
+
+    const eventName: ToastEventName = "toast:add";
+    window.addEventListener(eventName, onToastAdd);
+    return () => window.removeEventListener(eventName, onToastAdd);
   });
 
   // ---
