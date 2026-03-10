@@ -1,6 +1,6 @@
-import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/toast.js";
 import type { QueryResult } from "$lib/types.js";
+import { api } from "$lib/client/api.js";
+import { addToast } from "$lib/client/dom.js";
 import { getScrollContext } from "./context.svelte.js";
 
 /**

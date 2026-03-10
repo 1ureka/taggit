@@ -1,5 +1,5 @@
 import { api } from "$lib/client/api.js";
-import { addToast } from "$lib/client/toast.js";
+import { addToast } from "$lib/client/dom.js";
 import { getTrashContext } from "./context.svelte.js";
 
 /**
