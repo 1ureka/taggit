@@ -107,7 +107,7 @@
     background-color: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 1.5);
-    transition: all 0.15s;
+    transition: background-color 0.15s;
     cursor: pointer;
 
     --light-outline: hsl(from var(--accent) h s l / 0.75);
