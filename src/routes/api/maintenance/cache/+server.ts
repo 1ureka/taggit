@@ -9,6 +9,6 @@ export const GET: RequestHandler = () => {
 
 /** DELETE /api/maintenance/cache — 清空記憶體中的圖片快取 */
 export const DELETE: RequestHandler = () => {
-  clearCache();
-  return json({ ok: true });
+  const cleared = clearCache();
+  return json({ ok: true, data: { cleared } });
 };

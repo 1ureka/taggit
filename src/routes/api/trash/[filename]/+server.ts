@@ -35,7 +35,7 @@ export const DELETE: RequestHandler = ({ params }) => {
 
   try {
     fs.unlinkSync(fp);
-    return json({ ok: true });
+    return json({ ok: true, data: { filename } });
   } catch (e) {
     return json({ ok: false, error: (e as Error).message }, { status: 500 });
   }

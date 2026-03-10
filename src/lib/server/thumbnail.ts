@@ -192,9 +192,11 @@ export async function getImageMeta(filePath: string): Promise<{ width: number; h
   }
 }
 
-/** 清空縮圖快取，釋放所有項目。 */
-export function clearCache(): void {
+/** 清空縮圖快取，回傳被清除的項目數量。 */
+export function clearCache(): number {
+  const count = cache.stats.entries;
   cache.clear();
+  return count;
 }
 
 /** 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。 */

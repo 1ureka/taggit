@@ -99,5 +99,5 @@ export const DELETE: RequestHandler = ({ params }) => {
   // Remove DB record — metadata is lost after this point
   removeImage(db, id);
 
-  return json({ ok: true });
+  return json({ ok: true, data: { id } });
 };
