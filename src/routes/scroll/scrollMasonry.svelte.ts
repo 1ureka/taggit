@@ -39,6 +39,7 @@ export function createScrollMasonry() {
     ctx.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
   }
 
+  // 僅在掛載時偵測一次作為初始預設值；此頁面不需要 resize 響應。
   onMount(detectBreakpoint);
 
   // ---

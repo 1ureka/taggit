@@ -22,7 +22,7 @@ export function isValidTags(value: unknown): value is string[] {
   for (const t of value) {
     if (typeof t !== "string") return false;
     const trimmed = t.trim();
-    if (trimmed === "" || t.length > 50 || seen.has(trimmed)) return false;
+    if (trimmed === "" || trimmed.length > 50 || seen.has(trimmed)) return false;
     seen.add(trimmed);
   }
   return true;
