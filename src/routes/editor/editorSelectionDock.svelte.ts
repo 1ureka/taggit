@@ -43,6 +43,7 @@ export function createEditorSelectionDock() {
       if (res.ok && res.data) {
         ctx.items = res.data.items;
         ctx.total = res.data.total;
+        ctx.page = res.data.page;
         ctx.pages = res.data.pages;
       }
     } finally {

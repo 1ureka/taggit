@@ -116,9 +116,10 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
 
   if (limit > 0) {
     const pages = Math.max(1, Math.ceil(total / limit));
-    const start = (page - 1) * limit;
+    const clampedPage = Math.min(page, pages);
+    const start = (clampedPage - 1) * limit;
     items = items.slice(start, start + limit);
-    return { items, total, page, pages };
+    return { items, total, page: clampedPage, pages };
   }
 
   return { items, total, page: 1, pages: 1 };
