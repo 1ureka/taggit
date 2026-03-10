@@ -1,18 +1,44 @@
 <script lang="ts">
+  import { navigating } from "$app/state";
+  import type { ImageWithId } from "$lib/types.js";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
-  import { getScrollContext } from "./context.svelte.js";
   import { createScrollMasonry } from "./scrollMasonry.svelte.js";
 
-  const ctx = getScrollContext();
-  const ui = createScrollMasonry();
+  type Props = {
+    items: ImageWithId[];
+    columns: number;
+    pageContentEl: HTMLElement | null;
+  };
+
+  let { items, columns = $bindable(), pageContentEl }: Props = $props();
+
+  const ui = createScrollMasonry({
+    get items() {
+      return items;
+    },
+    get columns() {
+      return columns;
+    },
+    set columns(v) {
+      columns = v;
+    },
+    get pageContentEl() {
+      return pageContentEl;
+    },
+  });
 </script>
 
-{#if ctx.items.length === 0 && !ctx.loading}
+{#if items.length === 0 && !navigating.to}
   <div class="scroll-empty">找不到符合的圖片</div>
 {/if}
 
-<div class="masonry-container" bind:this={ui.containerEl} style:height="{ui.totalHeight}px">
+<div
+  class="masonry-container"
+  bind:this={ui.containerEl}
+  style:height="{ui.totalHeight}px"
+  style:opacity={navigating.to ? 0.4 : 1}
+>
   {#each ui.visibleItems as item (item.id)}
     <div
       class="masonry-item"
@@ -33,16 +59,12 @@
   {/each}
 </div>
 
-{#if ctx.loading}
-  <div class="scroll-loading">載入中…</div>
-{/if}
-
 <style>
-  /* ─── Masonry ───────────────────────────────────────────── */
   .masonry-container {
     position: relative;
     margin-top: 0.75rem;
     overflow-x: hidden;
+    transition: opacity 0s step-end 0.2s;
   }
 
   .masonry-item {
@@ -60,21 +82,12 @@
     border-radius: 4px;
     -webkit-user-select: none;
     user-select: none;
-    animation: fadeIn 0.25s cubic-bezier(0, 0, 0.2, 1) forwards;
   }
 
-  /* ─── States ──────────────────────────────────────────── */
   .scroll-empty {
     text-align: center;
     color: var(--text-dim);
     font-size: 0.875rem;
     padding: 3rem 1rem;
-  }
-
-  .scroll-loading {
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 0.8125rem;
-    padding: 1.5rem 0 2rem;
   }
 </style>

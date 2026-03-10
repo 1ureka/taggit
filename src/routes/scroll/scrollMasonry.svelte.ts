@@ -1,21 +1,29 @@
 import { onMount } from "svelte";
 import type { ImageWithId } from "$lib/types.js";
-import { getScrollContext } from "./context.svelte.js";
 import { createWeightBasedLayout } from "./masonry/masonry-layout.js";
 import { createVirtualizer } from "./masonry/virtualizer.svelte.js";
 
 /**
+ * ScrollMasonry 的配置選項
+ */
+type ScrollMasonryOptions = {
+  /** 當前頁面的圖片列表 */
+  items: ImageWithId[];
+  /** 雙向綁定：瀑布流欄位數 */
+  columns: number;
+  /** 頁面捲動容器 DOM 引用 */
+  pageContentEl: HTMLElement | null;
+};
+
+/**
  * 建立瀑布流牆邏輯的核心工廠函數
  */
-export function createScrollMasonry() {
-  /** Scroll 頁面共享的 Context */
-  const ctx = getScrollContext();
-
+export function createScrollMasonry(options: ScrollMasonryOptions) {
   /** 瀑布流容器 DOM 引用 */
   let containerEl = $state<HTMLElement | null>(null);
 
   /** 瀑布流佈局 */
-  const layout = $derived(createWeightBasedLayout(ctx.items, ctx.columns));
+  const layout = $derived(createWeightBasedLayout(options.items, options.columns));
 
   // ---
 
@@ -23,7 +31,7 @@ export function createScrollMasonry() {
   const virtualizer = createVirtualizer(
     () => layout,
     () => containerEl,
-    () => ctx.pageContentEl,
+    () => options.pageContentEl,
   );
 
   /** 偵測瀏覽器寬度並設定對應的欄位數 */
@@ -36,7 +44,7 @@ export function createScrollMasonry() {
       { width: 0, cols: 1 },
     ];
     const width = window.innerWidth;
-    ctx.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
+    options.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
   }
 
   // 僅在掛載時偵測一次作為初始預設值；此頁面不需要 resize 響應。
