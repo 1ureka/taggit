@@ -22,18 +22,18 @@
 - 命名慣例：SSR 的資料變數不得使用 `initial`, `preload` 等詞彙，應使用純粹的名稱，如 `total`, `count`, `items` 等。
 - SSR `data` 由 `+page.svelte` 接收後，**透過 props 傳給子元件**，不額外中轉。
 
-**URL 狀態（`$page.url.searchParams`）**
+**URL 狀態（`page.url.searchParams`）**
 
 URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件就近獲取**，不從上層以 props 傳入：
 
-- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `$page.url.searchParams` 讀取。
+- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `page.url.searchParams` 讀取。
 - **讀寫**：在無頭 UI（`*.svelte.ts`）中透過 options 傳入 getter 讀取，並以 `goto()` 寫入。
 
 ```svelte
 <!-- 唯讀示例：元件自行從 URL 讀取 -->
 <script lang="ts">
-  import { page } from "$app/stores";
-  const tab = $derived($page.url.searchParams.get("tab") ?? "default");
+  import { page } from "$app/state";
+  const tab = $derived(page.url.searchParams.get("tab") ?? "default");
 </script>
 ```
 
@@ -79,7 +79,7 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 
 當開發者真的遇到 prop drilling 時，請先嘗試下列四種方案:
 
-1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `$page.url.searchParams` 讀取
+1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `page.url.searchParams` 讀取
 2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.5）
 3. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
 4. 提取出新的共用元件，從而在心智上不再認為多一層級

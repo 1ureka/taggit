@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import Alert from "$lib/components/Alert.svelte";
   import { createSettingsCollection } from "./settingsCollection.svelte.js";
 
@@ -12,7 +12,7 @@
     },
   });
 
-  const alert = $derived($page.url.searchParams.get("alert"));
+  const alert = $derived(page.url.searchParams.get("alert"));
 </script>
 
 <section id="section-collection" class="settings-section">
