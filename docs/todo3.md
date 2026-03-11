@@ -8,9 +8,9 @@
 ## 一、重構目標
 
 1. **移除 `createContext`**：改用 `+page.svelte` 的 `$state` + props / `bind` 傳遞，符合規範§1.2。
-2. **`active` 改為檔名型**：以 `string | null` 取代索引型 cursor。
-3. **`selected` 改為檔名型**：以 `Set<string>` 取代 `Set<number>`。
-4. **`+page.svelte` 的 `$effect` 保證 `active` / `selected` 必定可信**：子元件無需 fallback 邏輯。
+2. **`currentFile` 改為檔名型**：以 `string | null` 取代索引型 cursor。
+3. **`selectedFiles` 改為檔名型**：以 `Set<string>` 取代 `Set<number>`。
+4. **`+page.svelte` 的 `$effect` 保證 `currentFile` / `selectedFiles` 必定可信**：子元件無需 fallback 邏輯。
 5. **所有操作改用 `invalidateAll()` + 唯讀 SSR props**：不再手動 mutate `stagedFiles`。
 6. **拆分粗粒度元件**：TaggerSidebar → TaggerRefresh + TaggerList + TaggerUpload；TaggerPanel → TaggerForm。
 7. **表單狀態內部化**：`tags` / `rating` 移入 TaggerForm 的無頭 UI，不再跨元件共享。
@@ -22,8 +22,8 @@
 | 關注點 | 現況 | 目標 |
 | --- | --- | --- |
 | 跨元件共享 | `TaggerContext` class + `createContext` | `+page.svelte` 的 `$state` + props / `bind` |
-| cursor 型別 | 索引 `number` (`ctx.cursor`) | **檔名** `string \| null` (`active`) |
-| selected 型別 | `Set<number>` | `Set<string>` |
+| cursor 型別 | 索引 `number` (`ctx.cursor`) | **檔名** `string \| null` (`currentFile`) |
+| selectedFiles 型別 | `Set<number>` | `Set<string>` |
 | 檔案列表來源 | `ctx.list`（手動 mutate） | `data.stagedFiles`（SSR 唯讀，透過 `invalidateAll` 刷新） |
 | tags / rating 歸屬 | `ctx.tags` / `ctx.rating`（共享） | TaggerForm 無頭 UI 內部 `$state` |
 | zoomPan 歸屬 | `ctx.zoomPan`（共享引用） | TaggerPreview 無頭 UI 內部 |
@@ -33,7 +33,7 @@
 | 列表元素引用 | `ctx.listEl`（共享） | TaggerList 無頭 UI 內部 |
 | 左側邊欄 | TaggerSidebar（refresh + list + upload） | 拆為 TaggerRefresh、TaggerList、TaggerUpload |
 | 右側面板 | TaggerPanel（form + shortcuts） | TaggerForm（form）；shortcuts 留在 `+page.svelte` |
-| active / selected 校正 | 無（但索引型需 clamp） | `+page.svelte` 的 `$effect` 集中校正，子元件無條件信任 |
+| currentFile / selectedFiles 校正 | 無（但索引型需 clamp） | `+page.svelte` 的 `$effect` 集中校正，子元件無條件信任 |
 | 操作後資料刷新 | 手動修改 `ctx.list` | `await invalidateAll()` |
 | 自動表單重置 | 切換圖片時重置 tags/rating | **移除**。保留上一張表單值，使用者手動 Reset |
 
@@ -66,7 +66,7 @@
 | --- | --- |
 | `+page.svelte` | 移除 context；宣告頁面級 `$state`；新佈局；props / bind 組裝子元件 |
 | `TaggerProgress.svelte` + `taggerProgress.svelte.ts` | 移除 context，改用 props（`stagedFiles`, `progress`） |
-| `TaggerList.svelte` + `taggerList.svelte.ts` | 移除 context；改用 props；active / selected 改為檔名型；scrollToActive 以 `$effect` 監聽 active |
+| `TaggerList.svelte` + `taggerList.svelte.ts` | 移除 context；改用 props；currentFile / selectedFiles 改為檔名型；scrollToActive 以 `$effect` 監聽 currentFile |
 | `TaggerPreview.svelte` + `taggerPreview.svelte.ts` | 移除 context；改用 props；zoomPan 內部化；`$effect` 監聽檔案變更以重置 zoomPan + imageLoading |
 
 ### 3.4 不變
@@ -90,33 +90,33 @@
   let { data }: { data: PageData } = $props();
 
   // ─── 頁面級共享狀態 ───
-  let active = $state<string | null>(null);
-  let selected = $state<Set<string>>(new Set());
+  let currentFile = $state<string | null>(null);
+  let selectedFiles = $state<Set<string>>(new Set());
   let loading = $state(false);
   let imageLoading = $state(false);
   let progress = $state(0);
 
-  // ─── active / selected 校正 ───
+  // ─── currentFile / selectedFiles 校正 ───
   $effect(() => {
     const list = data.stagedFiles;
-    // active 校正：仍在列表中就保留，否則選第一張或 null
-    if (active !== null && !list.includes(active)) {
-      active = list[0] ?? null;
-    } else if (active === null && list.length > 0) {
-      active = list[0];
+    // currentFile 校正：仍在列表中就保留，否則選第一張或 null
+    if (currentFile !== null && !list.includes(currentFile)) {
+      currentFile = list[0] ?? null;
+    } else if (currentFile === null && list.length > 0) {
+      currentFile = list[0];
     }
-    // selected 校正：過濾掉已不在列表中的項目
-    const next = new Set([...selected].filter(f => list.includes(f)));
-    if (next.size !== selected.size) selected = next;
+    // selectedFiles 校正：過濾掉已不在列表中的項目
+    const next = new Set([...selectedFiles].filter(f => list.includes(f)));
+    if (next.size !== selectedFiles.size) selectedFiles = next;
   });
 </script>
 ```
 
 **初始化與校正邏輯：**
 
-- `active` / `selected` 初始為 `null` / 空 `Set`。第一幀渲染時尚未校正——預覽區顯示「未選取任何圖片」而非「所有圖片皆已處理」，對 SSR / SEO 亦合理。
-- `$effect` 在 hydrate 後立即執行，將 `active` 設為第一張、`selected` 保持或清理。
-- **之後每次 `invalidateAll()` 導致 `data.stagedFiles` 變更時，`$effect` 自動校正**——commit/trash/refresh/upload 後不需要手動處理 `active` 或 `selected`。
+- `currentFile` / `selectedFiles` 初始為 `null` / 空 `Set`。第一幀渲染時尚未校正——預覽區顯示「未選取任何圖片」而非「所有圖片皆已處理」，對 SSR / SEO 亦合理。
+- `$effect` 在 hydrate 後立即執行，將 `currentFile` 設為第一張、`selectedFiles` 保持或清理。
+- **之後每次 `invalidateAll()` 導致 `data.stagedFiles` 變更時，`$effect` 自動校正**——commit/trash/refresh/upload 後不需要手動處理 `currentFile` 或 `selectedFiles`。
 - `progress`：初始值 0，代表已處理（已 commit / trash）的圖片數量。`total = progress + stagedFiles.length`。
 
 ### 4.2 佈局結構
@@ -135,13 +135,13 @@
   <aside class="tagger-files-panel">
     <TaggerRefresh
       stagedFiles={data.stagedFiles}
-      {selected}
+      {selectedFiles}
       bind:loading
     />
     <TaggerList
       stagedFiles={data.stagedFiles}
-      bind:active
-      bind:selected
+      bind:currentFile
+      bind:selectedFiles
     />
     <TaggerUpload
       stagedFiles={data.stagedFiles}
@@ -151,16 +151,16 @@
 
   <TaggerPreview
     stagedFiles={data.stagedFiles}
-    {active}
-    {selected}
+    {currentFile}
+    {selectedFiles}
     bind:imageLoading
   />
 
   <aside class="tagger-form-panel">
     <TaggerForm
       stagedFiles={data.stagedFiles}
-      bind:active
-      bind:selected
+      bind:currentFile
+      bind:selectedFiles
       bind:loading
       bind:progress
     />
@@ -189,7 +189,7 @@
 
 ### 4.3 Props 流向總覽
 
-| 元件 | stagedFiles | active | selected | loading | imageLoading | progress |
+| 元件 | stagedFiles | currentFile | selectedFiles | loading | imageLoading | progress |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: |
 | TaggerProgress | read | — | — | — | — | read |
 | TaggerLoading | — | — | — | read | read | — |
@@ -257,13 +257,13 @@
 | 名稱 | 型別 | 方向 |
 | --- | --- | --- |
 | `stagedFiles` | `string[]` | read（getter） |
-| `selected` | `Set<string>` | read（getter） |
+| `selectedFiles` | `Set<string>` | read（getter） |
 | `loading` | `boolean` | bind（getter/setter） |
 
 **Derived：**
 
 - `listLength = stagedFiles.length`
-- `selectedSize = selected.size`
+- `selectedSize = selectedFiles.size`
 
 **Handler：**
 
@@ -287,8 +287,8 @@
 | 名稱 | 型別 | 方向 |
 | --- | --- | --- |
 | `stagedFiles` | `string[]` | read（getter） |
-| `active` | `string \| null` | bind（getter/setter） |
-| `selected` | `Set<string>` | bind（getter/setter） |
+| `currentFile` | `string \| null` | bind（getter/setter） |
+| `selectedFiles` | `Set<string>` | bind（getter/setter） |
 
 **內部狀態：**
 
@@ -301,20 +301,20 @@
 
 **Derived：**
 
-- `activeIndex = stagedFiles.indexOf(active!)`（active 已由 `+page.svelte` 校正，必定有效或為 null）
+- `currentFileIndex = stagedFiles.indexOf(currentFile!)`（currentFile 已由 `+page.svelte` 校正，必定有效或為 null）
 - 虛擬捲動相關：`totalH`、`startIdx`、`endIdx`、`visible`（同現有邏輯）
 
 **核心行為——選取：**
 
 | 模式 | 觸發條件 | 行為 |
 | --- | --- | --- |
-| single | 無修飾鍵點擊 | `active = filename; selected = new Set([filename]); anchor = filename` |
-| ctrl | Ctrl / Meta + 點擊 | 切換 filename 的選取狀態；`active = filename; anchor = filename` |
+| single | 無修飾鍵點擊 | `currentFile = filename; selectedFiles = new Set([filename]); anchor = filename` |
+| ctrl | Ctrl / Meta + 點擊 | 切換 filename 的選取狀態；`currentFile = filename; anchor = filename` |
 | shift | Shift + 點擊 | 從 `anchor` 到點擊項的範圍全選（需要 `indexOf` 取得索引，遍歷範圍取得檔名） |
 
 **$effect（共兩個）：**
 
-1. **scrollToActive：** 監聽 `active`。將 `activeIndex` 對應的項目捲入可視區域（`active` 必定有效）。此為 UI 副作用。
+1. **scrollToActive：** 監聽 `currentFile`。將 `currentFileIndex` 對應的項目捲入可視區域（`currentFile` 必定有效）。此為 UI 副作用。
 2. **ResizeObserver：** 監聽 `listEl`，追蹤 `viewH`。
 
 **Handler：**
@@ -325,11 +325,11 @@
 **模板高亮判定：**
 
 ```svelte
-class:active={item.filename === active}
-class:selected={selected.has(item.filename)}
+class:active={item.filename === currentFile}
+class:selected={selectedFiles.has(item.filename)}
 ```
 
-`active` 已由 `+page.svelte` 的 `$effect` 校正，必定指向列表中的有效項目或為 `null`，無需 fallback 邏輯。
+`currentFile` 已由 `+page.svelte` 的 `$effect` 校正，必定指向列表中的有效項目或為 `null`，無需 fallback 邏輯。
 
 ---
 
@@ -370,8 +370,8 @@ class:selected={selected.has(item.filename)}
 | 名稱 | 型別 | 方向 |
 | --- | --- | --- |
 | `stagedFiles` | `string[]` | read（getter） |
-| `active` | `string \| null` | read（getter） |
-| `selected` | `Set<string>` | read（getter） |
+| `currentFile` | `string \| null` | read（getter） |
+| `selectedFiles` | `Set<string>` | read（getter） |
 | `imageLoading` | `boolean` | bind（getter/setter） |
 
 **內部狀態：**
@@ -383,23 +383,23 @@ class:selected={selected.has(item.filename)}
 
 **Derived：**
 
-- `currentFile = active`（已由 `+page.svelte` 校正，必定有效或為 `null`）
 - `previewSrc = currentFile ? imgSrc("staged", currentFile) : ""`
-- `selectedCount = selected.size`
+- `selectedCount = selectedFiles.size`
 
 **$effect（檔案切換偵測）：**
 
 ```ts
 $effect(() => {
-  if (currentFile !== prevFile) {
-    if (currentFile) options.imageLoading = true;
-    prevFile = currentFile;
+  const file = options.currentFile;
+  if (file !== prevFile) {
+    if (file) options.imageLoading = true;
+    prevFile = file;
     zp.reset();
   }
 });
 ```
 
-當 `active` 或 `stagedFiles` 變動導致 `currentFile` 改變時：
+當 `currentFile` 或 `stagedFiles` 變動導致 `currentFile` 改變時：
 - 設定 `imageLoading = true`（通知外部顯示載入狀態）
 - 重置 zoomPan（回到初始縮放與位置）
 
@@ -420,8 +420,8 @@ $effect(() => {
 | 名稱 | 型別 | 方向 |
 | --- | --- | --- |
 | `stagedFiles` | `string[]` | read（getter） |
-| `active` | `string \| null` | bind（getter/setter） |
-| `selected` | `Set<string>` | bind（getter/setter） |
+| `currentFile` | `string \| null` | bind（getter/setter） |
+| `selectedFiles` | `Set<string>` | bind（getter/setter） |
 | `loading` | `boolean` | bind（getter/setter） |
 | `progress` | `number` | bind（getter/setter） |
 
@@ -433,29 +433,29 @@ $effect(() => {
 | `rating` | `0` | 評等 0–5 |
 | `tagInputWrapEl` | `undefined` | 標籤輸入框的容器 DOM 引用 |
 
-> tags 與 rating **不在切換 active / selected 時自動重置**。
+> tags 與 rating **不在切換 currentFile / selectedFiles 時自動重置**。
 > 使用者可沿用上一張的標籤與評等批次處理相似圖片，或手動按 Reset 清空。
 
 **Private helpers：**
 
 - `navigate(delta: -1 | 1)`：
-  1. `idx = stagedFiles.indexOf(active!)`（active 已校正，必定有效）
+  1. `idx = stagedFiles.indexOf(currentFile!)`（currentFile 已校正，必定有效）
   2. `next = idx + delta`；邊界檢查
-  3. `active = stagedFiles[next]; selected = new Set([stagedFiles[next]])`
+  3. `currentFile = stagedFiles[next]; selectedFiles = new Set([stagedFiles[next]])`
 - `toggleRating(n: number)`：`rating = n === rating ? 0 : n`
 - `focusTagInput()`：聚焦標籤輸入框。
 - `resetForm()`：`tags = []; rating = 0`
 
 **Commit 流程（`doCommit`）：**
 
-1. Guard：`loading || selected.size === 0` → return
+1. Guard：`loading || selectedFiles.size === 0` → return
 2. 驗證 `tags.length > 0`（至少一個標籤）
-3. `names = [...selected]`（selected 已校正，必定都在 stagedFiles 中）
+3. `names = [...selectedFiles]`（selectedFiles 已校正，必定都在 stagedFiles 中）
 4. `loading = true`
 5. `batchRun(names, 5, fn => api.post(...))`
 6. Toast 通知；`tagCache.invalidate()`
 7. `progress += ok`（成功數）
-8. `await invalidateAll()`（`$effect` 自動校正 active / selected）
+8. `await invalidateAll()`（`$effect` 自動校正 currentFile / selectedFiles）
 9. `loading = false`
 
 **Trash 流程（`doTrash`）：**
@@ -463,11 +463,11 @@ $effect(() => {
 1. Guard：同 commit
 2. `requestConfirm` 確認
 3. `loading = true`
-4. `names = [...selected]`
+4. `names = [...selectedFiles]`
 5. `batchRun(names, 5, fn => api.del(...))`
 6. Toast 通知
 7. `progress += ok`（成功數）
-8. `await invalidateAll()`（`$effect` 自動校正 active / selected）
+8. `await invalidateAll()`（`$effect` 自動校正 currentFile / selectedFiles）
 9. `loading = false`
 
 **全域鍵盤快捷鍵（`handleWindowKeydown`）：**
@@ -505,13 +505,13 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
 使用者按 Enter / 點擊提交
   → TaggerForm.doCommit()
   → 驗證 tags.length > 0
-  → 過濾 selected 中仍在 stagedFiles 的檔名
+  → 過濾 selectedFiles 中仍在 stagedFiles 的檔名
   → batchRun POST /api/staged/[filename]
   → progress += ok（成功數）
   → await invalidateAll()
   → data.stagedFiles 更新（reactive）
-  → +page.svelte 的 $effect 自動校正 active / selected
-  → active 指向列表中仍存在的項目，或 fallback 至第一張，或 null
+  → +page.svelte 的 $effect 自動校正 currentFile / selectedFiles
+  → currentFile 指向列表中仍存在的項目，或 fallback 至第一張，或 null
 ```
 
 ### 6.2 Trash
@@ -523,11 +523,11 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
 ```
 使用者按 ← / →
   → TaggerForm.navigate(delta)
-  → idx = stagedFiles.indexOf(active!)（active 已校正，必定有效）
+  → idx = stagedFiles.indexOf(currentFile!)（currentFile 已校正，必定有效）
   → next = idx + delta
   → 邊界檢查（< 0 || >= length → return）
-  → active = stagedFiles[next]
-  → selected = new Set([stagedFiles[next]])
+  → currentFile = stagedFiles[next]
+  → selectedFiles = new Set([stagedFiles[next]])
   → TaggerList 的 scrollToActive $effect 觸發捲動
   → TaggerPreview 的 $effect 偵測 currentFile 變更 → imageLoading = true + zoomPan.reset()
   → 圖片載入完成 → imageLoading = false
@@ -542,7 +542,7 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
   → await invalidateAll()
   → Toast
   → loading = false
-  → active 不變；若指向的檔案仍在列表則穩定指向，若不在則 fallback
+  → currentFile 不變；若指向的檔案仍在列表則穩定指向，若不在則 fallback
   → progress 不變；total = progress + 新 stagedFiles.length，自動正確
 ```
 
@@ -566,11 +566,11 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
   → TaggerList.handleItemClick(e, filename)
   → 判斷修飾鍵 → single / ctrl / shift
 
-single：active = filename; selected = {filename}; anchor = filename
-ctrl：  toggle filename in selected; active = filename; anchor = filename
+single：currentFile = filename; selectedFiles = {filename}; anchor = filename
+ctrl：  toggle filename in selectedFiles; currentFile = filename; anchor = filename
 shift： lo/hi = indexOf(anchor) ~ indexOf(filename)
-        selected = { stagedFiles[lo..hi] }
-        active = filename
+        selectedFiles = { stagedFiles[lo..hi] }
+        currentFile = filename
         （anchor 不變）
 ```
 
@@ -588,22 +588,22 @@ shift： lo/hi = indexOf(anchor) ~ indexOf(filename)
 
 | 元件 | $effect 用途 | 性質 |
 | --- | --- | --- |
-| **+page.svelte** | **active / selected 校正**（集中 reconciliation） | **狀態校正** |
-| TaggerList | scrollToActive（捲動至 active 項目） | UI 副作用 |
+| **+page.svelte** | **currentFile / selectedFiles 校正**（集中 reconciliation） | **狀態校正** |
+| TaggerList | scrollToActive（捲動至 currentFile 項目） | UI 副作用 |
 | TaggerList | ResizeObserver（追蹤容器高度） | UI 副作用 |
 | TaggerPreview | 偵測 currentFile 變更 → imageLoading + zoomPan.reset | UI 副作用 |
 
-**子元件絕對禁止**以 `$effect` 修正 `active` 或 `selected`——校正只發生在 `+page.svelte`。
+**子元件絕對禁止**以 `$effect` 修正 `currentFile` 或 `selectedFiles`——校正只發生在 `+page.svelte`。
 
-### 7.3 操作後的 `active` 與 `selected`
+### 7.3 操作後的 `currentFile` 與 `selectedFiles`
 
-- **所有操作後：** `await invalidateAll()` 導致 `data.stagedFiles` 更新，`+page.svelte` 的 `$effect` 自動校正 `active` 與 `selected`。操作端只需負責 `progress += ok`。
-- **active 校正規則：** 仍在列表中 → 保留；不在列表中 → fallback 至第一張；列表為空 → `null`。
-- **selected 校正規則：** 過濾掉已不在列表中的項目。
+- **所有操作後：** `await invalidateAll()` 導致 `data.stagedFiles` 更新，`+page.svelte` 的 `$effect` 自動校正 `currentFile` 與 `selectedFiles`。操作端只需負責 `progress += ok`。
+- **currentFile 校正規則：** 仍在列表中 → 保留；不在列表中 → fallback 至第一張；列表為空 → `null`。
+- **selectedFiles 校正規則：** 過濾掉已不在列表中的項目。
 
 ### 7.4 `imageLoading` 時序
 
-`imageLoading` 由 TaggerPreview 的 `$effect` 設定。由於 Svelte 5 的 `$effect` 在 microtask 排程，active 變更後的第一個渲染幀中，`img src` 已更新但 `imageLoading` 尚未設為 true。此延遲（單幀）不可察覺，無需額外處理。
+`imageLoading` 由 TaggerPreview 的 `$effect` 設定。由於 Svelte 5 的 `$effect` 在 microtask 排程，currentFile 變更後的第一個渲染幀中，`img src` 已更新但 `imageLoading` 尚未設為 true。此延遲（單幀）不可察覺，無需額外處理。
 
 ### 7.5 `progress` 語意
 
