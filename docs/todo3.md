@@ -301,7 +301,7 @@
 
 **Derived：**
 
-- `currentFileIndex = stagedFiles.indexOf(currentFile!)`（currentFile 已由 `+page.svelte` 校正，必定有效或為 null）
+- `currentFileIndex = currentFile ? stagedFiles.indexOf(currentFile) : -1`
 - 虛擬捲動相關：`totalH`、`startIdx`、`endIdx`、`visible`（同現有邏輯）
 
 **核心行為——選取：**
@@ -439,9 +439,10 @@ $effect(() => {
 **Private helpers：**
 
 - `navigate(delta: -1 | 1)`：
-  1. `idx = stagedFiles.indexOf(currentFile!)`（currentFile 已校正，必定有效）
-  2. `next = idx + delta`；邊界檢查
-  3. `currentFile = stagedFiles[next]; selectedFiles = new Set([stagedFiles[next]])`
+  1. `if (!currentFile) return`
+  2. `idx = stagedFiles.indexOf(currentFile)`
+  3. `next = idx + delta`；邊界檢查
+  4. `currentFile = stagedFiles[next]; selectedFiles = new Set([stagedFiles[next]])`
 - `toggleRating(n: number)`：`rating = n === rating ? 0 : n`
 - `focusTagInput()`：聚焦標籤輸入框。
 - `resetForm()`：`tags = []; rating = 0`
@@ -523,7 +524,8 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
 ```
 使用者按 ← / →
   → TaggerForm.navigate(delta)
-  → idx = stagedFiles.indexOf(currentFile!)（currentFile 已校正，必定有效）
+  → if (!currentFile) return
+  → idx = stagedFiles.indexOf(currentFile)
   → next = idx + delta
   → 邊界檢查（< 0 || >= length → return）
   → currentFile = stagedFiles[next]
