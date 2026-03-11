@@ -1,33 +1,43 @@
 <script lang="ts">
+  import { IconArrowLeft } from "@tabler/icons-svelte";
   import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
   import type { PageData } from "./$types.js";
 
-  import { TaggerContext, setTaggerContext } from "./context.svelte.js";
   import TaggerProgress from "./TaggerProgress.svelte";
-  import TaggerSidebar from "./TaggerSidebar.svelte";
+  import TaggerLoading from "./TaggerLoading.svelte";
+  import TaggerRefresh from "./TaggerRefresh.svelte";
+  import TaggerList from "./TaggerList.svelte";
+  import TaggerUpload from "./TaggerUpload.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
-  import TaggerPanel from "./TaggerPanel.svelte";
+  import TaggerForm from "./TaggerForm.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  const proxy = {
-    get list() {
-      return data.stagedFiles;
-    },
-    set list(v: string[]) {
-      data.stagedFiles = v;
-    },
-  };
+  // ---
 
-  const ctx = setTaggerContext(new TaggerContext());
-  ctx.list = proxy.list;
-  ctx.total = proxy.list.length;
+  let currentFile = $state<string | null>(null);
+  let selectedFiles = $state<Set<string>>(new Set());
+  let loading = $state(false);
+  let imageLoading = $state(false);
+  let progress = $state(0);
 
-  // 自動選取第一張圖片
-  if (ctx.list.length > 0) {
-    ctx.cursor = 0;
-    ctx.selected = new Set([0]);
-  }
+  // ---
+
+  $effect(() => {
+    const list = data.stagedFiles;
+
+    // currentFile 校正：仍在列表中就保留，否則選第一張或 null
+    if (currentFile !== null && !list.includes(currentFile)) {
+      currentFile = list[0] ?? null;
+    } else if (currentFile === null && list.length > 0) {
+      currentFile = list[0];
+    }
+
+    // selectedFiles 校正：過濾掉已不在列表中的項目
+    if (selectedFiles.size <= 0) return;
+    const next = new Set([...selectedFiles].filter((f) => list.includes(f)));
+    if (next.size !== selectedFiles.size) selectedFiles = next;
+  });
 
   // Viewport guard
   let windowWidth = $state(900);
@@ -53,11 +63,46 @@
   />
 {:else}
   <div class="page">
-    <TaggerProgress />
+    <header class="page-header">
+      <a href="/" class="btn btn-ghost btn-sm">
+        <IconArrowLeft size={16} />
+        首頁
+      </a>
+      <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
+      <TaggerLoading {loading} {imageLoading} />
+    </header>
+
     <main class="tagger-main">
-      <TaggerSidebar />
-      <TaggerPreview />
-      <TaggerPanel />
+      <aside class="tagger-files-panel">
+        <TaggerRefresh stagedFiles={data.stagedFiles} {selectedFiles} bind:loading />
+        <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
+        <TaggerUpload bind:loading />
+      </aside>
+
+      <TaggerPreview {currentFile} bind:imageLoading />
+
+      <aside class="tagger-form-panel">
+        <TaggerForm {currentFile} bind:selectedFiles bind:loading bind:progress />
+
+        <div class="separator"></div>
+
+        <div class="tagger-shortcuts">
+          {#snippet key(label: string, keys: string[])}
+            <div>
+              <div>
+                {#each keys as k}
+                  <span class="kbd">{k}</span>
+                {/each}
+              </div>
+              {label}
+            </div>
+          {/snippet}
+          {@render key("切換圖片", ["←", "→"])}
+          {@render key("評等", ["1", "-", "5"])}
+          {@render key("聚焦標籤", ["T"])}
+          {@render key("提交", ["Enter"])}
+        </div>
+      </aside>
     </main>
   </div>
 {/if}
@@ -74,5 +119,42 @@
     display: flex;
     flex: 1;
     min-height: 0;
+  }
+
+  .tagger-files-panel {
+    width: 220px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+    overflow: hidden;
+  }
+
+  .tagger-form-panel {
+    width: 280px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    border-left: 1px solid var(--border);
+    background: var(--bg-card);
+    overflow-y: auto;
+  }
+
+  .tagger-shortcuts {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content 1fr;
+    gap: 0.25rem 2rem;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+  }
+
+  .tagger-shortcuts > div {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    gap: 0.25rem;
   }
 </style>

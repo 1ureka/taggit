@@ -1,14 +1,38 @@
 <script lang="ts">
   import { imgSrc } from "$lib/client/api.js";
-  import { getTaggerContext } from "./context.svelte.js";
   import { createTaggerList } from "./taggerList.svelte.js";
 
-  const ctx = getTaggerContext();
-  const ui = createTaggerList();
+  type Props = {
+    stagedFiles: string[];
+    currentFile: string | null;
+    selectedFiles: Set<string>;
+  };
+
+  let { stagedFiles, currentFile = $bindable(), selectedFiles = $bindable() }: Props = $props();
+
+  const ui = createTaggerList({
+    get stagedFiles() {
+      return stagedFiles;
+    },
+    get currentFile() {
+      return currentFile;
+    },
+    set currentFile(v) {
+      currentFile = v;
+    },
+    get selectedFiles() {
+      return selectedFiles;
+    },
+    set selectedFiles(v) {
+      selectedFiles = v;
+    },
+  });
 </script>
 
-<div class="tagger-sidebar-list" bind:this={ctx.listEl} onscroll={ui.handleListScroll}>
-  {#if ctx.list.length === 0}
+<svelte:window onkeydown={ui.handleWindowKeydown} />
+
+<div class="tagger-sidebar-list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
+  {#if stagedFiles.length === 0}
     <div class="tagger-empty">沒有待審查的圖片</div>
   {:else}
     <div class="virtual-scroll-content" style="height:{ui.totalH}px">
@@ -16,10 +40,10 @@
         <button
           type="button"
           class="tagger-thumb"
-          class:active={item.index === ctx.cursor}
-          class:selected={ctx.selected.has(item.index)}
-          style="top:{item.index * ctx.ITEM_H}px"
-          onclick={(e) => ui.handleItemClick(e, item.index)}
+          class:active={item.filename === currentFile}
+          class:selected={selectedFiles.has(item.filename)}
+          style="top:{item.index * ui.ITEM_H}px"
+          onclick={(e) => ui.handleItemClick(e, item.filename)}
         >
           <img
             class="tagger-thumb-img"

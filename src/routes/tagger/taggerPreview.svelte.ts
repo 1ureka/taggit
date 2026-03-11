@@ -1,24 +1,28 @@
 import { imgSrc } from "$lib/client/api.js";
 import { useZoomPan } from "$lib/client/use-zoom-pan.svelte.js";
-import { getTaggerContext } from "./context.svelte.js";
+
+/**
+ * TaggerPreview 元件的配置選項
+ */
+type TaggerPreviewOptions = {
+  /** 目前選取的檔名 */
+  get currentFile(): string | null;
+  /** 雙向綁定：圖片載入狀態 */
+  get imageLoading(): boolean;
+  set imageLoading(v: boolean);
+};
 
 /**
  * 建立圖片預覽邏輯的核心工廠函數
  */
-export function createTaggerPreview() {
-  /** Tagger 頁面共享的 Context */
-  const ctx = getTaggerContext();
-
-  /** zoom-pan 實例，同時註冊至 ctx 供其他元件重置 */
+export function createTaggerPreview(options: TaggerPreviewOptions) {
+  /** zoom-pan 實例 */
   const zp = useZoomPan();
-  ctx.zoomPan = zp;
+  /** 上一次渲染的檔案名稱，用於偵測檔案切換 */
+  let prevFile: string | null = null;
 
-  /** 目前游標所指的檔案名稱 */
-  const currentFile = $derived(ctx.cursor >= 0 && ctx.cursor < ctx.list.length ? ctx.list[ctx.cursor] : null);
   /** 預覽圖片的 URL */
-  const previewSrc = $derived(currentFile ? imgSrc("staged", currentFile) : "");
-  /** 已選取的圖片數量 */
-  const selectedCount = $derived(ctx.selected.size);
+  const previewSrc = $derived(options.currentFile ? imgSrc("staged", options.currentFile) : "");
 
   // ---
 
@@ -53,31 +57,35 @@ export function createTaggerPreview() {
 
   /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
   function handleImageLoad() {
-    ctx.imageLoading = false;
+    options.imageLoading = false;
   }
+
+  // ---
+
+  /** 偵測 currentFile 變更 → imageLoading + zoomPan.reset */
+  $effect(() => {
+    const file = options.currentFile;
+    if (file !== prevFile) {
+      if (file) options.imageLoading = true;
+      prevFile = file;
+      zp.reset();
+    }
+  });
 
   // ---
 
   return {
     /** 存取目前檔案名稱的 getter */
     get currentFile() {
-      return currentFile;
+      return options.currentFile;
     },
     /** 存取預覽圖片 URL 的 getter */
     get previewSrc() {
       return previewSrc;
     },
-    /** 存取已選取數量的 getter */
-    get selectedCount() {
-      return selectedCount;
-    },
-    /** 存取載入狀態的 getter */
-    get loading() {
-      return ctx.loading;
-    },
     /** 存取圖片載入狀態的 getter */
     get imageLoading() {
-      return ctx.imageLoading;
+      return options.imageLoading;
     },
     /** 存取 zoom-pan transform 的 getter */
     get transform() {
