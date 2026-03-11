@@ -48,8 +48,8 @@ export function createTrashSelectionDock(options: TrashSelectionDockOptions) {
       }
     }
 
-    clearSelection();
     await invalidateAll();
+    clearSelection();
 
     if (failCount > 0) {
       addToast(`已還原 ${successCount} 張，${failCount} 張失敗`, "error");
@@ -78,8 +78,8 @@ export function createTrashSelectionDock(options: TrashSelectionDockOptions) {
       }
     }
 
-    clearSelection();
     await invalidateAll();
+    clearSelection();
 
     if (failCount > 0) {
       addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
