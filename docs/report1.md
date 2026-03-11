@@ -61,7 +61,10 @@ tagger/
 ```
 +page.svelte ($state owner)
   ├─ props ↓ / bind ↕
-  ├─ TaggerProgress
+  ├─ <header> 直接寫在 +page.svelte 中
+  │    ├─ 返回首頁連結
+  │    ├─ TaggerProgress（進度條 + 文字）
+  │    └─ TaggerLoading（載入指示器）
   ├─ TaggerSidebar → TaggerList
   ├─ TaggerPreview
   └─ TaggerPanel
@@ -183,8 +186,12 @@ tagger/
 ```
 +page.svelte
 │
-├─ TaggerProgress
-│    props: total, listLength, loading, imageLoading     ← 全部唯讀
+├─ <header>                                              ← 編排職責，直接寫在 +page
+│    ├─ <a href="/">返回首頁</a>
+│    ├─ TaggerProgress                                   ← 純展示，無 .svelte.ts
+│    │    props: total, listLength                       ← 全部唯讀
+│    └─ TaggerLoading                                    ← 純展示，無 .svelte.ts
+│         props: loading, imageLoading                   ← 全部唯讀
 │
 ├─ TaggerSidebar
 │    props: list↕, total↕, cursor↕, selected↕,
@@ -213,8 +220,19 @@ tagger/
 
 | 分類 | Props | 理由 |
 |------|-------|------|
-| 機制 | `total`, `listLength`, `loading`, `imageLoading` | 進度計算與載入指示器的核心資料 |
+| 機制 | `total`, `listLength` | 進度計算的核心資料 |
 | 策略 | （無） | 純展示元件，無需策略注入 |
+
+純展示元件（§2.1 例外），無 `.svelte.ts`。接收 `total` 與 `listLength`，在 `.svelte` 的 `<script>` 中以 `$derived` 計算 `processed`、`progressPct`、`progressLabel`，渲染進度條與進度文字。
+
+#### TaggerLoading
+
+| 分類 | Props | 理由 |
+|------|-------|------|
+| 機制 | `loading`, `imageLoading` | 載入指示器的顯示條件 |
+| 策略 | （無） | 純展示元件，無需策略注入 |
+
+純展示元件（§2.1 例外），無 `.svelte.ts`。接收 `loading` 與 `imageLoading` 兩個布林值，條件渲染 `CircularProgress`。
 
 #### TaggerSidebar
 
@@ -267,7 +285,14 @@ tagger/
 子元件組裝範例：
 
 ```svelte
-<TaggerProgress {total} listLength={list.length} {loading} {imageLoading} />
+<header class="page-header">
+  <a href="/" class="btn btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    首頁
+  </a>
+  <TaggerProgress {total} listLength={list.length} />
+  <TaggerLoading {loading} {imageLoading} />
+</header>
 <main class="tagger-main">
   <TaggerSidebar
     bind:list bind:total bind:cursor bind:selected
@@ -283,14 +308,39 @@ tagger/
 </main>
 ```
 
-### 4.3 `TaggerProgress`
+### 4.3 `TaggerProgress` + `TaggerLoading`（拆分自原 `TaggerProgress`）
 
-**變更幅度：小**
+原 `TaggerProgress` 混合了三個職責：進度條、載入指示器、`<header>` 佈局。遷移後拆為：
 
-- `createTaggerProgress(options)` 改為接收 `{ total, listLength, loading, imageLoading }` getter-based options
-- 移除 `getTaggerContext()`
-- `processed`、`progressPct`、`progressLabel` 的 `$derived` 邏輯不變，只是資料來源從 `ctx` 改為 `options`
-- `.svelte` 透過 `$props()` 接收並以 getter 傳入工廠
+1. **`<header>` 佈局**移入 `+page.svelte`——這是頁面殼的編排職責（§1.2）。返回首頁連結亦屬頁面級導航。
+2. **`TaggerProgress.svelte`**（純展示，刪除 `taggerProgress.svelte.ts`）——僅保留進度條 + 進度文字。`$derived`（`processed`、`progressPct`、`progressLabel`）直接寫在 `.svelte` 的 `<script>` 中，因為不含任何 handler 或 `$state`，屬 §2.1 例外。
+3. **`TaggerLoading.svelte`**（新增，純展示，無 `.svelte.ts`）——條件渲染 `CircularProgress`。
+
+#### TaggerProgress（重構）
+
+**Props：**
+
+```ts
+type Props = {
+  total: number;
+  listLength: number;
+};
+```
+
+**模板：** 進度條（`.progress-bar` + `.progress-bar-fill`）與進度文字（`.tagger-progress-text`）。
+
+#### TaggerLoading（新增）
+
+**Props：**
+
+```ts
+type Props = {
+  loading: boolean;
+  imageLoading: boolean;
+};
+```
+
+**模板：** `{#if loading}` / `{#if imageLoading}` 條件渲染 `CircularProgress` 元件。
 
 ### 4.4 `TaggerList`（§1.5 重構重點）
 
@@ -548,8 +598,9 @@ tagger/
 ├── +page.svelte               （重構：共享 $state + refs + 子元件組裝）
 ├── types.ts                   （新增：TaggerRefs 型別）
 ├── helpers.ts                 （新增：reselectAfterRemoval 工具函數）
-├── TaggerProgress.svelte      （小改：接收 props）
-├── taggerProgress.svelte.ts   （小改：接收 options）
+├── TaggerProgress.svelte      （重構：僅保留進度條 + 文字，純展示）
+├── TaggerLoading.svelte       （新增：載入指示器，純展示）
+├── (DELETED: taggerProgress.svelte.ts)
 ├── TaggerSidebar.svelte       （中改：接收 props、定義 renderItem snippet）
 ├── taggerSidebar.svelte.ts    （中改：接收 options、移除 ctx 依賴）
 ├── TaggerList.svelte          （大改：接收 props + snippet、不再直接渲染項目內容）
@@ -571,7 +622,7 @@ tagger/
 |------|------|--------|
 | 1 | 建立 `types.ts`（TaggerRefs）和 `helpers.ts`（reselectAfterRemoval） | 純新增，TypeScript 編譯通過即可 |
 | 2 | 重寫 `+page.svelte`：宣告所有 `$state`、`refs`、`handleSelect`；暫時保留 context 設值（平行運作） | 頁面可載入 |
-| 3 | 遷移 `TaggerProgress`（最簡單的元件）：改為 props-based | 進度列正常顯示 |
+| 3 | 拆分 `TaggerProgress`：`<header>` 移入 `+page.svelte`，進度條重構為純展示 `TaggerProgress`，新增純展示 `TaggerLoading`，刪除 `taggerProgress.svelte.ts` | 頁面頂部（返回連結 + 進度列 + 載入指示器）正常顯示 |
 | 4 | 遷移 `TaggerPreview`：改為 props-based，建立 zoomPan 寫入 refs | 圖片預覽 + 縮放拖曳正常 |
 | 5 | 遷移 `TaggerList`：改為 options-based + renderItem snippet + $effect 自動捲動 | — |
 | 6 | 遷移 `TaggerSidebar`：改為 props-based，提供 renderItem snippet | 虛擬列表 + 選取 + 重新整理 + 上傳正常 |
