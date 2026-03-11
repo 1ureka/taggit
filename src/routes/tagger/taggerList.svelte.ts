@@ -21,8 +21,6 @@ type TaggerListOptions = {
  * 建立虛擬列表邏輯的核心工廠函數
  */
 export function createTaggerList(options: TaggerListOptions) {
-  /** Shift 多選的錨點（檔名） */
-  let anchor = $state<string | null>(null);
   /** 捲動容器 DOM 引用 */
   let listEl = $state<HTMLDivElement | null>(null);
 
@@ -57,7 +55,6 @@ export function createTaggerList(options: TaggerListOptions) {
   function selectSingle(filename: string) {
     options.currentFile = filename;
     options.selectedFiles = new Set([filename]);
-    anchor = filename;
   }
 
   /** 以 Ctrl 模式切換指定檔名的選取狀態 */
@@ -66,13 +63,12 @@ export function createTaggerList(options: TaggerListOptions) {
     next.has(filename) && next.size > 1 ? next.delete(filename) : next.add(filename);
     options.currentFile = filename;
     options.selectedFiles = next;
-    anchor = filename;
   }
 
-  /** 以 Shift 模式選取錨點到指定檔名的範圍 */
+  /** 以 Shift 模式選取 currentFile 到指定檔名的範圍 */
   function selectShift(filename: string) {
     const list = options.stagedFiles;
-    const anchorIdx = anchor ? list.indexOf(anchor) : 0;
+    const anchorIdx = options.currentFile ? list.indexOf(options.currentFile) : 0;
     const targetIdx = list.indexOf(filename);
     const lo = Math.min(anchorIdx, targetIdx);
     const hi = Math.max(anchorIdx, targetIdx);
