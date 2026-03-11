@@ -12,7 +12,7 @@
 | `/browse/player` | URL query params         | ✅ 已使用           |
 | `/editor`        | URL query params         | ✅ 已完成遷移       |
 | `/scroll`        | URL query params         | ✅ 已完成遷移       |
-| `/compare`       | `$state`（無頭 UI）      | ❌                  |
+| `/compare`       | URL query params         | ✅ 已完成遷移       |
 | `/trash`         | Context `$state`         | ❌                  |
 | `/tagger`        | Context `$state`         | ❌                  |
 | `/settings`      | `window.location.search` | ⚠️ 僅 alert 參數    |
@@ -91,21 +91,24 @@
 
 ---
 
-### 2.5 `/compare`（隨機比較）
+### 2.5 `/compare`（隨機比較）✅ 已完成
 
-**表單參數**：`filterTags`、`filterMinRating`
+**表單參數**：`tags`、`rating`
 
-**現況**：篩選狀態存在 `compareView.svelte.ts` 的 `$state` 中。每次 shuffle 或篩選變更都呼叫 `/api/images?sort=random&limit=2&...`。
+**現況**：已完成 URL query params 遷移。篩選狀態由 URL 驅動，SSR 依據 URL params 隨機抽取圖片。移除了原本的 client API 呼叫與內部圖片結果 `$state`。
 
-**建議**：🔶 **可選改進，但優先級低**
+**實作方式**：
 
-**理由**：
+- **`+page.server.ts`**：透過 `parseQueryParams(url)` 從 URL 讀取 `tags` 與 `rating`，帶入 `queryImages(db, { tags, rating, ratingOp: "gte", sort: "random", limit: 2 })`，SSR 首屏即符合篩選意圖。
+- **`compareView.svelte.ts`**：`createCompareView()` 工廠函數不再接收 options，從 `page.url` 初始化篩選狀態。篩選變更透過 `goto()` 導航（`replaceState`），Shuffle 透過 `invalidateAll()` 強制 `load` 重跑（`sort: "random"` 保證每次結果不同）。透過 `afterNavigate` 監聽 `popstate` 事件同步篩選狀態。
+- **`CompareView.svelte`**：`pairA`/`pairB`/`total` 直接使用 props（SSR data 自動響應式更新）。載入狀態改用 `navigating` store 搭配純 CSS `transition` delay debounce，避免快速載入時的閃爍。
+- **移除項目**：`CompareViewOptions` type、`pairA`/`pairB`/`totalCount`/`loading`/`showLoading`/`errorMsg` 內部 `$state`、`loadPair()` client API、`api`/`addToast` 匯入、`LOADING_DELAY`/`loadingTimer`。
 
-- **有利面**：若使用者常用特定篩選條件比較（如「只比較 3 星以上的 landscape」），URL params 可讓這個組合被書籤化。
-- **不利面**：因為是隨機抽取，書籤化的 URL 每次開啟結果都不同——URL params 只保留了篩選意圖而非具體結果。使用場景偏弱。
-- **改動成本低**：只有 `filterTags` 和 `filterMinRating` 兩個參數，改動範圍小。
+**URL 格式範例**：
 
-**結論**：若順便做，成本不高；但若排優先級，應排在 `/editor` 和 `/scroll` 之後。
+```
+/compare?tags=landscape,portrait&rating=3
+```
 
 ---
 
@@ -169,7 +172,7 @@
 | ✅ 完成 | `/editor`   | 高   | —        | 已完成遷移：SSR 依據 URL params 查詢、篩選/分頁皆 URL 驅動 |
 | ✅ 完成 | `/scroll`   | 高   | —        | 已完成遷移：移除 Context、SSR 依據 URL params 查詢、props/bind 傳遞 |
 | 🔶 P1   | `/trash`    | 中   | 低       | 搜尋 + 分頁，結構簡單，改造後可複用 `/editor` 的模式       |
-| 🔶 P2   | `/compare`  | 低   | 低       | 只有兩個篩選參數，但隨機性質降低了 URL 化的實際收益        |
+| ✅ 完成 | `/compare`  | 低   | —        | 已完成遷移：SSR 依據 URL params 隨機抽取、移除 client API  |
 | ❌ —    | `/browse`   | 無   | —        | 一次性設定頁，最終結果已在 `/browse/player` URL 中         |
 | ❌ —    | `/tagger`   | 無   | —        | 工作流工具，非搜尋/瀏覽場景                                |
 | ❌ —    | `/settings` | 無   | —        | 操作型設定表單，非篩選場景                                 |

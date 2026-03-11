@@ -508,13 +508,7 @@ setter JSDoc 慣用語：`設定 XXX 的 setter` 或 `設置 XXX 的 setter`。
 | `step-end` | timing function——確保是離散跳變而非連續插值（與 `0s` 搭配確保行為明確） |
 | `0.2s` | transition delay——opacity 變化延遲 200ms 才生效 |
 
-### 4.3 運作原理
-
-1. **導航開始**：`navigating.to` 變為非 `null`，Svelte 將 `style:opacity` 設為 `0.4`。但由於 CSS `transition-delay: 0.2s`，瀏覽器不會立刻套用——opacity 在前 200ms 仍維持 `1`。
-2. **快速導航（< 200ms）**：導航完成前 delay 尚未到期，`navigating.to` 回到 `null`，opacity 被設回 `1`。transition 被取消，使用者從頭到尾沒有感知到任何視覺變化。
-3. **慢速導航（≥ 200ms）**：delay 到期，opacity 瞬間跳至 `0.4`（dimming），使用者看到內容變暗，明確知道正在載入。導航完成後 opacity 立刻回到 `1`。
-
-### 4.4 通用性與天然無競態
+### 4.3 通用性與天然無競態
 
 此模式不限於 `navigating`——任何**布林旗標驅動的暫態視覺回饋**都適用。只要某個響應式值在 `true` / `false` 間切換，且希望「短暫切換不產生視覺變化、長時間停留才顯示」，都可以用同樣的 `transition-delay` 手法。
 
