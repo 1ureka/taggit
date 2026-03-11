@@ -1,40 +1,59 @@
 <script lang="ts">
+  import { navigating } from "$app/state";
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
-  import { getTrashContext } from "./context.svelte.js";
   import { createTrashList } from "./trashList.svelte.js";
 
-  const ctx = getTrashContext();
-  const ui = createTrashList();
+  type Props = {
+    files: string[];
+    total: number;
+    page: number;
+    pages: number;
+    selected: Set<string>;
+  };
+
+  let { files, total, page, pages, selected = $bindable() }: Props = $props();
+
+  const ui = createTrashList({
+    get files() {
+      return files;
+    },
+    get selected() {
+      return selected;
+    },
+    set selected(v) {
+      selected = v;
+    },
+  });
 </script>
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-{#if ctx.total > 0}
+{#if total > 0}
   <div class="trash-list-info">
-    <span>{ctx.total} 張圖片</span>
-    {#if ctx.pages > 1}
+    <span>{total} 張圖片</span>
+    {#if pages > 1}
       <span class="trash-list-pager">
-        第 {ctx.page} / {ctx.pages} 頁
+        第 {page} / {pages} 頁
       </span>
     {/if}
   </div>
 {/if}
 
-{#if ctx.showLoading}
-  <div class="trash-list-status">搜尋中...</div>
-{:else if ctx.files.length === 0}
-  <div class="trash-list-status">垃圾桶是空的</div>
+{#if files.length === 0}
+  {#if !navigating.to}
+    <div class="trash-list-status">垃圾桶是空的</div>
+  {/if}
 {:else}
-  <div class="trash-list-results">
-    {#each ctx.files as filename (filename)}
-      {@const selected = ctx.selected.has(filename)}
+  <div class="trash-list-results" style:opacity={navigating.to ? 0.4 : 1}>
+    {#each files as filename (filename)}
+      {@const sel = selected.has(filename)}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="trash-card select-checkbox-host"
-        class:trash-card-selected={selected}
+        class:trash-card-selected={sel}
         onclick={() => ui.handleCardClick(filename)}
       >
         <img
@@ -47,7 +66,7 @@
         <div class="trash-card-info">
           <div class="trash-card-name">{filename}</div>
         </div>
-        <SelectCheckbox checked={selected} size="sm" onchange={() => ui.handleCheckboxChange(filename)} />
+        <SelectCheckbox checked={sel} size="sm" onchange={() => ui.handleCheckboxChange(filename)} />
       </div>
     {/each}
   </div>
@@ -78,6 +97,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 0.75rem;
+    transition: opacity 0s step-end 0.2s;
   }
 
   .trash-card {
