@@ -1,7 +1,7 @@
 # Tagger 路由重構計畫
 
 > 本文件定義 `src/routes/tagger/` 的一次性完整重構方案。
-> 所有變更皆遵循 `docs/frontend.md` 規範，並落實 `docs/todo2.md` 的設計決策。
+> 所有變更皆遵循 `docs/frontend.md` 規範。
 
 ---
 
