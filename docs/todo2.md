@@ -122,3 +122,29 @@ scrollToActive 直接放在 TaggerList 內部，利用 $effect 監聽 active (�
 Staged 檔案名稱列表絕對絕對得用唯讀響應式 SSR 來源!
 
 由於不在改變選取或 active 時重置表單，因此 tags, rating 等是 TaggerForm 的無頭 UI 內部狀態!
+
+---
+
+我注意到你仍然想驗證 active，我已經說了不准驗證!
+
+active 是檔名，resolveCursorIndex(list, active) 找不到就回傳 -1，自然 fallback 到第一張。不做任何驗證、不寫任何 reconciliation $effect。無效就是無效，下次操作時自然歸位。
+
+---
+
+imageLoading 為 page 狀態
+
+---
+
+1. 接受在 +page 寫 $effect
+2. 使 active, selected 必定可信
+3. 不要直接 `let active = $state<string | null>(data.stagedFiles[0] ?? null);` 因為這樣會出現 `This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?`
+
+
+因此可以預期第一幀會未選取任何圖片，直到 $effect 執行後 active 才會被設定為第一張或者驗證後的
+
+那你可能會擔心，第一幀(幾乎看不到，除非效能超差)，顯示 `所有圖片皆已處理，沒有新圖片` 會不會很怪，當然會，但解法很簡單
+```
+所有圖片皆已處理，沒有新圖片 => 未選取任何圖片
+```
+
+這樣，無論是真的因為沒有 staged files 還是因為第一幀 active 還沒被設定(被 SEO 看到)，都是合理的解釋
