@@ -3,7 +3,17 @@
   import SelectionDock from "$lib/components/SelectionDock.svelte";
   import { createTrashSelectionDock } from "./trashSelectionDock.svelte.js";
 
-  const ui = createTrashSelectionDock();
+  type Props = { selected: Set<string> };
+  let { selected = $bindable() }: Props = $props();
+
+  const ui = createTrashSelectionDock({
+    get selected() {
+      return selected;
+    },
+    set selected(v) {
+      selected = v;
+    },
+  });
 </script>
 
 <SelectionDock count={ui.count} onclose={ui.handleCloseClick}>
