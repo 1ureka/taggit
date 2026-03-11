@@ -1,15 +1,19 @@
 import { api } from "$lib/client/api.js";
-import { getSettingsContext } from "./context.svelte.js";
+
+/**
+ * 圖片集路徑設定的配置選項
+ */
+type SettingsCollectionOptions = {
+  /** 圖片集根目錄 */
+  collectionRoot: string;
+};
 
 /**
  * 建立圖片集路徑設定邏輯的核心工廠函數
  */
-export function createSettingsCollection() {
-  /** Settings 頁面共享的 Context */
-  const ctx = getSettingsContext();
-
+export function createSettingsCollection(options: SettingsCollectionOptions) {
   /** 路徑輸入框的值 */
-  let inputValue = $state(ctx.collectionRoot);
+  let inputValue = $state(options.collectionRoot);
   /** 是否正在儲存 */
   let saving = $state(false);
   /** 儲存結果訊息 */

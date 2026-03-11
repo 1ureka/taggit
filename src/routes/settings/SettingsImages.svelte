@@ -2,7 +2,14 @@
   import { IconPhoto, IconFileSearch } from "@tabler/icons-svelte";
   import { createSettingsImages } from "./settingsImages.svelte.js";
 
-  const ui = createSettingsImages();
+  type Props = { cacheStats: { entries: number; bytes: number } };
+  let { cacheStats }: Props = $props();
+
+  const ui = createSettingsImages({
+    get cacheStats() {
+      return cacheStats;
+    },
+  });
 </script>
 
 <section id="section-images" class="settings-section">

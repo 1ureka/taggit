@@ -2,7 +2,6 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
-  import { SettingsContext, setSettingsContext } from "./context.svelte.js";
   import SettingsNav from "./SettingsNav.svelte";
   import SettingsCollection from "./SettingsCollection.svelte";
   import SettingsTagRename from "./SettingsTagRename.svelte";
@@ -10,26 +9,6 @@
   import SettingsMaintenance from "./SettingsMaintenance.svelte";
 
   let { data }: { data: PageData } = $props();
-
-  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
-
-  const proxy = {
-    get collectionRoot() {
-      return data.collectionRoot;
-    },
-    set collectionRoot(v: string) {
-      data.collectionRoot = v;
-    },
-    get cacheStats() {
-      return data.cacheStats;
-    },
-  };
-
-  const ctx = setSettingsContext(new SettingsContext());
-  ctx.collectionRoot = proxy.collectionRoot;
-  ctx.alert = params.get("alert");
-  ctx.cacheEntries = proxy.cacheStats.entries;
-  ctx.cacheBytes = proxy.cacheStats.bytes;
 </script>
 
 <svelte:head>
@@ -46,13 +25,13 @@
   </header>
 
   <div class="settings-layout">
-    <SettingsNav />
+    <SettingsNav collectionRoot={data.collectionRoot} />
     <main class="settings-main" id="settings-main">
       <div class="settings-inner slide-up">
-        <SettingsCollection />
-        {#if ctx.collectionRoot}
+        <SettingsCollection collectionRoot={data.collectionRoot} />
+        {#if data.collectionRoot}
           <SettingsTagRename />
-          <SettingsImages />
+          <SettingsImages cacheStats={data.cacheStats} />
           <SettingsMaintenance />
         {/if}
       </div>
