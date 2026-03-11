@@ -1,5 +1,3 @@
-import { getSettingsContext } from "./context.svelte.js";
-
 /** 導航區塊定義 */
 type NavSection = {
   id: string;
@@ -7,19 +5,24 @@ type NavSection = {
 };
 
 /**
+ * 設定頁面導航的配置選項
+ */
+type SettingsNavOptions = {
+  /** 圖片集根目錄（用於判斷是否顯示完整導航） */
+  collectionRoot: string;
+};
+
+/**
  * 建立設定頁面導航邏輯的核心工廠函數
  */
-export function createSettingsNav() {
-  /** Settings 頁面共享的 Context */
-  const ctx = getSettingsContext();
-
+export function createSettingsNav(options: SettingsNavOptions) {
   /** 目前活動的區塊 ID */
   let activeId = $state("collection");
 
   /** 導航區塊列表（依據圖片集是否已設定動態產生） */
   const sections = $derived.by(() => {
     const base: NavSection[] = [{ id: "collection", label: "圖片集路徑" }];
-    if (ctx.collectionRoot) {
+    if (options.collectionRoot) {
       base.push({ id: "tags", label: "標籤管理" });
       base.push({ id: "images", label: "圖片與快取" });
       base.push({ id: "maintenance", label: "系統維護" });
