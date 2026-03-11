@@ -8,12 +8,12 @@
 ## 一、重構目標
 
 1. **移除 `createContext`**：改用 `+page.svelte` 的 `$state` + props / `bind` 傳遞，符合規範§1.2。
-2. **`active` 改為檔名型**：以 `string | null` 取代索引型 cursor，消除所有 reconciliation。
+2. **`active` 改為檔名型**：以 `string | null` 取代索引型 cursor。
 3. **`selected` 改為檔名型**：以 `Set<string>` 取代 `Set<number>`。
-4. **所有操作改用 `invalidateAll()` + 唯讀 SSR props**：不再手動 mutate `stagedFiles`。
-5. **拆分粗粒度元件**：TaggerSidebar → TaggerRefresh + TaggerList + TaggerUpload；TaggerPanel → TaggerForm。
-6. **表單狀態內部化**：`tags` / `rating` 移入 TaggerForm 的無頭 UI，不再跨元件共享。
-7. **`active` 不做任何驗證**：`indexOf` 回傳 -1 時，渲染端 fallback 至第一張。無 reconciliation `$effect`。
+4. **`+page.svelte` 的 `$effect` 保證 `active` / `selected` 必定可信**：子元件無需 fallback 邏輯。
+5. **所有操作改用 `invalidateAll()` + 唯讀 SSR props**：不再手動 mutate `stagedFiles`。
+6. **拆分粗粒度元件**：TaggerSidebar → TaggerRefresh + TaggerList + TaggerUpload；TaggerPanel → TaggerForm。
+7. **表單狀態內部化**：`tags` / `rating` 移入 TaggerForm 的無頭 UI，不再跨元件共享。
 
 ---
 
@@ -33,8 +33,7 @@
 | 列表元素引用 | `ctx.listEl`（共享） | TaggerList 無頭 UI 內部 |
 | 左側邊欄 | TaggerSidebar（refresh + list + upload） | 拆為 TaggerRefresh、TaggerList、TaggerUpload |
 | 右側面板 | TaggerPanel（form + shortcuts） | TaggerForm（form）；shortcuts 留在 `+page.svelte` |
-| active 驗證 | 無（但索引型需 clamp） | **無**。`indexOf` 回傳 -1 → 渲染端 fallback 至 0 |
-| selected 驗證 | 無 | 各元件自行按需處理，不集中 |
+| active / selected 校正 | 無（但索引型需 clamp） | `+page.svelte` 的 `$effect` 集中校正，子元件無條件信任 |
 | 操作後資料刷新 | 手動修改 `ctx.list` | `await invalidateAll()` |
 | 自動表單重置 | 切換圖片時重置 tags/rating | **移除**。保留上一張表單值，使用者手動 Reset |
 
@@ -91,22 +90,34 @@
   let { data }: { data: PageData } = $props();
 
   // ─── 頁面級共享狀態 ───
-  let active = $state<string | null>(data.stagedFiles[0] ?? null);
-  let selected = $state<Set<string>>(
-    data.stagedFiles.length > 0 ? new Set([data.stagedFiles[0]]) : new Set(),
-  );
+  let active = $state<string | null>(null);
+  let selected = $state<Set<string>>(new Set());
   let loading = $state(false);
   let imageLoading = $state(false);
   let progress = $state(0);
+
+  // ─── active / selected 校正 ───
+  $effect(() => {
+    const list = data.stagedFiles;
+    // active 校正：仍在列表中就保留，否則選第一張或 null
+    if (active !== null && !list.includes(active)) {
+      active = list[0] ?? null;
+    } else if (active === null && list.length > 0) {
+      active = list[0];
+    }
+    // selected 校正：過濾掉已不在列表中的項目
+    const next = new Set([...selected].filter(f => list.includes(f)));
+    if (next.size !== selected.size) selected = next;
+  });
 </script>
 ```
 
-**初始化邏輯：**
+**初始化與校正邏輯：**
 
-- `active`：首次載入時指向第一張檔案；若無檔案則為 `null`。
-- `selected`：與 `active` 同步，選取第一張。
+- `active` / `selected` 初始為 `null` / 空 `Set`。第一幀渲染時尚未校正——預覽區顯示「未選取任何圖片」而非「所有圖片皆已處理」，對 SSR / SEO 亦合理。
+- `$effect` 在 hydrate 後立即執行，將 `active` 設為第一張、`selected` 保持或清理。
+- **之後每次 `invalidateAll()` 導致 `data.stagedFiles` 變更時，`$effect` 自動校正**——commit/trash/refresh/upload 後不需要手動處理 `active` 或 `selected`。
 - `progress`：初始值 0，代表已處理（已 commit / trash）的圖片數量。`total = progress + stagedFiles.length`。
-- **不設任何 `$effect` 來監聯 `data.stagedFiles` 並修正 `active` 或 `selected`。**
 
 ### 4.2 佈局結構
 
@@ -290,8 +301,7 @@
 
 **Derived：**
 
-- `activeIndex = stagedFiles.indexOf(active ?? "")`（可為 -1，不修正 active）
-- `effectiveActiveIndex = activeIndex === -1 ? 0 : activeIndex`
+- `activeIndex = stagedFiles.indexOf(active!)`（active 已由 `+page.svelte` 校正，必定有效或為 null）
 - 虛擬捲動相關：`totalH`、`startIdx`、`endIdx`、`visible`（同現有邏輯）
 
 **核心行為——選取：**
@@ -304,7 +314,7 @@
 
 **$effect（共兩個）：**
 
-1. **scrollToActive：** 監聽 `active` 與 `stagedFiles`。將 `effectiveActiveIndex` 對應的項目捲入可視區域。此為 UI 副作用，非驗證。
+1. **scrollToActive：** 監聽 `active`。將 `activeIndex` 對應的項目捲入可視區域（`active` 必定有效）。此為 UI 副作用。
 2. **ResizeObserver：** 監聽 `listEl`，追蹤 `viewH`。
 
 **Handler：**
@@ -315,11 +325,11 @@
 **模板高亮判定：**
 
 ```svelte
-class:active={item.filename === active || (activeIndex === -1 && item.index === 0)}
+class:active={item.filename === active}
 class:selected={selected.has(item.filename)}
 ```
 
-第一條規則意為：若 active 失效（不在列表中），視覺上高亮第一項。
+`active` 已由 `+page.svelte` 的 `$effect` 校正，必定指向列表中的有效項目或為 `null`，無需 fallback 邏輯。
 
 ---
 
@@ -373,9 +383,7 @@ class:selected={selected.has(item.filename)}
 
 **Derived：**
 
-- `activeIndex = stagedFiles.indexOf(active ?? "")`
-- `effectiveIndex = activeIndex === -1 ? 0 : activeIndex`
-- `currentFile = stagedFiles[effectiveIndex] ?? null`
+- `currentFile = active`（已由 `+page.svelte` 校正，必定有效或為 `null`）
 - `previewSrc = currentFile ? imgSrc("staged", currentFile) : ""`
 - `selectedCount = selected.size`
 
@@ -430,10 +438,9 @@ $effect(() => {
 
 **Private helpers：**
 
-- `resolveActiveIndex()`：`stagedFiles.indexOf(active ?? "")`，回傳 -1 時以 0 替代。
 - `navigate(delta: -1 | 1)`：
-  1. `idx = resolveActiveIndex(); next = idx + delta`
-  2. 邊界檢查
+  1. `idx = stagedFiles.indexOf(active!)`（active 已校正，必定有效）
+  2. `next = idx + delta`；邊界檢查
   3. `active = stagedFiles[next]; selected = new Set([stagedFiles[next]])`
 - `toggleRating(n: number)`：`rating = n === rating ? 0 : n`
 - `focusTagInput()`：聚焦標籤輸入框。
@@ -443,25 +450,24 @@ $effect(() => {
 
 1. Guard：`loading || selected.size === 0` → return
 2. 驗證 `tags.length > 0`（至少一個標籤）
-3. 取得有效檔名：`[...selected].filter(f => stagedFiles.includes(f))`；若為空，return
+3. `names = [...selected]`（selected 已校正，必定都在 stagedFiles 中）
 4. `loading = true`
 5. `batchRun(names, 5, fn => api.post(...))`
 6. Toast 通知；`tagCache.invalidate()`
 7. `progress += ok`（成功數）
-8. `selected = new Set()`（清空選取）
-9. `await invalidateAll()`
-10. `loading = false`
+8. `await invalidateAll()`（`$effect` 自動校正 active / selected）
+9. `loading = false`
 
 **Trash 流程（`doTrash`）：**
 
 1. Guard：同 commit
 2. `requestConfirm` 確認
 3. `loading = true`
-4. `batchRun(names, 5, fn => api.del(...))`
-5. Toast 通知
-6. `progress += ok`（成功數）
-7. `selected = new Set()`（清空選取）
-8. `await invalidateAll()`
+4. `names = [...selected]`
+5. `batchRun(names, 5, fn => api.del(...))`
+6. Toast 通知
+7. `progress += ok`（成功數）
+8. `await invalidateAll()`（`$effect` 自動校正 active / selected）
 9. `loading = false`
 
 **全域鍵盤快捷鍵（`handleWindowKeydown`）：**
@@ -502,27 +508,23 @@ Rating → separator → Autocomplete (tags) → separator → [提交] [刪除]
   → 過濾 selected 中仍在 stagedFiles 的檔名
   → batchRun POST /api/staged/[filename]
   → progress += ok（成功數）
-  → selected = new Set()
   → await invalidateAll()
   → data.stagedFiles 更新（reactive）
-  → active 仍指向已提交的檔名（已從 list 消失）
-  → 各元件的 activeIndex 解析為 -1 → effectiveIndex = 0 → 顯示第一張
-  → 不做任何 active 修正
-  → 使用者按 ← / → 時，active 自然變為有效值
+  → +page.svelte 的 $effect 自動校正 active / selected
+  → active 指向列表中仍存在的項目，或 fallback 至第一張，或 null
 ```
 
 ### 6.2 Trash
 
-流程與 Commit 相同（含 `progress += ok`），差別在於呼叫 `DELETE /api/staged/[filename]`，且先 `requestConfirm`。
+流程與 Commit 相同（含 `progress += ok` + `$effect` 自動校正），差別在於呼叫 `DELETE /api/staged/[filename]`，且先 `requestConfirm`。
 
 ### 6.3 Navigate（← →）
 
 ```
 使用者按 ← / →
   → TaggerForm.navigate(delta)
-  → idx = stagedFiles.indexOf(active ?? ""）
-  → resolvedIdx = idx === -1 ? 0 : idx
-  → next = resolvedIdx + delta
+  → idx = stagedFiles.indexOf(active!)（active 已校正，必定有效）
+  → next = idx + delta
   → 邊界檢查（< 0 || >= length → return）
   → active = stagedFiles[next]
   → selected = new Set([stagedFiles[next]])
@@ -586,17 +588,18 @@ shift： lo/hi = indexOf(anchor) ~ indexOf(filename)
 
 | 元件 | $effect 用途 | 性質 |
 | --- | --- | --- |
+| **+page.svelte** | **active / selected 校正**（集中 reconciliation） | **狀態校正** |
 | TaggerList | scrollToActive（捲動至 active 項目） | UI 副作用 |
 | TaggerList | ResizeObserver（追蹤容器高度） | UI 副作用 |
 | TaggerPreview | 偵測 currentFile 變更 → imageLoading + zoomPan.reset | UI 副作用 |
 
-**絕對禁止**以 `$effect` 修正 `active` 或集中清理 `selected`。
+**子元件絕對禁止**以 `$effect` 修正 `active` 或 `selected`——校正只發生在 `+page.svelte`。
 
 ### 7.3 操作後的 `active` 與 `selected`
 
-- **Commit / Trash 後：** `progress += ok`；`selected` 被清空為 `new Set()`。`active` 不觸碰——若檔案已消失，渲染端 fallback 至第一張。使用者下次導航時 `active` 自然變為有效值。
-- **Refresh / Upload 後：** `selected` 與 `active` 皆不觸碰。若 active 指向的檔案仍在列表則穩定指向；若不在則 fallback。
-- **不存在任何自動 reconciliation。**
+- **所有操作後：** `await invalidateAll()` 導致 `data.stagedFiles` 更新，`+page.svelte` 的 `$effect` 自動校正 `active` 與 `selected`。操作端只需負責 `progress += ok`。
+- **active 校正規則：** 仍在列表中 → 保留；不在列表中 → fallback 至第一張；列表為空 → `null`。
+- **selected 校正規則：** 過濾掉已不在列表中的項目。
 
 ### 7.4 `imageLoading` 時序
 
