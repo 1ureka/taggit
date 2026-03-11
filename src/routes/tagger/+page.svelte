@@ -26,17 +26,33 @@
   $effect(() => {
     const list = data.stagedFiles;
 
-    // currentFile 校正：仍在列表中就保留，否則選第一張或 null
-    if (currentFile !== null && !list.includes(currentFile)) {
-      currentFile = list[0] ?? null;
-    } else if (currentFile === null && list.length > 0) {
+    // 第一幀或剛上傳 (0 => N)
+    if (currentFile === null && list.length > 0) {
       currentFile = list[0];
+      selectedFiles = new Set([list[0]]);
+      return;
     }
 
-    // selectedFiles 校正：過濾掉已不在列表中的項目
-    if (selectedFiles.size <= 0) return;
-    const next = new Set([...selectedFiles].filter((f) => list.includes(f)));
-    if (next.size !== selectedFiles.size) selectedFiles = next;
+    // 波動 (N => N)
+    if (currentFile !== null && list.length > 0) {
+      if (!list.includes(currentFile)) {
+        currentFile = list[0];
+      }
+      const next = new Set([...selectedFiles].filter((f) => list.includes(f)));
+      if (next.size === 0) {
+        selectedFiles = new Set([currentFile]);
+      } else if (next.size !== selectedFiles.size) {
+        selectedFiles = next;
+      }
+      return;
+    }
+
+    // 全數審查完 (N => 0)
+    if (currentFile !== null && list.length <= 0) {
+      currentFile = null;
+      selectedFiles = new Set();
+      return;
+    }
   });
 
   // Viewport guard
