@@ -57,10 +57,10 @@ export function createTaggerList(options: TaggerListOptions) {
     options.selectedFiles = new Set([filename]);
   }
 
-  /** 以 Ctrl 模式切換指定檔名的選取狀態 */
+  /** 以 Ctrl 模式將指定檔名加入選取集合 */
   function selectCtrl(filename: string) {
     const next = new Set(options.selectedFiles);
-    next.has(filename) && next.size > 1 ? next.delete(filename) : next.add(filename);
+    next.add(filename);
     options.currentFile = filename;
     options.selectedFiles = next;
   }
