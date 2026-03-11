@@ -7,7 +7,7 @@
 
 ## 一、重構目標
 
-1. **移除 `createContext`**：改用 `+page.svelte` 的 `$state` + props / `bind` 傳遞，符合規範§1.2。
+1. **移除 `createContext`**：改用 `+page.svelte` 的 `$state` + props / `bind` 傳遞，符合規範§1.3。
 2. **`currentFile` 改為檔名型**：以 `string | null` 取代索引型 cursor。
 3. **`selectedFiles` 改為檔名型**：以 `Set<string>` 取代 `Set<number>`。
 4. **`+page.svelte` 的 `$effect` 保證 `currentFile` / `selectedFiles` 必定可信**：子元件無需 fallback 邏輯。

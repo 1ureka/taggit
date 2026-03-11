@@ -50,7 +50,9 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 - 即便頁面極其簡單（僅一個表單），仍須將 UI 抽出為至少一個子元件。
 - SSR `data` **透過 props 傳給子元件**，不額外中轉。`data` 是 `$props()` 的一部分，Svelte 自動追蹤其變更——`goto()` 或 `invalidateAll()` 導致 `load` 重跑後，props 自動更新，子元件響應式重繪。
 
-**跨元件共享狀態：**
+### 1.3 共享狀態
+
+**跨元件共享響應式狀態：**
 
 若多個子元件需要共享響應式狀態（如 `selected`），在 `+page.svelte` 中以 `$state` 宣告，再透過 props / `bind` 傳給子元件。
 
@@ -80,13 +82,43 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 當開發者真的遇到 prop drilling 時，請先嘗試下列四種方案:
 
 1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `page.url.searchParams` 讀取
-2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.5）
+2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.7）
 3. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
 4. 提取出新的共用元件，從而在心智上不再認為多一層級
 
 若你是 AI Agent，請注意，當你注意到你需要執行這四種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
 
-### 1.3 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
+### 1.4 SSR 與頁面狀態
+
+當頁面級 `$state` 需要隨 `data` 變更而校正（例如翻頁後清除不可見的 `selected`、`invalidateAll()` 後將 `currentFile` fallback 至列表第一項），允許在 `+page.svelte` 中使用 `$effect` 做**同步校正（reconciliation）**。
+
+注意，頁面級 `$state` **不得直接從 `data` 取值初始化**：
+
+```ts
+// ✗ 錯誤：只捕獲初始值，後續 data 更新時不會跟著變
+let currentFile = $state<string | null>(data.stagedFiles[0] ?? null);
+```
+
+`$props()` 解構後的 `data` 是 reactive proxy，但在 `$state()` 初始化器中取用只會捕獲當下的值。後續 `invalidateAll()` 或 `goto()` 導致 `data` 更新時，該 `$state` 不會連動。Svelte 本身也會警告：*This reference only captures the initial value of 'data'.*
+
+正確做法是初始化為空值，再以 `$effect` 監聽 `data` 校正：
+
+```ts
+let currentFile = $state<string | null>(null);
+
+$effect(() => {
+  const list = data.stagedFiles;
+  if (currentFile !== null && !list.includes(currentFile)) {
+    currentFile = list[0] ?? null;
+  } else if (currentFile === null && list.length > 0) {
+    currentFile = list[0];
+  }
+});
+```
+
+這意味著 SSR 輸出及 hydrate 前的第一幀，校正尚未執行，狀態是空的（`null` / 空 Set）。此真空**不是異常或邊界案例——它是正常的初始狀態**，同時也正確涵蓋了列表本身為空的真實情境（例如所有項目都已處理完畢）。子元件必須為此提供合理的展示（如「未選取任何圖片」），而非將其視為例外。
+
+### 1.5 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
 
 負責該頁面區塊的所有 UI 邏輯與樣式。詳見第二章元件開發規範。
 
@@ -108,7 +140,7 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 </script>
 ```
 
-### 1.4 跨元件共享非響應式引用
+### 1.6 跨元件共享非響應式引用
 
 若多個子元件需要共享**非響應式引用**（如 timer ID、AbortController 等協調用物件），在 `+page.svelte` 建立普通物件，以 prop 傳下去即可。JS 物件是 pass-by-reference，所有子元件操作的是同一塊記憶體：
 
@@ -147,7 +179,7 @@ export function createEditorForm(options: Options) {
 - 這類引用不需要驅動 UI 重繪，因此**刻意不用 `$state`**，沒有響應式開銷。
 - 資料流與共享狀態一致：`+page.svelte` 是 owner，透過 props 向下傳遞。
 
-### 1.5 元件介面的機制與策略分離
+### 1.7 元件介面的機制與策略分離
 
 當一個元件的 props 列表膨脹時，通常代表它混入了**不屬於自身核心職責**的邏輯。判斷的方式是區分**機制（mechanism）**與**策略（policy）**：
 
