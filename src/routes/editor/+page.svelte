@@ -12,6 +12,7 @@
   let selected = $state<Set<string>>(new Set());
 
   $effect(() => {
+    if (selected.size === 0) return;
     const visibleIds = new Set(data.result.items.map((i) => i.id));
     const next = new Set([...selected].filter((id) => visibleIds.has(id)));
     if (next.size !== selected.size) selected = next;
