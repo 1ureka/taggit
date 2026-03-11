@@ -9,7 +9,7 @@ type Sort = "committedAt" | "rating" | "name" | "random";
 /**
  * 篩選表單組件的配置選項
  */
-type FormOptions = {
+type BrowseFormOptions = {
   /** 雙向綁定：預測的總數量 */
   matchCount: number;
   /** debounce 延遲時間 */
@@ -19,7 +19,7 @@ type FormOptions = {
 /**
  * 建立篩選表單邏輯的核心工廠函數
  */
-export function createForm(options: FormOptions) {
+export function createBrowseForm(options: BrowseFormOptions) {
   /** 當前所選的篩選標籤 */
   let tags = $state<string[]>([]);
   /** 最低評等篩選值（0 = 不篩選） */
@@ -29,6 +29,11 @@ export function createForm(options: FormOptions) {
 
   /** 是否正在查詢中 */
   let loading = $state(false);
+
+  /** 開始按鈕是否禁用 */
+  const startDisabled = $derived(options.matchCount === 0);
+  /** 計數文字 */
+  const countText = $derived(loading ? "查詢中..." : `共 ${options.matchCount} 張符合`);
 
   // ---
 
@@ -68,7 +73,7 @@ export function createForm(options: FormOptions) {
   }, options.debounceTime);
 
   /** 組裝查詢參數並導航至 Player 子路由 */
-  const startPlayer = () => {
+  function startPlayer() {
     if (options.matchCount === 0) return;
 
     const params = new URLSearchParams();
@@ -88,24 +93,24 @@ export function createForm(options: FormOptions) {
 
     const qs = params.toString();
     goto(`/browse/player${qs ? "?" + qs : ""}`);
-  };
+  }
 
   // ---
 
   /** 處理 Form 標籤變更事件，觸發 debounce 查詢更新 */
-  const handleFormTagChange = () => {
+  function handleFormTagChange() {
     updateCount();
-  };
+  }
 
   /** 處理 Form 評等變更事件，觸發 debounce 查詢更新 */
-  const handleFormRatingChange = () => {
+  function handleFormRatingChange() {
     updateCount();
-  };
+  }
 
   /** 處理 Form 提交事件，開始瀏覽 */
-  const handleFormSubmit = () => {
+  function handleFormSubmit() {
     startPlayer();
-  };
+  }
 
   // ---
 
@@ -138,6 +143,15 @@ export function createForm(options: FormOptions) {
     /** 存取查詢中狀態的 getter */
     get loading() {
       return loading;
+    },
+
+    /** 存取開始按鈕是否禁用的 getter */
+    get startDisabled() {
+      return startDisabled;
+    },
+    /** 存取計數文字的 getter */
+    get countText() {
+      return countText;
     },
 
     /** 獲取排序選項列表的 getter */

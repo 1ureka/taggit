@@ -9,5 +9,5 @@ export const load: PageServerLoad = () => {
   if (!loaded) throw redirect(303, "/settings?alert=error");
 
   const result = queryImages(loaded.db, { limit: 1 });
-  return { initialCount: result.total };
+  return { matchCount: result.total };
 };

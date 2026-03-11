@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import BrowseFilter from "./BrowseForm.svelte";
+  import BrowseForm from "./BrowseForm.svelte";
 
   let { data }: { data: PageData } = $props();
 </script>
@@ -10,7 +10,7 @@
 </svelte:head>
 
 <main class="page">
-  <BrowseFilter matchCount={data.initialCount} />
+  <BrowseForm matchCount={data.matchCount} />
 </main>
 
 <style>
