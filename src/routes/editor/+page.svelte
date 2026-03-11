@@ -2,9 +2,9 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
+  import Pagination from "$lib/components/Pagination.svelte";
   import EditorForm from "./EditorForm.svelte";
   import EditorList from "./EditorList.svelte";
-  import EditorPagination from "./EditorPagination.svelte";
   import EditorSelectionDock from "./EditorSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -47,7 +47,7 @@
         pages={data.result.pages}
         bind:selected
       />
-      <EditorPagination page={data.result.page} pages={data.result.pages} />
+      <Pagination page={data.result.page} pages={data.result.pages} basePath="/editor" />
     </div>
   </main>
 </div>

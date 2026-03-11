@@ -2,17 +2,19 @@ import { goto } from "$app/navigation";
 import { page } from "$app/state";
 
 /**
- * TrashPagination 的配置選項
+ * Pagination 的配置選項
  */
-type TrashPaginationOptions = {
+type PaginationOptions = {
   /** 總頁數 */
   pages: number;
+  /** 導航的基礎路徑（如 "/editor"、"/trash"） */
+  basePath: string;
 };
 
 /**
  * 建立分頁邏輯的核心工廠函數
  */
-export function createTrashPagination(options: TrashPaginationOptions) {
+export function createPagination(options: PaginationOptions) {
   /** 處理頁碼按鈕點擊事件，複製當前 URL 參數並切換至指定頁碼 */
   function handlePageClick(p: number) {
     if (p < 1 || p > options.pages) return;
@@ -20,7 +22,7 @@ export function createTrashPagination(options: TrashPaginationOptions) {
     if (p > 1) params.set("page", String(p));
     else params.delete("page");
     const qs = params.toString();
-    goto(`/trash${qs ? `?${qs}` : ""}`, { noScroll: true, keepFocus: true });
+    goto(`${options.basePath}${qs ? `?${qs}` : ""}`, { noScroll: true, keepFocus: true });
   }
 
   // ---

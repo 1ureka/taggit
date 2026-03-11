@@ -2,9 +2,9 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
+  import Pagination from "$lib/components/Pagination.svelte";
   import TrashForm from "./TrashForm.svelte";
   import TrashList from "./TrashList.svelte";
-  import TrashPagination from "./TrashPagination.svelte";
   import TrashSelectionDock from "./TrashSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -41,7 +41,7 @@
     <div class="slide-up">
       <TrashForm total={data.total} />
       <TrashList files={data.files} total={data.total} page={data.page} pages={data.pages} bind:selected />
-      <TrashPagination page={data.page} pages={data.pages} />
+      <Pagination page={data.page} pages={data.pages} basePath="/trash" />
     </div>
   </main>
 </div>

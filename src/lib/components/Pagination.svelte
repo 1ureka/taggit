@@ -1,18 +1,21 @@
 <script lang="ts">
-  import { createEditorPagination } from "./editorPagination.svelte.js";
+  import { createPagination } from "$lib/ui/pagination.svelte.js";
 
-  type Props = { page: number; pages: number };
-  let { page, pages }: Props = $props();
+  type Props = { page: number; pages: number; basePath: string };
+  let { page, pages, basePath }: Props = $props();
 
-  const ui = createEditorPagination({
+  const ui = createPagination({
     get pages() {
       return pages;
+    },
+    get basePath() {
+      return basePath;
     },
   });
 </script>
 
 {#if pages > 1}
-  <div class="editor-pagination">
+  <div class="pagination">
     <button class="btn btn-sm" disabled={page <= 1} onclick={() => ui.handlePageClick(page - 1)}> 上一頁 </button>
     {#each Array.from({ length: Math.min(pages, 7) }, (_, i) => {
       if (pages <= 7) return i + 1;
@@ -29,7 +32,7 @@
 {/if}
 
 <style>
-  .editor-pagination {
+  .pagination {
     display: flex;
     justify-content: center;
     gap: 0.375rem;
