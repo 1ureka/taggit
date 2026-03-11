@@ -1,9 +1,10 @@
 <script lang="ts">
   import { IconSearch, IconRotate, IconTrashX } from "@tabler/icons-svelte";
-  import { getTrashContext } from "./context.svelte.js";
   import { createTrashForm } from "./trashForm.svelte.js";
 
-  const ctx = getTrashContext();
+  type Props = { total: number };
+  let { total }: Props = $props();
+
   const ui = createTrashForm();
 </script>
 
@@ -15,18 +16,18 @@
       </span>
       <input
         class="text-input search-input"
-        bind:value={ctx.searchText}
+        bind:value={ui.searchText}
         placeholder="搜尋檔名..."
         oninput={ui.handleSearchInput}
         autocomplete="off"
       />
     </div>
     <div class="trash-actions">
-      <button class="btn btn-primary btn-sm" onclick={ui.handleRestoreAllClick} disabled={ctx.total === 0}>
+      <button class="btn btn-primary btn-sm" onclick={ui.handleRestoreAllClick} disabled={total === 0}>
         <IconRotate size={14} />
         還原全部
       </button>
-      <button class="btn btn-destructive btn-sm" onclick={ui.handleEmptyTrashClick} disabled={ctx.total === 0}>
+      <button class="btn btn-destructive btn-sm" onclick={ui.handleEmptyTrashClick} disabled={total === 0}>
         <IconTrashX size={14} />
         清空
       </button>
