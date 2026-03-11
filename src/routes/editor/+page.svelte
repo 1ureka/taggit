@@ -2,32 +2,20 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
-  import { EditorContext, setEditorContext } from "./context.svelte.js";
+  import Pagination from "$lib/components/Pagination.svelte";
   import EditorForm from "./EditorForm.svelte";
   import EditorList from "./EditorList.svelte";
-  import EditorPagination from "./EditorPagination.svelte";
   import EditorSelectionDock from "./EditorSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  const proxy = {
-    get items() {
-      return data.recent.items;
-    },
-    set items(v) {
-      data.recent.items = v;
-    },
-    get total() {
-      return data.recent.total;
-    },
-    set total(v) {
-      data.recent.total = v;
-    },
-  };
+  let selected = $state<Set<string>>(new Set());
 
-  const ctx = setEditorContext(new EditorContext());
-  ctx.items = proxy.items;
-  ctx.total = proxy.total;
+  $effect(() => {
+    const visibleIds = new Set(data.result.items.map((i) => i.id));
+    const next = new Set([...selected].filter((id) => visibleIds.has(id)));
+    if (next.size !== selected.size) selected = next;
+  });
 </script>
 
 <svelte:head>
@@ -52,13 +40,19 @@
   <main class="page-content">
     <div class="slide-up">
       <EditorForm />
-      <EditorList />
-      <EditorPagination />
+      <EditorList
+        items={data.result.items}
+        total={data.result.total}
+        page={data.result.page}
+        pages={data.result.pages}
+        bind:selected
+      />
+      <Pagination page={data.result.page} pages={data.result.pages} basePath="/editor" />
     </div>
   </main>
 </div>
 
-<EditorSelectionDock />
+<EditorSelectionDock bind:selected />
 
 <style>
   .page {

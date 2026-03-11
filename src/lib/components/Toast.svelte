@@ -1,11 +1,6 @@
-<!--
-  Toast.svelte — Sonner-inspired stacked toast notifications.
-  Pure CSS transitions for enter/exit/stack animations.
-  Position: top-center, stacked & collapsible, expands on hover.
--->
 <script lang="ts">
   import { IconX, IconCircleCheck, IconAlertCircle, IconInfoCircle } from "@tabler/icons-svelte";
-  import { createToast } from "$lib/client/toast.svelte.js";
+  import { createToast } from "$lib/ui/toast.svelte.js";
 
   const ui = createToast({
     gap: 8,
@@ -16,8 +11,6 @@
   });
 </script>
 
-<!-- Viewport always mounted (no {#if}) so out-animations always run -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="toaster"
   class:toaster-active={ui.items.length > 0}

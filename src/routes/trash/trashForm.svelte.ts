@@ -1,64 +1,39 @@
+import { goto, invalidateAll, afterNavigate } from "$app/navigation";
+import { page } from "$app/state";
 import { api } from "$lib/client/api.js";
 import { addToast, requestConfirm } from "$lib/client/dom.js";
-import { getTrashContext } from "./context.svelte.js";
 
 /**
  * 建立搜尋表單邏輯的核心工廠函數
  */
 export function createTrashForm() {
-  /** Trash 頁面共享的 Context */
-  const ctx = getTrashContext();
+  /** 搜尋文字（從 URL 初始化，使用者輸入時即時更新） */
+  let searchText = $state(page.url.searchParams.get("search") ?? "");
 
   // ---
 
-  /** 執行伺服器查詢並更新 Context 狀態 */
-  async function doSearch() {
-    ctx.page = 1;
-    ctx.loading = true;
+  /** 搜尋文字 debounce 毫秒數 */
+  const SEARCH_DEBOUNCE = 300;
 
-    if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-    ctx.loadingTimer = setTimeout(() => {
-      if (ctx.loading) ctx.showLoading = true;
-    }, ctx.LOADING_DELAY);
+  /** 搜尋文字 debounce 計時器 */
+  let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-    try {
-      const params = new URLSearchParams();
-      params.set("limit", String(ctx.PAGE_SIZE));
-      params.set("page", String(ctx.page));
-      if (ctx.searchText.trim()) params.set("search", ctx.searchText.trim());
+  // ---
 
-      const res = await api.get<{ files: string[]; total: number; page: number; pages: number }>(
-        `/api/trash?${params.toString()}`,
-      );
-      if (res.ok && res.data) {
-        ctx.files = res.data.files;
-        ctx.total = res.data.total;
-        ctx.pages = res.data.pages;
-      }
-    } finally {
-      ctx.loading = false;
-      if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-      ctx.showLoading = false;
-      validateSelection();
-    }
-  }
-
-  /** 清除已不在當前結果中的已選取檔案 */
-  function validateSelection() {
-    if (ctx.selected.size === 0) return;
-    const visible = new Set(ctx.files);
-    const next = new Set([...ctx.selected].filter((f) => visible.has(f)));
-    if (next.size !== ctx.selected.size) {
-      ctx.selected = next;
-    }
+  /** 組裝 query string 並透過 goto 導航 */
+  function navigate(search: string) {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("search", search.trim());
+    const qs = params.toString();
+    goto(`/trash${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
   // ---
 
-  /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
+  /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發導航 */
   function handleSearchInput() {
-    if (ctx.searchTimer) clearTimeout(ctx.searchTimer);
-    ctx.searchTimer = setTimeout(() => doSearch(), ctx.SEARCH_DEBOUNCE);
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => navigate(searchText), SEARCH_DEBOUNCE);
   }
 
   /** 處理還原全部按鈕點擊事件，還原垃圾桶中的所有圖片 */
@@ -73,8 +48,7 @@ export function createTrashForm() {
       addToast("還原失敗: " + (res.error ?? "未知錯誤"), "error");
     }
 
-    ctx.selected = new Set();
-    await doSearch();
+    await invalidateAll();
   }
 
   /** 處理清空按鈕點擊事件，永久刪除垃圾桶中的所有圖片 */
@@ -89,14 +63,31 @@ export function createTrashForm() {
       addToast("清空失敗: " + (res.error ?? "未知錯誤"), "error");
     }
 
-    ctx.selected = new Set();
-    await doSearch();
+    await invalidateAll();
   }
 
   // ---
 
+  /** 監聽 popstate 導航，從 URL 同步搜尋文字 */
+  afterNavigate(({ type }) => {
+    if (type === "popstate") {
+      searchText = page.url.searchParams.get("search") ?? "";
+    }
+  });
+
+  // ---
+
   return {
-    /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
+    /** 存取搜尋文字的 getter */
+    get searchText() {
+      return searchText;
+    },
+    /** 設定搜尋文字的 setter */
+    set searchText(v: string) {
+      searchText = v;
+    },
+
+    /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發導航 */
     handleSearchInput,
     /** 處理還原全部按鈕點擊事件，還原垃圾桶中的所有圖片 */
     handleRestoreAllClick,

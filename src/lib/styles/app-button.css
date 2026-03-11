@@ -47,6 +47,11 @@
   border-color: hsl(from var(--accent) h s calc(l - 25));
 }
 
+.btn-primary:focus-visible {
+  outline: 2px solid hsl(from var(--bg) h s l / 0.7);
+  outline-offset: -3px;
+}
+
 .btn-ghost {
   background: transparent;
   border-color: transparent;

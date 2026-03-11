@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
   import { IconArrowLeft } from "@tabler/icons-svelte";
-  import { ScrollContext, setScrollContext } from "./context.svelte.js";
   import Select from "$lib/components/Select.svelte";
   import ScrollFab from "./ScrollFab.svelte";
   import ScrollForm from "./ScrollForm.svelte";
@@ -9,24 +8,8 @@
 
   let { data }: { data: PageData } = $props();
 
-  const proxy = {
-    get items() {
-      return data.items;
-    },
-    set items(v) {
-      data.items = v;
-    },
-    get total() {
-      return data.total;
-    },
-    set total(v) {
-      data.total = v;
-    },
-  };
-
-  const ctx = setScrollContext(new ScrollContext());
-  ctx.items = proxy.items;
-  ctx.total = proxy.total;
+  let columns = $state(3);
+  let pageContentEl = $state<HTMLElement | null>(null);
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({
     value: n,
@@ -46,17 +29,17 @@
     </a>
     <span class="page-header-title">垂直瀏覽</span>
     <div class="select-wrapper">
-      <Select bind:value={ctx.columns} options={columnOptions} />
+      <Select bind:value={columns} options={columnOptions} />
     </div>
   </header>
 
-  <main class="page-content slide-up" bind:this={ctx.pageContentEl}>
-    <ScrollForm />
-    <ScrollMasonry />
+  <main class="page-content slide-up" bind:this={pageContentEl}>
+    <ScrollForm total={data.total} />
+    <ScrollMasonry items={data.items} bind:columns {pageContentEl} />
   </main>
 </div>
 
-<ScrollFab />
+<ScrollFab {pageContentEl} />
 
 <style>
   .page {

@@ -1,10 +1,8 @@
 <script lang="ts">
   import { IconSearch } from "@tabler/icons-svelte";
   import FilterBar from "$lib/components/FilterBar.svelte";
-  import { getEditorContext } from "./context.svelte.js";
   import { createEditorForm } from "./editorForm.svelte.js";
 
-  const ctx = getEditorContext();
   const ui = createEditorForm();
 </script>
 
@@ -15,7 +13,7 @@
     </span>
     <input
       class="text-input search-input"
-      bind:value={ctx.searchText}
+      bind:value={ui.searchValue}
       placeholder="搜尋檔名..."
       oninput={ui.handleSearchInput}
       autocomplete="off"
@@ -23,11 +21,11 @@
   </div>
   <div class="editor-filters">
     <FilterBar
-      bind:selectedTags={ctx.selectedTags}
-      bind:rating={ctx.rating}
-      bind:ratingOp={ctx.ratingOp}
-      bind:sort={ctx.sort}
-      bind:order={ctx.order}
+      bind:selectedTags={ui.selectedTags}
+      bind:rating={ui.rating}
+      bind:ratingOp={ui.ratingOp}
+      bind:sort={ui.sort}
+      bind:order={ui.order}
       onchange={ui.handleFilterChange}
     />
   </div>

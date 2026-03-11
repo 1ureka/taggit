@@ -1,83 +1,125 @@
-import { api } from "$lib/client/api.js";
-import type { QueryResult } from "$lib/types.js";
-import { getEditorContext } from "./context.svelte.js";
+import { goto, afterNavigate } from "$app/navigation";
+import { page } from "$app/state";
+import { parseQueryParams, buildQueryString } from "$lib/utils.js";
 
 /**
  * 建立搜尋表單邏輯的核心工廠函數
  */
 export function createEditorForm() {
-  /** Editor 頁面共享的 Context */
-  const ctx = getEditorContext();
+  /** 從 URL 讀取初始值 */
+  const init = parseQueryParams(page.url);
+
+  /** 搜尋文字 */
+  let searchValue = $state(init.search ?? "");
+  /** 已選的篩選標籤 */
+  let selectedTags = $state<string[]>(init.tags ?? []);
+  /** 評等篩選值 */
+  let rating = $state<number | undefined>(init.rating);
+  /** 評等比較運算子 */
+  let ratingOp = $state<"gte" | "lte" | "eq">(init.ratingOp ?? "gte");
+  /** 排序欄位 */
+  let sort = $state<"committedAt" | "rating" | "name" | "random">(init.sort ?? "committedAt");
+  /** 排序方向 */
+  let order = $state<"asc" | "desc">(init.order ?? "desc");
 
   // ---
 
-  /** 執行伺服器查詢並更新 Context 狀態 */
-  async function doSearch() {
-    ctx.page = 1;
-    ctx.loading = true;
+  /** 搜尋文字 debounce 毫秒數 */
+  const SEARCH_DEBOUNCE = 300;
 
-    if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-    ctx.loadingTimer = setTimeout(() => {
-      if (ctx.loading) ctx.showLoading = true;
-    }, ctx.LOADING_DELAY);
+  /** 搜尋文字 debounce 計時器 */
+  let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-    try {
-      const params = new URLSearchParams();
-      params.set("limit", String(ctx.PAGE_SIZE));
-      params.set("page", String(ctx.page));
-      params.set("sort", ctx.sort);
-      params.set("order", ctx.order);
-      if (ctx.searchText.trim()) params.set("search", ctx.searchText.trim());
-      if (ctx.selectedTags.length > 0) params.set("tags", ctx.selectedTags.join(","));
-      if (ctx.rating !== undefined) {
-        params.set("rating", String(ctx.rating));
-        params.set("ratingOp", ctx.ratingOp);
-      }
+  // ---
 
-      const res = await api.get<QueryResult>(`/api/images?${params.toString()}`);
-      if (res.ok && res.data) {
-        ctx.items = res.data.items;
-        ctx.total = res.data.total;
-        ctx.page = res.data.page;
-        ctx.pages = res.data.pages;
-      }
-    } finally {
-      ctx.loading = false;
-      if (ctx.loadingTimer) clearTimeout(ctx.loadingTimer);
-      ctx.showLoading = false;
-      validateSelection();
+  /** Popstate 時從 URL 同步篩選狀態，避免與 goto 導航衝突 */
+  afterNavigate(({ type }) => {
+    if (type === "popstate") {
+      const vals = parseQueryParams(page.url);
+      searchValue = vals.search ?? "";
+      selectedTags = vals.tags ?? [];
+      rating = vals.rating;
+      ratingOp = vals.ratingOp ?? "gte";
+      sort = vals.sort ?? "committedAt";
+      order = vals.order ?? "desc";
     }
-  }
+  });
 
-  /** 清除已不在當前結果中的已選取 ID */
-  function validateSelection() {
-    if (ctx.selected.size === 0) return;
-    const visibleIds = new Set(ctx.items.map((item) => item.id));
-    const next = new Set([...ctx.selected].filter((id) => visibleIds.has(id)));
-    if (next.size !== ctx.selected.size) {
-      ctx.selected = next;
-    }
+  /** 根據目前篩選狀態構建 query string */
+  function currentQueryString(): string {
+    return buildQueryString({ search: searchValue, tags: selectedTags, rating, ratingOp, sort, order });
   }
 
   // ---
 
-  /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
+  /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發 URL 導航 */
   function handleSearchInput() {
-    if (ctx.searchTimer) clearTimeout(ctx.searchTimer);
-    ctx.searchTimer = setTimeout(() => doSearch(), ctx.SEARCH_DEBOUNCE);
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      goto(`/editor${currentQueryString()}`, { replaceState: true, noScroll: true, keepFocus: true });
+    }, SEARCH_DEBOUNCE);
   }
 
-  /** 處理篩選條件變更事件，立即觸發查詢 */
+  /** 處理篩選條件變更事件，立即觸發 URL 導航 */
   function handleFilterChange() {
-    doSearch();
+    goto(`/editor${currentQueryString()}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
   // ---
 
   return {
-    /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發查詢 */
+    /** 存取搜尋文字的 getter */
+    get searchValue() {
+      return searchValue;
+    },
+    /** 設定搜尋文字的 setter */
+    set searchValue(v: string) {
+      searchValue = v;
+    },
+    /** 存取已選篩選標籤的 getter */
+    get selectedTags() {
+      return selectedTags;
+    },
+    /** 設定已選篩選標籤的 setter */
+    set selectedTags(v: string[]) {
+      selectedTags = v;
+    },
+    /** 存取評等篩選值的 getter */
+    get rating() {
+      return rating;
+    },
+    /** 設定評等篩選值的 setter */
+    set rating(v: number | undefined) {
+      rating = v;
+    },
+    /** 存取評等比較運算子的 getter */
+    get ratingOp() {
+      return ratingOp;
+    },
+    /** 設定評等比較運算子的 setter */
+    set ratingOp(v: "gte" | "lte" | "eq") {
+      ratingOp = v;
+    },
+    /** 存取排序欄位的 getter */
+    get sort() {
+      return sort;
+    },
+    /** 設定排序欄位的 setter */
+    set sort(v: "committedAt" | "rating" | "name" | "random") {
+      sort = v;
+    },
+    /** 存取排序方向的 getter */
+    get order() {
+      return order;
+    },
+    /** 設定排序方向的 setter */
+    set order(v: "asc" | "desc") {
+      order = v;
+    },
+
+    /** 處理搜尋輸入框 input 事件，以 debounce 方式觸發 URL 導航 */
     handleSearchInput,
-    /** 處理篩選條件變更事件，立即觸發查詢 */
+    /** 處理篩選條件變更事件，立即觸發 URL 導航 */
     handleFilterChange,
   };
 }

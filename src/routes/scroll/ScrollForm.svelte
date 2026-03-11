@@ -1,23 +1,23 @@
 <script lang="ts">
   import FilterBar from "$lib/components/FilterBar.svelte";
-  import { getScrollContext } from "./context.svelte.js";
   import { createScrollForm } from "./scrollForm.svelte.js";
 
-  const ctx = getScrollContext();
+  let { total }: { total: number } = $props();
+
   const ui = createScrollForm();
 </script>
 
 <div class="scroll-filter-area">
   <FilterBar
-    bind:selectedTags={ctx.selectedTags}
-    bind:rating={ctx.rating}
-    bind:ratingOp={ctx.ratingOp}
-    bind:sort={ctx.sort}
-    bind:order={ctx.order}
+    bind:selectedTags={ui.selectedTags}
+    bind:rating={ui.rating}
+    bind:ratingOp={ui.ratingOp}
+    bind:sort={ui.sort}
+    bind:order={ui.order}
     onchange={ui.handleFilterChange}
   />
   <div class="scroll-result-count">
-    <span>{ctx.total} 張結果</span>
+    <span>{total} 張結果</span>
   </div>
 </div>
 

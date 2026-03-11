@@ -1,7 +1,7 @@
 <script lang="ts">
   import { float } from "$lib/client/float.js";
   import { IconX } from "@tabler/icons-svelte";
-  import { createAutocomplete } from "$lib/client/autocomplete.svelte.js";
+  import { createAutocomplete } from "$lib/ui/autocomplete.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前選中的標籤列表 */

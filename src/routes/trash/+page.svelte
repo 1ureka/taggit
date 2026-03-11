@@ -2,39 +2,20 @@
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
-  import { TrashContext, setTrashContext } from "./context.svelte.js";
+  import Pagination from "$lib/components/Pagination.svelte";
   import TrashForm from "./TrashForm.svelte";
   import TrashList from "./TrashList.svelte";
-  import TrashPagination from "./TrashPagination.svelte";
   import TrashSelectionDock from "./TrashSelectionDock.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  const proxy = {
-    get files() {
-      return data.files;
-    },
-    set files(v) {
-      data.files = v;
-    },
-    get total() {
-      return data.total;
-    },
-    set total(v) {
-      data.total = v;
-    },
-    get pages() {
-      return data.pages;
-    },
-    set pages(v) {
-      data.pages = v;
-    },
-  };
+  let selected = $state<Set<string>>(new Set());
 
-  const ctx = setTrashContext(new TrashContext());
-  ctx.files = proxy.files;
-  ctx.total = proxy.total;
-  ctx.pages = proxy.pages;
+  $effect(() => {
+    const visible = new Set(data.files);
+    const next = new Set([...selected].filter((f) => visible.has(f)));
+    if (next.size !== selected.size) selected = next;
+  });
 </script>
 
 <svelte:head>
@@ -58,14 +39,14 @@
 
   <main class="page-content">
     <div class="slide-up">
-      <TrashForm />
-      <TrashList />
-      <TrashPagination />
+      <TrashForm total={data.total} />
+      <TrashList files={data.files} total={data.total} page={data.page} pages={data.pages} bind:selected />
+      <Pagination page={data.page} pages={data.pages} basePath="/trash" />
     </div>
   </main>
 </div>
 
-<TrashSelectionDock />
+<TrashSelectionDock bind:selected />
 
 <style>
   .page {

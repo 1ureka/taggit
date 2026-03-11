@@ -1,7 +1,7 @@
 <script lang="ts">
   import { float } from "$lib/client/float.js";
-  import { createAutocomplete } from "$lib/client/autocomplete.svelte.js";
-  import { createMenu } from "$lib/client/menu.svelte.js";
+  import { createAutocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import { createMenu } from "$lib/ui/menu.svelte.js";
   import { IconX } from "@tabler/icons-svelte";
 
   type Props = {
