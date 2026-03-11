@@ -77,13 +77,14 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 
 這使得資料流永遠只有一個 pattern：**props 向下、`bind` 向上、getter/setter options 傳入無頭 UI**。
 
-當開發者真的遇到 prop drilling 時，請先嘗試下列三種方案:
+當開發者真的遇到 prop drilling 時，請先嘗試下列四種方案:
 
 1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `$page.url.searchParams` 讀取
-2. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
-3. 提取出新的共用元件，從而在心智上不再認為多一層級
+2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.5）
+3. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
+4. 提取出新的共用元件，從而在心智上不再認為多一層級
 
-若你是 AI Agent，請注意，當你注意到你需要執行這三種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
+若你是 AI Agent，請注意，當你注意到你需要執行這四種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
 
 ### 1.3 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
 
@@ -134,14 +135,45 @@ type Options = {
 export function createEditorForm(options: Options) {
   async function doSearch() {
     if (options.timers.loading) clearTimeout(options.timers.loading);
-    options.timers.loading = setTimeout(() => { /* ... */ }, 200);
+    options.timers.loading = setTimeout(() => {
+      /* ... */
+    }, 200);
   }
 }
 ```
 
 **要點：**
+
 - 這類引用不需要驅動 UI 重繪，因此**刻意不用 `$state`**，沒有響應式開銷。
 - 資料流與共享狀態一致：`+page.svelte` 是 owner，透過 props 向下傳遞。
+
+### 1.5 元件介面的機制與策略分離
+
+當一個元件的 props 列表膨脹時，通常代表它混入了**不屬於自身核心職責**的邏輯。判斷的方式是區分**機制（mechanism）**與**策略（policy）**：
+
+- **機制**：元件之所以存在的核心運作原理——移除後元件無法運作的部分。
+- **策略**：呼叫者針對該機制所注入的具體行為決策——移除後元件的核心機制仍可獨立運作。
+
+**判斷方法：「如果移除這個 prop，元件的核心機制還能運作嗎？」** 若能，它就是策略，應透過 callback prop 或 Svelte snippet 交由呼叫者注入，而非作為資料 props 傳入。
+
+以虛擬化列表為例：
+
+| 分類 | Props / 參數                               | 理由                                                           |
+| ---- | ------------------------------------------ | -------------------------------------------------------------- |
+| 機制 | `itemCount`、`itemHeight`、`overScan`      | 移除後列表無法計算可見範圍，核心不成立                         |
+| 策略 | `renderItem`、`onItemClick`、`selectedIds` | 移除後列表仍可捲動並定位可見項目，只是什麼都不渲染、不回應互動 |
+
+遵循此原則後，元件的 props 介面只包含機制配置與策略注入口（callback / snippet），不再出現「轉交型 props」——那些元件本身不消費、只是為了餵給 callback 內部邏輯而存在的資料。
+
+**補充：**有關於 `renderItem` 這類 prop 的一個範例
+
+```svelte
+<VirtualList {itemCount} {itemHeight}>
+  {#snippet renderItem(index, style)}
+    <div {style}>{items[index].name}</div>
+  {/snippet}
+</VirtualList>
+```
 
 ---
 
@@ -226,7 +258,7 @@ export function createComponent(options: ComponentOptions) {
 
 ```ts
 function handleSomethingClick() {
-    someHelper();
+  someHelper();
 }
 ```
 
@@ -234,26 +266,26 @@ function handleSomethingClick() {
 
 Handler 一律採 `handle` + `目標元素` + `事件類型` 結構：
 
-| Handler                      | 目標元素    | 事件類型         |
-| ---------------------------- | ----------- | ---------------- |
-| `handleInput`                | input       | input            |
-| `handleInputFocus`           | input       | focus            |
-| `handleInputBlur`            | input       | blur             |
-| `handleInputKeydown`         | input       | keydown          |
-| `handleChipClick`            | chip        | click            |
-| `handleDropdownMouseDown`    | dropdown    | mousedown        |
-| `handleDropdownMouseOver`    | dropdown    | mouseover        |
-| `handleTriggerClick`         | trigger     | click            |
-| `handleTriggerBlur`          | trigger     | blur             |
-| `handleTriggerKeydown`       | trigger     | keydown          |
-| `handleOptionMouseDown`      | option      | mousedown        |
-| `handleOptionMouseEnter`     | option      | mouseenter       |
-| `handleItemMouseDown`        | item        | mousedown        |
-| `handleItemMouseEnter`       | item        | mouseenter       |
-| `handleStarMouseEnter`       | star        | mouseenter       |
-| `handleStarClick`            | star        | click            |
-| `handleContainerMouseLeave`  | container   | mouseleave       |
-| `handleContainerKeydown`     | container   | keydown          |
+| Handler                     | 目標元素  | 事件類型   |
+| --------------------------- | --------- | ---------- |
+| `handleInput`               | input     | input      |
+| `handleInputFocus`          | input     | focus      |
+| `handleInputBlur`           | input     | blur       |
+| `handleInputKeydown`        | input     | keydown    |
+| `handleChipClick`           | chip      | click      |
+| `handleDropdownMouseDown`   | dropdown  | mousedown  |
+| `handleDropdownMouseOver`   | dropdown  | mouseover  |
+| `handleTriggerClick`        | trigger   | click      |
+| `handleTriggerBlur`         | trigger   | blur       |
+| `handleTriggerKeydown`      | trigger   | keydown    |
+| `handleOptionMouseDown`     | option    | mousedown  |
+| `handleOptionMouseEnter`    | option    | mouseenter |
+| `handleItemMouseDown`       | item      | mousedown  |
+| `handleItemMouseEnter`      | item      | mouseenter |
+| `handleStarMouseEnter`      | star      | mouseenter |
+| `handleStarClick`           | star      | click      |
+| `handleContainerMouseLeave` | container | mouseleave |
+| `handleContainerKeydown`    | container | keydown    |
 
 ### 2.6 程式碼編排
 
@@ -320,6 +352,7 @@ export function createXxx(options: XxxOptions) {
 ```
 
 **要點：**
+
 - `// ---` 是唯一使用的分隔符，不使用 `// ===` 或 `// ───` 等其他變體。
 - 同一目標元素的 handler 不加分隔符（如 `handleTriggerClick` / `handleTriggerBlur` / `handleTriggerKeydown` 連續排列）。
 - 不同目標元素的 handler 之間以 `// ---` 分隔。
@@ -383,13 +416,19 @@ const selectedLabel = $derived(options.list.find((item) => item.value === option
 
 ```ts
 /** 執行選取動作 */
-function selectOption(item: SelectItem) { /* ... */ }
+function selectOption(item: SelectItem) {
+  /* ... */
+}
 
 /** 開啟選單，預設虛擬聚焦到當前已選中的那一個，若無則為 -1 */
-function openDropdown() { /* ... */ }
+function openDropdown() {
+  /* ... */
+}
 
 /** 關閉選單，重置虛擬聚焦索引 */
-function closeDropdown() { /* ... */ }
+function closeDropdown() {
+  /* ... */
+}
 ```
 
 **Handler functions**
@@ -398,13 +437,19 @@ function closeDropdown() { /* ... */ }
 
 ```ts
 /** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
-function handleTriggerClick() { /* ... */ }
+function handleTriggerClick() {
+  /* ... */
+}
 
 /** 處理 Trigger 失焦事件，關閉下拉選單 */
-function handleTriggerBlur() { /* ... */ }
+function handleTriggerBlur() {
+  /* ... */
+}
 
 /** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
-function handleTriggerKeydown(e: KeyboardEvent) { /* ... */ }
+function handleTriggerKeydown(e: KeyboardEvent) {
+  /* ... */
+}
 ```
 
 鍵盤 handler 內部的各 branch 也以單行 JSDoc 標註：
@@ -502,11 +547,11 @@ setter JSDoc 慣用語：`設定 XXX 的 setter` 或 `設置 XXX 的 setter`。
 
 **三個關鍵值：**
 
-| 值 | 意義 |
-| --- | --- |
-| `0s` | transition duration——opacity 變化是瞬間切換，不做漸變動畫 |
+| 值         | 意義                                                                    |
+| ---------- | ----------------------------------------------------------------------- |
+| `0s`       | transition duration——opacity 變化是瞬間切換，不做漸變動畫               |
 | `step-end` | timing function——確保是離散跳變而非連續插值（與 `0s` 搭配確保行為明確） |
-| `0.2s` | transition delay——opacity 變化延遲 200ms 才生效 |
+| `0.2s`     | transition delay——opacity 變化延遲 200ms 才生效                         |
 
 ### 4.3 通用性與天然無競態
 
