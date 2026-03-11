@@ -1,26 +1,27 @@
-import { getTaggerContext } from "./context.svelte.js";
+/**
+ * TaggerProgress 元件的配置選項
+ */
+type TaggerProgressOptions = {
+  /** 暫存檔案列表 */
+  get stagedFiles(): string[];
+  /** 已處理數量 */
+  get progress(): number;
+};
 
 /**
  * 建立進度列邏輯的核心工廠函數
  */
-export function createTaggerProgress() {
-  /** Tagger 頁面共享的 Context */
-  const ctx = getTaggerContext();
-
-  /** 已處理的圖片數量 */
-  const processed = $derived(ctx.total - ctx.list.length);
+export function createTaggerProgress(options: TaggerProgressOptions) {
+  /** 總數（已處理 + 剩餘） */
+  const total = $derived(options.progress + options.stagedFiles.length);
   /** 進度百分比 */
-  const progressPct = $derived(ctx.total > 0 ? Math.round((processed / ctx.total) * 100) : 0);
+  const progressPct = $derived(total > 0 ? Math.round((options.progress / total) * 100) : 0);
   /** 進度文字標籤 */
-  const progressLabel = $derived(`${processed}/${ctx.total} (${ctx.list.length} 剩餘)`);
+  const progressLabel = $derived(`${options.progress}/${total} (${options.stagedFiles.length} 剩餘)`);
 
   // ---
 
   return {
-    /** 存取已處理數量的 getter */
-    get processed() {
-      return processed;
-    },
     /** 存取進度百分比的 getter */
     get progressPct() {
       return progressPct;
@@ -28,14 +29,6 @@ export function createTaggerProgress() {
     /** 存取進度文字標籤的 getter */
     get progressLabel() {
       return progressLabel;
-    },
-    /** 存取載入狀態的 getter */
-    get loading() {
-      return ctx.loading;
-    },
-    /** 存取圖片載入狀態的 getter */
-    get imageLoading() {
-      return ctx.imageLoading;
     },
   };
 }

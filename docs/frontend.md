@@ -22,18 +22,18 @@
 - 命名慣例：SSR 的資料變數不得使用 `initial`, `preload` 等詞彙，應使用純粹的名稱，如 `total`, `count`, `items` 等。
 - SSR `data` 由 `+page.svelte` 接收後，**透過 props 傳給子元件**，不額外中轉。
 
-**URL 狀態（`$page.url.searchParams`）**
+**URL 狀態（`page.url.searchParams`）**
 
 URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件就近獲取**，不從上層以 props 傳入：
 
-- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `$page.url.searchParams` 讀取。
+- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `page.url.searchParams` 讀取。
 - **讀寫**：在無頭 UI（`*.svelte.ts`）中透過 options 傳入 getter 讀取，並以 `goto()` 寫入。
 
 ```svelte
 <!-- 唯讀示例：元件自行從 URL 讀取 -->
 <script lang="ts">
-  import { page } from "$app/stores";
-  const tab = $derived($page.url.searchParams.get("tab") ?? "default");
+  import { page } from "$app/state";
+  const tab = $derived(page.url.searchParams.get("tab") ?? "default");
 </script>
 ```
 
@@ -50,7 +50,9 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 - 即便頁面極其簡單（僅一個表單），仍須將 UI 抽出為至少一個子元件。
 - SSR `data` **透過 props 傳給子元件**，不額外中轉。`data` 是 `$props()` 的一部分，Svelte 自動追蹤其變更——`goto()` 或 `invalidateAll()` 導致 `load` 重跑後，props 自動更新，子元件響應式重繪。
 
-**跨元件共享狀態：**
+### 1.3 共享狀態
+
+**跨元件共享響應式狀態：**
 
 若多個子元件需要共享響應式狀態（如 `selected`），在 `+page.svelte` 中以 `$state` 宣告，再透過 props / `bind` 傳給子元件。
 
@@ -77,15 +79,46 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 
 這使得資料流永遠只有一個 pattern：**props 向下、`bind` 向上、getter/setter options 傳入無頭 UI**。
 
-當開發者真的遇到 prop drilling 時，請先嘗試下列三種方案:
+當開發者真的遇到 prop drilling 時，請先嘗試下列四種方案:
 
-1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `$page.url.searchParams` 讀取
-2. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
-3. 提取出新的共用元件，從而在心智上不再認為多一層級
+1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `page.url.searchParams` 讀取
+2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.7）
+3. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
+4. 提取出新的共用元件，從而在心智上不再認為多一層級
 
-若你是 AI Agent，請注意，當你注意到你需要執行這三種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
+若你是 AI Agent，請注意，當你注意到你需要執行這四種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
 
-### 1.3 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
+### 1.4 SSR 與頁面狀態
+
+當頁面級 `$state` 需要隨 `data` 變更而校正（例如翻頁後清除不可見的 `selected`、`invalidateAll()` 後將 `currentFile` fallback 至列表第一項），允許在 `+page.svelte` 中使用 `$effect` 做**同步校正（reconciliation）**。
+
+注意，頁面級 `$state` **不得直接從 `data` 取值初始化**：
+
+```ts
+// ✗ 錯誤：只捕獲初始值，後續 data 更新時不會跟著變
+let currentFile = $state<string | null>(data.stagedFiles[0] ?? null);
+```
+
+`$props()` 解構後的 `data` 是 reactive proxy，但在 `$state()` 初始化器中取用只會捕獲當下的值。後續 `invalidateAll()` 或 `goto()` 導致 `data` 更新時，該 `$state` 不會連動。Svelte 本身也會警告：*This reference only captures the initial value of 'data'.*
+
+正確做法是初始化為空值，再以 `$effect` 監聽 `data` 校正：
+
+```ts
+let currentFile = $state<string | null>(null);
+
+$effect(() => {
+  const list = data.stagedFiles;
+  if (currentFile !== null && !list.includes(currentFile)) {
+    currentFile = list[0] ?? null;
+  } else if (currentFile === null && list.length > 0) {
+    currentFile = list[0];
+  }
+});
+```
+
+這意味著 SSR 輸出及 hydrate 前的第一幀，校正尚未執行，狀態是空的（`null` / 空 Set）。此真空**不是異常或邊界案例——它是正常的初始狀態**，同時也正確涵蓋了列表本身為空的真實情境（例如所有項目都已處理完畢）。子元件必須為此提供合理的展示（如「未選取任何圖片」），而非將其視為例外。
+
+### 1.5 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
 
 負責該頁面區塊的所有 UI 邏輯與樣式。詳見第二章元件開發規範。
 
@@ -107,7 +140,7 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 </script>
 ```
 
-### 1.4 跨元件共享非響應式引用
+### 1.6 跨元件共享非響應式引用
 
 若多個子元件需要共享**非響應式引用**（如 timer ID、AbortController 等協調用物件），在 `+page.svelte` 建立普通物件，以 prop 傳下去即可。JS 物件是 pass-by-reference，所有子元件操作的是同一塊記憶體：
 
@@ -134,14 +167,45 @@ type Options = {
 export function createEditorForm(options: Options) {
   async function doSearch() {
     if (options.timers.loading) clearTimeout(options.timers.loading);
-    options.timers.loading = setTimeout(() => { /* ... */ }, 200);
+    options.timers.loading = setTimeout(() => {
+      /* ... */
+    }, 200);
   }
 }
 ```
 
 **要點：**
+
 - 這類引用不需要驅動 UI 重繪，因此**刻意不用 `$state`**，沒有響應式開銷。
 - 資料流與共享狀態一致：`+page.svelte` 是 owner，透過 props 向下傳遞。
+
+### 1.7 元件介面的機制與策略分離
+
+當一個元件的 props 列表膨脹時，通常代表它混入了**不屬於自身核心職責**的邏輯。判斷的方式是區分**機制（mechanism）**與**策略（policy）**：
+
+- **機制**：元件之所以存在的核心運作原理——移除後元件無法運作的部分。
+- **策略**：呼叫者針對該機制所注入的具體行為決策——移除後元件的核心機制仍可獨立運作。
+
+**判斷方法：「如果移除這個 prop，元件的核心機制還能運作嗎？」** 若能，它就是策略，應透過 callback prop 或 Svelte snippet 交由呼叫者注入，而非作為資料 props 傳入。
+
+以虛擬化列表為例：
+
+| 分類 | Props / 參數                               | 理由                                                           |
+| ---- | ------------------------------------------ | -------------------------------------------------------------- |
+| 機制 | `itemCount`、`itemHeight`、`overScan`      | 移除後列表無法計算可見範圍，核心不成立                         |
+| 策略 | `renderItem`、`onItemClick`、`selectedIds` | 移除後列表仍可捲動並定位可見項目，只是什麼都不渲染、不回應互動 |
+
+遵循此原則後，元件的 props 介面只包含機制配置與策略注入口（callback / snippet），不再出現「轉交型 props」——那些元件本身不消費、只是為了餵給 callback 內部邏輯而存在的資料。
+
+**補充：**有關於 `renderItem` 這類 prop 的一個範例
+
+```svelte
+<VirtualList {itemCount} {itemHeight}>
+  {#snippet renderItem(index, style)}
+    <div {style}>{items[index].name}</div>
+  {/snippet}
+</VirtualList>
+```
 
 ---
 
@@ -226,7 +290,7 @@ export function createComponent(options: ComponentOptions) {
 
 ```ts
 function handleSomethingClick() {
-    someHelper();
+  someHelper();
 }
 ```
 
@@ -234,26 +298,26 @@ function handleSomethingClick() {
 
 Handler 一律採 `handle` + `目標元素` + `事件類型` 結構：
 
-| Handler                      | 目標元素    | 事件類型         |
-| ---------------------------- | ----------- | ---------------- |
-| `handleInput`                | input       | input            |
-| `handleInputFocus`           | input       | focus            |
-| `handleInputBlur`            | input       | blur             |
-| `handleInputKeydown`         | input       | keydown          |
-| `handleChipClick`            | chip        | click            |
-| `handleDropdownMouseDown`    | dropdown    | mousedown        |
-| `handleDropdownMouseOver`    | dropdown    | mouseover        |
-| `handleTriggerClick`         | trigger     | click            |
-| `handleTriggerBlur`          | trigger     | blur             |
-| `handleTriggerKeydown`       | trigger     | keydown          |
-| `handleOptionMouseDown`      | option      | mousedown        |
-| `handleOptionMouseEnter`     | option      | mouseenter       |
-| `handleItemMouseDown`        | item        | mousedown        |
-| `handleItemMouseEnter`       | item        | mouseenter       |
-| `handleStarMouseEnter`       | star        | mouseenter       |
-| `handleStarClick`            | star        | click            |
-| `handleContainerMouseLeave`  | container   | mouseleave       |
-| `handleContainerKeydown`     | container   | keydown          |
+| Handler                     | 目標元素  | 事件類型   |
+| --------------------------- | --------- | ---------- |
+| `handleInput`               | input     | input      |
+| `handleInputFocus`          | input     | focus      |
+| `handleInputBlur`           | input     | blur       |
+| `handleInputKeydown`        | input     | keydown    |
+| `handleChipClick`           | chip      | click      |
+| `handleDropdownMouseDown`   | dropdown  | mousedown  |
+| `handleDropdownMouseOver`   | dropdown  | mouseover  |
+| `handleTriggerClick`        | trigger   | click      |
+| `handleTriggerBlur`         | trigger   | blur       |
+| `handleTriggerKeydown`      | trigger   | keydown    |
+| `handleOptionMouseDown`     | option    | mousedown  |
+| `handleOptionMouseEnter`    | option    | mouseenter |
+| `handleItemMouseDown`       | item      | mousedown  |
+| `handleItemMouseEnter`      | item      | mouseenter |
+| `handleStarMouseEnter`      | star      | mouseenter |
+| `handleStarClick`           | star      | click      |
+| `handleContainerMouseLeave` | container | mouseleave |
+| `handleContainerKeydown`    | container | keydown    |
 
 ### 2.6 程式碼編排
 
@@ -320,6 +384,7 @@ export function createXxx(options: XxxOptions) {
 ```
 
 **要點：**
+
 - `// ---` 是唯一使用的分隔符，不使用 `// ===` 或 `// ───` 等其他變體。
 - 同一目標元素的 handler 不加分隔符（如 `handleTriggerClick` / `handleTriggerBlur` / `handleTriggerKeydown` 連續排列）。
 - 不同目標元素的 handler 之間以 `// ---` 分隔。
@@ -383,13 +448,19 @@ const selectedLabel = $derived(options.list.find((item) => item.value === option
 
 ```ts
 /** 執行選取動作 */
-function selectOption(item: SelectItem) { /* ... */ }
+function selectOption(item: SelectItem) {
+  /* ... */
+}
 
 /** 開啟選單，預設虛擬聚焦到當前已選中的那一個，若無則為 -1 */
-function openDropdown() { /* ... */ }
+function openDropdown() {
+  /* ... */
+}
 
 /** 關閉選單，重置虛擬聚焦索引 */
-function closeDropdown() { /* ... */ }
+function closeDropdown() {
+  /* ... */
+}
 ```
 
 **Handler functions**
@@ -398,13 +469,19 @@ function closeDropdown() { /* ... */ }
 
 ```ts
 /** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
-function handleTriggerClick() { /* ... */ }
+function handleTriggerClick() {
+  /* ... */
+}
 
 /** 處理 Trigger 失焦事件，關閉下拉選單 */
-function handleTriggerBlur() { /* ... */ }
+function handleTriggerBlur() {
+  /* ... */
+}
 
 /** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
-function handleTriggerKeydown(e: KeyboardEvent) { /* ... */ }
+function handleTriggerKeydown(e: KeyboardEvent) {
+  /* ... */
+}
 ```
 
 鍵盤 handler 內部的各 branch 也以單行 JSDoc 標註：
@@ -502,11 +579,11 @@ setter JSDoc 慣用語：`設定 XXX 的 setter` 或 `設置 XXX 的 setter`。
 
 **三個關鍵值：**
 
-| 值 | 意義 |
-| --- | --- |
-| `0s` | transition duration——opacity 變化是瞬間切換，不做漸變動畫 |
+| 值         | 意義                                                                    |
+| ---------- | ----------------------------------------------------------------------- |
+| `0s`       | transition duration——opacity 變化是瞬間切換，不做漸變動畫               |
 | `step-end` | timing function——確保是離散跳變而非連續插值（與 `0s` 搭配確保行為明確） |
-| `0.2s` | transition delay——opacity 變化延遲 200ms 才生效 |
+| `0.2s`     | transition delay——opacity 變化延遲 200ms 才生效                         |
 
 ### 4.3 通用性與天然無競態
 

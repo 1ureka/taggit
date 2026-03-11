@@ -1,65 +1,45 @@
+import { invalidateAll } from "$app/navigation";
 import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
-import { addToast, isInEditable, scrollToActive, requestConfirm } from "$lib/client/dom.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
 import { tagCache } from "$lib/client/cache.js";
-import { getTaggerContext } from "./context.svelte.js";
 
 /**
- * 建立標籤面板邏輯的核心工廠函數
+ * TaggerForm 元件的配置選項
  */
-export function createTaggerPanel() {
-  /** Tagger 頁面共享的 Context */
-  const ctx = getTaggerContext();
+type TaggerFormOptions = {
+  /** 目前選取的檔名 */
+  get currentFile(): string | null;
+  /** 雙向綁定：已選取的檔名集合 */
+  get selectedFiles(): Set<string>;
+  set selectedFiles(v: Set<string>);
+  /** 雙向綁定：載入狀態 */
+  get loading(): boolean;
+  set loading(v: boolean);
+  /** 雙向綁定：已處理數量 */
+  get progress(): number;
+  set progress(v: number);
+};
 
-  /** 標籤輸入區塊的包裝元素 */
+/**
+ * 建立標籤表單邏輯的核心工廠函數
+ */
+export function createTaggerForm(options: TaggerFormOptions) {
+  /** 標籤列表 */
+  let tags = $state<string[]>([]);
+  /** 評等 0–5 */
+  let rating = $state(0);
+  /** 標籤輸入框的容器 DOM 引用 */
   let tagInputWrapEl = $state<HTMLDivElement>();
 
   /** 已選取的圖片數量 */
-  const selectedCount = $derived(ctx.selected.size);
+  const selectedCount = $derived(options.selectedFiles.size);
 
   // ---
 
-  /** 取得已選取檔案的檔名列表 */
-  function selectedFilenames(): string[] {
-    return [...ctx.selected].sort((a, b) => a - b).map((i) => ctx.list[i]);
-  }
-
-  /** 移除指定檔名的項目並更新選取狀態 */
-  function removeByNames(names: string[]) {
-    const nameSet = new Set(names);
-    ctx.list = ctx.list.filter((f) => !nameSet.has(f));
-    ctx.selected = new Set();
-
-    if (ctx.list.length === 0) {
-      ctx.cursor = -1;
-    } else {
-      const next = Math.min(ctx.cursor, ctx.list.length - 1);
-      ctx.imageLoading = true;
-      ctx.cursor = next;
-      ctx.selected = new Set([next]);
-      ctx.tags = [];
-      ctx.rating = 0;
-      scrollToActive(ctx.listEl, next, ctx.ITEM_H);
-      ctx.zoomPan?.reset();
-    }
-  }
-
-  /** 移動游標至指定偏移量 */
-  function navigate(delta: -1 | 1) {
-    const next = ctx.cursor + delta;
-    if (next < 0 || next >= ctx.list.length) return;
-    ctx.imageLoading = true;
-    ctx.cursor = next;
-    ctx.selected = new Set([next]);
-    ctx.tags = [];
-    ctx.rating = 0;
-    scrollToActive(ctx.listEl, next, ctx.ITEM_H);
-    ctx.zoomPan?.reset();
-  }
-
   /** 切換評等值 */
   function toggleRating(n: number) {
-    ctx.rating = n === ctx.rating ? 0 : n;
+    rating = n === rating ? 0 : n;
   }
 
   /** 聚焦標籤輸入框 */
@@ -67,23 +47,26 @@ export function createTaggerPanel() {
     tagInputWrapEl?.querySelector("input")?.focus();
   }
 
+  /** 重置表單 */
+  function resetForm() {
+    tags = [];
+    rating = 0;
+  }
+
   /** 提交已選取的圖片 */
   async function doCommit() {
-    if (ctx.loading || ctx.selected.size === 0 || ctx.cursor < 0) return;
-    if (ctx.tags.length === 0) {
+    if (options.loading || options.selectedFiles.size === 0) return;
+    if (tags.length === 0) {
       addToast("請至少加入一個標籤才能提交", "error");
       return;
     }
 
-    ctx.loading = true;
-    const names = selectedFilenames();
+    const names = [...options.selectedFiles];
+    options.loading = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, async (fn) => {
-        return api.post(`/api/staged/${encodeURIComponent(fn)}`, {
-          tags: ctx.tags,
-          rating: ctx.rating,
-        });
+        return api.post(`/api/staged/${encodeURIComponent(fn)}`, { tags, rating });
       });
 
       if (ok) {
@@ -91,27 +74,24 @@ export function createTaggerPanel() {
       }
       if (fail) addToast(`${fail} 張提交失敗`, "error");
 
-      removeByNames(names);
       tagCache.invalidate();
+      options.progress += ok;
+      await invalidateAll();
     } finally {
-      ctx.loading = false;
+      options.loading = false;
     }
   }
 
   /** 將已選取的圖片移至垃圾桶 */
   async function doTrash() {
-    if (ctx.loading) return;
-    if (ctx.selected.size === 0 || ctx.cursor < 0) {
-      addToast("沒有選取任何圖片", "info");
-      return;
-    }
+    if (options.loading || options.selectedFiles.size === 0) return;
 
-    const n = ctx.selected.size;
-    const msg = n === 1 ? `確定要將「${ctx.list[ctx.cursor]}」移至垃圾桶？` : `確定要將選取的 ${n} 張圖片移至垃圾桶？`;
+    const n = options.selectedFiles.size;
+    const msg = n === 1 ? `確定要將「${options.currentFile}」移至垃圾桶？` : `確定要將選取的 ${n} 張圖片移至垃圾桶？`;
     if (!(await requestConfirm(msg))) return;
 
-    ctx.loading = true;
-    const names = selectedFilenames();
+    const names = [...options.selectedFiles];
+    options.loading = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/staged/${encodeURIComponent(fn)}`));
@@ -121,9 +101,10 @@ export function createTaggerPanel() {
       }
       if (fail) addToast(`${fail} 張刪除失敗`, "error");
 
-      removeByNames(names);
+      options.progress += ok;
+      await invalidateAll();
     } finally {
-      ctx.loading = false;
+      options.loading = false;
     }
   }
 
@@ -144,8 +125,6 @@ export function createTaggerPanel() {
     }
 
     const actions: Record<string, () => void> = {
-      ArrowLeft: () => navigate(-1),
-      ArrowRight: () => navigate(1),
       t: () => focusTagInput(),
       T: () => focusTagInput(),
       Enter: () => doCommit(),
@@ -169,6 +148,11 @@ export function createTaggerPanel() {
     doTrash();
   }
 
+  /** 處理重置按鈕點擊事件，清空表單 */
+  function handleResetClick() {
+    resetForm();
+  }
+
   /** 處理標籤 Enter 事件，執行提交 */
   function handleTagEnter() {
     doCommit();
@@ -186,13 +170,29 @@ export function createTaggerPanel() {
       tagInputWrapEl = el;
     },
 
+    /** 存取標籤列表的 getter */
+    get tags() {
+      return tags;
+    },
+    /** 設定標籤列表的 setter */
+    set tags(v: string[]) {
+      tags = v;
+    },
+    /** 存取評等的 getter */
+    get rating() {
+      return rating;
+    },
+    /** 設定評等的 setter */
+    set rating(v: number) {
+      rating = v;
+    },
     /** 存取已選取數量的 getter */
     get selectedCount() {
       return selectedCount;
     },
     /** 存取載入狀態的 getter */
     get loading() {
-      return ctx.loading;
+      return options.loading;
     },
 
     /** 處理 Window 鍵盤事件，執行導航、評等、聚焦、提交或刪除操作 */
@@ -201,6 +201,8 @@ export function createTaggerPanel() {
     handleCommitClick,
     /** 處理刪除按鈕點擊事件，將已選取的圖片移至垃圾桶 */
     handleTrashClick,
+    /** 處理重置按鈕點擊事件，清空表單 */
+    handleResetClick,
     /** 處理標籤 Enter 事件，執行提交 */
     handleTagEnter,
   };

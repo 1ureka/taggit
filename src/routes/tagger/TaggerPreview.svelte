@@ -1,7 +1,24 @@
 <script lang="ts">
   import { createTaggerPreview } from "./taggerPreview.svelte.js";
 
-  const ui = createTaggerPreview();
+  type Props = {
+    currentFile: string | null;
+    imageLoading: boolean;
+  };
+
+  let { currentFile, imageLoading = $bindable() }: Props = $props();
+
+  const ui = createTaggerPreview({
+    get currentFile() {
+      return currentFile;
+    },
+    get imageLoading() {
+      return imageLoading;
+    },
+    set imageLoading(v) {
+      imageLoading = v;
+    },
+  });
 </script>
 
 <svelte:window onmousemove={ui.handleWindowMousemove} onmouseup={ui.handleWindowMouseup} />
@@ -22,22 +39,19 @@
         src={ui.previewSrc}
         alt={ui.currentFile}
         draggable="false"
-        class:loading={ui.loading || ui.imageLoading}
+        class:loading={ui.imageLoading}
         style="transform:{ui.transform}"
         onload={ui.handleImageLoad}
       />
     </div>
     <div class="tagger-preview-info">
       {ui.currentFile}
-      {#if ui.selectedCount > 1}
-        <span class="selection-hint">已選 {ui.selectedCount} 張</span>
-      {/if}
     </div>
   {:else}
     <div class="tagger-preview-container">
-      <div class="tagger-empty">所有圖片皆已處理，沒有新圖片</div>
+      <div class="tagger-empty">未選取任何圖片</div>
     </div>
-    <div class="tagger-preview-info">所有圖片皆已處理，沒有新圖片</div>
+    <div class="tagger-preview-info">未選取任何圖片</div>
   {/if}
 </section>
 
@@ -67,6 +81,11 @@
     cursor: grabbing;
   }
 
+  .tagger-preview-container:has(.tagger-empty) {
+    cursor: auto;
+    user-select: auto;
+  }
+
   .tagger-preview-container img {
     max-width: 100%;
     max-height: 100%;
@@ -93,15 +112,6 @@
     border-top: 1px solid var(--border);
     background: var(--bg-card);
     min-height: 1.75rem;
-  }
-
-  .selection-hint {
-    padding: 0.0625rem 0.375rem;
-    border-radius: 9999px;
-    background: var(--bg-active);
-    color: var(--text-muted);
-    font-size: 0.625rem;
-    font-weight: 500;
   }
 
   .tagger-empty {

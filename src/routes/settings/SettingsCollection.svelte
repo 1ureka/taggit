@@ -1,10 +1,18 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import Alert from "$lib/components/Alert.svelte";
-  import { getSettingsContext } from "./context.svelte.js";
   import { createSettingsCollection } from "./settingsCollection.svelte.js";
 
-  const ctx = getSettingsContext();
-  const ui = createSettingsCollection();
+  type Props = { collectionRoot: string };
+  let { collectionRoot }: Props = $props();
+
+  const ui = createSettingsCollection({
+    get collectionRoot() {
+      return collectionRoot;
+    },
+  });
+
+  const alert = $derived(page.url.searchParams.get("alert"));
 </script>
 
 <section id="section-collection" class="settings-section">
@@ -16,11 +24,11 @@
     <li><code>trash/</code> — 被刪除的圖片暫存在此，可從垃圾桶恢復或永久刪除。</li>
   </ul>
 
-  {#if ctx.alert === "default"}
+  {#if alert === "default"}
     <div class="section-alert">
       <Alert type="default" message="尚未設定圖片集路徑，請在下方設定後繼續。" />
     </div>
-  {:else if ctx.alert === "error"}
+  {:else if alert === "error"}
     <div class="section-alert">
       <Alert type="error" message="設定的路徑無效或無法存取，請重新設定。" />
     </div>

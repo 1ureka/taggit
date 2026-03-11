@@ -3,11 +3,11 @@
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Select from "$lib/components/Select.svelte";
-  import { createForm } from "./browseForm.svelte.js";
+  import { createBrowseForm } from "./browseForm.svelte.js";
 
   let { matchCount }: { matchCount: number } = $props();
 
-  const ui = createForm({
+  const ui = createBrowseForm({
     debounceTime: 200,
     get matchCount() {
       return matchCount;
@@ -16,9 +16,6 @@
       matchCount = v;
     },
   });
-
-  let startDisabled = $derived(matchCount === 0);
-  let countText = $derived(ui.loading ? "查詢中..." : `共 ${matchCount} 張符合`);
 </script>
 
 <div class="container slide-up">
@@ -45,9 +42,9 @@
     <Select bind:value={ui.sort} options={ui.sortOptions} size="md" stretch />
   </div>
 
-  <div class="count">{countText}</div>
+  <div class="count">{ui.countText}</div>
 
-  <button class="btn btn-primary" style="width:100%" disabled={startDisabled} onclick={ui.handleFormSubmit}>
+  <button class="btn btn-primary" style="width:100%" disabled={ui.startDisabled} onclick={ui.handleFormSubmit}>
     <IconPlayerPlay size={18} />
     開始瀏覽
   </button>

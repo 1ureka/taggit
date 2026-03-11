@@ -1,15 +1,23 @@
 import { api } from "$lib/client/api.js";
-import { getSettingsContext } from "./context.svelte.js";
+
+/**
+ * 圖片與快取章節的配置選項
+ */
+type SettingsImagesOptions = {
+  /** 快取統計資料 */
+  cacheStats: { entries: number; bytes: number };
+};
 
 /**
  * 建立圖片與快取章節邏輯的核心工廠函數
  */
-export function createSettingsImages() {
-  /** Settings 頁面共享的 Context */
-  const ctx = getSettingsContext();
-
+export function createSettingsImages(options: SettingsImagesOptions) {
+  /** 快取項目數量 */
+  let cacheEntries = $state(options.cacheStats.entries);
+  /** 快取已使用位元組數 */
+  let cacheBytes = $state(options.cacheStats.bytes);
   /** 快取已使用的 MB 數 */
-  const cacheMB = $derived((ctx.cacheBytes / (1024 * 1024)).toFixed(1));
+  const cacheMB = $derived((cacheBytes / (1024 * 1024)).toFixed(1));
   /** 是否正在清空快取 */
   let cacheBusy = $state(false);
   /** 清空快取結果訊息 */
@@ -31,8 +39,8 @@ export function createSettingsImages() {
     const res = await api.del<{ cleared: number }>("/api/maintenance/cache");
     if (res.ok && res.data) {
       cacheResult = `已清空 ${res.data.cleared} 筆快取`;
-      ctx.cacheEntries = 0;
-      ctx.cacheBytes = 0;
+      cacheEntries = 0;
+      cacheBytes = 0;
     } else {
       cacheResult = "錯誤: " + (res.error || "未知");
     }
@@ -76,7 +84,7 @@ export function createSettingsImages() {
   return {
     /** 存取快取項目數量的 getter */
     get cacheEntries() {
-      return ctx.cacheEntries;
+      return cacheEntries;
     },
     /** 存取快取 MB 數的 getter */
     get cacheMB() {

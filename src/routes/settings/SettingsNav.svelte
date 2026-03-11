@@ -1,7 +1,14 @@
 <script lang="ts">
   import { createSettingsNav } from "./settingsNav.svelte.js";
 
-  const ui = createSettingsNav();
+  type Props = { collectionRoot: string };
+  let { collectionRoot }: Props = $props();
+
+  const ui = createSettingsNav({
+    get collectionRoot() {
+      return collectionRoot;
+    },
+  });
 </script>
 
 <nav class="settings-nav">
