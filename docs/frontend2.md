@@ -17,7 +17,7 @@
 
 **不得**在子元件的 `.svelte` 檔案中宣告 `$state`。同理，`$derived` 若涉及運算邏輯也應收進無頭 UI，`.svelte` 中的 `$derived` 僅限直覺的一行式轉換。
 
-無論狀態宣告在哪裡，本章後續的所有規則都一體適用。關於 `+page.svelte` 與無頭 UI 各自的職責與檔案結構，詳見第二章與第三章。
+無論狀態宣告在哪裡，本章後續的所有規則都一體適用。關於 `+page.svelte` 與無頭 UI 各自的職責與檔案結構，詳見[第二章](#二page-組織與資料流)與第三章。
 
 ### 1.2 API 約束
 
@@ -35,7 +35,7 @@
 以下 API **不得用於狀態管理**：
 
 - `afterNavigate`——狀態同步一律使用 `$effect`
-- `createContext` / `setContext` / `getContext`——不使用 Context API（詳見第二章）
+- `createContext` / `setContext` / `getContext`——不使用 Context API（詳見 [§2.6](#26-跨元件共享狀態)）
 - Class-based state——不以 class 宣告 `$state`
 
 ### 1.3 狀態的兩個維度
@@ -57,7 +57,7 @@ SSR `data` 與 `page.url.searchParams` 本身就是 **read-only 的 reactive obj
 | 來源 | 唯讀 | 需要寫 |
 |---|---|---|
 | SSR `data` | `$derived` 或直接透過 props 使用 | `$state(untrack(...))` + `$effect` 同步 |
-| URL params | `$derived(page.url.searchParams.get(...))` | `$state(untrack(...))` + `$effect` + `dirty`（§1.6） |
+| URL params | `$derived(page.url.searchParams.get(...))` | `$state(untrack(...))` + `$effect` |
 | 純本地 | `$derived` | `$state` |
 
 **核心原則：如果你沒有「寫」的需求，直接 `$derived` 就好，不需要 `$state`、`$effect` 與 `untrack`。**
@@ -283,7 +283,7 @@ export function createSearchForm() {
 `+page.svelte` 是頁面殼。它的職責僅限：
 
 - 接收 SSR `data`
-- 宣告頁面級共享狀態（含 `$effect` 同步校正，見 §1.4）
+- 宣告頁面級共享狀態（含 `$effect` 同步校正，見 [§1.4](#14-untrack-與-effect-的角色)）
 - 組裝子元件並以 props / `bind` 傳遞資料
 - 佈局樣式（如 `height`、`overflow`、`grid-template`）
 
@@ -348,7 +348,7 @@ componentName.svelte.ts    ← 無頭 UI（純邏輯，不含任何 HTML/CSS）
 URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件就近獲取**，不從上層以 props 傳入：
 
 - **唯讀**：直接在 `.svelte` 的 `<script>` 中以 `$derived` 從 `page.url.searchParams` 讀取。
-- **讀寫**：在無頭 UI（`*.svelte.ts`）中以 `$state(untrack(...))` + `$effect` 同步（見 §1.3、§1.6）。
+- **讀寫**：在無頭 UI（`*.svelte.ts`）中以 `$state(untrack(...))` + `$effect` 同步（見 [§1.3](#13-狀態的兩個維度)、[§1.6](#16-輸入-debounce)）。
 
 ```svelte
 <!-- 唯讀示例：元件自行從 URL 讀取 -->
@@ -428,7 +428,7 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 當開發者遇到 prop drilling 時，請依序嘗試以下四種方案：
 
 1. **提取成 URL query**（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `page.url.searchParams` 讀取
-2. **重新審視元件介面邊界**——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（見 §2.8）
+2. **重新審視元件介面邊界**——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者
 3. **拆分路由結構**——將該路由本身拆成多個子路由，或重新組織子元件
 4. **提取共用元件**——從而在心智上不再認為多一層級
 
