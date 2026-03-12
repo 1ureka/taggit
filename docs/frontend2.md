@@ -145,7 +145,12 @@ $effect(() => {
 
 ### 1.5 下放原則
 
-若同一份外部資料有多個消費者，**只有需要「寫」的元件才走 `$state` + `untrack` + `$effect`**，其餘元件直接透過 `$props` 原封不動使用即可。
+`$effect` 若用於同步外部狀態，應宣告在**消費該狀態的位置**：
+
+- 頁面級共享狀態的 `$effect` → 寫在 `+page.svelte`
+- 無頭 UI 內部狀態的 `$effect` → 寫在 `*.svelte.ts` 的工廠函數內
+
+比如若同一份外部資料有多個消費者，**只有需要「寫」的元件才走 `$state` + `untrack` + `$effect`**，其餘元件直接透過 `$props` 原封不動使用即可。
 
 **範例**：頁面有 A、B、C 三個子元件都需要 `data.image` (SSR)，但只有 C 需要編輯：
 
@@ -262,15 +267,6 @@ export function createSearchForm() {
 若導航在 200ms 內完成，`opacity` 已回到 `1`，瀏覽器**自動取消尚未生效的 pending transition**——不需要任何 JavaScript 清理邏輯，天然無競態。
 
 此模式不限於 `navigating`——任何布林旗標驅動的暫態視覺回饋（如 API 呼叫中的 `loading`）都適用，只要希望「短暫切換不產生視覺變化、長時間停留才顯示」。
-
-### 1.8 `$effect` 就近原則
-
-`$effect` 若用於同步外部狀態，應宣告在**消費該狀態的位置**：
-
-- 頁面級共享狀態的 `$effect` → 寫在 `+page.svelte`
-- 無頭 UI 內部狀態的 `$effect` → 寫在 `*.svelte.ts` 的工廠函數內
-
-不應將 `$effect` 集中到一個獨立的檔案或函數中統一管理。
 
 ---
 
@@ -433,3 +429,344 @@ URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件
 4. **提取共用元件**——從而在心智上不再認為多一層級
 
 > **AI Agent 注意：** 當你注意到需要執行上述方案之一，甚至完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
+
+---
+
+## 三、元件開發規範
+
+本章定義無頭 UI 工廠函數（`createXxx`）的具體實作規範，包括 options 設計、handler 命名、程式碼排列順序與 JSDoc 寫法。元件的檔案結構與概念介紹詳見 [§2.2](#22-元件的檔案結構與無頭-ui)。
+
+### 3.1 工廠函數模式
+
+無頭 UI 以**工廠函數**（`createXxx`）形式撰寫，遵循以下三個原則：
+
+1. **接收 `options` 物件**——雙向綁定的 prop 以 getter/setter 傳入，確保無頭 UI 內部讀取到的永遠是最新值；狀態規則統一遵循第一章。
+2. **以 `$state` / `$derived` 管理內部狀態**——工廠函數頂層即可直接使用 runes（因副檔名為 `.svelte.ts`）。
+3. **回傳 `ui` 物件**——僅暴露 `.svelte` 需要用到的成員：狀態以 getter 形式回傳，事件處理一律以 `handle*` 命名（詳見 [§3.4](#34-handler-命名規範)）。
+
+**工廠函數骨幹：**
+
+```ts
+// componentName.svelte.ts
+
+/**
+ * 元件配置選項
+ */
+type ComponentOptions = {
+  /** 雙向綁定：目前的值 */
+  value: string;
+  /** 當值變更時觸發的回調 */
+  onchange?: (v: string) => void;
+};
+
+/**
+ * 建立元件邏輯的核心工廠函數
+ */
+export function createComponent(options: ComponentOptions) {
+  /** 內部開關狀態 */
+  let open = $state(false);
+
+  // ---
+
+  /** 處理觸發器點擊事件，切換開關狀態並觸發回調 */
+  function handleTriggerClick() {
+    open = !open;
+    options.onchange?.(options.value);
+  }
+
+  // ---
+
+  return {
+    /** 存取開關狀態的 getter */
+    get open() {
+      return open;
+    },
+    /** 處理觸發器點擊事件，切換開關狀態並觸發回調 */
+    handleTriggerClick,
+  };
+}
+```
+
+### 3.2 Options 設計
+
+Options 物件的屬性分三種類型：
+
+| 類型 | 說明 | 傳入寫法 |
+|---|---|---|
+| 雙向綁定 | `.svelte` 的 `$bindable` prop，無頭 UI 需要讀寫 | `get value() { return value; }` + `set value(v) { value = v; }` |
+| 唯讀 prop | 來自父元件、無頭 UI 只需讀取 | `get items() { return items; }` |
+| Callback | 事件觸發時通知父元件的函式 | `onchange: () => onchange?.()` |
+
+**`.svelte` 的完整傳入範例：**
+
+```svelte
+<script lang="ts">
+  type Props = {
+    items: ImageWithId[];
+    selected: Set<string>;
+    onchange?: () => void;
+  };
+  let { items, selected = $bindable(new Set()), onchange }: Props = $props();
+
+  const ui = createEditorList({
+    get items() { return items; },
+    get selected() { return selected; },
+    set selected(v) { selected = v; },
+    onchange: () => onchange?.(),
+  });
+</script>
+```
+
+**注意：** options 是 getter 物件，Svelte rune 系統能正確追蹤 getter 的回傳值，因此無頭 UI 內部任何地方讀 `options.items` 都能響應式地取得最新值，不需要再包 `$state` 副本——除非該元件「需要寫」（詳見 [§1.5](#15-下放原則)）。
+
+### 3.3 Handlers
+
+永遠不得直接 return helper function，就算只包一層，也應該包好後再 return：
+
+```ts
+// ✗ 直接 return helper
+return {
+  handleTriggerClick: toggleOpen,
+};
+
+// ✓ 包一層
+function handleTriggerClick() {
+  toggleOpen();
+}
+
+return {
+  handleTriggerClick,
+};
+```
+
+### 3.4 Handler 命名規範
+
+Handler 一律採 `handle` + `目標元素` + `事件類型` 結構：
+
+| Handler | 目標元素 | 事件類型 |
+|---|---|---|
+| `handleInput` | input | input |
+| `handleInputFocus` | input | focus |
+| `handleInputBlur` | input | blur |
+| `handleInputKeydown` | input | keydown |
+| `handleChipClick` | chip | click |
+| `handleDropdownMouseDown` | dropdown | mousedown |
+| `handleDropdownMouseOver` | dropdown | mouseover |
+| `handleTriggerClick` | trigger | click |
+| `handleTriggerBlur` | trigger | blur |
+| `handleTriggerKeydown` | trigger | keydown |
+| `handleOptionMouseDown` | option | mousedown |
+| `handleOptionMouseEnter` | option | mouseenter |
+| `handleItemMouseDown` | item | mousedown |
+| `handleItemMouseEnter` | item | mouseenter |
+| `handleStarMouseEnter` | star | mouseenter |
+| `handleStarClick` | star | click |
+| `handleContainerMouseLeave` | container | mouseleave |
+| `handleContainerKeydown` | container | keydown |
+
+### 3.5 程式碼編排
+
+工廠函數內部以 `// ---` 作為視覺段落分隔符，依固定順序排列：
+
+```ts
+export function createXxx(options: XxxOptions) {
+  // ① $state 宣告（含 JSDoc）
+  let stateA = $state(...);
+  let stateB = $state(...);
+
+  // ② $derived 宣告（含 JSDoc）
+  const derivedC = $derived(...);
+
+  // ---
+
+  // ③ 常數（如選項列表）
+  const OPTIONS = [...];
+
+  // ---
+
+  // ④ Private helper functions（不回傳的內部函式）
+  function doSomething() { /* ... */ }
+  function openDropdown() { /* ... */ }
+  function closeDropdown() { /* ... */ }
+
+  // ---
+
+  // ⑤ Handler functions（按目標元素分組，組間以 // --- 分隔）
+  function handleTriggerClick() { /* ... */ }
+  function handleTriggerBlur() { /* ... */ }
+  function handleTriggerKeydown(e: KeyboardEvent) { /* ... */ }
+
+  // ---
+
+  function handleOptionMouseDown(e: MouseEvent, item: SelectItem) { /* ... */ }
+  function handleOptionMouseEnter(index: number) { /* ... */ }
+
+  // ---
+
+  // ⑥ 可選：$effect（放在 handler 之後）
+
+  // ---
+
+  // ⑦ Return 物件（getter/setter 在前，handler 在後）
+  return {
+    // DOM ref getter/setter
+    get triggerEl() { ... },
+    set triggerEl(el) { ... },
+
+    // 狀態 getter
+    get open() { ... },
+    get activeIndex() { ... },
+    get selectedLabel() { ... },
+
+    // Handler references
+    handleTriggerClick,
+    handleTriggerBlur,
+    handleTriggerKeydown,
+    handleOptionMouseDown,
+    handleOptionMouseEnter,
+  };
+}
+```
+
+**要點：**
+
+- `// ---` 是唯一使用的分隔符，不使用 `// ===` 或 `// ───` 等其他變體。
+- 同一目標元素的 handler 連續排列，不加分隔符（如 `handleTriggerClick` / `handleTriggerBlur` / `handleTriggerKeydown`）。
+- 不同目標元素的 handler 之間以 `// ---` 分隔。
+- return 物件中：先 DOM ref getter/setter，再狀態 getter，最後 handler reference（與定義順序一致）。
+
+### 3.6 JSDoc 寫法
+
+所有無頭 UI（`*.svelte.ts`）都遵循統一的 JSDoc 寫法。
+
+**Type 定義**
+
+- Type alias（無屬性）使用**單行** JSDoc：
+
+```ts
+/** 排序欄位類型 */
+type Sort = "committedAt" | "rating" | "name" | "random";
+```
+
+- Options type 與 factory function 使用**多行** JSDoc：
+
+```ts
+/**
+ * 下拉選單的配置選項
+ */
+type SelectOptions = {
+  /** 雙向綁定：目前選中的值 */
+  value: string | number | undefined;
+  /** 選項列表 */
+  list: SelectItem[];
+  /** 當選項變更時觸發的回調 */
+  onchange?: (value: string | number | undefined) => void;
+};
+
+/**
+ * 建立下拉選單邏輯的核心工廠函數
+ */
+export function createSelect(options: SelectOptions) {
+```
+
+Options 屬性一律**單行** JSDoc，雙向綁定的屬性以 `/** 雙向綁定：描述 */` 開頭。
+
+**`$state` / `$derived` 宣告**
+
+每個 `$state` 或 `$derived` 變數上方加**單行** JSDoc：
+
+```ts
+/** 觸發器按鈕的 DOM 引用 */
+let triggerEl = $state<HTMLButtonElement>();
+/** 下拉選單是否開啟 */
+let open = $state(false);
+/** 目前「虛擬聚焦」的選項索引 */
+let activeIndex = $state(-1);
+
+/** 根據目前 options.value 找到對應的 label */
+const selectedLabel = $derived(options.list.find((item) => item.value === options.value)?.label ?? "");
+```
+
+**Private helper functions**
+
+使用**單行** JSDoc 描述行為：
+
+```ts
+/** 執行選取動作並觸發 onchange 回調 */
+function selectOption(item: SelectItem) { /* ... */ }
+
+/** 開啟選單，虛擬聚焦至當前已選中項，若無則為 -1 */
+function openDropdown() { /* ... */ }
+
+/** 關閉選單，重置虛擬聚焦索引 */
+function closeDropdown() { /* ... */ }
+```
+
+**Handler functions**
+
+使用**單行** JSDoc，格式為 `處理 [目標元素] [事件類型]事件，[具體行為]`：
+
+```ts
+/** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
+function handleTriggerClick() { /* ... */ }
+
+/** 處理 Trigger 失焦事件，關閉下拉選單 */
+function handleTriggerBlur() { /* ... */ }
+
+/** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
+function handleTriggerKeydown(e: KeyboardEvent) { /* ... */ }
+```
+
+鍵盤 handler 內部的各 branch 也以單行 JSDoc 標註：
+
+```ts
+function handleInputKeydown(e: KeyboardEvent) {
+  /** 按下 Escape 且下拉選單顯示時，關閉下拉選單 */
+  if (e.key === "Escape" && showDropdown) {
+    closeDropdown();
+    return;
+  }
+
+  /** 按下 Backspace 且輸入框為空時，刪除最後一個標籤 */
+  if (e.key === "Backspace" && !inputValue) {
+    popTag();
+    return;
+  }
+}
+```
+
+**Return 物件**
+
+return 物件中的每個成員都**重複**其定義處的同一份 JSDoc（不省略）：
+
+```ts
+return {
+  /** 獲取 Trigger 元素的 getter */
+  get triggerEl() {
+    return triggerEl as HTMLButtonElement;
+  },
+  /** 設定 Trigger 元素的 setter */
+  set triggerEl(el: HTMLButtonElement) {
+    triggerEl = el;
+  },
+
+  /** 存取下拉選單狀態的 getter */
+  get open() {
+    return open;
+  },
+  /** 存取虛擬聚焦索引的 getter */
+  get activeIndex() {
+    return activeIndex;
+  },
+
+  /** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
+  handleTriggerClick,
+  /** 處理 Trigger 失焦事件，關閉下拉選單 */
+  handleTriggerBlur,
+  /** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
+  handleTriggerKeydown,
+};
+```
+
+getter JSDoc 慣用語：`獲取 XXX 的 getter` 或 `存取 XXX 的 getter`。
+setter JSDoc 慣用語：`設定 XXX 的 setter` 或 `設置 XXX 的 setter`。
