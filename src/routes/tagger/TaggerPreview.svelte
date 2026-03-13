@@ -1,14 +1,13 @@
 <script lang="ts">
-  import { createTaggerPreview } from "./taggerPreview.svelte.js";
+  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
+  import { TaggerPreview } from "./taggerPreview.svelte.js";
 
-  type Props = {
-    currentFile: string | null;
-    imageLoading: boolean;
-  };
+  type Props = { currentFile: string | null; imageLoading: boolean };
 
   let { currentFile, imageLoading = $bindable() }: Props = $props();
 
-  const ui = createTaggerPreview({
+  const zp = new ZoomPan();
+  const ui = new TaggerPreview({
     get currentFile() {
       return currentFile;
     },
@@ -18,40 +17,40 @@
     set imageLoading(v) {
       imageLoading = v;
     },
+    onChangeImage: () => zp.reset(),
   });
 </script>
 
-<svelte:window onmousemove={ui.handleWindowMousemove} onmouseup={ui.handleWindowMouseup} />
+<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
 <section class="tagger-preview">
-  {#if ui.currentFile}
+  {#if currentFile}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="tagger-preview-container"
-      class:dragging={ui.isDragging}
-      onwheel={ui.handleContainerWheel}
-      onmousedown={ui.handleContainerMousedown}
-      ondblclick={ui.handleContainerDblclick}
+      class:dragging={zp.isDragging}
+      onwheel={zp.handleContainerWheel}
+      onmousedown={zp.handleContainerMousedown}
+      ondblclick={zp.handleContainerReset}
       role="img"
     >
       <img
         src={ui.previewSrc}
-        alt={ui.currentFile}
+        alt={currentFile}
         draggable="false"
-        class:loading={ui.imageLoading}
-        style="transform:{ui.transform}"
+        class:loading={imageLoading}
+        style="transform:{zp.transform}"
         onload={ui.handleImageLoad}
       />
     </div>
     <div class="tagger-preview-info">
-      {ui.currentFile}
+      {currentFile}
     </div>
   {:else}
     <div class="tagger-preview-container">
       <div class="tagger-empty">未選取任何圖片</div>
     </div>
-    <div class="tagger-preview-info">未選取任何圖片</div>
+    <div class="tagger-preview-info">--</div>
   {/if}
 </section>
 

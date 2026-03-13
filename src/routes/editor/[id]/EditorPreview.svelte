@@ -1,51 +1,31 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/types.js";
-  import { createEditorPreview } from "./editorPreview.svelte.js";
+  import { imgSrc } from "$lib/client/api.js";
+  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
 
-  type Props = {
-    image: ImageWithId;
-    loading: boolean;
-  };
+  type Props = { image: ImageWithId; loading: boolean };
 
   let { image, loading }: Props = $props();
 
-  const ui = createEditorPreview({
-    get image() {
-      return image;
-    },
-    get loading() {
-      return loading;
-    },
-  });
+  const zp = new ZoomPan();
+  const previewFilename = $derived(image.id + image.ext);
+  const previewSrc = $derived(imgSrc("committed", previewFilename));
 </script>
 
-<svelte:window onmousemove={ui.handleWindowMousemove} onmouseup={ui.handleWindowMouseup} />
+<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
 <section class="editor-preview">
-  {#if ui.previewFilename}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-      class="editor-preview-container"
-      class:dragging={ui.isDragging}
-      onwheel={ui.handleContainerWheel}
-      onmousedown={ui.handleContainerMousedown}
-      ondblclick={ui.handleContainerDblclick}
-      role="img"
-    >
-      <img
-        src={ui.previewSrc}
-        alt={ui.previewFilename}
-        draggable="false"
-        class:loading={ui.loading}
-        style="transform:{ui.transform}"
-      />
-    </div>
-  {:else}
-    <div class="editor-preview-container">
-      <div class="editor-empty">找不到圖片</div>
-    </div>
-  {/if}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="editor-preview-container"
+    class:dragging={zp.isDragging}
+    onwheel={zp.handleContainerWheel}
+    onmousedown={zp.handleContainerMousedown}
+    ondblclick={zp.handleContainerReset}
+    role="img"
+  >
+    <img src={previewSrc} alt={previewFilename} draggable="false" class:loading style="transform:{zp.transform}" />
+  </div>
 </section>
 
 <style>
@@ -87,14 +67,5 @@
 
   .editor-preview-container img.loading {
     opacity: 0.75;
-  }
-
-  .editor-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-size: 0.875rem;
-    color: var(--text-dim);
   }
 </style>
