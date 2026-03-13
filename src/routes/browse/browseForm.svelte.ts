@@ -3,42 +3,41 @@ import { api } from "$lib/client/api.js";
 import { debounce } from "$lib/utils.js";
 import { goto } from "$app/navigation";
 
-/** 排序欄位類型 */
+/**
+ * BrowseForm 的排序選項類型
+ */
 type Sort = "committedAt" | "rating" | "name" | "random";
 
 /**
- * 篩選表單組件的配置選項
+ * BrowseForm 的配置選項
  */
 type BrowseFormOptions = {
-  /** 雙向綁定：預測的總數量 */
+  /** 唯讀：SSR 預查的符合數量 */
   matchCount: number;
-  /** debounce 延遲時間 */
-  debounceTime: number;
 };
 
 /**
- * 建立篩選表單邏輯的核心工廠函數
+ * BrowseForm 的互動邏輯
  */
-export function createBrowseForm(options: BrowseFormOptions) {
+export class BrowseForm {
   /** 當前所選的篩選標籤 */
-  let tags = $state<string[]>([]);
+  tags = $state<string[]>([]);
   /** 最低評等篩選值（0 = 不篩選） */
-  let rating = $state(0);
+  rating = $state(0);
   /** 目前選中的排序方式 */
-  let sort = $state<Sort>("committedAt");
-
+  sort = $state<Sort>("committedAt");
   /** 是否正在查詢中 */
-  let loading = $state(false);
+  loading = $state(false);
+  /** 符合條件的圖片數量（可寫入的 SSR 副本） */
+  matchCount = $state(0);
 
   /** 開始按鈕是否禁用 */
-  const startDisabled = $derived(options.matchCount === 0);
+  startDisabled: boolean;
   /** 計數文字 */
-  const countText = $derived(loading ? "查詢中..." : `共 ${options.matchCount} 張符合`);
-
-  // ---
+  countText: string;
 
   /** 排序選項列表 */
-  const sortOptions: { value: Sort; label: string }[] = [
+  readonly sortOptions: { value: Sort; label: string }[] = [
     { value: "committedAt", label: "提交時間" },
     { value: "rating", label: "評等" },
     { value: "name", label: "名稱" },
@@ -47,123 +46,76 @@ export function createBrowseForm(options: BrowseFormOptions) {
 
   // ---
 
-  /** 以 debounce 方式查詢符合條件的圖片數量 */
-  const updateCount = debounce(async () => {
-    loading = true;
+  constructor(options: BrowseFormOptions) {
+    this.matchCount = options.matchCount;
+    this.startDisabled = $derived(this.matchCount === 0);
+    this.countText = $derived(this.loading ? "查詢中..." : `共 ${this.matchCount} 張符合`);
+  }
+
+  // ---
+
+  /** debounce 版的計數查詢 */
+  #fetchCount = debounce(async () => {
+    this.loading = true;
+
+    const params = new URLSearchParams({ limit: "1", page: "1" });
+
+    if (this.tags.length > 0) {
+      params.set("tags", this.tags.join(","));
+    }
+
+    if (this.rating > 0) {
+      params.set("rating", String(this.rating));
+      params.set("ratingOp", "gte");
+    }
 
     try {
-      const params = new URLSearchParams({ limit: "1", page: "1" });
-
-      if (tags.length > 0) {
-        params.set("tags", tags.join(","));
-      }
-      if (rating > 0) {
-        params.set("rating", String(rating));
-        params.set("ratingOp", "gte");
-      }
-
       const res = await api.get<QueryResult>(`/api/images?${params}`);
-
-      options.matchCount = res.ok && res.data ? res.data.total : 0;
+      this.matchCount = res.ok && res.data ? res.data.total : 0;
     } catch {
-      options.matchCount = 0;
+      this.matchCount = 0;
     } finally {
-      loading = false;
+      this.loading = false;
     }
-  }, options.debounceTime);
+  }, 200);
 
-  /** 組裝查詢參數並導航至 Player 子路由 */
-  function startPlayer() {
-    if (options.matchCount === 0) return;
+  /** 組裝查詢參數並回傳 Player URL，若無符合圖片回傳 null */
+  #buildPlayerUrl(): string | null {
+    if (this.matchCount === 0) return null;
 
     const params = new URLSearchParams();
 
-    if (tags.length > 0) {
-      params.set("tags", tags.join(","));
-    }
-    if (rating > 0) {
-      params.set("rating", String(rating));
-    }
+    params.set("sort", this.sort);
 
-    params.set("sort", sort);
-
-    if (sort !== "random") {
-      params.set("order", sort === "name" ? "asc" : "desc");
+    if (this.tags.length > 0) {
+      params.set("tags", this.tags.join(","));
+    }
+    if (this.rating > 0) {
+      params.set("rating", String(this.rating));
+    }
+    if (this.sort !== "random") {
+      params.set("order", this.sort === "name" ? "asc" : "desc");
     }
 
     const qs = params.toString();
-    goto(`/browse/player${qs ? "?" + qs : ""}`);
+    return `/browse/player${qs ? "?" + qs : ""}`;
   }
 
   // ---
 
-  /** 處理 Form 標籤變更事件，觸發 debounce 查詢更新 */
-  function handleFormTagChange() {
-    updateCount();
-  }
+  /** 處理標籤變更事件，觸發 debounce 查詢 */
+  handleTagChange = () => {
+    this.#fetchCount();
+  };
 
-  /** 處理 Form 評等變更事件，觸發 debounce 查詢更新 */
-  function handleFormRatingChange() {
-    updateCount();
-  }
+  /** 處理評等變更事件，觸發 debounce 查詢 */
+  handleRatingChange = () => {
+    this.#fetchCount();
+  };
 
-  /** 處理 Form 提交事件，開始瀏覽 */
-  function handleFormSubmit() {
-    startPlayer();
-  }
-
-  // ---
-
-  return {
-    /** 獲取當前篩選標籤的 getter */
-    get tags() {
-      return tags;
-    },
-    /** 設定篩選標籤的 setter */
-    set tags(value) {
-      tags = value;
-    },
-    /** 獲取最低評等篩選值的 getter */
-    get rating() {
-      return rating;
-    },
-    /** 設定最低評等篩選值的 setter */
-    set rating(value) {
-      rating = value;
-    },
-    /** 獲取排序方式的 getter */
-    get sort() {
-      return sort;
-    },
-    /** 設定排序方式的 setter */
-    set sort(value) {
-      sort = value;
-    },
-
-    /** 存取查詢中狀態的 getter */
-    get loading() {
-      return loading;
-    },
-
-    /** 存取開始按鈕是否禁用的 getter */
-    get startDisabled() {
-      return startDisabled;
-    },
-    /** 存取計數文字的 getter */
-    get countText() {
-      return countText;
-    },
-
-    /** 獲取排序選項列表的 getter */
-    get sortOptions() {
-      return sortOptions;
-    },
-
-    /** 處理 Form 標籤變更事件，觸發 debounce 查詢更新 */
-    handleFormTagChange,
-    /** 處理 Form 評等變更事件，觸發 debounce 查詢更新 */
-    handleFormRatingChange,
-    /** 處理 Form 提交事件，開始瀏覽 */
-    handleFormSubmit,
+  /** 處理提交事件，導航至 Player */
+  handleSubmit = () => {
+    const url = this.#buildPlayerUrl();
+    if (url) goto(url);
   };
 }

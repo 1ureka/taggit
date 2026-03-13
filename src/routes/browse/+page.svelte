@@ -10,7 +10,7 @@
   <title>Browse — Image Manager</title>
 </svelte:head>
 
-<main class="page">
+<main>
   <div class="container slide-up">
     <a href="/" class="btn btn-ghost btn-sm">
       <IconArrowLeft size={16} />
@@ -25,7 +25,7 @@
 </main>
 
 <style>
-  main.page {
+  main {
     height: 100vh;
     overflow-y: auto;
     scrollbar-gutter: stable;
