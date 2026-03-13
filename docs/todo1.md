@@ -1,4 +1,4 @@
-# Report 3：FilterBar 及其依賴元件的 HTML 結構與屬性分析
+# Report 1：FilterBar 及其依賴元件的 HTML 結構與屬性分析
 
 > 範圍：`FilterBar.svelte`、`Select.svelte`（+ `select.svelte.ts`）、`Autocomplete.svelte`（+ `autocomplete.svelte.ts`）
 >
