@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconChevronDown } from "@tabler/icons-svelte";
   import { float } from "$lib/client/float.js";
-  import { createSelect, type SelectItem } from "$lib/ui/select.svelte.js";
+  import { Select, type SelectItem } from "$lib/ui/select.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前選中的值 */
@@ -18,7 +18,7 @@
 
   let { value = $bindable(undefined), options = [], size = "sm", stretch = false, onchange }: Props = $props();
 
-  const ui = createSelect({
+  const ui = new Select({
     onchange: () => onchange?.(),
     get list() {
       return options;

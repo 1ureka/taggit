@@ -1,8 +1,8 @@
 <script lang="ts">
   import { IconX, IconCircleCheck, IconAlertCircle, IconInfoCircle } from "@tabler/icons-svelte";
-  import { createToast } from "$lib/ui/toast.svelte.js";
+  import { Toast } from "$lib/ui/toast.svelte.js";
 
-  const ui = createToast({
+  const ui = new Toast({
     gap: 8,
     collapsedOffset: 8,
     collapsedScaleStep: 0.05,
@@ -16,22 +16,19 @@
   class:toaster-active={ui.items.length > 0}
   role="region"
   aria-label="通知"
-  style="height: {ui.getContainerHeight()}px;"
+  style="height: {ui.containerHeight}px;"
   onmouseenter={ui.handleContainerMouseEnter}
   onmouseleave={ui.handleContainerMouseLeave}
 >
   {#each ui.items as toast, i (toast.id)}
-    {@const y = ui.getOffset(i)}
-    {@const scale = ui.getScale(i)}
-    {@const opacity = ui.getOpacity(i, toast)}
-    {@const isEntering = ui.entering.has(toast.id)}
+    {@const c = ui.computed[i]}
     <div
       class="toast-item"
       class:removing={toast.removing}
-      class:entering={isEntering}
+      class:entering={c.isEntering}
       style="
-        transform: translateY({isEntering ? '-100%' : `${y}px`}) scale({isEntering ? 1 : scale});
-        opacity: {isEntering ? 0 : opacity};
+        transform: translateY({c.isEntering ? '-100%' : `${c.y}px`}) scale({c.isEntering ? 1 : c.scale});
+        opacity: {c.isEntering ? 0 : c.opacity};
         z-index: {ui.items.length - i};
       "
       role="status"
