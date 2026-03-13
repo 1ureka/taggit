@@ -139,7 +139,7 @@ export class Component {
 - Private helper 以 `#methodName()` 宣告（private method）。
 - Handler 以 `handleXxx = () => {}` 宣告（公開箭頭屬性），命名結構為 `handle` + 目標元素 + 事件類型。
 - 同一目標元素的 handler 連續排列，不加分隔；不同目標元素之間以 `// ---` 分隔。
-- 排列順序：① `$state` fields → ② `$derived` fields → ③ constructor → ④ 常數 → ⑤ private helpers → ⑥ handlers。
+- 排列順序：`$state` fields → `$derived` fields → constructor → private helpers → handlers。
 
 ### 2.3 `.svelte` 的 `<script>` 只做實例化
 
@@ -320,8 +320,8 @@ Options 使用 getter 傳入，Svelte 的 rune 系統能正確追蹤 getter 的�
 
 當遇到 prop drilling 時，依序嘗試：
 
-1. **提取成 URL query**——讓子元件直接從 `page.url.searchParams` 讀取（見[第五章](#五url-狀態)）
-2. **重新審視元件介面**——以 callback / snippet 重構，將策略交還呼叫者（見 [§3.5](#35-機制與策略分離)）
+1. **提取成 URL query**——讓子元件直接從 [`page.url.searchParams` 讀取](#五url-狀態)
+2. **重新審視元件介面**——以 callback / snippet 重構，將[策略交還呼叫者](#35-機制與策略分離)
 3. **拆分路由結構**——將該路由拆成子路由，或重新組織子元件
 4. **提取共用元件**——減少心智上的層級認知
 
@@ -331,7 +331,9 @@ Options 使用 getter 傳入，Svelte 的 rune 系統能正確追蹤 getter 的�
 
 `+page.server.ts` 回傳的 `data` 是一個 read-only reactive object。`+page.svelte` 透過 `$props()` 接收後，直接以 props 傳給子元件。`goto()` 或 `invalidateAll()` 導致 `load` 重跑時，props 自動更新，子元件響應式重繪。
 
-**命名慣例：** SSR 資料變數使用純粹的名稱（如 `items`、`total`、`count`），不得使用 `initial`、`preload` 等前綴。
+#### 命名慣例
+
+SSR 資料變數使用純粹的名稱（如 `items`、`total`、`count`），不得使用 `initial`、`preload` 等前綴。
 
 ### 4.1 唯讀
 
@@ -366,27 +368,15 @@ export class Child1 {
 
 ### 4.2 可寫入
 
-當元件需要**編輯** SSR 資料的本地副本（如表單編輯、選取狀態），會需要一種特殊的模式 `$state` + `untrack` + `$effect`
+當元件需要**編輯** SSR 資料的本地副本（如表單編輯、選取狀態），需要以 `$state` 建立副本，並以 `$effect` 在外部來源變動時同步回本地。
 
-#### 問題
+#### 在 class constructor
 
-`$state()` 初始化器中若直接讀取 reactive proxy，Svelte 會建立不必要的追蹤關係，且後續 `data` 更新時 `$state` 不會連動：
-
-```ts
-// ✗ Svelte 警告：This reference only captures the initial value
-let name = $state(data.name);
-```
-
-這導致 `$state` 想避開警告，只能初始化為空值，從而 SSR 輸出的第一幀就是錯的
-
-#### 解法
-
-`untrack` 讓 `$state` 讀到外部來源的當下值但不建立追蹤，再由 `$effect` 負責後續同步：
+最常見的情境。`options` 對 Svelte 而言只是普通的 constructor 參數，直接賦值不會建立追蹤、也不會觸發警告：
 
 ```ts
 // editor.svelte.ts
 import { invalidateAll } from "$app/navigation";
-import { untrack } from "svelte";
 
 // ... (略)
 
@@ -395,7 +385,7 @@ export class Editor {
   name = $state("");
 
   constructor(private options: EditorOptions) {
-    this.name = untrack(() => options.item.name);
+    this.name = options.item.name; // 假設 options.item 是 +page.svelte 透過 props 傳入的 SSR 唯讀資料
 
     $effect(() => {
       this.name = options.item.name;
@@ -417,11 +407,20 @@ export class Editor {
 }
 ```
 
-`$state` 從第一幀就帶正確值，`$effect` 只負責後續的增量同步。
+`$state` 從第一幀就帶正確值，`$effect` 只負責後續的增量同步（`goto()` / `invalidateAll()` 導致 `load` 重跑時）。
 
-#### 複雜場景——多狀態交叉校正
+#### 在 `+page.svelte`
 
-當 `data` 變動需要同時調整多個狀態時（如列表增減後調整選取），`$effect` 內進行 reconciliation：
+當可寫入的狀態需要跨元件共享，會需要[宣告在 `+page.svelte`](#三共享狀態)。
+
+此時 `data` 來自 `$props()`，是 Svelte 認識的 reactive proxy，直接在 `$state()` 初始化器中讀取會觸發警告：
+
+```ts
+// ✗ Svelte 警告：This reference only captures the initial value
+let name = $state(data.name);
+```
+
+`untrack` 讓 `$state` 讀到當下值但不建立追蹤，避免了想躲警告只能初始化為空值、導致 SSR 第一幀就是錯的問題：
 
 ```svelte
 <!-- +page.svelte -->
@@ -466,11 +465,11 @@ export class Editor {
 <Child2 bind:selected />
 ```
 
-`$effect` 內的 reconciliation 邏輯依實際需求設計，但初始值一律由 `untrack` 提供。
+> 從上述例子也能看到，`$effect` 內的 reconciliation 也能根據業務需求設計的很複雜，不必侷限於「外部變動後直接覆蓋本地狀態」
 
 ### 4.3 就近原則
 
-若同一份 SSR 資料有多個消費者，**只有需要「寫」的元件才走 `$state` + `untrack` + `$effect`**，其餘元件直接透過 props 原封不動使用即可：
+若同一份 SSR 資料有多個消費者，**只有需要「寫」的元件才建立 `$state` 副本並以 `$effect` 同步**，其餘元件直接透過 props 原封不動使用即可：
 
 ```svelte
 <!-- +page.svelte -->
@@ -486,7 +485,7 @@ export class Editor {
 <Editor item={data.item} />
 ```
 
-Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可，只有 Editor 需要建立可寫[副本](#42-需要寫)。
+Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可，只有 Editor 需要建立可寫[副本](#42-可寫入)。
 
 #### 核心概念
 
@@ -499,9 +498,11 @@ Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可�
 
 ## 五、URL 狀態
 
-URL query params（`page.url.searchParams`）是另一種 read-only reactive source，概念上與 SSR `data` 相同——唯讀直接用，需要寫才走 `$state` + `untrack` + `$effect`。
+URL query params（`page.url.searchParams`）是另一種 read-only reactive source，概念上與 SSR `data` 相同——唯讀直接用，需要寫才走 `$state` + `$effect`。
 
-差異在於：URL 參數由**需要讀取的元件就近讀取**，不透過上層以 props 傳入。
+差異在於：`page` 來自 `$app/state`，是 Svelte 認識的 module-level reactive proxy——無論在 `.svelte` 還是 class constructor 中讀取都會建立追蹤，因此可寫入場景**一律需要 `untrack`**。
+
+另外，URL 參數由**需要讀取的元件就近讀取**，不透過上層以 props 傳入。
 
 ### 5.1 唯讀
 
