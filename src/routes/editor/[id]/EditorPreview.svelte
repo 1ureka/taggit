@@ -1,10 +1,25 @@
 <script lang="ts">
+  import type { ImageWithId } from "$lib/types.js";
   import { createEditorPreview } from "./editorPreview.svelte.js";
 
-  const ui = createEditorPreview();
+  type Props = {
+    image: ImageWithId;
+    loading: boolean;
+  };
+
+  let { image, loading }: Props = $props();
+
+  const ui = createEditorPreview({
+    get image() {
+      return image;
+    },
+    get loading() {
+      return loading;
+    },
+  });
 </script>
 
-<svelte:window onmousemove={ui.zp.onWindowMousemove} onmouseup={ui.zp.onWindowMouseup} />
+<svelte:window onmousemove={ui.handleWindowMousemove} onmouseup={ui.handleWindowMouseup} />
 
 <section class="editor-preview">
   {#if ui.previewFilename}
@@ -12,10 +27,10 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="editor-preview-container"
-      class:dragging={ui.zp.isDragging}
-      onwheel={ui.zp.onWheel}
-      onmousedown={ui.zp.onMousedown}
-      ondblclick={ui.zp.reset}
+      class:dragging={ui.isDragging}
+      onwheel={ui.handleContainerWheel}
+      onmousedown={ui.handleContainerMousedown}
+      ondblclick={ui.handleContainerDblclick}
       role="img"
     >
       <img
@@ -23,7 +38,7 @@
         alt={ui.previewFilename}
         draggable="false"
         class:loading={ui.loading}
-        style="transform:{ui.zp.transform}"
+        style="transform:{ui.transform}"
       />
     </div>
   {:else}

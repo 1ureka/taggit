@@ -1,75 +1,92 @@
 import type { ImageWithId } from "$lib/types.js";
-import { goto } from "$app/navigation";
+import { afterNavigate, goto, invalidateAll } from "$app/navigation";
 import { api } from "$lib/client/api.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
-import { getEditorDetailContext } from "./context.svelte.js";
+
+const SAVE_DEBOUNCE = 800;
+
+/**
+ * EditorPanel 元件的配置選項
+ */
+type EditorPanelOptions = {
+  /** 唯讀：SSR 回傳的圖片資料 */
+  get image(): ImageWithId;
+  /** 雙向綁定：操作載入狀態（頁面級共享） */
+  get loading(): boolean;
+  set loading(v: boolean);
+};
 
 /**
  * 建立編輯面板邏輯的核心工廠函數
  */
-export function createEditorPanel() {
-  /** Editor 詳細編輯頁面共享的 Context */
-  const ctx = getEditorDetailContext();
+export function createEditorPanel(options: EditorPanelOptions) {
+  // --- 可編輯欄位（各自 $state，由 afterNavigate 同步）
 
+  /** 使用者可編輯的圖片名稱 */
+  let name = $state(options.image.name);
+  /** 使用者指派的標籤列表 */
+  let tags = $state<string[]>([...options.image.tags]);
+  /** 使用者評分 0–5 */
+  let rating = $state(options.image.rating);
+
+  // --- 內部狀態
+
+  /** 是否有未儲存的變更 */
+  let dirty = $state(false);
   /** 名稱驗證錯誤訊息 */
   let nameError = $state("");
+  /** 自動儲存 debounce 計時器 */
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // --- afterNavigate：在所有導航完成時同步可編輯欄位
+  afterNavigate(() => {
+    name = options.image.name;
+    tags = [...options.image.tags];
+    rating = options.image.rating;
+    dirty = false;
+  });
 
   // ---
 
   /** 執行儲存變更至伺服器 */
   async function saveChanges() {
-    const img = ctx.image;
-    if (!img || !ctx.dirty || ctx.loading) return;
-    ctx.loading = true;
-
-    if (ctx.saveTimer) clearTimeout(ctx.saveTimer);
+    if (!dirty || options.loading) return;
+    options.loading = true;
+    if (saveTimer) clearTimeout(saveTimer);
 
     try {
-      const res = await api.patch<ImageWithId>(`/api/images/${encodeURIComponent(img.id)}`, {
-        tags: img.tags,
-        rating: img.rating,
-        name: img.name,
-        expectedUpdatedAt: img.updatedAt,
+      const res = await api.patch<ImageWithId>(`/api/images/${encodeURIComponent(options.image.id)}`, {
+        name,
+        tags,
+        rating,
+        expectedUpdatedAt: options.image.updatedAt,
       });
       if (!res.ok) {
         if (res.status === 409) {
           addToast("儲存衝突：資料已被其他操作修改，正在重新載入", "error");
-          await reloadImage();
         } else {
           addToast("儲存失敗: " + (res.error || "未知錯誤"), "error");
         }
+        await invalidateAll();
         return;
       }
-      if (res.data) {
-        ctx.image = res.data;
-      }
-      ctx.dirty = false;
       addToast("已儲存", "success");
+      await invalidateAll();
     } finally {
-      ctx.loading = false;
-    }
-  }
-
-  /** 從伺服器重新載入圖片資料 */
-  async function reloadImage() {
-    const img = ctx.image;
-    if (!img) return;
-    const res = await api.get<ImageWithId>(`/api/images/${encodeURIComponent(img.id)}`);
-    if (res.ok && res.data) {
-      ctx.image = res.data;
-      ctx.dirty = false;
+      options.loading = false;
     }
   }
 
   /** 以 debounce 方式觸發自動儲存 */
   function debouncedSave() {
-    if (ctx.saveTimer) clearTimeout(ctx.saveTimer);
-    ctx.saveTimer = setTimeout(() => saveChanges(), ctx.SAVE_DEBOUNCE);
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveChanges(), SAVE_DEBOUNCE);
   }
 
-  /** 標記資料為已變更 */
+  /** 標記資料為已變更並觸發 debounce 儲存 */
   function markDirty() {
-    ctx.dirty = true;
+    dirty = true;
+    debouncedSave();
   }
 
   /** 驗證名稱格式，回傳錯誤訊息或空字串 */
@@ -81,25 +98,15 @@ export function createEditorPanel() {
 
   // ---
 
-  /** 監聽 dirty 狀態變化，自動觸發 debounce 儲存 */
-  $effect(() => {
-    if (ctx.dirty) {
-      debouncedSave();
-    }
-  });
-
-  // ---
-
   /** 將圖片移入垃圾桶 */
   async function doTrash() {
-    const img = ctx.image;
-    if (!img || ctx.loading) return;
+    if (options.loading) return;
     const ok = await requestConfirm("確定要將此圖片移入垃圾桶嗎？");
     if (!ok) return;
 
-    ctx.loading = true;
+    options.loading = true;
     try {
-      const res = await api.del(`/api/images/${encodeURIComponent(img.id)}`);
+      const res = await api.del(`/api/images/${encodeURIComponent(options.image.id)}`);
       if (!res.ok) {
         addToast("操作失敗: " + (res.error || "未知錯誤"), "error");
         return;
@@ -107,7 +114,7 @@ export function createEditorPanel() {
       addToast("已移入垃圾桶", "success");
       goto("/editor");
     } finally {
-      ctx.loading = false;
+      options.loading = false;
     }
   }
 
@@ -131,8 +138,8 @@ export function createEditorPanel() {
     const value = input.value;
     const error = validateName(value);
     nameError = error;
-    if (!error && ctx.image && value !== ctx.image.name) {
-      ctx.image.name = value;
+    if (!error && value !== name) {
+      name = value;
       markDirty();
     }
   }
@@ -181,13 +188,41 @@ export function createEditorPanel() {
   // ---
 
   return {
+    /** 存取 SSR 圖片資料的 getter（唯讀欄位如 id、ext、metadata） */
+    get image() {
+      return options.image;
+    },
+    /** 存取可編輯名稱的 getter */
+    get name() {
+      return name;
+    },
+    /** 設定可編輯名稱的 setter */
+    set name(v: string) {
+      name = v;
+    },
+    /** 存取可編輯標籤的 getter */
+    get tags() {
+      return tags;
+    },
+    /** 設定可編輯標籤的 setter */
+    set tags(v: string[]) {
+      tags = v;
+    },
+    /** 存取可編輯評等的 getter */
+    get rating() {
+      return rating;
+    },
+    /** 設定可編輯評等的 setter */
+    set rating(v: number) {
+      rating = v;
+    },
     /** 存取是否有未儲存變更的 getter */
     get dirty() {
-      return ctx.dirty;
+      return dirty;
     },
     /** 存取載入狀態的 getter */
     get loading() {
-      return ctx.loading;
+      return options.loading;
     },
     /** 存取名稱驗證錯誤訊息的 getter */
     get nameError() {

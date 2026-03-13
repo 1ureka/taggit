@@ -3,20 +3,34 @@
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { formatDate, formatSize } from "$lib/utils.js";
-  import { getEditorDetailContext } from "./context.svelte.js";
+  import type { ImageWithId } from "$lib/types.js";
   import { createEditorPanel } from "./editorPanel.svelte.js";
 
-  const ctx = getEditorDetailContext();
-  const ui = createEditorPanel();
+  type Props = {
+    image: ImageWithId;
+    loading: boolean;
+  };
 
-  let image = $derived(ctx.image!);
+  let { image, loading = $bindable() }: Props = $props();
+
+  const ui = createEditorPanel({
+    get image() {
+      return image;
+    },
+    get loading() {
+      return loading;
+    },
+    set loading(v) {
+      loading = v;
+    },
+  });
 </script>
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
 <aside class="editor-panel">
   <div class="editor-rating">
-    <Rating bind:value={image.rating} size="1.5rem" onchange={ui.handleRatingChange} />
+    <Rating bind:value={ui.rating} size="1.5rem" onchange={ui.handleRatingChange} />
   </div>
 
   <div class="separator"></div>
@@ -27,7 +41,7 @@
       id="editor-name-input"
       class="text-input"
       type="text"
-      value={image.name}
+      value={ui.name}
       onblur={ui.handleNameBlur}
       onkeydown={ui.handleNameKeydown}
     />
@@ -39,7 +53,7 @@
   <div class="separator"></div>
 
   <div class="editor-tags">
-    <Autocomplete bind:tags={image.tags} variant="top" placeholder="輸入標籤..." onchange={ui.handleTagChange} />
+    <Autocomplete bind:tags={ui.tags} variant="top" placeholder="輸入標籤..." onchange={ui.handleTagChange} />
   </div>
 
   <div class="separator"></div>
@@ -59,20 +73,20 @@
 
   <div class="editor-meta">
     <span class="editor-meta-label">ID</span>
-    <span class="editor-meta-value mono">{image.id}</span>
+    <span class="editor-meta-value mono">{ui.image.id}</span>
 
     <span class="editor-meta-label">檔案名稱</span>
-    <span class="editor-meta-value mono">{image.id}{image.ext}</span>
+    <span class="editor-meta-value mono">{ui.image.id}{ui.image.ext}</span>
 
     <span class="editor-meta-label">提交時間</span>
-    <span class="editor-meta-value">{image.committedAt ? formatDate(image.committedAt) : "—"}</span>
+    <span class="editor-meta-value">{ui.image.committedAt ? formatDate(ui.image.committedAt) : "—"}</span>
 
     <span class="editor-meta-label">檔案大小</span>
-    <span class="editor-meta-value">{image.fileSize ? formatSize(image.fileSize) : "—"}</span>
+    <span class="editor-meta-value">{ui.image.fileSize ? formatSize(ui.image.fileSize) : "—"}</span>
 
-    {#if image.width && image.height}
+    {#if ui.image.width && ui.image.height}
       <span class="editor-meta-label">解析度</span>
-      <span class="editor-meta-value">{image.width} × {image.height}</span>
+      <span class="editor-meta-value">{ui.image.width} × {ui.image.height}</span>
     {/if}
   </div>
 </aside>
