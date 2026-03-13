@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconCheck } from "@tabler/icons-svelte";
+  import { SelectCheckbox } from "$lib/ui/selectCheckbox.svelte.js";
 
   type Props = {
     /** 是否選中 */
@@ -14,11 +15,14 @@
 
   const iconSize = $derived(size === "sm" ? 12 : size === "md" ? 14 : 16);
 
-  function handleClick(e: MouseEvent) {
-    e.stopPropagation();
-    e.preventDefault();
-    onchange?.(!checked);
-  }
+  const ui = new SelectCheckbox({
+    get checked() {
+      return checked;
+    },
+    get onchange() {
+      return onchange;
+    },
+  });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -26,7 +30,7 @@
 <div
   class="select-checkbox select-checkbox-{size}"
   class:select-checkbox-checked={checked}
-  onclick={handleClick}
+  onclick={ui.handleClick}
   role="checkbox"
   aria-checked={checked}
   tabindex="-1"

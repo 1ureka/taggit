@@ -1,7 +1,7 @@
 <script lang="ts">
   import { float } from "$lib/client/float.js";
   import { IconX } from "@tabler/icons-svelte";
-  import { createAutocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前選中的標籤列表 */
@@ -18,7 +18,7 @@
 
   let { tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, variant = "top" }: Props = $props();
 
-  const ui = createAutocomplete({
+  const ui = new Autocomplete({
     onchange: () => onchange?.(),
     onenter: () => onenter?.(),
     get selectedTags() {

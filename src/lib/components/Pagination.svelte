@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { createPagination } from "$lib/ui/pagination.svelte.js";
+  import { Pagination } from "$lib/ui/pagination.svelte.js";
 
   type Props = { page: number; pages: number; basePath: string };
   let { page, pages, basePath }: Props = $props();
 
-  const ui = createPagination({
+  const ui = new Pagination({
     get pages() {
       return pages;
     },

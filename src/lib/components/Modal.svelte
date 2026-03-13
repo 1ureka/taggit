@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { createModal } from "$lib/ui/modal.svelte.js";
+  import { Modal } from "$lib/ui/modal.svelte.js";
 
   type Props = {
     /** 是否開啟 Modal */
@@ -15,7 +15,7 @@
 
   let { open = $bindable(), onclose, children, label = "對話框" }: Props = $props();
 
-  const ui = createModal({
+  const ui = new Modal({
     get open() {
       return open;
     },

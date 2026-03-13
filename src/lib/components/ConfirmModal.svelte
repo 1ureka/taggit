@@ -1,8 +1,8 @@
 <script lang="ts">
   import Modal from "./Modal.svelte";
-  import { createConfirmModal } from "$lib/ui/confirmModal.svelte.js";
+  import { ConfirmModal } from "$lib/ui/confirmModal.svelte.js";
 
-  const ui = createConfirmModal();
+  const ui = new ConfirmModal();
 </script>
 
 <Modal bind:open={ui.open} onclose={ui.handleModalClose} label="確認對話框">

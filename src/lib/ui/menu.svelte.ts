@@ -16,72 +16,77 @@ type MenuOptions = {
 };
 
 /**
- * 建立浮動選單邏輯的核心工廠函數 (與 createSelect 的差異: 適用於導航跳轉、單次操作收納等場景)
+ * 浮動選單的無頭 UI（與 Select 的差異：適用於導航跳轉、單次操作收納等場景）
  */
-export function createMenu(options: MenuOptions) {
+export class Menu {
   /** 觸發器按鈕實例的引用 (DOM) */
-  let triggerEl = $state<HTMLButtonElement>();
+  triggerEl = $state<HTMLButtonElement>();
   /** 選單是否開啟 */
-  let open = $state(false);
+  open = $state(false);
   /** 選單中目前「虛擬聚焦」的項目索引 */
-  let activeIndex = $state(-1);
+  activeIndex = $state(-1);
 
-  // 當 list 動態縮減時自動夾緊 activeIndex；list 歸零時自動關閉選單
-  $effect(() => {
-    const len = options.list.length;
-    if (len === 0) {
-      open = false;
-      activeIndex = -1;
-    } else if (activeIndex >= len) {
-      activeIndex = len - 1;
-    }
-  });
+  constructor(private options: MenuOptions) {
+    // 當 list 動態縮減時自動夾緊 activeIndex；list 歸零時自動關閉選單
+    $effect(() => {
+      const len = this.options.list.length;
+      if (len === 0) {
+        this.open = false;
+        this.activeIndex = -1;
+      } else if (this.activeIndex >= len) {
+        this.activeIndex = len - 1;
+      }
+    });
+  }
 
   // ---
 
-  /** 開啟選單，虛擬聚焦重置為 -1 */
-  function openMenu() {
-    open = true;
-    activeIndex = -1;
+  get list() {
+    return this.options.list;
   }
 
-  /** 關閉選單，重置虛擬聚焦索引 */
-  function closeMenu() {
-    open = false;
-    activeIndex = -1;
+  // ---
+
+  #openMenu() {
+    this.open = true;
+    this.activeIndex = -1;
   }
 
-  /** 執行選取動作：觸發回調並關閉選單 */
-  function selectItem(item: MenuItem) {
-    options.onselect?.(item);
-    if (!options.disableAutoClose) {
-      closeMenu();
+  #closeMenu() {
+    this.open = false;
+    this.activeIndex = -1;
+  }
+
+  #selectItem(item: MenuItem) {
+    this.options.onselect?.(item);
+    if (!this.options.disableAutoClose) {
+      this.#closeMenu();
     }
   }
 
   // ---
 
   /** 處理 Trigger 點擊事件，切換選單的開啟/關閉狀態 */
-  function handleTriggerClick() {
-    if (open) {
-      closeMenu();
+  handleTriggerClick = () => {
+    if (this.open) {
+      this.#closeMenu();
     } else {
-      openMenu();
+      this.#openMenu();
     }
-  }
+  };
 
   /** 處理 Trigger 失焦事件，關閉選單 */
-  function handleTriggerBlur() {
-    closeMenu();
-  }
+  handleTriggerBlur = () => {
+    this.#closeMenu();
+  };
 
   /** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
-  function handleTriggerKeydown(e: KeyboardEvent) {
+  handleTriggerKeydown = (e: KeyboardEvent) => {
     /** 選單關閉時，按下特定鍵開啟 */
-    if (!open) {
+    if (!this.open) {
       if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
         e.preventDefault();
-        openMenu();
+        this.#openMenu();
       }
       return;
     }
@@ -89,88 +94,50 @@ export function createMenu(options: MenuOptions) {
     /** 選單開啟時的導航邏輯 */
     switch (e.key) {
       case "Escape":
-        closeMenu();
+        this.#closeMenu();
         break;
 
       case "Tab":
         // 若尚未到最後一個項目，攔截 Tab 用來切換虛擬聚焦
-        if (activeIndex < options.list.length - 1) {
+        if (this.activeIndex < this.options.list.length - 1) {
           e.preventDefault();
-          activeIndex = Math.min(activeIndex + 1, options.list.length - 1);
+          this.activeIndex = Math.min(this.activeIndex + 1, this.options.list.length - 1);
         }
-        // 已在最後一個時不攔截，讓瀏覽器自然讓 trigger 失焦 → blur → closeMenu()
+        // 已在最後一個時不攔截，讓瀏覽器自然讓 trigger 失焦 → blur → #closeMenu()
         break;
 
       case "ArrowDown":
         e.preventDefault();
-        activeIndex = Math.min(activeIndex + 1, options.list.length - 1);
+        this.activeIndex = Math.min(this.activeIndex + 1, this.options.list.length - 1);
         break;
 
       case "ArrowUp":
         e.preventDefault();
-        activeIndex = Math.max(activeIndex - 1, 0);
+        this.activeIndex = Math.max(this.activeIndex - 1, 0);
         break;
 
       case "Enter":
       case " ":
         e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < options.list.length) {
-          selectItem(options.list[activeIndex]);
+        if (this.activeIndex >= 0 && this.activeIndex < this.options.list.length) {
+          this.#selectItem(this.options.list[this.activeIndex]);
         } else {
-          closeMenu();
+          this.#closeMenu();
         }
         break;
     }
-  }
+  };
 
   // ---
 
   /** 處理選單項目滑鼠按下事件（阻止 trigger 失焦） */
-  function handleItemMouseDown(e: MouseEvent, item: MenuItem) {
+  handleItemMouseDown = (e: MouseEvent, item: MenuItem) => {
     e.preventDefault();
-    selectItem(item);
-  }
+    this.#selectItem(item);
+  };
 
   /** 處理選單項目滑鼠移入事件，更新虛擬聚焦索引 */
-  function handleItemMouseEnter(index: number) {
-    activeIndex = index;
-  }
-
-  // ---
-
-  return {
-    /** 獲取 Trigger 元素的 getter */
-    get triggerEl() {
-      return triggerEl as HTMLButtonElement;
-    },
-    /** 設定 Trigger 元素 setter */
-    set triggerEl(el: HTMLButtonElement) {
-      triggerEl = el;
-    },
-
-    /** 存取目前選單項目列表的 getter（響應式傳遞） */
-    get list() {
-      return options.list;
-    },
-    /** 存取選單開啟狀態的 getter */
-    get open() {
-      return open;
-    },
-    /** 存取虛擬聚焦索引的 getter */
-    get activeIndex() {
-      return activeIndex;
-    },
-
-    /** 處理 Trigger 點擊事件 */
-    handleTriggerClick,
-    /** 處理 Trigger 失焦事件 */
-    handleTriggerBlur,
-    /** 處理 Trigger 鍵盤事件 */
-    handleTriggerKeydown,
-
-    /** 處理選單項目滑鼠按下事件 */
-    handleItemMouseDown,
-    /** 處理選單項目滑鼠移入事件 */
-    handleItemMouseEnter,
+  handleItemMouseEnter = (index: number) => {
+    this.activeIndex = index;
   };
 }
