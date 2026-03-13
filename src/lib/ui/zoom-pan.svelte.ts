@@ -39,7 +39,7 @@ export class ZoomPan {
   // ---
 
   /** 重置縮放與位移至初始狀態 */
-  reset() {
+  #reset() {
     this.scale = 1;
     this.panX = 0;
     this.panY = 0;
@@ -67,7 +67,7 @@ export class ZoomPan {
 
   /** 處理容器重置事件，重置縮放與位移 */
   handleContainerReset = () => {
-    this.reset();
+    this.#reset();
   };
 
   // ---

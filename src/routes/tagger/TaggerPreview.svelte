@@ -17,7 +17,7 @@
     set imageLoading(v) {
       imageLoading = v;
     },
-    onChangeImage: () => zp.reset(),
+    onChangeImage: zp.handleContainerReset,
   });
 </script>
 
