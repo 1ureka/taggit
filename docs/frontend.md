@@ -75,7 +75,7 @@ type ComponentOptions = {
 };
 
 /**
- * Component 的無頭 UI
+ * Component 的互動邏輯
  */
 export class Component {
   /** 下拉選單是否開啟 */
@@ -243,7 +243,7 @@ type Child1Options = {
 };
 
 /**
- * Child1 的無頭 UI
+ * Child1 的互動邏輯
  */
 export class Child1 {
   constructor(private options: Child1Options) {}
@@ -530,7 +530,7 @@ import { goto } from "$app/navigation";
 import { untrack } from "svelte";
 
 /**
- * Component 的無頭 UI
+ * Component 的互動邏輯
  */
 export class Component {
   /** 目前排序方式 */
@@ -578,7 +578,7 @@ import { goto } from "$app/navigation";
 import { untrack } from "svelte";
 
 /**
- * SearchForm 的無頭 UI
+ * SearchForm 的互動邏輯
  */
 export class SearchForm {
   /** URL 同步鎖：本地正在修改時為 true，跳過外部同步 */

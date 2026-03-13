@@ -52,7 +52,7 @@ type ToastOptions = {
 };
 
 /**
- * Toast 堆疊通知的無頭 UI
+ * Toast 堆疊通知的互動邏輯
  */
 export class Toast {
   /** 目前所有 toast 項目 */

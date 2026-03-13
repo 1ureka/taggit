@@ -9,7 +9,7 @@ type ModalOptions = {
 };
 
 /**
- * Modal 對話框的無頭 UI
+ * Modal 對話框的互動邏輯
  */
 export class Modal {
   /** Modal 對話框容器的引用 (DOM) */

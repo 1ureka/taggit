@@ -9,7 +9,7 @@ type SelectCheckboxOptions = {
 };
 
 /**
- * SelectCheckbox 的無頭 UI
+ * SelectCheckbox 的互動邏輯
  */
 export class SelectCheckbox {
   constructor(private options: SelectCheckboxOptions) {}

@@ -16,7 +16,7 @@ type SelectOptions = {
 };
 
 /**
- * 下拉選單的無頭 UI
+ * 下拉選單的互動邏輯
  */
 export class Select {
   /** 觸發器按鈕實例的引用 (DOM) */

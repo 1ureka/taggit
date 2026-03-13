@@ -12,7 +12,7 @@ type PaginationOptions = {
 };
 
 /**
- * 分頁元件的無頭 UI
+ * 分頁元件的互動邏輯
  */
 export class Pagination {
   constructor(private options: PaginationOptions) {}

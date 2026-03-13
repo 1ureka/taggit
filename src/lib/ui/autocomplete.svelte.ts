@@ -14,7 +14,7 @@ type AutocompleteOptions = {
 };
 
 /**
- * 自動補全組件的無頭 UI
+ * 自動補全組件的互動邏輯
  */
 export class Autocomplete {
   /** 輸入框實例的引用 (DOM) */

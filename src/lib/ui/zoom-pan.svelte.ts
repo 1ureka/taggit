@@ -9,7 +9,7 @@ type ZoomPanOptions = {
 };
 
 /**
- * 圖片縮放平移的無頭 UI
+ * 圖片縮放平移的互動邏輯
  */
 export class ZoomPan {
   /** 目前縮放比例 */

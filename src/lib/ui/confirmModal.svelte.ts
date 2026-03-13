@@ -1,7 +1,7 @@
 import type { ConfirmEventName, ConfirmPayload } from "$lib/types.js";
 
 /**
- * 確認對話框的無頭 UI
+ * 確認對話框的互動邏輯
  */
 export class ConfirmModal {
   /** 對話框是否開啟 */

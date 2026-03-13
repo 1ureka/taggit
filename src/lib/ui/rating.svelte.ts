@@ -29,7 +29,7 @@ type RatingOptions = {
 };
 
 /**
- * 評分元件的無頭 UI
+ * 評分元件的互動邏輯
  */
 export class Rating {
   /** 目前滑鼠懸停的星號索引，0 = 未懸停 */
