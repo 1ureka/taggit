@@ -364,9 +364,9 @@ export class Child1 {
 }
 ```
 
-### 4.2 需要寫
+### 4.2 可寫入
 
-當元件需要**編輯** SSR 資料的本地副本（如表單編輯、選取狀態），才需要這個模式。
+當元件需要**編輯** SSR 資料的本地副本（如表單編輯、選取狀態），會需要一種特殊的模式 `$state` + `untrack` + `$effect`
 
 #### 問題
 
@@ -384,34 +384,21 @@ let name = $state(data.name);
 `untrack` 讓 `$state` 讀到外部來源的當下值但不建立追蹤，再由 `$effect` 負責後續同步：
 
 ```ts
-// child2.svelte.ts
+// editor.svelte.ts
+import { invalidateAll } from "$app/navigation";
+import { untrack } from "svelte";
 
-/**
- * Child2 的配置選項
- */
-type Child2Options = {
-  /** 唯讀：項目資料 */
-  item: Item;
-};
+// ... (略)
 
-/**
- * Child2 的無頭 UI
- */
-export class Child2 {
+export class Editor {
   /** 項目名稱（可編輯的本地副本） */
   name = $state("");
-  /** 項目標籤（可編輯的本地副本） */
-  tags = $state<string[]>([]);
 
-  constructor(private options: Child2Options) {
-    // untrack 提供正確的 SSR 初始值
+  constructor(private options: EditorOptions) {
     this.name = untrack(() => options.item.name);
-    this.tags = untrack(() => [...options.item.tags]);
 
-    // $effect 負責後續同步（goto / invalidateAll 導致 data 變動時）
     $effect(() => {
       this.name = options.item.name;
-      this.tags = [...options.item.tags];
     });
   }
 
@@ -420,6 +407,12 @@ export class Child2 {
   /** 處理名稱輸入事件 */
   handleNameInput = (e: Event) => {
     this.name = (e.target as HTMLInputElement).value;
+  };
+
+  /** 處理儲存按鈕點擊事件，將修改寫回伺服器 */
+  handleFormSubmit = async () => {
+    await api.post("/update-item", { id: this.options.item.id, name: this.name });
+    invalidateAll();
   };
 }
 ```
@@ -493,41 +486,7 @@ export class Child2 {
 <Editor item={data.item} />
 ```
 
-Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可；只有 Editor 需要建立可寫副本：
-
-```ts
-// editor.svelte.ts
-import { invalidateAll } from "$app/navigation";
-import { untrack } from "svelte";
-
-// ... (略)
-
-export class Editor {
-  /** 項目名稱（可編輯的本地副本） */
-  name = $state("");
-
-  constructor(private options: EditorOptions) {
-    this.name = untrack(() => options.item.name);
-
-    $effect(() => {
-      this.name = options.item.name;
-    });
-  }
-
-  // ---
-
-  /** 處理名稱輸入事件 */
-  handleNameInput = (e: Event) => {
-    this.name = (e.target as HTMLInputElement).value;
-  };
-
-  /** 處理儲存按鈕點擊事件，將修改寫回伺服器 */
-  handleFormSubmit = async () => {
-    await api.post("/update-item", { id: this.options.item.id, name: this.name });
-    invalidateAll();
-  };
-}
-```
+Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可，只有 Editor 需要建立可寫[副本](#42-需要寫)。
 
 #### 核心概念
 
@@ -559,7 +518,7 @@ URL query params（`page.url.searchParams`）是另一種 read-only reactive sou
 <div class:active={tab === "settings"}>...</div>
 ```
 
-### 5.2 需要寫
+### 5.2 可寫入
 
 與 SSR 狀態相同的模式——`$state(untrack(...))` + `$effect`，只是來源改為 `page.url.searchParams`。使用 `goto()` 更新 URL：
 
