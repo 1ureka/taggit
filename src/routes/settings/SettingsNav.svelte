@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { createSettingsNav } from "./settingsNav.svelte.js";
+  import { SettingsNav } from "./settingsNav.svelte.js";
 
   type Props = { collectionRoot: string };
   let { collectionRoot }: Props = $props();
 
-  const ui = createSettingsNav({
+  const ui = new SettingsNav({
     get collectionRoot() {
       return collectionRoot;
     },

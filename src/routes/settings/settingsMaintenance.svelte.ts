@@ -2,193 +2,132 @@ import { api } from "$lib/client/api.js";
 import { requestConfirm } from "$lib/client/dom.js";
 
 /**
- * 建立系統維護邏輯的核心工廠函數
+ * SettingsMaintenance 的互動邏輯
  */
-export function createSettingsMaintenance() {
+export class SettingsMaintenance {
   /** 孤立檔案檢查結果訊息 */
-  let orphanResult = $state("");
+  orphanResult = $state("");
   /** 孤立檔案列表 */
-  let orphanList = $state<string[]>([]);
+  orphanList = $state<string[]>([]);
   /** 是否正在處理孤立檔案 */
-  let orphanBusy = $state(false);
-
-  // ---
+  orphanBusy = $state(false);
 
   /** 缺失檔案檢查結果訊息 */
-  let missingResult = $state("");
+  missingResult = $state("");
   /** 缺失檔案 ID 列表 */
-  let missingList = $state<string[]>([]);
+  missingList = $state<string[]>([]);
   /** 是否正在處理缺失檔案 */
-  let missingBusy = $state(false);
-
-  // ---
+  missingBusy = $state(false);
 
   /** 備份結果訊息 */
-  let backupResult = $state("");
+  backupResult = $state("");
   /** 是否正在備份 */
-  let backupBusy = $state(false);
-
-  // ---
+  backupBusy = $state(false);
 
   /** 清空垃圾桶結果訊息 */
-  let trashResult = $state("");
+  trashResult = $state("");
   /** 是否正在清空垃圾桶 */
-  let trashBusy = $state(false);
+  trashBusy = $state(false);
 
   // ---
 
   /** 處理「檢查孤立檔案」按鈕點擊事件，掃描並列出孤立檔案 */
-  async function handleOrphanCheckClick() {
-    orphanBusy = true;
-    orphanResult = "";
-    orphanList = [];
+  handleOrphanCheckClick = async () => {
+    this.orphanBusy = true;
+    this.orphanResult = "";
+    this.orphanList = [];
 
     const res = await api.get<{ orphans: string[] }>("/api/maintenance/orphans");
     if (res.ok && res.data) {
-      orphanList = res.data.orphans;
-      orphanResult = orphanList.length === 0 ? "沒有找到孤立檔案" : `找到 ${orphanList.length} 個孤立檔案`;
+      this.orphanList = res.data.orphans;
+      this.orphanResult =
+        this.orphanList.length === 0 ? "沒有找到孤立檔案" : `找到 ${this.orphanList.length} 個孤立檔案`;
     } else {
-      orphanResult = "錯誤: " + (res.error || "未知");
+      this.orphanResult = "錯誤: " + (res.error || "未知");
     }
-    orphanBusy = false;
-  }
+    this.orphanBusy = false;
+  };
 
   /** 處理「刪除孤立檔案」按鈕點擊事件，刪除所有孤立檔案 */
-  async function handleOrphanDeleteClick() {
-    if (!(await requestConfirm(`確定要刪除 ${orphanList.length} 個孤立檔案？此操作無法復原。`))) return;
+  handleOrphanDeleteClick = async () => {
+    if (!(await requestConfirm(`確定要刪除 ${this.orphanList.length} 個孤立檔案？此操作無法復原。`))) return;
 
-    orphanBusy = true;
+    this.orphanBusy = true;
     const res = await api.del<{ deleted: number }>("/api/maintenance/orphans");
     if (res.ok && res.data) {
-      orphanResult = `已刪除 ${res.data.deleted} 個孤立檔案`;
-      orphanList = [];
+      this.orphanResult = `已刪除 ${res.data.deleted} 個孤立檔案`;
+      this.orphanList = [];
     } else {
-      orphanResult = "錯誤: " + (res.error || "未知");
+      this.orphanResult = "錯誤: " + (res.error || "未知");
     }
-    orphanBusy = false;
-  }
+    this.orphanBusy = false;
+  };
 
   // ---
 
   /** 處理「檢查缺失檔案」按鈕點擊事件，掃描並列出缺失記錄 */
-  async function handleMissingCheckClick() {
-    missingBusy = true;
-    missingResult = "";
-    missingList = [];
+  handleMissingCheckClick = async () => {
+    this.missingBusy = true;
+    this.missingResult = "";
+    this.missingList = [];
 
     const res = await api.get<{ missing: string[] }>("/api/maintenance/missing");
     if (res.ok && res.data) {
-      missingList = res.data.missing;
-      missingResult = missingList.length === 0 ? "沒有找到缺失記錄" : `找到 ${missingList.length} 個缺失記錄`;
+      this.missingList = res.data.missing;
+      this.missingResult =
+        this.missingList.length === 0 ? "沒有找到缺失記錄" : `找到 ${this.missingList.length} 個缺失記錄`;
     } else {
-      missingResult = "錯誤: " + (res.error || "未知");
+      this.missingResult = "錯誤: " + (res.error || "未知");
     }
-    missingBusy = false;
-  }
+    this.missingBusy = false;
+  };
 
   /** 處理「刪除缺失記錄」按鈕點擊事件，刪除所有缺失記錄 */
-  async function handleMissingDeleteClick() {
-    if (!(await requestConfirm(`確定要刪除 ${missingList.length} 個缺失記錄？此操作無法復原。`))) return;
+  handleMissingDeleteClick = async () => {
+    if (!(await requestConfirm(`確定要刪除 ${this.missingList.length} 個缺失記錄？此操作無法復原。`))) return;
 
-    missingBusy = true;
+    this.missingBusy = true;
     const res = await api.del<{ deleted: number }>("/api/maintenance/missing");
     if (res.ok && res.data) {
-      missingResult = `已刪除 ${res.data.deleted} 個缺失記錄`;
-      missingList = [];
+      this.missingResult = `已刪除 ${res.data.deleted} 個缺失記錄`;
+      this.missingList = [];
     } else {
-      missingResult = "錯誤: " + (res.error || "未知");
+      this.missingResult = "錯誤: " + (res.error || "未知");
     }
-    missingBusy = false;
-  }
+    this.missingBusy = false;
+  };
 
   // ---
 
   /** 處理「資料庫備份」按鈕點擊事件，建立 db.json 的備份副本 */
-  async function handleBackupClick() {
-    backupBusy = true;
-    backupResult = "";
+  handleBackupClick = async () => {
+    this.backupBusy = true;
+    this.backupResult = "";
 
     const res = await api.post<{ backupPath: string }>("/api/maintenance/backup");
     if (res.ok && res.data) {
-      backupResult = "備份完成: " + res.data.backupPath;
+      this.backupResult = "備份完成: " + res.data.backupPath;
     } else {
-      backupResult = "錯誤: " + (res.error || "未知");
+      this.backupResult = "錯誤: " + (res.error || "未知");
     }
-    backupBusy = false;
-  }
+    this.backupBusy = false;
+  };
 
   // ---
 
   /** 處理「清空垃圾桶」按鈕點擊事件，永久刪除所有垃圾桶檔案 */
-  async function handleEmptyTrashClick() {
+  handleEmptyTrashClick = async () => {
     if (!(await requestConfirm("確定要清空垃圾桶？此操作無法復原。"))) return;
 
-    trashBusy = true;
-    trashResult = "";
+    this.trashBusy = true;
+    this.trashResult = "";
 
     const res = await api.del<{ deleted: number }>("/api/trash");
     if (res.ok && res.data) {
-      trashResult = `已清空垃圾桶，刪除 ${res.data.deleted} 個檔案`;
+      this.trashResult = `已清空垃圾桶，刪除 ${res.data.deleted} 個檔案`;
     } else {
-      trashResult = "錯誤: " + (res.error || "未知");
+      this.trashResult = "錯誤: " + (res.error || "未知");
     }
-    trashBusy = false;
-  }
-
-  // ---
-
-  return {
-    /** 存取孤立檔案結果訊息的 getter */
-    get orphanResult() {
-      return orphanResult;
-    },
-    /** 存取孤立檔案列表的 getter */
-    get orphanList() {
-      return orphanList;
-    },
-    /** 存取孤立檔案處理狀態的 getter */
-    get orphanBusy() {
-      return orphanBusy;
-    },
-    /** 存取缺失檔案結果訊息的 getter */
-    get missingResult() {
-      return missingResult;
-    },
-    /** 存取缺失檔案列表的 getter */
-    get missingList() {
-      return missingList;
-    },
-    /** 存取缺失檔案處理狀態的 getter */
-    get missingBusy() {
-      return missingBusy;
-    },
-    /** 存取備份結果訊息的 getter */
-    get backupResult() {
-      return backupResult;
-    },
-    /** 存取備份處理狀態的 getter */
-    get backupBusy() {
-      return backupBusy;
-    },
-    /** 存取垃圾桶結果訊息的 getter */
-    get trashResult() {
-      return trashResult;
-    },
-    /** 存取垃圾桶處理狀態的 getter */
-    get trashBusy() {
-      return trashBusy;
-    },
-    /** 處理「檢查孤立檔案」按鈕點擊事件，掃描並列出孤立檔案 */
-    handleOrphanCheckClick,
-    /** 處理「刪除孤立檔案」按鈕點擊事件，刪除所有孤立檔案 */
-    handleOrphanDeleteClick,
-    /** 處理「檢查缺失檔案」按鈕點擊事件，掃描並列出缺失記錄 */
-    handleMissingCheckClick,
-    /** 處理「刪除缺失記錄」按鈕點擊事件，刪除所有缺失記錄 */
-    handleMissingDeleteClick,
-    /** 處理「資料庫備份」按鈕點擊事件，建立 db.json 的備份副本 */
-    handleBackupClick,
-    /** 處理「清空垃圾桶」按鈕點擊事件，永久刪除所有垃圾桶檔案 */
-    handleEmptyTrashClick,
+    this.trashBusy = false;
   };
 }

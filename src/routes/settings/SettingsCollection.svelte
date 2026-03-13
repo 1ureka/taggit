@@ -1,12 +1,12 @@
 <script lang="ts">
   import { page } from "$app/state";
   import Alert from "$lib/components/Alert.svelte";
-  import { createSettingsCollection } from "./settingsCollection.svelte.js";
+  import { SettingsCollection } from "./settingsCollection.svelte.js";
 
   type Props = { collectionRoot: string };
   let { collectionRoot }: Props = $props();
 
-  const ui = createSettingsCollection({
+  const ui = new SettingsCollection({
     get collectionRoot() {
       return collectionRoot;
     },

@@ -1,8 +1,8 @@
 <script lang="ts">
   import Autocomplete from "$lib/components/Autocomplete.svelte";
-  import { createSettingsTagRename } from "./settingsTagRename.svelte.js";
+  import { SettingsTagRename } from "./settingsTagRename.svelte.js";
 
-  const ui = createSettingsTagRename();
+  const ui = new SettingsTagRename();
 </script>
 
 <section id="section-tags" class="settings-section">

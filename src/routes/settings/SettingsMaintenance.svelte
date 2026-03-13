@@ -1,8 +1,8 @@
 <script lang="ts">
   import { IconFileSearch, IconFileAlert, IconDatabase, IconTrashX } from "@tabler/icons-svelte";
-  import { createSettingsMaintenance } from "./settingsMaintenance.svelte.js";
+  import { SettingsMaintenance } from "./settingsMaintenance.svelte.js";
 
-  const ui = createSettingsMaintenance();
+  const ui = new SettingsMaintenance();
 </script>
 
 <section id="section-maintenance" class="settings-section settings-section-last">

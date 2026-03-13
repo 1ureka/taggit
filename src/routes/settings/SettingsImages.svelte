@@ -1,11 +1,11 @@
 <script lang="ts">
   import { IconPhoto, IconFileSearch } from "@tabler/icons-svelte";
-  import { createSettingsImages } from "./settingsImages.svelte.js";
+  import { SettingsImages } from "./settingsImages.svelte.js";
 
   type Props = { cacheStats: { entries: number; bytes: number } };
   let { cacheStats }: Props = $props();
 
-  const ui = createSettingsImages({
+  const ui = new SettingsImages({
     get cacheStats() {
       return cacheStats;
     },
