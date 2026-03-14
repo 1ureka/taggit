@@ -14,10 +14,10 @@
 
 <svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
-<section class="editor-preview">
+<section>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
-    class="editor-preview-container"
+    class="container"
     class:dragging={zp.isDragging}
     onwheel={zp.handleContainerWheel}
     onmousedown={zp.handleContainerMousedown}
@@ -29,7 +29,7 @@
 </section>
 
 <style>
-  .editor-preview {
+  section {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -38,7 +38,7 @@
     min-width: 0;
   }
 
-  .editor-preview-container {
+  .container {
     flex: 1;
     display: flex;
     align-items: center;
@@ -47,25 +47,24 @@
     cursor: grab;
     position: relative;
     user-select: none;
-    -webkit-user-select: none;
-  }
 
-  .editor-preview-container.dragging {
-    cursor: grabbing;
-  }
+    &.dragging {
+      cursor: grabbing;
+    }
 
-  .editor-preview-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    transform-origin: center center;
-    transition: opacity 0.2s;
-    user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: none;
-  }
+    & > img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: opacity 0.2s;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
 
-  .editor-preview-container img.loading {
-    opacity: 0.75;
+      &.loading {
+        opacity: 0.75;
+      }
+    }
   }
 </style>
