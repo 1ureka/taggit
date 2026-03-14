@@ -2,9 +2,9 @@
   import { IconDeviceFloppy, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
-  import { formatDate, formatSize } from "$lib/utils.js";
   import type { ImageWithId } from "$lib/types.js";
   import { createEditorPanel } from "./editorPanel.svelte.js";
+  import EditorMetadata from "./EditorMetadata.svelte";
 
   type Props = {
     image: ImageWithId;
@@ -71,24 +71,7 @@
 
   <div class="separator"></div>
 
-  <div class="editor-meta">
-    <span class="editor-meta-label">ID</span>
-    <span class="editor-meta-value mono">{ui.image.id}</span>
-
-    <span class="editor-meta-label">檔案名稱</span>
-    <span class="editor-meta-value mono">{ui.image.id}{ui.image.ext}</span>
-
-    <span class="editor-meta-label">提交時間</span>
-    <span class="editor-meta-value">{ui.image.committedAt ? formatDate(ui.image.committedAt) : "—"}</span>
-
-    <span class="editor-meta-label">檔案大小</span>
-    <span class="editor-meta-value">{ui.image.fileSize ? formatSize(ui.image.fileSize) : "—"}</span>
-
-    {#if ui.image.width && ui.image.height}
-      <span class="editor-meta-label">解析度</span>
-      <span class="editor-meta-value">{ui.image.width} × {ui.image.height}</span>
-    {/if}
-  </div>
+  <EditorMetadata {image} />
 </aside>
 
 <style>
@@ -139,29 +122,5 @@
   .editor-actions :global(.btn) {
     flex: 1;
     min-width: 0;
-  }
-
-  .editor-meta {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.25rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .editor-meta-label {
-    color: var(--text-dim);
-    white-space: nowrap;
-  }
-
-  .editor-meta-value {
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .editor-meta-value.mono {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
   }
 </style>
