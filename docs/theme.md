@@ -148,10 +148,141 @@ background: color-mix(in srgb, var(--accent) 80%, black);
 
 ---
 
-## 3. 遷移路線建議
+## 3. 元件結構式選擇器（Scoped Structural Selectors）
 
-1. **短期**：繼續使用目前的 semantic tokens（`--bg`, `--text` 等），逐步將元件內的硬編碼色轉為變數。
-2. **中期**：為需要外部覆寫的元件引入 component-level CSS custom properties（如 `--rating-color`），消除所有 `:global()` 穿透。
+Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不同元件中完全不衝突。本專案利用此特性，以**結構角色**而非業務語意命名 CSS 選擇器，降低命名負擔、減少程式碼量，並讓開發者在撰寫樣式時以「抽象 UI 元件」的角度思考，而非糾結於具體業務名稱。
+
+### 3.1 語意 HTML 優先
+
+若元素本身的 HTML 標籤已足夠描述結構角色，**直接以元素選擇器選取，不額外加 class**：
+
+```svelte
+<!-- EditorMetadata.svelte -->
+<dl>
+  <dt>ID</dt>
+  <dd class="mono">{image.id}</dd>
+
+  <dt>解析度</dt>
+  <dd>{image.width} × {image.height}</dd>
+</dl>
+
+<style>
+  dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  dt {
+    color: var(--text-dim);
+  }
+
+  dd {
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+```
+
+適用場景：`main`、`aside`、`footer`、`header`、`dl`/`dt`/`dd`、`ul`/`li`、`h1`–`h6`、`p`、`label` 等。在 scoped 環境下，元素選擇器的作用域被限定在元件內部，不會汙染外部。
+
+### 3.2 抽象結構命名
+
+當語意 HTML 不足以區分角色時，使用描述**結構功能**的 class name，而非帶有業務語意的名稱：
+
+| ✓ 結構式                          | ✗ 業務式                                 |
+| --------------------------------- | ---------------------------------------- |
+| `.card`                           | `.compare-card`                          |
+| `.card-image`                     | `.compare-card-image`                    |
+| `.field-name`                     | `.editor-name-field`                     |
+| `.actions`                        | `.editor-buttons`                        |
+| `.tags`                           | `.image-tag-list`                        |
+| `.empty`                          | `.no-images-message`                     |
+
+因為 Svelte scope 已隔離命名空間，`.card` 在 `CompareCard.svelte` 和 `HomeCards.svelte` 中互不干擾，省去 BEM 式的前綴或命名空間。
+
+常見的抽象命名模式：
+
+- **佈局容器**：`.page`、`.content`、`.panel`、`.wrapper`
+- **卡片結構**：`.card`、`.card-image`、`.card-info`、`.card-header`
+- **表單結構**：`.field-*`（`.field-name`、`.field-rating`、`.field-tags`）、`.actions`
+- **狀態標記**：`.loading`、`.empty`、`.active`、`.selected`、`.error`
+- **文字樣式**：`.mono`、`.label`、`.hint`
+
+### 3.3 Nested CSS 描述層級
+
+善用 CSS nesting（`&`）在父選擇器內描述子元素樣式，減少頂層選擇器數量，同時讓結構關係一目了然：
+
+```svelte
+<style>
+  .card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    overflow: hidden;
+
+    &:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 0 0 1px var(--border-hover);
+    }
+  }
+
+  .card-image {
+    flex: 1;
+    min-height: 0;
+    background: var(--bg);
+
+    & img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+</style>
+```
+
+**使用時機**：
+
+- `&:hover`、`&:focus`、`&.active` 等偽類或狀態 class → 永遠用 nesting
+- `& img`、`& span` 等元素子選擇器 → 當該元素在父層下唯一或語意明確時使用
+- 不要為了 nesting 而強行嵌套無關的選擇器——若子元素自身具有獨立的結構角色，仍應提升為頂層 class
+
+### 3.4 與全域原子 class 的分工
+
+`app-basic.css` 中定義的全域原子 class（`.btn`、`.chip`、`.text-input`、`.separator` 等）負責**跨元件複用的基礎 UI 單元**，在 template 中直接套用即可。元件的 scoped `<style>` 只負責佈局與組合——兩者互補，不重疊：
+
+```svelte
+<!-- 全域 class 控制基礎外觀，scoped style 控制佈局位置 -->
+<div class="actions">
+  <button class="btn btn-primary btn-sm">儲存</button>
+  <button class="btn btn-destructive btn-sm">刪除</button>
+</div>
+
+<style>
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+
+    & > :global(.btn) {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+</style>
+```
+
+### 3.5 要點整理
+
+1. **能用語意 HTML 就不加 class**——`main`、`footer`、`dl`、`aside` 等在 scoped 環境下已是精確選擇器
+2. **class name 描述結構角色**——想像這是一個抽象 UI 元件而非特定業務頁面
+3. **善用 nesting 表示層級**——偽類、狀態 class、子元素選擇器收在父層內
+4. **全域原子不重造**——`app-basic.css` 已有的直接用，scoped style 只管佈局
+5. **不需要 BEM / 命名空間前綴**——Svelte scope 天然隔離
 
 ---
 
