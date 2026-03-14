@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconArrowLeft } from "@tabler/icons-svelte";
+  import { untrack } from "svelte";
   import type { PageData } from "./$types.js";
 
   import Pagination from "$lib/components/Pagination.svelte";
@@ -12,10 +13,11 @@
   let selected = $state<Set<string>>(new Set());
 
   $effect(() => {
-    if (selected.size === 0) return;
+    const currentSelected = untrack(() => selected);
     const visibleIds = new Set(data.result.items.map((i) => i.id));
-    const next = new Set([...selected].filter((id) => visibleIds.has(id)));
-    if (next.size !== selected.size) selected = next;
+    if (currentSelected.size === 0) return;
+    const next = new Set([...currentSelected].filter((id) => visibleIds.has(id)));
+    if (next.size !== currentSelected.size) selected = next;
   });
 </script>
 
