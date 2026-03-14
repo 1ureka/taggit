@@ -1,6 +1,6 @@
 <script lang="ts">
   import { navigating } from "$app/state";
-  import { createTrashList } from "./trashList.svelte.js";
+  import { TrashList } from "./trashList.svelte.js";
   import TrashListCard from "./TrashListCard.svelte";
 
   type Props = {
@@ -13,7 +13,7 @@
 
   let { files, total, page, pages, selected = $bindable() }: Props = $props();
 
-  const ui = createTrashList({
+  const ui = new TrashList({
     get files() {
       return files;
     },

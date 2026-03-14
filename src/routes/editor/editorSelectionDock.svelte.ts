@@ -40,6 +40,7 @@ export class EditorSelectionDock {
   /** 處理刪除按鈕點擊事件，批次刪除已選取的圖片 */
   handleDeleteClick = async () => {
     if (this.loading) return;
+
     const ids = [...this.options.selected];
     if (ids.length === 0) return;
 
@@ -61,11 +62,14 @@ export class EditorSelectionDock {
     }
 
     await invalidateAll();
-
-    if (failCount > 0) addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
-    else addToast(`已刪除 ${successCount} 張圖片`, "success");
-
+    this.#clearSelection();
     this.loading = false;
+
+    if (failCount > 0) {
+      addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
+    } else {
+      addToast(`已刪除 ${successCount} 張圖片`, "success");
+    }
   };
 
   /** 處理退回按鈕點擊事件（空殼，後續實作） */

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { IconTrash, IconRotate } from "@tabler/icons-svelte";
   import SelectionDock from "$lib/components/SelectionDock.svelte";
-  import { createTrashSelectionDock } from "./trashSelectionDock.svelte.js";
+  import { TrashSelectionDock } from "./trashSelectionDock.svelte.js";
 
   type Props = { selected: Set<string> };
   let { selected = $bindable() }: Props = $props();
 
-  const ui = createTrashSelectionDock({
+  const ui = new TrashSelectionDock({
     get selected() {
       return selected;
     },
@@ -17,12 +17,12 @@
 </script>
 
 <SelectionDock count={ui.count} onclose={ui.handleCloseClick}>
-  <button class="btn btn-sm dock-restore" onclick={ui.handleRestoreClick}>
+  <button class="btn btn-sm dock-restore" disabled={ui.loading} onclick={ui.handleRestoreClick}>
     <IconRotate size={14} />
     還原
   </button>
 
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick}>
+  <button class="btn btn-destructive btn-sm" disabled={ui.loading} onclick={ui.handleDeleteClick}>
     <IconTrash size={14} />
     刪除
   </button>

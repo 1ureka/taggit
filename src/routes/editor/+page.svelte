@@ -32,7 +32,7 @@
       首頁
     </a>
     <span class="page-header-title">搜尋圖片</span>
-    <div class="editor-shortcuts">
+    <div class="shortcuts">
       <span><span class="kbd">Ctrl A</span> 全選</span>
       <span><span class="kbd">Ctrl ⇧A</span> 全不選</span>
       <span><span class="kbd">Ctrl I</span> 反轉</span>
@@ -64,7 +64,7 @@
     height: 100vh;
   }
 
-  .editor-shortcuts {
+  .shortcuts {
     display: flex;
     align-items: center;
     gap: 0.875rem;
@@ -75,7 +75,7 @@
     white-space: nowrap;
   }
 
-  .editor-shortcuts span {
+  .shortcuts span {
     display: flex;
     align-items: center;
     gap: 0.25rem;

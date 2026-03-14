@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconArrowLeft } from "@tabler/icons-svelte";
+  import { untrack } from "svelte";
   import type { PageData } from "./$types.js";
 
   import Pagination from "$lib/components/Pagination.svelte";
@@ -12,9 +13,11 @@
   let selected = $state<Set<string>>(new Set());
 
   $effect(() => {
-    const visible = new Set(data.files);
-    const next = new Set([...selected].filter((f) => visible.has(f)));
-    if (next.size !== selected.size) selected = next;
+    const currentSelected = untrack(() => selected);
+    const visibleIds = new Set(data.files);
+    if (currentSelected.size === 0) return;
+    const next = new Set([...currentSelected].filter((id) => visibleIds.has(id)));
+    if (next.size !== currentSelected.size) selected = next;
   });
 </script>
 
@@ -29,7 +32,7 @@
       首頁
     </a>
     <span class="page-header-title">垃圾桶</span>
-    <div class="trash-shortcuts">
+    <div class="shortcuts">
       <span><span class="kbd">Ctrl A</span> 全選</span>
       <span><span class="kbd">Ctrl ⇧A</span> 全不選</span>
       <span><span class="kbd">Ctrl I</span> 反轉</span>
@@ -56,7 +59,7 @@
     overflow: hidden;
   }
 
-  .trash-shortcuts {
+  .shortcuts {
     display: flex;
     align-items: center;
     gap: 0.875rem;
@@ -67,7 +70,7 @@
     white-space: nowrap;
   }
 
-  .trash-shortcuts span {
+  .shortcuts span {
     display: flex;
     align-items: center;
     gap: 0.25rem;
