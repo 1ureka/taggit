@@ -11,16 +11,16 @@
   });
 </script>
 
-<nav class="settings-nav">
+<nav>
   {#each ui.sections as section}
-    <button class="nav-item" class:active={section.id === ui.activeId} onclick={() => ui.handleNavClick(section.id)}>
+    <button class:active={section.id === ui.activeId} onclick={() => ui.handleNavClick(section.id)}>
       {section.label}
     </button>
   {/each}
 </nav>
 
 <style>
-  .settings-nav {
+  nav {
     width: 200px;
     flex-shrink: 0;
     padding: 1.5rem 0.75rem;
@@ -30,7 +30,7 @@
     gap: 0.125rem;
   }
 
-  .nav-item {
+  nav > button {
     padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;
     color: var(--text-muted);
@@ -39,15 +39,15 @@
     transition:
       color 0.15s,
       background 0.15s;
-  }
 
-  .nav-item:hover {
-    color: var(--text);
-    background: var(--bg-hover);
-  }
+    &:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
 
-  .nav-item.active {
-    color: var(--text);
-    background: var(--bg-active);
+    &.active {
+      color: var(--text);
+      background: var(--bg-active);
+    }
   }
 </style>
