@@ -14,6 +14,12 @@
 
 <style>
   .btn.btn-primary {
-    transition: opacity 0s step-end 0.2s;
+    transition: opacity 0s step-start;
+
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      transition: opacity 0.2s step-end;
+    }
   }
 </style>

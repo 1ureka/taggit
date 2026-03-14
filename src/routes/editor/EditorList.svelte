@@ -43,7 +43,7 @@
 {#if items.length === 0}
   <div class="empty">找不到符合的圖片</div>
 {:else}
-  <div class="list-grid" style:opacity={navigating.to ? 0.4 : 1}>
+  <div class="list-grid" class:loading={navigating.to}>
     {#each items as image (image.id)}
       <EditorListCard
         {image}
@@ -73,7 +73,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 0.75rem;
-    transition: opacity 0s step-end 0.2s;
+
+    transition: opacity 0s step-start;
+
+    &.loading {
+      opacity: 0.4;
+      transition: opacity 0.2s step-end;
+    }
   }
 
   .empty {
