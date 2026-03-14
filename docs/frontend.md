@@ -633,34 +633,42 @@ export class SearchForm {
 
 使用者觸發導航（`goto()` / `invalidateAll()`）時，若立刻顯示載入狀態，快速完成的導航（< 200ms）會造成閃爍。
 
-這時請採用**純 CSS `transition-delay`** 實現載入提示的 debounce，零 JavaScript 開銷：
+這時請採用**純 CSS 雙 transition 規則**實現載入提示的 debounce，零 JavaScript 開銷：
 
 ```svelte
 <script lang="ts">
   import { navigating } from "$app/state";
 </script>
 
-<div class="container" style:opacity={navigating.to ? 0.4 : 1}>
+<div class="container" class:loading={navigating.to}>
   <!-- 正常內容 -->
 </div>
 
 <style>
   .container {
-    transition: opacity 0s step-end 0.2s;
+    transition: opacity 0s step-start;
+
+    &.loading {
+      opacity: 0.4;
+      transition: opacity 0.2s step-end;
+    }
   }
 </style>
 ```
 
-#### transition 的三個值
+#### 進入與離開的兩條規則
 
-| 值         | 意義                         |
-| ---------- | ---------------------------- |
-| `0s`       | duration——瞬間跳變，不做漸變 |
-| `step-end` | timing function——離散跳變    |
-| `0.2s`     | delay——變化延遲 200ms 才生效 |
+CSS 在狀態轉換時，採用的是**目標狀態**的 transition 規則：
 
-#### 免 JavaScript 的原理
+| 方向         | 套用的規則                          | 效果                                                                                |
+| ------------ | ----------------------------------- | ----------------------------------------------------------------------------------- |
+| 進入 loading | `transition: opacity 0.2s step-end` | `step-end` 讓值在整個 0.2s 期間維持舊值，最後才跳變——等效延遲 200ms，短暫導航不閃爍 |
+| 離開 loading | `transition: opacity 0s step-start` | `step-start` 在時刻 0 就跳到新值——導航完成瞬間恢復，零延遲                          |
 
-若導航在 200ms 內完成，`opacity` 已回到 `1`，瀏覽器自動取消尚未生效的 pending transition——不需要任何 JavaScript 清理，天然無競態。
+若導航在 200ms 內完成，進入方向的 transition 尚未跳變就被取消——使用者完全感知不到載入狀態。
 
-最後，此模式不限於 `navigating`——任何布林旗標驅動的暫態視覺回饋（如 API 呼叫中的 `loading`）都適用，只要希望「短暫切換不產生視覺變化、長時間停留才顯示」。
+#### 重點
+
+模板必須使用 **`class:loading`** 而非 `style:opacity`，因為需要讓 CSS 能根據不同狀態套用不同的 transition 規則。
+
+此模式不限於 `navigating`——任何布林旗標驅動的暫態視覺回饋（如 API 呼叫中的 `loading`、按鈕的 `disabled`）都適用，只要希望「短暫切換不產生視覺變化、長時間停留才顯示」。
