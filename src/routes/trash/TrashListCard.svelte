@@ -22,7 +22,9 @@
     <div class="card-name">{filename}</div>
   </div>
 
-  <SelectCheckbox checked={selected} size="sm" onchange={onclickCheckbox} />
+  <div class="card-checkbox" class:visible={selected}>
+    <SelectCheckbox checked={selected} size="sm" onchange={onclickCheckbox} />
+  </div>
 </div>
 
 <style>
@@ -76,5 +78,24 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .card-checkbox {
+    position: absolute;
+    bottom: 0.375rem;
+    right: 0.375rem;
+    opacity: 0;
+    transform: scale(0.8);
+    will-change: opacity, transform;
+    contain: layout style;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .card-checkbox.visible,
+  .card:hover .card-checkbox {
+    opacity: 1;
+    transform: scale(1);
   }
 </style>

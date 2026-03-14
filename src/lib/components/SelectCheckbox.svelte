@@ -28,8 +28,8 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="select-checkbox select-checkbox-{size}"
-  class:select-checkbox-checked={checked}
+  class="checkbox {size}"
+  class:checked
   onclick={ui.handleClick}
   role="checkbox"
   aria-checked={checked}
@@ -41,67 +41,46 @@
 </div>
 
 <style>
-  .select-checkbox {
-    position: absolute;
-    bottom: 0.375rem;
-    right: 0.375rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .checkbox {
+    display: grid;
+    place-items: center;
     border-radius: 4px;
     border: 2px solid var(--border-hover);
-    background: hsl(from var(--bg) h s l/ 0.5);
+    background: hsl(from var(--bg) h s l / 0.5);
     color: var(--text);
     cursor: pointer;
-    opacity: 0;
-    transform: scale(0.8);
-    will-change: opacity, transform;
-    contain: layout style;
     transition:
-      opacity 0.18s ease,
-      transform 0.18s ease,
       background 0.15s,
       border-color 0.15s;
-    pointer-events: auto;
-  }
 
-  /* Show on parent hover */
-  :global(.select-checkbox-host):hover .select-checkbox {
-    opacity: 1;
-    transform: scale(1);
-  }
+    &:hover {
+      border-color: var(--text-muted);
+    }
 
-  /* Always show when checked */
-  .select-checkbox-checked {
-    opacity: 1 !important;
-    transform: scale(1) !important;
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
-  }
+    &.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
 
-  .select-checkbox:hover {
-    border-color: var(--text-muted);
-  }
+      &:hover {
+        background: hsl(from var(--accent) h s l / 0.8);
+        border-color: hsl(from var(--accent) h s l / 0.8);
+      }
+    }
 
-  .select-checkbox-checked:hover {
-    background: #e5e5e5;
-    border-color: #e5e5e5;
-  }
+    &.sm {
+      width: 20px;
+      height: 20px;
+    }
 
-  /* Size variants */
-  .select-checkbox-sm {
-    width: 20px;
-    height: 20px;
-  }
+    &.md {
+      width: 24px;
+      height: 24px;
+    }
 
-  .select-checkbox-md {
-    width: 24px;
-    height: 24px;
-  }
-
-  .select-checkbox-lg {
-    width: 28px;
-    height: 28px;
+    &.lg {
+      width: 28px;
+      height: 28px;
+    }
   }
 </style>
