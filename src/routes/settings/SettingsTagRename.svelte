@@ -51,10 +51,6 @@
     margin-bottom: 0.75rem;
   }
 
-  /* .rename-ac-wrap {
-    position: relative;
-  } */
-
   .result {
     margin-top: 0.75rem;
     font-size: 0.8125rem;
