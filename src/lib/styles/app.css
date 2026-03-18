@@ -1,11 +1,11 @@
-/* ─── Import ──────────────────────────────────────────────────────────── */
+/* ── Import ── */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap");
 @import "./app-basic.css";
 @import "./app-button.css";
 
-/* ─── Accessibility (global, not component-scoped) ─────────────────────────── */
+/* ── Accessibility ── */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -15,7 +15,7 @@
   white-space: nowrap;
 }
 
-/* ─── CSS Reset ────────────────────────────────────────────────────────────── */
+/* ── CSS Reset ── */
 *,
 *::before,
 *::after {
@@ -24,7 +24,7 @@
   box-sizing: border-box;
 }
 
-/* ─── CSS Variables (Theme) ────────────────────────────────────────────────── */
+/* ── CSS Variables (Theme) ── */
 :root {
   --bg: #0a0a0a;
   --bg-card: #111111;
@@ -49,7 +49,7 @@
   --z-modal: 20;
 }
 
-/* ─── HTML / Body ──────────────────────────────────────────────────────────── */
+/* ── HTML / Body ── */
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
@@ -81,7 +81,7 @@ button {
   background: none;
 }
 
-/* ─── Custom Scrollbar ─────────────────────────────────────────────────────── */
+/* ── Custom Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -97,19 +97,19 @@ button {
   background: #555;
 }
 
-/* ─── Selection ────────────────────────────────────────────────────────────── */
+/* ── Selection ── */
 ::selection {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
 }
 
-/* ─── Focus Visible ────────────────────────────────────────────────────────── */
+/* ── Focus Visible ── */
 :focus-visible {
   outline: 2px solid hsl(from var(--ring) h s l / 0.2);
   outline-offset: -2px;
 }
 
-/* ─── Keyframes ────────────────────────────────────────────────────────────── */
+/* ── Keyframes ── */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -150,7 +150,7 @@ button {
   }
 }
 
-/* ─── Utility classes ──────────────────────────────────────────────────────── */
+/* ── Utility classes ── */
 .fade-in {
   animation: fadeIn 0.2s ease-out both;
 }
@@ -159,4 +159,15 @@ button {
 }
 .scale-in {
   animation: scaleIn 0.2s ease-out both;
+}
+
+/* ── Deferred dimming utility ── */
+
+.defer-dim {
+  transition: opacity 0s step-start;
+
+  &.pending {
+    opacity: 0.4;
+    transition: opacity 0.2s step-end;
+  }
 }

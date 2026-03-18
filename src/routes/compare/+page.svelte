@@ -23,7 +23,7 @@
     <CompareFilter total={data.total} />
   </header>
 
-  <main class:loading={navigating.to}>
+  <main class="defer-dim" class:pending={navigating.to}>
     {#if !data.pairA || !data.pairB}
       {#if !navigating.to}
         <div class="empty">篩選條件下的圖片不足兩張</div>
@@ -52,13 +52,6 @@
     padding: 1rem;
     flex: 1;
     min-height: 0;
-
-    transition: opacity 0s step-start;
-
-    &.loading {
-      opacity: 0.4;
-      transition: opacity 0.2s step-end;
-    }
 
     & .empty {
       flex: 1;
