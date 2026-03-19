@@ -23,11 +23,11 @@
 
 <svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
-<section class="tagger-preview">
+<section>
   {#if currentFile}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
-      class="tagger-preview-container"
+      class="container"
       class:dragging={zp.isDragging}
       onwheel={zp.handleContainerWheel}
       onmousedown={zp.handleContainerMousedown}
@@ -43,19 +43,19 @@
         onload={ui.handleImageLoad}
       />
     </div>
-    <div class="tagger-preview-info">
+    <div class="info">
       {currentFile}
     </div>
   {:else}
-    <div class="tagger-preview-container">
-      <div class="tagger-empty">未選取任何圖片</div>
+    <div class="container">
+      <div class="empty">未選取任何圖片</div>
     </div>
-    <div class="tagger-preview-info">--</div>
+    <div class="info">--</div>
   {/if}
 </section>
 
 <style>
-  .tagger-preview {
+  section {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -64,7 +64,7 @@
     min-width: 0;
   }
 
-  .tagger-preview-container {
+  .container {
     flex: 1;
     display: flex;
     align-items: center;
@@ -74,33 +74,33 @@
     position: relative;
     user-select: none;
     -webkit-user-select: none;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    &:has(.empty) {
+      cursor: auto;
+      user-select: auto;
+    }
+
+    & img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: opacity 0.2s;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+
+      &.loading {
+        opacity: 0.75;
+      }
+    }
   }
 
-  .tagger-preview-container.dragging {
-    cursor: grabbing;
-  }
-
-  .tagger-preview-container:has(.tagger-empty) {
-    cursor: auto;
-    user-select: auto;
-  }
-
-  .tagger-preview-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    transform-origin: center center;
-    transition: opacity 0.2s;
-    user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: none;
-  }
-
-  .tagger-preview-container img.loading {
-    opacity: 0.75;
-  }
-
-  .tagger-preview-info {
+  .info {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -113,7 +113,7 @@
     min-height: 1.75rem;
   }
 
-  .tagger-empty {
+  .empty {
     display: flex;
     align-items: center;
     justify-content: center;

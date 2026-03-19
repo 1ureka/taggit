@@ -18,7 +18,7 @@
   });
 </script>
 
-<div class="tagger-sidebar-footer">
+<footer>
   <input
     bind:this={ui.fileInputEl}
     type="file"
@@ -28,19 +28,19 @@
     onchange={ui.handleUploadChange}
     tabindex={-1}
   />
-  <button class="btn btn-sm tagger-upload-btn" onclick={ui.handleUploadClick} disabled={ui.loading}>
+  <button class="btn btn-sm" onclick={ui.handleUploadClick} disabled={ui.loading}>
     <IconUpload size={14} />
     加入圖片
   </button>
-</div>
+</footer>
 
 <style>
-  .tagger-sidebar-footer {
+  footer {
     padding: 0.5rem 0.75rem;
     border-top: 1px solid var(--border);
-  }
 
-  .tagger-upload-btn {
-    width: 100%;
+    & > :global(.btn) {
+      width: 100%;
+    }
   }
 </style>

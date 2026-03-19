@@ -40,18 +40,18 @@
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-<div class="tagger-rating">
+<div class="field-rating">
   <Rating bind:value={ui.rating} size="1.5rem" />
 </div>
 <div class="separator"></div>
 
-<div class="tagger-tags" bind:this={ui.tagInputWrapEl}>
+<div class="field-tags" bind:this={ui.tagInputWrapEl}>
   <Autocomplete bind:tags={ui.tags} variant="top" placeholder="輸入標籤..." onenter={ui.handleTagEnter} />
 </div>
 
 <div class="separator"></div>
 
-<div class="tagger-actions">
+<div class="actions">
   <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
     <IconCheck size={16} />
     {ui.commitLabel}
@@ -67,14 +67,14 @@
 </div>
 
 <style>
-  .tagger-rating {
+  .field-rating {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.25rem 0;
   }
 
-  .tagger-tags {
+  .field-tags {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -82,14 +82,14 @@
     overflow-y: auto;
   }
 
-  .tagger-actions {
+  .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.375rem;
-  }
 
-  .tagger-actions :global(.btn) {
-    flex: 1;
-    min-width: 0;
+    & > :global(.btn) {
+      flex: 1;
+      min-width: 0;
+    }
   }
 </style>

@@ -9,7 +9,7 @@
   let { loading, imageLoading }: Props = $props();
 </script>
 
-<div class="tagger-loading-indicators">
+<div class="indicators">
   {#if loading}
     <CircularProgress label="操作中…" />
   {/if}
@@ -19,7 +19,7 @@
 </div>
 
 <style>
-  .tagger-loading-indicators {
+  .indicators {
     display: flex;
     align-items: center;
     gap: 1rem;

@@ -94,8 +94,8 @@
       <TaggerLoading {loading} {imageLoading} />
     </header>
 
-    <main class="tagger-main">
-      <aside class="tagger-files-panel">
+    <main>
+      <aside class="sidebar">
         <TaggerRefresh stagedFiles={data.stagedFiles} {selectedFiles} bind:loading />
         <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
         <TaggerUpload bind:loading />
@@ -103,12 +103,12 @@
 
       <TaggerPreview {currentFile} bind:imageLoading />
 
-      <aside class="tagger-form-panel">
+      <aside class="panel">
         <TaggerForm {currentFile} bind:selectedFiles bind:loading bind:progress />
 
         <div class="separator"></div>
 
-        <div class="tagger-shortcuts">
+        <div class="shortcuts">
           {#snippet key(label: string, keys: string[])}
             <div>
               <div>
@@ -137,13 +137,13 @@
     overflow: hidden;
   }
 
-  .tagger-main {
+  main {
     display: flex;
     flex: 1;
     min-height: 0;
   }
 
-  .tagger-files-panel {
+  .sidebar {
     width: 220px;
     min-width: 220px;
     display: flex;
@@ -153,7 +153,7 @@
     overflow: hidden;
   }
 
-  .tagger-form-panel {
+  .panel {
     width: 280px;
     min-width: 280px;
     display: flex;
@@ -164,19 +164,19 @@
     overflow-y: auto;
   }
 
-  .tagger-shortcuts {
+  .shortcuts {
     display: grid;
     grid-template-columns: max-content 1fr max-content 1fr;
     gap: 0.25rem 2rem;
     font-size: 0.6875rem;
     color: var(--text-muted);
-  }
 
-  .tagger-shortcuts > div {
-    grid-column: span 2;
-    display: grid;
-    grid-template-columns: subgrid;
-    align-items: center;
-    gap: 0.25rem;
+    & > div {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: subgrid;
+      align-items: center;
+      gap: 0.25rem;
+    }
   }
 </style>
