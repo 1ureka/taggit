@@ -2,15 +2,15 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import type { ImageRecord } from "$lib/types.js";
-import { hasImage } from "$lib/server/db-query.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { addImage } from "$lib/server/db-mutation.js";
+import { hasImage } from "$lib/server/db-query.js";
 
+import type { ImageRecord } from "$lib/types.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
 import { parseBody } from "$lib/server/helpers.js";
-import { getImageMeta } from "$lib/server/thumbnail.js";
+import { generateMetadata } from "$lib/server/thumbnail.js";
 
 /**
  * `POST /api/staged/[filename]`
@@ -52,7 +52,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const stat = fs.statSync(filePath);
     const now = Date.now();
-    const meta = await getImageMeta(filePath);
+    const meta = await generateMetadata(filePath);
     const record: ImageRecord = {
       name: path.basename(filename, ext),
       tags: trimmedTags,

@@ -1,14 +1,16 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { getImage } from "$lib/server/db-query.js";
+
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { updateImage, removeImage } from "$lib/server/db-mutation.js";
+import { getImageRecord } from "$lib/server/db-query.js";
+
 import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
 
 /**
  * `GET /api/committed/[filename]`
  *
- * 取得單張已提交圖片的中繼資料。
+ * 取得單張已提交圖片的元資料。
  */
 export const GET: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
@@ -18,7 +20,7 @@ export const GET: RequestHandler = ({ params }) => {
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
   const { db } = loaded;
-  const image = getImage(db, filename);
+  const image = getImageRecord(db, filename);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
   return json({ ok: true, data: image });
@@ -92,7 +94,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
   const { db } = loaded;
-  const image = getImage(db, filename);
+  const image = getImageRecord(db, filename);
   if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
 
   removeImage(db, filename);

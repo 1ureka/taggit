@@ -1,7 +1,7 @@
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { requireDatabase } from "$lib/server/db-instance.js";
-import { getImageMeta } from "$lib/server/thumbnail.js";
+import { generateMetadata } from "$lib/server/thumbnail.js";
 
 /**
  * `POST /api/settings/metadata`
@@ -23,7 +23,7 @@ export const POST: RequestHandler = async () => {
     if (!needsBlurhash && !needsDimensions) continue;
 
     const filePath = path.join(paths.images, filename);
-    const meta = await getImageMeta(filePath);
+    const meta = await generateMetadata(filePath);
 
     let changed = false;
     if (needsBlurhash && meta.blurhash) {

@@ -141,7 +141,7 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
  * 取得指定圖片的縮圖 Buffer（含 LRU 快取與 in-flight 去重）。
  * 若快取命中直接回傳；否則排程產生縮圖後寫入快取。
  */
-export async function getImage(file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
+export async function getImageBuffer(file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const cacheKey = `${size}:${file}`;
 
   const cached = cache.get(cacheKey);
@@ -164,7 +164,7 @@ export async function getImage(file: string, sourcePath: string, size: Processab
  * 讀取圖片的寬高與 BlurHash 字串。
  * 發生錯誤時回傳寬高為 0、blurhash 為空字串。
  */
-export async function getImageMeta(filePath: string): Promise<{ width: number; height: number; blurhash: string }> {
+export async function generateMetadata(filePath: string): Promise<{ width: number; height: number; blurhash: string }> {
   try {
     const image = sharp(filePath);
     const meta = await image.metadata();

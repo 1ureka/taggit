@@ -19,7 +19,7 @@ import type { ImageRecord, ImageWithId } from "$lib/types.js";
  *
  * @param jsonDB - 要異動的資料庫實例。
  * @param id - 新圖片的唯一識別碼。
- * @param record - 要儲存的圖片中繼資料。
+ * @param record - 要儲存的圖片元資料。
  */
 export function addImage(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
   jsonDB.data.images[id] = record;

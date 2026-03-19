@@ -4,7 +4,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 
 import { MIME_TYPES } from "$lib/server/config.js";
 import { requirePaths } from "$lib/server/db-instance.js";
-import { getImage } from "$lib/server/thumbnail.js";
+import { getImageBuffer } from "$lib/server/thumbnail.js";
 import { isValidFilename, isValidSize } from "$lib/server/validation.js";
 
 /**
@@ -57,7 +57,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
       const raw = fs.readFileSync(filePath);
       return new Response(raw, { headers });
     } else {
-      const buffer = await getImage(filename, filePath, sizeParam);
+      const buffer = await getImageBuffer(filename, filePath, sizeParam);
       return new Response(new Uint8Array(buffer), { headers });
     }
   } catch {

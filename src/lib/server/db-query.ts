@@ -15,7 +15,7 @@ import { sortCollator } from "$lib/utils.js";
 /**
  * 取得單張圖片（含 id），找不到回傳 `null`。
  */
-export function getImage(jsonDB: JSONDatabase, id: string): ImageWithId | null {
+export function getImageRecord(jsonDB: JSONDatabase, id: string): ImageWithId | null {
   const rec = jsonDB.data.images[id];
   return rec ? { id, ...rec } : null;
 }

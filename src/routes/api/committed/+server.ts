@@ -1,10 +1,11 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import { queryImages, getImage } from "$lib/server/db-query.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
+
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { removeImage } from "$lib/server/db-mutation.js";
+import { queryImages, getImageRecord } from "$lib/server/db-query.js";
+
 import { parseQueryParams } from "$lib/utils.js";
 import { parseBody } from "$lib/server/helpers.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidFilename } from "$lib/server/validation.js";
 
 /**
@@ -16,6 +17,7 @@ import { isValidFilename } from "$lib/server/validation.js";
 export const GET: RequestHandler = ({ url }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+
   return json({ ok: true, data: queryImages(loaded.db, parseQueryParams(url)) });
 };
 
@@ -48,7 +50,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    const image = getImage(db, id);
+    const image = getImageRecord(db, id);
     if (!image) {
       results.push({ id, ok: false, error: "Image not found" });
       continue;

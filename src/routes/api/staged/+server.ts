@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
+
 import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
+import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 
 /**

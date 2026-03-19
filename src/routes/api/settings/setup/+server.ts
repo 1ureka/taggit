@@ -1,9 +1,8 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
-import * as config from "$lib/server/config.js";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
+import { getCollectionRoot, isCollectionValid, setCollectionRoot } from "$lib/server/config.js";
 
 /**
  * `GET /api/settings/setup`
@@ -11,7 +10,7 @@ import { parseBody } from "$lib/server/helpers.js";
  * 取得目前的圖片集根目錄路徑。
  */
 export const GET: RequestHandler = () => {
-  const collectionRoot = config.getCollectionRoot();
+  const collectionRoot = getCollectionRoot();
   return json({ ok: true, data: { collectionRoot } });
 };
 
@@ -34,14 +33,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const root = collectionRoot.trim();
 
-  if (!config.isCollectionValid(root)) {
+  if (!isCollectionValid(root)) {
     return json(
       { ok: false, error: "Path does not exist or could not create required subdirectories" },
       { status: 422 },
     );
   }
 
-  config.setCollectionRoot(root);
+  setCollectionRoot(root);
   requireDatabase({ allowUnload: true }).db.loadCollection(root);
 
   return json({ ok: true, data: { collectionRoot: root } });

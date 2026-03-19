@@ -1,5 +1,4 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { clearCache, getCacheStats } from "$lib/server/thumbnail.js";
 
 /**
