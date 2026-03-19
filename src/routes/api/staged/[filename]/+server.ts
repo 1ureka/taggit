@@ -3,7 +3,7 @@ import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { requireDatabase } from "$lib/server/db-instance.js";
-import { addImage } from "$lib/server/db-mutation.js";
+import { addRecord } from "$lib/server/db-mutation.js";
 import { hasImage } from "$lib/server/db-query.js";
 
 import type { ImageRecord } from "$lib/types.js";
@@ -81,7 +81,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       ...meta,
     };
 
-    addImage(db, filename, record);
+    addRecord(db, filename, record);
     return json({ ok: true, data: { id: filename, ...record } }, { status: 201 });
   } catch (e) {
     if (e instanceof Error && "code" in e && e.code === "ENOENT") {

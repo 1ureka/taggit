@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { requireDatabase } from "$lib/server/db-instance.js";
-import { updateImage, removeImage } from "$lib/server/db-mutation.js";
+import { updateRecord, removeRecord } from "$lib/server/db-mutation.js";
 import { getImageRecord } from "$lib/server/db-query.js";
 
 import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
@@ -78,7 +78,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
   try {
     const { db } = loaded;
-    const updated = updateImage(db, filename, { expectedUpdatedAt, tags: trimmedTags, rating, name });
+    const updated = updateRecord(db, filename, { expectedUpdatedAt, tags: trimmedTags, rating, name });
 
     return json({ ok: true, data: updated });
   } catch (e) {
@@ -109,7 +109,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   try {
-    removeImage(loaded.db, filename);
+    removeRecord(loaded.db, filename);
 
     return json({ ok: true, data: { filename } });
   } catch (e) {

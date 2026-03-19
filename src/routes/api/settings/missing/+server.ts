@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { removeImage } from "$lib/server/db-mutation.js";
+import { removeRecord } from "$lib/server/db-mutation.js";
 import { requireDatabase } from "$lib/server/db-instance.js";
 
 /**
@@ -43,7 +43,7 @@ export const DELETE: RequestHandler = () => {
 
   for (const filename of Object.keys(db.data.images)) {
     if (!fs.existsSync(path.join(paths.images, filename))) {
-      removeImage(db, filename);
+      removeRecord(db, filename);
       removed.push(filename);
     }
   }

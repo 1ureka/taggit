@@ -21,7 +21,7 @@ import type { ImageRecord, ImageWithId } from "$lib/types.js";
  * @param id - 新圖片的唯一識別碼。
  * @param record - 要儲存的圖片元資料。
  */
-export function addImage(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
+export function addRecord(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
   jsonDB.data.images[id] = record;
   jsonDB.indexAdd(id, record);
   jsonDB.markDirty();
@@ -34,7 +34,7 @@ export function addImage(jsonDB: JSONDatabase, id: string, record: ImageRecord):
  * @param id - 要移除的圖片唯一識別碼。
  * @throws {Error & { status: 404 }} 若指定 id 的記錄不存在。
  */
-export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
+export function removeRecord(jsonDB: JSONDatabase, id: string): ImageRecord {
   const rec = jsonDB.data.images[id];
 
   if (!rec) {
@@ -49,10 +49,10 @@ export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
 }
 
 /**
- * 圖片更新補丁 —— 傳入 {@link updateImage} 以部分更新圖片記錄。
+ * 圖片更新補丁 —— 傳入 {@link updateRecord} 以部分更新圖片記錄。
  * 除 `expectedUpdatedAt` 外，所有欄位皆為選填。
  */
-interface UpdateImagePatch {
+interface UpdatePatch {
   /** 呼叫端最後一次看到的 `updatedAt` 時間戳，用於樂觀併發控制。 */
   expectedUpdatedAt: number;
   /** 替換後的標籤列表。 */
@@ -73,7 +73,7 @@ interface UpdateImagePatch {
  * @throws {Error & { status: 404 }} 若指定 id 的記錄不存在。
  * @throws {Error & { status: 409 }} 發生併發衝突時。
  */
-export function updateImage(jsonDB: JSONDatabase, id: string, patch: UpdateImagePatch): ImageWithId {
+export function updateRecord(jsonDB: JSONDatabase, id: string, patch: UpdatePatch): ImageWithId {
   const rec = jsonDB.data.images[id];
 
   if (!rec) {
