@@ -1,72 +1,51 @@
 import { api } from "$lib/client/api.js";
 
 /**
- * 圖片集路徑設定的配置選項
+ * SettingsCollection 的配置選項
  */
 type SettingsCollectionOptions = {
-  /** 圖片集根目錄 */
+  /** 唯讀：圖片集根目錄 */
   collectionRoot: string;
 };
 
 /**
- * 建立圖片集路徑設定邏輯的核心工廠函數
+ * SettingsCollection 的互動邏輯
  */
-export function createSettingsCollection(options: SettingsCollectionOptions) {
+export class SettingsCollection {
   /** 路徑輸入框的值 */
-  let inputValue = $state(options.collectionRoot);
+  inputValue = $state("");
   /** 是否正在儲存 */
-  let saving = $state(false);
+  saving = $state(false);
   /** 儲存結果訊息 */
-  let message = $state("");
+  message = $state("");
   /** 訊息是否為錯誤 */
-  let isError = $state(false);
+  isError = $state(false);
 
-  // ---
-
-  /** 處理表單 submit 事件，驗證並儲存圖片集路徑 */
-  async function handleFormSubmit(e: Event) {
-    e.preventDefault();
-    saving = true;
-    message = "";
-    isError = false;
-
-    const res = await api.post("/api/maintenance/setup", { collectionRoot: inputValue.trim() });
-    saving = false;
-
-    if (res.ok) {
-      message = "儲存成功";
-      isError = false;
-      window.location.href = "/settings";
-    } else {
-      isError = true;
-      message = res.error ?? "未知錯誤";
-    }
+  constructor(options: SettingsCollectionOptions) {
+    this.inputValue = options.collectionRoot;
   }
 
   // ---
 
-  return {
-    /** 存取路徑輸入值的 getter */
-    get inputValue() {
-      return inputValue;
-    },
-    /** 設定路徑輸入值的 setter */
-    set inputValue(v: string) {
-      inputValue = v;
-    },
-    /** 存取儲存狀態的 getter */
-    get saving() {
-      return saving;
-    },
-    /** 存取結果訊息的 getter */
-    get message() {
-      return message;
-    },
-    /** 存取錯誤狀態的 getter */
-    get isError() {
-      return isError;
-    },
-    /** 處理表單 submit 事件，驗證並儲存圖片集路徑 */
-    handleFormSubmit,
+  /** 處理表單 submit 事件，驗證並儲存圖片集路徑 */
+  handleFormSubmit = async (e: Event) => {
+    e.preventDefault();
+    if (this.saving) return;
+
+    this.saving = true;
+    this.message = "";
+    this.isError = false;
+
+    const res = await api.post("/api/maintenance/setup", { collectionRoot: this.inputValue.trim() });
+    this.saving = false;
+
+    if (res.ok) {
+      this.message = "儲存成功";
+      this.isError = false;
+      window.location.href = "/settings";
+    } else {
+      this.isError = true;
+      this.message = res.error ?? "未知錯誤";
+    }
   };
 }

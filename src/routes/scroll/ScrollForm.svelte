@@ -1,13 +1,13 @@
 <script lang="ts">
   import FilterBar from "$lib/components/FilterBar.svelte";
-  import { createScrollForm } from "./scrollForm.svelte.js";
+  import { ScrollForm } from "./scrollForm.svelte.js";
 
   let { total }: { total: number } = $props();
 
-  const ui = createScrollForm();
+  const ui = new ScrollForm();
 </script>
 
-<div class="scroll-filter-area">
+<div class="filter-area">
   <FilterBar
     bind:selectedTags={ui.selectedTags}
     bind:rating={ui.rating}
@@ -16,20 +16,20 @@
     bind:order={ui.order}
     onchange={ui.handleFilterChange}
   />
-  <div class="scroll-result-count">
+  <div class="count">
     <span>{total} 張結果</span>
   </div>
 </div>
 
 <style>
-  .scroll-filter-area {
+  .filter-area {
     padding: 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .scroll-result-count {
+  .count {
     font-size: 0.75rem;
     color: var(--text-dim);
     font-family: var(--font-mono);

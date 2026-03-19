@@ -1,12 +1,12 @@
 <script lang="ts">
   import { IconTrash, IconArrowBackUp } from "@tabler/icons-svelte";
   import SelectionDock from "$lib/components/SelectionDock.svelte";
-  import { createEditorSelectionDock } from "./editorSelectionDock.svelte.js";
+  import { EditorSelectionDock } from "./editorSelectionDock.svelte.js";
 
   type Props = { selected: Set<string> };
   let { selected = $bindable() }: Props = $props();
 
-  const ui = createEditorSelectionDock({
+  const ui = new EditorSelectionDock({
     get selected() {
       return selected;
     },

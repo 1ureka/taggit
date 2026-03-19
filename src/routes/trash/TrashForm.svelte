@@ -1,55 +1,48 @@
 <script lang="ts">
   import { IconSearch, IconRotate, IconTrashX } from "@tabler/icons-svelte";
-  import { createTrashForm } from "./trashForm.svelte.js";
+  import { TrashForm } from "./trashForm.svelte.js";
 
   type Props = { total: number };
   let { total }: Props = $props();
 
-  const ui = createTrashForm();
+  const ui = new TrashForm();
 </script>
 
-<div class="trash-form">
-  <div class="trash-input-row">
-    <div class="search-input-wrap">
-      <span class="search-adornment">
-        <IconSearch size={16} />
-      </span>
-      <input
-        class="text-input search-input"
-        bind:value={ui.searchText}
-        placeholder="搜尋檔名..."
-        oninput={ui.handleSearchInput}
-        autocomplete="off"
-      />
-    </div>
-    <div class="trash-actions">
-      <button class="btn btn-primary btn-sm" onclick={ui.handleRestoreAllClick} disabled={total === 0}>
-        <IconRotate size={14} />
-        還原全部
-      </button>
-      <button class="btn btn-destructive btn-sm" onclick={ui.handleEmptyTrashClick} disabled={total === 0}>
-        <IconTrashX size={14} />
-        清空
-      </button>
-    </div>
+<div class="form">
+  <div class="search-container">
+    <span class="search-adornment">
+      <IconSearch size={16} />
+    </span>
+    <input
+      class="text-input search-input"
+      bind:value={ui.searchText}
+      placeholder="搜尋檔名..."
+      oninput={ui.handleSearchInput}
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary btn-sm" onclick={ui.handleRestoreAllClick} disabled={total === 0}>
+      <IconRotate size={14} />
+      還原全部
+    </button>
+    <button class="btn btn-destructive btn-sm" onclick={ui.handleEmptyTrashClick} disabled={total === 0}>
+      <IconTrashX size={14} />
+      清空
+    </button>
   </div>
 </div>
 
 <style>
-  .trash-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    margin-bottom: 1rem;
-  }
-
-  .trash-input-row {
+  .form {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 
-  .search-input-wrap {
+  .search-container {
     position: relative;
     display: flex;
     align-items: center;
@@ -72,7 +65,7 @@
     padding-bottom: 0.5rem;
   }
 
-  .trash-actions {
+  .actions {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;

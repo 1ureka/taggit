@@ -1,40 +1,35 @@
 <script lang="ts">
-  import { createEditorPreview } from "./editorPreview.svelte.js";
+  import type { ImageWithId } from "$lib/types.js";
+  import { imgSrc } from "$lib/client/api.js";
+  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
 
-  const ui = createEditorPreview();
+  type Props = { image: ImageWithId; loading: boolean };
+
+  let { image, loading }: Props = $props();
+
+  const zp = new ZoomPan();
+  const previewFilename = $derived(image.id + image.ext);
+  const previewSrc = $derived(imgSrc("committed", previewFilename));
 </script>
 
-<svelte:window onmousemove={ui.zp.onWindowMousemove} onmouseup={ui.zp.onWindowMouseup} />
+<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
-<section class="editor-preview">
-  {#if ui.previewFilename}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-      class="editor-preview-container"
-      class:dragging={ui.zp.isDragging}
-      onwheel={ui.zp.onWheel}
-      onmousedown={ui.zp.onMousedown}
-      ondblclick={ui.zp.reset}
-      role="img"
-    >
-      <img
-        src={ui.previewSrc}
-        alt={ui.previewFilename}
-        draggable="false"
-        class:loading={ui.loading}
-        style="transform:{ui.zp.transform}"
-      />
-    </div>
-  {:else}
-    <div class="editor-preview-container">
-      <div class="editor-empty">找不到圖片</div>
-    </div>
-  {/if}
+<section>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="container"
+    class:dragging={zp.isDragging}
+    onwheel={zp.handleContainerWheel}
+    onmousedown={zp.handleContainerMousedown}
+    ondblclick={zp.handleContainerReset}
+    role="img"
+  >
+    <img src={previewSrc} alt={previewFilename} draggable="false" class:loading style="transform:{zp.transform}" />
+  </div>
 </section>
 
 <style>
-  .editor-preview {
+  section {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -43,7 +38,7 @@
     min-width: 0;
   }
 
-  .editor-preview-container {
+  .container {
     flex: 1;
     display: flex;
     align-items: center;
@@ -52,34 +47,24 @@
     cursor: grab;
     position: relative;
     user-select: none;
-    -webkit-user-select: none;
-  }
 
-  .editor-preview-container.dragging {
-    cursor: grabbing;
-  }
+    &.dragging {
+      cursor: grabbing;
+    }
 
-  .editor-preview-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    transform-origin: center center;
-    transition: opacity 0.2s;
-    user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: none;
-  }
+    & > img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: opacity 0.2s;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
 
-  .editor-preview-container img.loading {
-    opacity: 0.75;
-  }
-
-  .editor-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-size: 0.875rem;
-    color: var(--text-dim);
+      &.loading {
+        opacity: 0.75;
+      }
+    }
   }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { float } from "$lib/client/float.js";
-  import { createAutocomplete } from "$lib/ui/autocomplete.svelte.js";
-  import { createMenu } from "$lib/ui/menu.svelte.js";
+  import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import { Menu } from "$lib/ui/menu.svelte.js";
   import { IconX } from "@tabler/icons-svelte";
 
   type Props = {
@@ -23,7 +23,7 @@
   let overflowTags = $derived(tags.slice(maxVisible));
   let overflowCount = $derived(overflowTags.length);
 
-  const ui = createAutocomplete({
+  const ui = new Autocomplete({
     onchange: () => onchange?.(),
     onenter: () => onenter?.(),
     get selectedTags() {
@@ -34,7 +34,7 @@
     },
   });
 
-  const menu = createMenu({
+  const menu = new Menu({
     disableAutoClose: true,
     onselect: (item) => ui.handleChipClick(item.value),
     get list() {

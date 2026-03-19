@@ -1,4 +1,4 @@
-import { onMount } from "svelte";
+import { navigating } from "$app/state";
 import type { ImageWithId } from "$lib/types.js";
 import { createWeightBasedLayout } from "./masonry/masonry-layout.js";
 import { createVirtualizer } from "./masonry/virtualizer.svelte.js";
@@ -16,26 +16,51 @@ type ScrollMasonryOptions = {
 };
 
 /**
- * 建立瀑布流牆邏輯的核心工廠函數
+ * 瀑布流牆的互動邏輯
  */
-export function createScrollMasonry(options: ScrollMasonryOptions) {
+export class ScrollMasonry {
   /** 瀑布流容器 DOM 引用 */
-  let containerEl = $state<HTMLElement | null>(null);
+  containerEl = $state<HTMLElement | null>(null);
 
+  /** 是否正在載入中 */
+  loading: boolean;
+  /** 是否顯示空狀態提示 */
+  showEmpty: boolean;
   /** 瀑布流佈局 */
-  const layout = $derived(createWeightBasedLayout(options.items, options.columns));
+  layout: ReturnType<typeof createWeightBasedLayout<ImageWithId>>;
+
+  /** 圖片牆虛擬化提供者（虛擬化核心邏輯不強制符合規範） */
+  #virtualizer;
+
+  constructor(private options: ScrollMasonryOptions) {
+    this.loading = $derived(!!navigating.to);
+    this.showEmpty = $derived(options.items.length === 0 && !navigating.to);
+    this.layout = $derived(createWeightBasedLayout(options.items, options.columns));
+
+    this.#virtualizer = createVirtualizer(
+      () => this.layout,
+      () => this.containerEl,
+      () => options.pageContentEl,
+    );
+
+    $effect(() => {
+      this.#detectBreakpoint();
+    });
+  }
 
   // ---
 
-  /** 圖片牆虛擬化提供者 */
-  const virtualizer = createVirtualizer(
-    () => layout,
-    () => containerEl,
-    () => options.pageContentEl,
-  );
+  get visibleItems() {
+    return this.#virtualizer.visibleItems;
+  }
 
-  /** 偵測瀏覽器寬度並設定對應的欄位數 */
-  function detectBreakpoint() {
+  get totalHeight() {
+    return this.#virtualizer.totalHeight;
+  }
+
+  // ---
+
+  #detectBreakpoint() {
     const breakpoints = [
       { width: 1600, cols: 6 },
       { width: 1200, cols: 5 },
@@ -44,41 +69,13 @@ export function createScrollMasonry(options: ScrollMasonryOptions) {
       { width: 0, cols: 1 },
     ];
     const width = window.innerWidth;
-    options.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
+    this.options.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
   }
-
-  // 僅在掛載時偵測一次作為初始預設值；此頁面不需要 resize 響應。
-  onMount(detectBreakpoint);
 
   // ---
 
   /** 處理圖片雙擊事件，在新分頁打開編輯器 */
-  function handleImageDblClick(img: ImageWithId) {
+  handleImageDblClick = (img: ImageWithId) => {
     window.open(`/editor/${encodeURIComponent(img.id)}`, "_blank");
-  }
-
-  // ---
-
-  return {
-    /** 獲取瀑布流容器 DOM 引用的 getter */
-    get containerEl() {
-      return containerEl;
-    },
-    /** 設定瀑布流容器 DOM 引用的 setter */
-    set containerEl(el: HTMLElement | null) {
-      containerEl = el;
-    },
-
-    /** 存取可見項目列表的 getter */
-    get visibleItems() {
-      return virtualizer.visibleItems;
-    },
-    /** 存取瀑布流總高度的 getter */
-    get totalHeight() {
-      return virtualizer.totalHeight;
-    },
-
-    /** 處理圖片雙擊事件，在新分頁打開編輯器 */
-    handleImageDblClick,
   };
 }

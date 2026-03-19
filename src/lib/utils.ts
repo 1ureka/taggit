@@ -54,10 +54,8 @@ export function buildQueryString(opts: QueryOptions): string {
   const params = new URLSearchParams();
   if (opts.search?.trim()) params.set("search", opts.search.trim());
   if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
-  if (opts.rating !== undefined) {
-    params.set("rating", String(opts.rating));
-    if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
-  }
+  if (opts.rating !== undefined) params.set("rating", String(opts.rating));
+  if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
   if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);
   if (opts.order && opts.order !== "desc") params.set("order", opts.order);
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));

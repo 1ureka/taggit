@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconStar, IconStarFilled } from "@tabler/icons-svelte";
-  import { createRating } from "$lib/ui/rating.svelte.js";
+  import { Rating } from "$lib/ui/rating.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前分數（0–5），0 = 未評分 */
@@ -18,7 +18,7 @@
   // Convert CSS rem string → px for tabler icon size prop (assumes 16px root)
   const iconPx = $derived(Math.round(parseFloat(size) * 16));
 
-  const rating = createRating({
+  const rating = new Rating({
     get value() {
       return value;
     },

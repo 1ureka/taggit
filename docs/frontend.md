@@ -4,589 +4,671 @@
 
 ---
 
-## 一、架構與 Page 組織
+## 一、檔案職責與 API 限制
 
-本專案的 UI 開發圍繞兩個核心規則：
+### 1.1 檔案角色
 
-1. **每個含有互動邏輯的元件，都必須拆為一對檔案**：`*.svelte`（結構 + 樣式）與 `*.svelte.ts`（無頭 UI 邏輯）。
-2. **每個路由，無論多麼簡單，`+page.svelte` 都至少委託一個子元件**——頁面層只做資料接收、狀態初始化、子元件組裝。
+| 檔案                  | 職責                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `+page.server.ts`     | 查詢資料庫、組裝 `data`                                                                  |
+| `+page.svelte`        | 接收 `data`、共享狀態、組裝子元件、佈局。不得包含事件處理、UI 衍生計算或模板內的業務判斷 |
+| `Component.svelte`    | 子元件結構與樣式，props 解構與無頭 UI class 實例化，模板只使用 `ui.*`                    |
+| `component.svelte.ts` | 無頭 UI，以 `export class` 管理狀態與邏輯                                                |
 
-### 1.1 資料來源：SSR `data` 與 URL 狀態
+即便頁面極其簡單（僅一個表單），仍須將 UI 抽出為至少一個子元件。
 
-本專案的元件有兩種外部資料來源，取用規則不同：
+### 1.2 允許的 API
 
-**SSR `data`（`+page.server.ts`）**
+狀態管理只使用以下四個 API：
 
-`+page.server.ts` 負責查詢資料庫、組裝回傳的 `data` 物件。**不含任何 UI 邏輯。**
+| API        | 用途                                 |
+| ---------- | ------------------------------------ |
+| `$state`   | 宣告可變響應式狀態                   |
+| `$derived` | 從既有響應式來源衍生唯讀值           |
+| `$effect`  | 監聽外部來源變動，同步回本地狀態     |
+| `untrack`  | 讀取響應式狀態的當下值，但不建立追蹤 |
 
-- 命名慣例：SSR 的資料變數不得使用 `initial`, `preload` 等詞彙，應使用純粹的名稱，如 `total`, `count`, `items` 等。
-- SSR `data` 由 `+page.svelte` 接收後，**透過 props 傳給子元件**，不額外中轉。
+### 1.3 禁用的 API
 
-**URL 狀態（`page.url.searchParams`）**
+- `afterNavigate`——狀態同步一律使用 `$effect`
+- `createContext` / `setContext` / `getContext`（見 [§3.3](#33-不使用-context-api)）
 
-URL query params（如 `?tab=xxx`、`?sort=name`）應由**需要讀取的元件就近獲取**，不從上層以 props 傳入：
+### 1.4 `$state` 的宣告位置
 
-- **唯讀**：直接在 `.svelte` 的 `<script>` 中從 `page.url.searchParams` 讀取。
-- **讀寫**：在無頭 UI（`*.svelte.ts`）中透過 options 傳入 getter 讀取，並以 `goto()` 寫入。
+`$state` 只允許出現在兩個地方：
 
-```svelte
-<!-- 唯讀示例：元件自行從 URL 讀取 -->
-<script lang="ts">
-  import { page } from "$app/state";
-  const tab = $derived(page.url.searchParams.get("tab") ?? "default");
-</script>
+1. **`+page.svelte`**——跨子元件共享的狀態
+2. **無頭 UI class（`*.svelte.ts`）**——僅該元件使用的狀態
+
+**不得**在子元件的 `.svelte` 檔案中宣告 `$state`。`$derived` 若涉及運算邏輯也應收進無頭 UI，`.svelte` 中的 `$derived` 僅限直覺的一行式轉換。
+
+---
+
+## 二、本地狀態
+
+本章只處理最簡單的情境：**一個元件自己的狀態**，不來自外部、不需要與其他元件共享。
+
+### 2.1 雙檔案結構
+
+含有互動邏輯的元件由兩個檔案組成：
+
+```
+Component.svelte          ← 結構 + 樣式
+component.svelte.ts       ← 互動邏輯
 ```
 
-這讓 URL 狀態的消費者與來源之間不經過 `+page.svelte` 中轉，避免不必要的 prop 傳遞；
-此外，使用 `goto()` 時，要記得有三個重要選項 `{ replaceState: boolean, noScroll: boolean, keepFocus: boolean }`，確保 URL 更新不會干擾使用者體驗。
+若元件完全沒有 handler、`$state`、`$derived` 或 `$effect`（純展示），只需 `.svelte` 一個檔案。反之，若一段可重用邏輯不需要對應的 template（如選單定位、鍵盤導航），也可只有 `.svelte.ts`。
 
-### 1.2 `+page.svelte` — 頁面殼
+### 2.2 無頭 UI class
 
-接收 `data`、初始化頁面級 `$state`（若需要）、組裝子元件並以 props 傳入資料。
+無頭 UI 以 `export class` 撰寫。`.svelte` 中直接 `new` 取得 instance：
 
-**規則：**
+```ts
+// component.svelte.ts
 
-- **不含業務邏輯**。樣式規則只允許布局上的（如 `<main>` 的 height、overflow）。
-- 即便頁面極其簡單（僅一個表單），仍須將 UI 抽出為至少一個子元件。
-- SSR `data` **透過 props 傳給子元件**，不額外中轉。`data` 是 `$props()` 的一部分，Svelte 自動追蹤其變更——`goto()` 或 `invalidateAll()` 導致 `load` 重跑後，props 自動更新，子元件響應式重繪。
+/**
+ * Component 的配置選項
+ */
+type ComponentOptions = {
+  /** 選項列表 */
+  items: string[];
+};
 
-### 1.3 共享狀態
+/**
+ * Component 的互動邏輯
+ */
+export class Component {
+  /** 下拉選單是否開啟 */
+  open = $state(false);
+  /** 目前聚焦的選項索引 */
+  activeIndex = $state(-1);
 
-**跨元件共享響應式狀態：**
+  /** 過濾後的選項列表 */
+  filtered: string[];
 
-若多個子元件需要共享響應式狀態（如 `selected`），在 `+page.svelte` 中以 `$state` 宣告，再透過 props / `bind` 傳給子元件。
+  constructor(private options: ComponentOptions) {
+    this.filtered = $derived(options.items.filter((item) => item.length > 0));
+  }
+
+  // ---
+
+  /** 開啟選單 */
+  #openMenu() {
+    this.open = true;
+    this.activeIndex = 0;
+  }
+
+  /** 關閉選單並重置聚焦索引 */
+  #closeMenu() {
+    this.open = false;
+    this.activeIndex = -1;
+  }
+
+  // ---
+
+  /** 處理按鈕點擊事件，切換選單開關 */
+  handleButtonClick = () => {
+    if (this.open) this.#closeMenu();
+    else this.#openMenu();
+  };
+
+  /** 處理按鈕失焦事件，關閉選單 */
+  handleButtonBlur = () => {
+    this.#closeMenu();
+  };
+
+  // ---
+
+  /** 處理選項滑鼠按下事件，阻止失焦並選取 */
+  handleItemMouseDown = (e: MouseEvent) => {
+    e.preventDefault();
+  };
+
+  /** 處理選項滑鼠移入事件，更新聚焦索引 */
+  handleItemMouseEnter = (index: number) => {
+    this.activeIndex = index;
+  };
+}
+```
+
+#### 結構說明
+
+- `$state` 宣告為 class field，`$derived` 的型別宣告在 field 區域、賦值在 constructor 內。
+- `$effect` 若有需要，寫在 constructor 內，位於 `$derived` 下方。
+- class 內部以 `// ---` 作為唯一的視覺分隔符。
+- Private helper 以 `#methodName()` 宣告（private method）。
+- Handler 以 `handleXxx = () => {}` 宣告（公開箭頭屬性），命名結構為 `handle` + 目標元素 + 事件類型。
+- 同一目標元素的 handler 連續排列，不加分隔；不同目標元素之間以 `// ---` 分隔。
+- 排列順序：`$state` fields → `$derived` fields → constructor → private helpers → handlers。
+
+### 2.3 `.svelte` 的 `<script>` 只做實例化
+
+當所有邏輯都收進無頭 UI 後，`.svelte` 的 `<script>` 只剩 props 解構與 class 實例化，模板只使用 `ui.*`：
 
 ```svelte
+<!-- Component.svelte -->
 <script lang="ts">
-  let { data } = $props();
+  import { Component } from "./component.svelte.js";
+
+  type Props = { items: string[] };
+  let { items }: Props = $props();
+
+  const ui = new Component({
+    get items() { return items; },
+  });
+</script>
+
+<button onclick={ui.handleButtonClick} onblur={ui.handleButtonBlur}>
+  {ui.open ? "Close" : "Open"}
+</button>
+
+{#if ui.open}
+  <ul>
+    {#each ui.filtered as item, i}
+      <li
+        class:active={ui.activeIndex === i}
+        onmousedown={ui.handleItemMouseDown}
+        onmouseenter={() => ui.handleItemMouseEnter(i)}
+      >
+        {item}
+      </li>
+    {/each}
+  </ul>
+{/if}
+
+<style>
+  .active { background: var(--color-surface-hover); }
+</style>
+```
+
+模板中不應出現任何業務判斷或脫離 `ui` 的狀態計算。樣式直接寫在 `<style>` 塊中（scoped），不另外提取 `.css` 檔案。
+
+### 2.4 共用元件
+
+專案的共用元件也遵循上述雙檔案結構，分別放在兩個資料夾：
+
+- `src/lib/components/`——`.svelte` 檔案
+- `src/lib/ui/`——`.svelte.ts` 檔案
+
+**開發新功能前，先檢視這兩個資料夾**，避免重複建造已存在的元件，並且注意：
+
+- 部分共用元件是純展示，沒有對應的 `.svelte.ts`，比如 `Alert.svelte`
+- 部分是獨立的無頭 UI，沒有對應的 `.svelte`，比如 `menu.svelte.ts`
+
+---
+
+## 三、共享狀態
+
+當多個子元件需要共享狀態時，`+page.svelte` 作為**唯一的**狀態持有者，透過 `props` 向下傳遞、`bind` 向上回寫。
+
+### 3.1 基本模式
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  import Child1 from "./Child1.svelte";
+  import Child2 from "./Child2.svelte";
+
   let selected = $state<Set<string>>(new Set());
 </script>
 
-<EditorList items={data.result.items} bind:selected />
-<EditorSelectionDock bind:selected />
+<Child1 bind:selected />
+<Child2 bind:selected />
 ```
-
-**不在組件中使用 `$state`：**
-
-不應該在 `+page.svelte` 以外的任意 `.svelte` 中宣告 `$state`——狀態只能是頁面級（`+page.svelte`）或無頭 UI（`*.svelte.ts`）的，絕不應該在其他 `.svelte` 中宣告 `$state`。
-
-**不使用 Context（`createContext`）：**
-
-本專案所有路由的子元件皆只有一到兩層深度（不計共用元件），props / `bind` 足以覆蓋所有跨元件共享需求。不使用 Svelte 的 `createContext` API——狀態只有兩種歸屬：
-
-1. **`+page.svelte` 的 `$state`**——跨元件共享的狀態（透過 props / `bind` 傳遞）
-2. **無頭 UI 內部的 `$state`**——僅該元件使用的狀態
-
-這使得資料流永遠只有一個 pattern：**props 向下、`bind` 向上、getter/setter options 傳入無頭 UI**。
-
-當開發者真的遇到 prop drilling 時，請先嘗試下列四種方案:
-
-1. 提取成 url query（如 `?tab=xxx`），讓子元件直接在 `*.svelte.ts` 從 `page.url.searchParams` 讀取
-2. 重新審視元件介面邊界——若元件接收了大量非其核心機制所需的 props，以 callback / snippet 重構介面，將策略交還呼叫者（詳見 §1.7）
-3. 將該路由本身拆成多個子路由，或重新組織路由結構的各個子組件
-4. 提取出新的共用元件，從而在心智上不再認為多一層級
-
-若你是 AI Agent，請注意，當你注意到你需要執行這四種方案之一，甚至是完全無法解決 prop drilling 時，請停止目前的開發，並向人類開發者提出「我遇到了 prop drilling 問題，已嘗試以下方案但無法解決：...，請協助重新組織路由結構或提取共用元件」的訊息。
-
-### 1.4 SSR 與頁面狀態
-
-當頁面級 `$state` 需要隨 `data` 變更而校正（例如翻頁後清除不可見的 `selected`、`invalidateAll()` 後將 `currentFile` fallback 至列表第一項），允許在 `+page.svelte` 中使用 `$effect` 做**同步校正（reconciliation）**。
-
-注意，頁面級 `$state` **不得直接從 `data` 取值初始化**：
-
-```ts
-// ✗ 錯誤：只捕獲初始值，後續 data 更新時不會跟著變
-let currentFile = $state<string | null>(data.stagedFiles[0] ?? null);
-```
-
-`$props()` 解構後的 `data` 是 reactive proxy，但在 `$state()` 初始化器中取用只會捕獲當下的值。後續 `invalidateAll()` 或 `goto()` 導致 `data` 更新時，該 `$state` 不會連動。Svelte 本身也會警告：*This reference only captures the initial value of 'data'.*
-
-正確做法是初始化為空值，再以 `$effect` 監聽 `data` 校正：
-
-```ts
-let currentFile = $state<string | null>(null);
-
-$effect(() => {
-  const list = data.stagedFiles;
-  if (currentFile !== null && !list.includes(currentFile)) {
-    currentFile = list[0] ?? null;
-  } else if (currentFile === null && list.length > 0) {
-    currentFile = list[0];
-  }
-});
-```
-
-這意味著 SSR 輸出及 hydrate 前的第一幀，校正尚未執行，狀態是空的（`null` / 空 Set）。此真空**不是異常或邊界案例——它是正常的初始狀態**，同時也正確涵蓋了列表本身為空的真實情境（例如所有項目都已處理完畢）。子元件必須為此提供合理的展示（如「未選取任何圖片」），而非將其視為例外。
-
-### 1.5 子元件 — `ComponentName.svelte` + `componentName.svelte.ts`
-
-負責該頁面區塊的所有 UI 邏輯與樣式。詳見第二章元件開發規範。
-
-**無頭 UI 如何接收 props：**
-
-子元件把 `$props()` 解構出的值透過 getter-based options 傳給工廠函數，確保無頭 UI 讀到最新的 prop 值：
 
 ```svelte
-<!-- EditorList.svelte -->
+<!-- Child1.svelte -->
 <script lang="ts">
-  type Props = { items: ImageWithId[]; selected: Set<string>; /* ... */ };
-  let { items, selected = $bindable(), /* ... */ }: Props = $props();
+  import { Child1 } from "./child1.svelte.js";
 
-  const ui = createEditorList({
-    get items() { return items; },
+  type Props = { selected: Set<string> };
+  let { selected = $bindable(new Set()) }: Props = $props();
+
+  const ui = new Child1({
     get selected() { return selected; },
     set selected(v) { selected = v; },
   });
 </script>
 ```
 
-### 1.6 跨元件共享非響應式引用
+```ts
+// child1.svelte.ts
 
-若多個子元件需要共享**非響應式引用**（如 timer ID、AbortController 等協調用物件），在 `+page.svelte` 建立普通物件，以 prop 傳下去即可。JS 物件是 pass-by-reference，所有子元件操作的是同一塊記憶體：
+/**
+ * Child1 的配置選項
+ */
+type Child1Options = {
+  /** 雙向綁定：目前選取的項目 */
+  selected: Set<string>;
+};
+
+/**
+ * Child1 的互動邏輯
+ */
+export class Child1 {
+  constructor(private options: Child1Options) {}
+
+  // ---
+
+  /** 處理項目點擊事件，切換選取狀態 */
+  handleItemClick = (id: string) => {
+    const next = new Set(this.options.selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.options.selected = next;
+  };
+}
+```
+
+### 3.2 Options 的三種屬性
+
+Options 物件的屬性分三種類型，在 `.svelte` 實例化時以不同寫法傳入：
+
+| 類型      | 存取需求   | 傳入寫法                                                     |
+| --------- | ---------- | ------------------------------------------------------------ |
+| 雙向綁定  | 需要讀寫   | `get value() { return value; }, set value(v) { value = v; }` |
+| 唯讀 prop | 只需讀取   | `get items() { return items; }`                              |
+| Callback  | 通知父元件 | `onchange: () => onchange?.()`                               |
+
+Options 使用 getter 傳入，Svelte 的 rune 系統能正確追蹤 getter 的回傳值。因此 class 內部任何地方讀 `this.options.items` 都能響應式地取得最新值，不需要再包 `$state` 副本。
+
+### 3.3 不使用 Context API
+
+本專案所有路由的子元件皆只有一到兩層深度（不計共用元件），`props` / `bind` 足以覆蓋所有跨元件共享需求。資料流只有一個 pattern：**props 向下、`bind` 向上、getter/setter options 傳入無頭 UI**。
+
+### 3.4 共享非響應式引用
+
+若多個子元件需要共享的是 timer ID、AbortController 等**非響應式**協調物件，在 `+page.svelte` 建立普通物件，以 prop 傳下去即可。JS 物件是 pass-by-reference，所有子元件操作的是同一塊記憶體：
 
 ```svelte
 <!-- +page.svelte -->
 <script lang="ts">
-  const timers = {
-    loading: null as ReturnType<typeof setTimeout> | null,
-    search: null as ReturnType<typeof setTimeout> | null,
+  const refs = {
+    timer: null as ReturnType<typeof setTimeout> | null,
+    controller: null as AbortController | null,
   };
 </script>
 
-<EditorForm {timers} ... />
-<EditorPagination {timers} ... />
+<Child1 {refs} />
+<Child2 {refs} />
 ```
 
-```ts
-// editorForm.svelte.ts
-type Options = {
-  timers: { loading: ReturnType<typeof setTimeout> | null; search: ReturnType<typeof setTimeout> | null };
-  // ...
-};
+### 3.5 機制與策略分離
 
-export function createEditorForm(options: Options) {
-  async function doSearch() {
-    if (options.timers.loading) clearTimeout(options.timers.loading);
-    options.timers.loading = setTimeout(() => {
-      /* ... */
-    }, 200);
+當元件的 props 列表膨脹時，通常代表它混入了不屬於核心職責的邏輯。區分方式：
+
+- **機制（mechanism）**：元件之所以存在的核心——移除後元件無法運作。
+- **策略（policy）**：呼叫者注入的具體行為——移除後元件的核心機制仍可獨立運作。
+
+**判斷方法：「如果移除這個 prop，元件的核心機制還能運作嗎？」** 若能，它就是策略，應透過 callback 或 Svelte snippet 交由呼叫者注入：
+
+```svelte
+<!-- ✗ ListComponent 不該接收它不消費的 props -->
+<ListComponent {items} {itemHeight} {selectedIds} {onItemClick} />
+
+<!-- ✓ 機制歸元件，策略歸呼叫者 -->
+<ListComponent {items} {itemHeight}>
+  {#snippet renderItem(item)}
+    <div class:selected={selectedIds.has(item.id)} onclick={() => onItemClick(item)}>
+      {item.name}
+    </div>
+  {/snippet}
+</ListComponent>
+```
+
+### 3.6 Prop Drilling 處理
+
+當遇到 prop drilling 時，依序嘗試：
+
+1. **提取成 URL query**——讓子元件直接從 [`page.url.searchParams` 讀取](#五url-狀態)
+2. **重新審視元件介面**——以 callback / snippet 重構，將[策略交還呼叫者](#35-機制與策略分離)
+3. **拆分路由結構**——將該路由拆成子路由，或重新組織子元件
+4. **提取共用元件**——減少心智上的層級認知
+
+---
+
+## 四、SSR 狀態
+
+`+page.server.ts` 回傳的 `data` 是一個 read-only reactive object。`+page.svelte` 透過 `$props()` 接收後，直接以 props 傳給子元件。`goto()` 或 `invalidateAll()` 導致 `load` 重跑時，props 自動更新，子元件響應式重繪。
+
+#### 命名慣例
+
+SSR 資料變數使用純粹的名稱（如 `items`、`total`、`count`），不得使用 `initial`、`preload` 等前綴。
+
+### 4.1 唯讀
+
+**如果沒有「寫」的需求，直接透過 props 使用就好**，不需要 `$state`、`$effect` 或 `untrack`：
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  import Child1 from "./Child1.svelte";
+  import Child2 from "./Child2.svelte";
+
+  let { data } = $props();
+</script>
+
+<Child1 items={data.items} />
+<Child2 total={data.total} />
+```
+
+子元件的無頭 UI 透過 options getter 讀取，響應式自動連動：
+
+```ts
+// child1.svelte.ts
+export class Child1 {
+  /** 已篩選的項目數量 */
+  count: number;
+
+  constructor(private options: { items: Item[] }) {
+    this.count = $derived(this.options.items.filter((i) => i.active).length);
   }
 }
 ```
 
-**要點：**
+### 4.2 可寫入
 
-- 這類引用不需要驅動 UI 重繪，因此**刻意不用 `$state`**，沒有響應式開銷。
-- 資料流與共享狀態一致：`+page.svelte` 是 owner，透過 props 向下傳遞。
+當元件需要**編輯** SSR 資料的本地副本（如表單編輯、選取狀態），需要以 `$state` 建立副本，並以 `$effect` 在外部來源變動時同步回本地。
 
-### 1.7 元件介面的機制與策略分離
+#### 在 class constructor
 
-當一個元件的 props 列表膨脹時，通常代表它混入了**不屬於自身核心職責**的邏輯。判斷的方式是區分**機制（mechanism）**與**策略（policy）**：
-
-- **機制**：元件之所以存在的核心運作原理——移除後元件無法運作的部分。
-- **策略**：呼叫者針對該機制所注入的具體行為決策——移除後元件的核心機制仍可獨立運作。
-
-**判斷方法：「如果移除這個 prop，元件的核心機制還能運作嗎？」** 若能，它就是策略，應透過 callback prop 或 Svelte snippet 交由呼叫者注入，而非作為資料 props 傳入。
-
-以虛擬化列表為例：
-
-| 分類 | Props / 參數                               | 理由                                                           |
-| ---- | ------------------------------------------ | -------------------------------------------------------------- |
-| 機制 | `itemCount`、`itemHeight`、`overScan`      | 移除後列表無法計算可見範圍，核心不成立                         |
-| 策略 | `renderItem`、`onItemClick`、`selectedIds` | 移除後列表仍可捲動並定位可見項目，只是什麼都不渲染、不回應互動 |
-
-遵循此原則後，元件的 props 介面只包含機制配置與策略注入口（callback / snippet），不再出現「轉交型 props」——那些元件本身不消費、只是為了餵給 callback 內部邏輯而存在的資料。
-
-**補充：**有關於 `renderItem` 這類 prop 的一個範例
-
-```svelte
-<VirtualList {itemCount} {itemHeight}>
-  {#snippet renderItem(index, style)}
-    <div {style}>{items[index].name}</div>
-  {/snippet}
-</VirtualList>
-```
-
----
-
-## 二、元件開發規範
-
-### 2.1 檔案結構
-
-含有互動邏輯的元件由**兩個檔案**組成：
-
-```
-ComponentName.svelte       ← 結構 + 樣式（<template> + <style>）
-componentName.svelte.ts    ← 無頭 UI（純邏輯，不含任何 HTML/CSS）
-```
-
-**例外**：若元件完全沒有 handler、`$state`、`$derived` 或 `$effect`（純展示），只需 `*.svelte` 一個檔案即可。
-
-**不推薦**將樣式單獨提取為 `.css` 檔案——元件的 `<style>` 塊已自帶 scoped 作用域，與結構並存更易維護。
-
-### 2.2 無頭 UI（`*.svelte.ts`）
-
-無頭 UI 以**工廠函數**（`createXxx`）形式撰寫，遵循以下模式：
-
-1. **接收 `options` 物件**，其中雙向綁定的 prop 在外部傳入時要用 getter/setter 包裝，以確保無頭 UI 內部讀取到的永遠是最新值。
-2. **以 `$state` / `$derived` 管理內部狀態**，工廠函數頂層即可直接使用 runes（因副檔名為 `.svelte.ts`）。
-3. **回傳 `ui` 物件**，僅暴露 `.svelte` 需要用到的：
-   - 狀態以 getter 形式暴露（必要時附 setter）
-   - 事件處理一律以 `handle*` 命名
-
-**工廠函數模式骨幹**
+最常見的情境。`options` 對 Svelte 而言只是普通的 constructor 參數，直接賦值不會建立追蹤、也不會觸發警告：
 
 ```ts
-// componentName.svelte.ts
-type ComponentOptions = {
-  value: string; // 雙向綁定的值
-  onchange?: (v: string) => void; // callback
-};
+// editor.svelte.ts
+import { invalidateAll } from "$app/navigation";
 
-export function createComponent(options: ComponentOptions) {
-  let internalState = $state(false);
+// ... (略)
 
-  function handleSomethingClick() {
-    internalState = !internalState;
-    options.onchange?.(options.value);
+export class Editor {
+  /** 項目名稱（可編輯的本地副本） */
+  name = $state("");
+
+  constructor(private options: EditorOptions) {
+    this.name = options.item.name; // 假設 options.item 是 +page.svelte 透過 props 傳入的 SSR 唯讀資料
+
+    $effect(() => {
+      this.name = options.item.name;
+    });
   }
 
-  return {
-    get internalState() {
-      return internalState;
-    },
-    handleSomethingClick,
+  // ---
+
+  /** 處理名稱輸入事件 */
+  handleNameInput = (e: Event) => {
+    this.name = (e.target as HTMLInputElement).value;
+  };
+
+  /** 處理儲存按鈕點擊事件，將修改寫回伺服器 */
+  handleFormSubmit = async () => {
+    await api.post("/update-item", { id: this.options.item.id, name: this.name });
+    invalidateAll();
   };
 }
 ```
 
-### 2.3 Svelte 封裝（`*.svelte`）
+`$state` 從第一幀就帶正確值，`$effect` 只負責後續的增量同步（`goto()` / `invalidateAll()` 導致 `load` 重跑時）。
 
-`.svelte` 的 `<script>` 只做兩件事：
+#### 在 `+page.svelte`
 
-1. 宣告 `Props` 型別並以 `$props()` 解構
-2. 呼叫工廠函數，將 bindable props 以 getter/setter proxy 傳入
+當可寫入的狀態需要跨元件共享，會需要[宣告在 `+page.svelte`](#三共享狀態)。
 
-**雙向綁定的傳入慣例**
+此時 `data` 來自 `$props()`，是 Svelte 認識的 reactive proxy，直接在 `$state()` 初始化器中讀取會觸發警告：
+
+```ts
+// ✗ Svelte 警告：This reference only captures the initial value
+let name = $state(data.name);
+```
+
+`untrack` 讓 `$state` 讀到當下值但不建立追蹤，避免了想躲警告只能初始化為空值、導致 SSR 第一幀就是錯的問題：
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  let { data } = $props();
+
+  let current = $state<string | null>(untrack(() => data.items[0]?.id ?? null));
+  let selected = $state<Set<string>>(untrack(() => {
+    const first = data.items[0];
+    return first ? new Set([first.id]) : new Set();
+  }));
+
+  $effect(() => {
+    const list = data.items;
+
+    // N => N'（列表變動但未清空）
+    if (current !== null && list.length > 0) {
+      if (!list.some((i) => i.id === current)) current = list[0].id;
+      const next = new Set([...selected].filter((id) => list.some((i) => i.id === id)));
+      if (next.size === 0) selected = new Set([current]);
+      else if (next.size !== selected.size) selected = next;
+      return;
+    }
+
+    // 0 => N（從空到有）
+    if (current === null && list.length > 0) {
+      current = list[0].id;
+      selected = new Set([list[0].id]);
+      return;
+    }
+
+    // N => 0（清空）
+    if (current !== null && list.length <= 0) {
+      current = null;
+      selected = new Set();
+      return;
+    }
+  });
+</script>
+
+<Child1 items={data.items} bind:current bind:selected />
+<Child2 bind:selected />
+```
+
+> 從上述例子也能看到，`$effect` 內的 reconciliation 也能根據業務需求設計的很複雜，不必侷限於「外部變動後直接覆蓋本地狀態」
+
+### 4.3 就近原則
+
+若同一份 SSR 資料有多個消費者，**只有需要「寫」的元件才建立 `$state` 副本並以 `$effect` 同步**，其餘元件直接透過 props 原封不動使用即可：
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  let { data } = $props();
+</script>
+
+<!-- 唯讀：直接用 props -->
+<Display item={data.item} />
+<Summary item={data.item} />
+
+<!-- 需要寫：元件內部才建立 $state 副本 -->
+<Editor item={data.item} />
+```
+
+Display、Summary 的無頭 UI 直接從 `options.item`（getter）讀取即可，只有 Editor 需要建立可寫[副本](#42-可寫入)。
+
+#### 核心概念
+
+`$effect` 若用於同步外部來源，應宣告在**消費該狀態的位置**：
+
+- 頁面級共享狀態的 `$effect` → 寫在 `+page.svelte`
+- 無頭 UI 內部狀態的 `$effect` → 寫在 `*.svelte.ts` 的 class constructor 內
+
+---
+
+## 五、URL 狀態
+
+URL query params（`page.url.searchParams`）是另一種 read-only reactive source，概念上與 SSR `data` 相同——唯讀直接用，需要寫才走 `$state` + `$effect`。
+
+差異在於：`page` 來自 `$app/state`，是 Svelte 認識的 module-level reactive proxy——無論在 `.svelte` 還是 class constructor 中讀取都會建立追蹤，因此可寫入場景**一律需要 `untrack`**。
+
+另外，URL 參數由**需要讀取的元件就近讀取**，不透過上層以 props 傳入。
+
+### 5.1 唯讀
+
+直接在 `.svelte` 或 `.svelte.ts` 中從 `page.url.searchParams` 讀取：
+
+```svelte
+<!-- Component.svelte -->
+<script lang="ts">
+  import { page } from "$app/state";
+
+  const tab = $derived(page.url.searchParams.get("tab") ?? "default");
+</script>
+
+<div class:active={tab === "settings"}>...</div>
+```
+
+### 5.2 可寫入
+
+與 SSR 狀態相同的模式——`$state(untrack(...))` + `$effect`，只是來源改為 `page.url.searchParams`。使用 `goto()` 更新 URL：
+
+```ts
+// component.svelte.ts
+import { page } from "$app/state";
+import { goto } from "$app/navigation";
+import { untrack } from "svelte";
+
+/**
+ * Component 的互動邏輯
+ */
+export class Component {
+  /** 目前排序方式 */
+  sort = $state("");
+
+  constructor() {
+    this.sort = untrack(() => page.url.searchParams.get("sort") ?? "name");
+
+    $effect(() => {
+      const q = page.url.searchParams.get("sort") ?? "name";
+      this.sort = q;
+    });
+  }
+
+  // ---
+
+  /** 處理排序按鈕點擊事件，更新排序方式並同步至 URL */
+  handleSortClick = (value: string) => {
+    this.sort = value;
+    goto(`/list?sort=${encodeURIComponent(this.sort)}`, {
+      replaceState: true,
+      noScroll: true,
+      keepFocus: true,
+    });
+  };
+}
+```
+
+使用 `goto()` 時，三個選項 `{ replaceState, noScroll, keepFocus }` 確保 URL 更新不干擾使用者體驗。
+
+---
+
+## 六、Debounce
+
+### 6.1 輸入 debounce
+
+> 注意，只有**連續輸入**（如搜尋框）才需要 debounce。一般的離散選擇操作（select、checkbox、按鈕）不需要。
+
+連續輸入存在一個競態：debounce 到期 → `goto()` 送出 → 使用者在 URL 同步回來前又輸入了新值。使用 `dirty` flag 區分 source of truth。**`dirty` 在 `$effect` 中必須以 `untrack` 讀取**——否則 `dirty` 本身的變動會觸發 `$effect` 重跑：
+
+```ts
+// searchForm.svelte.ts
+import { page } from "$app/state";
+import { goto } from "$app/navigation";
+import { untrack } from "svelte";
+
+/**
+ * SearchForm 的互動邏輯
+ */
+export class SearchForm {
+  /** URL 同步鎖：本地正在修改時為 true，跳過外部同步 */
+  dirty = $state(false);
+  /** 搜尋關鍵字 */
+  search = $state("");
+  /** debounce 計時器 */
+  timer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    this.search = untrack(() => page.url.searchParams.get("q") ?? "");
+
+    $effect(() => {
+      const q = page.url.searchParams.get("q") ?? "";
+      if (untrack(() => this.dirty)) return;
+      this.search = q;
+    });
+  }
+
+  // ---
+
+  /** 處理輸入框輸入事件，啟動 debounce 計時 */
+  handleInput = (e: Event) => {
+    this.search = (e.target as HTMLInputElement).value;
+    this.dirty = true;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.dirty = false;
+      goto(`/search?q=${encodeURIComponent(this.search)}`, {
+        replaceState: true,
+        noScroll: true,
+        keepFocus: true,
+      });
+    }, 300);
+  };
+}
+```
+
+#### 時序
+
+1. 使用者輸入 → `dirty = true`，本地狀態更新
+2. debounce 到期 → `goto()` 送出 → 立刻 `dirty = false`
+3. `$effect` 偵測到 URL 變動：
+   - `dirty === false` → 正常同步
+   - `dirty === true` → 跳過（使用者又輸入了新值，舊值不該覆蓋）
+
+#### 為什麼 `dirty` 要用 `untrack`？
+
+若 `$effect` 追蹤 `dirty`，當 `dirty` 從 `true` 變為 `false`（`goto()` 送出後）時 `$effect` 會立刻重跑——但此時 `goto()` 是非同步的，URL 尚未更新，`$effect` 會把舊值同步回本地，覆蓋使用者的新輸入。`untrack` 確保 `$effect` 只在外部來源真正變動時才觸發。
+
+### 6.2 載入 debounce
+
+使用者觸發導航（`goto()` / `invalidateAll()`）時，若立刻顯示載入狀態，快速完成的導航（< 200ms）會造成閃爍。
+
+這時請採用**純 CSS 雙 transition 規則**實現載入提示的 debounce，零 JavaScript 開銷：
 
 ```svelte
 <script lang="ts">
-  type Props = { value?: string; onchange?: () => void };
-  let { value = $bindable(""), onchange }: Props = $props();
-
-  const ui = createComponent({
-    onchange: () => onchange?.(),
-    get value() { return value; },
-    set value(v) { value = v; },
-  });
+  import { navigating } from "$app/state";
 </script>
-```
 
-之後模板只需使用 `ui.*` 即可，不應在模板中加入任何業務判斷或脫離 `ui` 的狀態計算。
-
-### 2.4 Handlers
-
-永遠不得直接 return helper function，就算只包一層，也應該要包好後再 return：
-
-```ts
-function handleSomethingClick() {
-  someHelper();
-}
-```
-
-### 2.5 Handler 命名規範
-
-Handler 一律採 `handle` + `目標元素` + `事件類型` 結構：
-
-| Handler                     | 目標元素  | 事件類型   |
-| --------------------------- | --------- | ---------- |
-| `handleInput`               | input     | input      |
-| `handleInputFocus`          | input     | focus      |
-| `handleInputBlur`           | input     | blur       |
-| `handleInputKeydown`        | input     | keydown    |
-| `handleChipClick`           | chip      | click      |
-| `handleDropdownMouseDown`   | dropdown  | mousedown  |
-| `handleDropdownMouseOver`   | dropdown  | mouseover  |
-| `handleTriggerClick`        | trigger   | click      |
-| `handleTriggerBlur`         | trigger   | blur       |
-| `handleTriggerKeydown`      | trigger   | keydown    |
-| `handleOptionMouseDown`     | option    | mousedown  |
-| `handleOptionMouseEnter`    | option    | mouseenter |
-| `handleItemMouseDown`       | item      | mousedown  |
-| `handleItemMouseEnter`      | item      | mouseenter |
-| `handleStarMouseEnter`      | star      | mouseenter |
-| `handleStarClick`           | star      | click      |
-| `handleContainerMouseLeave` | container | mouseleave |
-| `handleContainerKeydown`    | container | keydown    |
-
-### 2.6 程式碼編排
-
-工廠函數內部以 `// ---` 作為視覺段落分隔符，依固定順序排列：
-
-```ts
-export function createXxx(options: XxxOptions) {
-  // ① $state 宣告（含 JSDoc）
-  let stateA = $state(...);
-  let stateB = $state(...);
-
-  // ② $derived 宣告（含 JSDoc）
-  const derivedC = $derived(...);
-
-  // ---
-
-  // ③ 常數（如 options 列表）
-  const OPTIONS = [...];
-
-  // ---
-
-  // ④ Private helper functions（不回傳的內部函式）
-  function doSomething() { /* ... */ }
-  function openDropdown() { /* ... */ }
-  function closeDropdown() { /* ... */ }
-
-  // ---
-
-  // ⑤ Handler functions（按目標元素分組，組間以 // --- 分隔）
-  function handleTriggerClick() { /* ... */ }
-  function handleTriggerBlur() { /* ... */ }
-  function handleTriggerKeydown(e: KeyboardEvent) { /* ... */ }
-
-  // ---
-
-  function handleOptionMouseDown(e: MouseEvent, item: SelectItem) { /* ... */ }
-  function handleOptionMouseEnter(index: number) { /* ... */ }
-
-  // ---
-
-  // ⑤ 可選: $effect（如有需要，放在 handler 之後）
-
-  // ---
-
-  // ⑥ Return 物件（getter/setter 在前，handler 在後）
-  return {
-    // DOM ref getter/setter
-    get triggerEl() { ... },
-    set triggerEl(el) { ... },
-
-    // 狀態 getter
-    get open() { ... },
-    get activeIndex() { ... },
-    get selectedLabel() { ... },
-
-    // Handler references
-    handleTriggerClick,
-    handleTriggerBlur,
-    handleTriggerKeydown,
-    handleOptionMouseDown,
-    handleOptionMouseEnter,
-  };
-}
-```
-
-**要點：**
-
-- `// ---` 是唯一使用的分隔符，不使用 `// ===` 或 `// ───` 等其他變體。
-- 同一目標元素的 handler 不加分隔符（如 `handleTriggerClick` / `handleTriggerBlur` / `handleTriggerKeydown` 連續排列）。
-- 不同目標元素的 handler 之間以 `// ---` 分隔。
-- return 物件中：先 DOM ref getter/setter，再狀態 getter，最後 handler reference（與定義順序一致）。
-
-### 2.7 JSDoc 寫法
-
-所有無頭 UI（`*.svelte.ts`）都遵循統一的 JSDoc 寫法。
-
-**Type 定義**
-
-- Type alias（無屬性）使用**單行** JSDoc：
-
-```ts
-/** 排序欄位類型 */
-type Sort = "committedAt" | "rating" | "name" | "random";
-```
-
-- Options type 與 factory function 使用**多行** JSDoc：
-
-```ts
-/**
- * 下拉選單組件的配置選項
- */
-type SelectOptions = {
-  /** 雙向綁定：目前選中的值 */
-  value: string | number | undefined;
-  /** 選項列表 */
-  list: SelectItem[];
-  /** 當選項變更時觸發的回調 */
-  onchange?: (value: string | number | undefined) => void;
-};
-
-/**
- * 建立下拉選單邏輯的核心工廠函數
- */
-export function createSelect(options: SelectOptions) {
-```
-
-Options 屬性一律**單行** JSDoc。雙向綁定的屬性以 `/** 雙向綁定：描述 */` 開頭。
-
-**`$state` / `$derived` 宣告**
-
-每個 `$state` 或 `$derived` 變數上方加**單行** JSDoc：
-
-```ts
-/** 觸發器按鈕實例的引用 (DOM) */
-let triggerEl = $state<HTMLButtonElement>();
-/** 下拉選單是否開啟 */
-let open = $state(false);
-/** 下拉選單中目前「虛擬聯焦」的選項索引 */
-let activeIndex = $state(-1);
-
-/** 根據目前 options.value 找到對應的 label */
-const selectedLabel = $derived(options.list.find((item) => item.value === options.value)?.label ?? "");
-```
-
-**Private helper functions**
-
-使用**單行** JSDoc 描述行為：
-
-```ts
-/** 執行選取動作 */
-function selectOption(item: SelectItem) {
-  /* ... */
-}
-
-/** 開啟選單，預設虛擬聚焦到當前已選中的那一個，若無則為 -1 */
-function openDropdown() {
-  /* ... */
-}
-
-/** 關閉選單，重置虛擬聚焦索引 */
-function closeDropdown() {
-  /* ... */
-}
-```
-
-**Handler functions**
-
-使用**單行** JSDoc，格式為 `處理 [目標元素] [事件類型]事件，[具體行為]`：
-
-```ts
-/** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
-function handleTriggerClick() {
-  /* ... */
-}
-
-/** 處理 Trigger 失焦事件，關閉下拉選單 */
-function handleTriggerBlur() {
-  /* ... */
-}
-
-/** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
-function handleTriggerKeydown(e: KeyboardEvent) {
-  /* ... */
-}
-```
-
-鍵盤 handler 內部的各 branch 也以單行 JSDoc 標註：
-
-```ts
-function handleInputKeydown(e: KeyboardEvent) {
-  /** 當按下 Escape 鍵且下拉選單顯示時，關閉下拉選單 */
-  if (e.key === "Escape" && showDropdown) {
-    closeDropdown();
-    return;
-  }
-
-  /** 當按下 Backspace 鍵且輸入框為空時，刪除最後一個標籤 */
-  if (e.key === "Backspace" && !inputValue) {
-    popTag();
-    return;
-  }
-}
-```
-
-**Return 物件**
-
-return 物件中的每個成員都**重複**其定義處的同一份 JSDoc（不省略）：
-
-```ts
-return {
-  /** 獲取 Trigger 元素的 getter */
-  get triggerEl() {
-    return triggerEl as HTMLButtonElement;
-  },
-  /** 設定 Trigger 元素 setter */
-  set triggerEl(el: HTMLButtonElement) {
-    triggerEl = el;
-  },
-
-  /** 存取下拉選單狀態的 getter */
-  get open() {
-    return open;
-  },
-  /** 存取虛擬聚焦索引的 getter */
-  get activeIndex() {
-    return activeIndex;
-  },
-
-  /** 處理 Trigger 點擊事件，切換下拉選單的開啟/關閉狀態 */
-  handleTriggerClick,
-  /** 處理 Trigger 失焦事件，關閉下拉選單 */
-  handleTriggerBlur,
-  /** 處理 Trigger 鍵盤事件，根據按鍵執行相應操作 */
-  handleTriggerKeydown,
-};
-```
-
-getter JSDoc 慣用語：`獲取 XXX 的 getter` 或 `存取 XXX 的 getter`。
-setter JSDoc 慣用語：`設定 XXX 的 setter` 或 `設置 XXX 的 setter`。
-
----
-
-## 三、共用元件
-
-所有共用元件都被放置於 `src/lib/components` 與 `src/lib/ui` 兩個資料夾中，前者為上述規範中的 `*.svelte` ，後者為 `*.svelte.ts` 無頭 UI 工廠函數
-
-其中有些 `*.svelte` 是屬於上述規範中，無互動需求的純展示或容器，他們沒有對應的 `*.svelte.ts` 在 `src/lib/ui` 中；同理，有些無頭 UI 工廠函數沒有對應的 `.svelte`，比如 `src/lib/ui/menu.svelte.ts` 的 `createMenu`。
-
-因此任何新功能或大更新時，都必須完整 `ls` 這兩個資料夾，避免重複造出已存在的元件或工廠函數。
-
----
-
-## 四、載入狀態與純 CSS Debounce
-
-### 4.1 問題背景
-
-當使用者觸發篩選變更或重新載入（`goto()` / `invalidateAll()`），SvelteKit 的 `navigating` store 會在導航期間變為非 `null`。若立刻將畫面替換為「載入中…」文字，快速完成的導航（< 200ms）會造成內容閃爍——使用者看到一瞬間的空白再回到正常內容，體驗不佳。
-
-傳統做法是在 JavaScript 中設定延遲計時器（如 `setTimeout` 200ms 後才顯示 loading），但這需要額外的 `$state`（`loading`、`showLoading`）、計時器管理（`clearTimeout`）與清理邏輯，增加了無頭 UI 的複雜度。
-
-### 4.2 純 CSS Debounce 模式
-
-本專案採用**純 CSS transition delay** 取代 JavaScript 計時器，以零邏輯開銷實現載入提示的 debounce：
-
-```svelte
-<div
-  class="container"
-  style:opacity={navigating.to ? 0.4 : 1}
->
+<div class="container" class:loading={navigating.to}>
   <!-- 正常內容 -->
 </div>
 
 <style>
   .container {
-    transition: opacity 0s step-end 0.2s;
+    transition: opacity 0s step-start;
+
+    &.loading {
+      opacity: 0.4;
+      transition: opacity 0.2s step-end;
+    }
   }
 </style>
 ```
 
-**三個關鍵值：**
+#### 進入與離開的兩條規則
 
-| 值         | 意義                                                                    |
-| ---------- | ----------------------------------------------------------------------- |
-| `0s`       | transition duration——opacity 變化是瞬間切換，不做漸變動畫               |
-| `step-end` | timing function——確保是離散跳變而非連續插值（與 `0s` 搭配確保行為明確） |
-| `0.2s`     | transition delay——opacity 變化延遲 200ms 才生效                         |
+CSS 在狀態轉換時，採用的是**目標狀態**的 transition 規則：
 
-### 4.3 通用性與天然無競態
+| 方向         | 套用的規則                          | 效果                                                                                |
+| ------------ | ----------------------------------- | ----------------------------------------------------------------------------------- |
+| 進入 loading | `transition: opacity 0.2s step-end` | `step-end` 讓值在整個 0.2s 期間維持舊值，最後才跳變——等效延遲 200ms，短暫導航不閃爍 |
+| 離開 loading | `transition: opacity 0s step-start` | `step-start` 在時刻 0 就跳到新值——導航完成瞬間恢復，零延遲                          |
 
-此模式不限於 `navigating`——任何**布林旗標驅動的暫態視覺回饋**都適用。只要某個響應式值在 `true` / `false` 間切換，且希望「短暫切換不產生視覺變化、長時間停留才顯示」，都可以用同樣的 `transition-delay` 手法。
+若導航在 200ms 內完成，進入方向的 transition 尚未跳變就被取消——使用者完全感知不到載入狀態。
 
-此外，這個模式**天然不存在競態條件（race condition free）**。JavaScript 計時器方案中，`setTimeout` 的回調與實際狀態變更是兩條獨立的時間線——若在計時器到期前狀態已經回復，開發者必須手動 `clearTimeout` 並同步 `showLoading = false`，一旦漏清或順序錯誤就會導致 loading 殘留或閃爍。而 CSS transition 由瀏覽器渲染引擎統一調度：當 `style:opacity` 的值被設回原值時，瀏覽器**自動取消尚未生效的 pending transition**，不需要任何手動清理。狀態與視覺之間永遠是同步的，完全消除了開發者管理時序的負擔。
+#### 重點
+
+模板必須使用 **`class:loading`** 而非 `style:opacity`，因為需要讓 CSS 能根據不同狀態套用不同的 transition 規則。
+
+此模式不限於 `navigating`——任何布林旗標驅動的暫態視覺回饋（如 API 呼叫中的 `loading`、按鈕的 `disabled`）都適用，只要希望「短暫切換不產生視覺變化、長時間停留才顯示」。

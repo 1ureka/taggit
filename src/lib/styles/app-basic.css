@@ -1,3 +1,10 @@
+/* ─── Text ─── */
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── Input ─── */
 .text-input {
   display: block;

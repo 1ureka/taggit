@@ -9,43 +9,30 @@ type ScrollFabOptions = {
 };
 
 /**
- * 建立回到頂部按鈕邏輯的核心工廠函數
+ * 回到頂部按鈕的互動邏輯
  */
-export function createScrollFab(options: ScrollFabOptions) {
+export class ScrollFab {
   /** 是否顯示回到頂部按鈕 */
-  let showFab = $state(false);
+  showFab = $state(false);
 
-  // ---
+  constructor(private options: ScrollFabOptions) {
+    $effect(() => {
+      const el = options.pageContentEl;
+      if (!el) return;
 
-  /** 處理 FAB 點擊事件，滾動到頂部 */
-  function handleFabClick() {
-    options.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
+      const onScroll = throttle(() => {
+        this.showFab = el.scrollTop > 300;
+      }, 150);
+
+      el.addEventListener("scroll", onScroll, { passive: true });
+      return () => el.removeEventListener("scroll", onScroll);
+    });
   }
 
   // ---
 
-  // 監聽頁面捲動事件以控制回到頂部按鈕顯示
-  $effect(() => {
-    const el = options.pageContentEl;
-    if (!el) return;
-
-    const onScroll = throttle(() => {
-      showFab = el.scrollTop > 300;
-    }, 150);
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  });
-
-  // ---
-
-  return {
-    /** 存取是否顯示回到頂部按鈕的 getter */
-    get showFab() {
-      return showFab;
-    },
-
-    /** 處理 FAB 點擊事件，滾動到頂部 */
-    handleFabClick,
+  /** 處理 FAB 點擊事件，滾動到頂部 */
+  handleFabClick = () => {
+    this.options.pageContentEl?.scrollTo({ top: 0, behavior: "smooth" });
   };
 }

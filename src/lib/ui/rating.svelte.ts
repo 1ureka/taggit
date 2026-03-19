@@ -29,11 +29,21 @@ type RatingOptions = {
 };
 
 /**
- * 建立評分元件邏輯的核心工廠函數
+ * 評分元件的互動邏輯
  */
-export function createRating(options: RatingOptions) {
+export class Rating {
   /** 目前滑鼠懸停的星號索引，0 = 未懸停 */
-  let hoveredValue = $state(0);
+  hoveredValue = $state(0);
+
+  constructor(private options: RatingOptions) {}
+
+  // ---
+
+  #commit(next: number) {
+    if (this.options.readonly) return;
+    this.options.value = next;
+    this.options.onchange?.(next);
+  }
 
   // ---
 
@@ -41,88 +51,63 @@ export function createRating(options: RatingOptions) {
    * 取得指定星號（1–5）的視覺狀態
    * @param i 星號索引（1 到 5）
    */
-  function getStarState(i: number): RatingStarState {
-    const displayValue = hoveredValue > 0 ? hoveredValue : options.value;
+  getStarState(i: number): RatingStarState {
+    const displayValue = this.hoveredValue > 0 ? this.hoveredValue : this.options.value;
     return {
-      filled: i <= options.value,
+      filled: i <= this.options.value,
       bright: i <= displayValue,
     };
   }
 
   // ---
 
-  /** 提交新分數；點擊已選中的同一顆星則清除為 0（切換） */
-  function commit(next: number) {
-    if (options.readonly) return;
-    options.value = next;
-    options.onchange?.(next);
-  }
-
-  // ---
-
   /** 處理星號滑鼠移入事件，更新懸停值 */
-  function handleStarMouseEnter(i: number) {
-    if (options.readonly) return;
-    hoveredValue = i;
-  }
+  handleStarMouseEnter = (i: number) => {
+    if (this.options.readonly) return;
+    this.hoveredValue = i;
+  };
 
   /** 處理評分容器滑鼠移出事件，清除懸停值 */
-  function handleContainerMouseLeave() {
-    hoveredValue = 0;
-  }
+  handleContainerMouseLeave = () => {
+    this.hoveredValue = 0;
+  };
 
   /** 處理星號點擊事件；點擊同一顆星則切換清除 */
-  function handleStarClick(i: number) {
-    if (options.readonly) return;
-    commit(i === options.value ? 0 : i);
-  }
+  handleStarClick = (i: number) => {
+    if (this.options.readonly) return;
+    this.#commit(i === this.options.value ? 0 : i);
+  };
 
   /**
    * 處理評分容器鍵盤事件（容器需設置 tabindex="0"）
    *
    * ArrowRight/Up → +1，ArrowLeft/Down → -1，Home → 0，End → 5
    */
-  function handleContainerKeydown(e: KeyboardEvent) {
-    if (options.readonly) return;
+  handleContainerKeydown = (e: KeyboardEvent) => {
+    if (this.options.readonly) return;
 
     switch (e.key) {
       case "ArrowRight":
       case "ArrowUp":
         e.preventDefault();
-        commit(Math.min(options.value + 1, 5));
+        this.#commit(Math.min(this.options.value + 1, 5));
         break;
 
       case "ArrowLeft":
       case "ArrowDown":
         e.preventDefault();
-        commit(Math.max(options.value - 1, 0));
+        this.#commit(Math.max(this.options.value - 1, 0));
         break;
 
       case "Home":
         e.preventDefault();
-        commit(0);
+        this.#commit(0);
         break;
 
       case "End":
         e.preventDefault();
-        commit(5);
+        this.#commit(5);
         break;
     }
-  }
-
-  // ---
-
-  return {
-    /** 取得指定星號（1–5）的視覺狀態，包含 filled / bright */
-    getStarState,
-
-    /** 處理星號滑鼠移入事件 */
-    handleStarMouseEnter,
-    /** 處理評分容器滑鼠移出事件 */
-    handleContainerMouseLeave,
-    /** 處理星號點擊事件 */
-    handleStarClick,
-    /** 處理評分容器鍵盤事件（需綁定在 tabindex="0" 的容器上） */
-    handleContainerKeydown,
   };
 }

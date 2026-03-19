@@ -1,11 +1,12 @@
 <script lang="ts">
   import { IconArrowUp } from "@tabler/icons-svelte";
   import { fly } from "svelte/transition";
-  import { createScrollFab } from "./scrollFab.svelte.js";
+  import { ScrollFab } from "./scrollFab.svelte.js";
 
-  let { pageContentEl }: { pageContentEl: HTMLElement | null } = $props();
+  type Props = { pageContentEl: HTMLElement | null };
+  let { pageContentEl }: Props = $props();
 
-  const ui = createScrollFab({
+  const ui = new ScrollFab({
     get pageContentEl() {
       return pageContentEl;
     },
@@ -14,7 +15,7 @@
 
 {#if ui.showFab}
   <button
-    class="scroll-fab"
+    class="fab"
     onclick={ui.handleFabClick}
     aria-label="回到頂部"
     transition:fly={{ y: 16, duration: 200, opacity: 0 }}
@@ -24,7 +25,7 @@
 {/if}
 
 <style>
-  .scroll-fab {
+  .fab {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
@@ -42,14 +43,14 @@
     transition:
       transform 0.15s,
       box-shadow 0.15s;
-  }
 
-  .scroll-fab:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  }
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
 
-  .scroll-fab:active {
-    transform: scale(0.95);
+    &:active {
+      transform: scale(0.95);
+    }
   }
 </style>

@@ -1,34 +1,27 @@
 /**
- * TaggerProgress 元件的配置選項
+ * TaggerProgress 的配置選項
  */
 type TaggerProgressOptions = {
   /** 暫存檔案列表 */
-  get stagedFiles(): string[];
+  stagedFiles: string[];
   /** 已處理數量 */
-  get progress(): number;
+  progress: number;
 };
 
 /**
- * 建立進度列邏輯的核心工廠函數
+ * TaggerProgress 的互動邏輯
  */
-export function createTaggerProgress(options: TaggerProgressOptions) {
+export class TaggerProgress {
   /** 總數（已處理 + 剩餘） */
-  const total = $derived(options.progress + options.stagedFiles.length);
+  total: number;
   /** 進度百分比 */
-  const progressPct = $derived(total > 0 ? Math.round((options.progress / total) * 100) : 0);
+  progressPct: number;
   /** 進度文字標籤 */
-  const progressLabel = $derived(`${options.progress}/${total} (${options.stagedFiles.length} 剩餘)`);
+  progressLabel: string;
 
-  // ---
-
-  return {
-    /** 存取進度百分比的 getter */
-    get progressPct() {
-      return progressPct;
-    },
-    /** 存取進度文字標籤的 getter */
-    get progressLabel() {
-      return progressLabel;
-    },
-  };
+  constructor(options: TaggerProgressOptions) {
+    this.total = $derived(options.progress + options.stagedFiles.length);
+    this.progressPct = $derived(this.total > 0 ? Math.round((options.progress / this.total) * 100) : 0);
+    this.progressLabel = $derived(`${options.progress}/${this.total} (${options.stagedFiles.length} 剩餘)`);
+  }
 }

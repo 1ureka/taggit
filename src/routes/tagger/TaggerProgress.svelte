@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createTaggerProgress } from "./taggerProgress.svelte.js";
+  import { TaggerProgress } from "./taggerProgress.svelte.js";
 
   type Props = {
     stagedFiles: string[];
@@ -8,7 +8,7 @@
 
   let { stagedFiles, progress }: Props = $props();
 
-  const ui = createTaggerProgress({
+  const ui = new TaggerProgress({
     get stagedFiles() {
       return stagedFiles;
     },

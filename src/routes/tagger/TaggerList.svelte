@@ -1,6 +1,6 @@
 <script lang="ts">
   import { imgSrc } from "$lib/client/api.js";
-  import { createTaggerList } from "./taggerList.svelte.js";
+  import { TaggerList } from "./taggerList.svelte.js";
 
   type Props = {
     stagedFiles: string[];
@@ -10,7 +10,7 @@
 
   let { stagedFiles, currentFile = $bindable(), selectedFiles = $bindable() }: Props = $props();
 
-  const ui = createTaggerList({
+  const ui = new TaggerList({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -31,27 +31,26 @@
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-<div class="tagger-sidebar-list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
+<div class="list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
   {#if stagedFiles.length === 0}
-    <div class="tagger-empty">沒有待審查的圖片</div>
+    <div class="empty">沒有待審查的圖片</div>
   {:else}
-    <div class="virtual-scroll-content" style="height:{ui.totalH}px">
+    <div class="scroll-content" style="height:{ui.totalH}px">
       {#each ui.visible as item (item.filename)}
         <button
           type="button"
-          class="tagger-thumb"
+          class="item"
           class:active={item.filename === currentFile}
           class:selected={selectedFiles.has(item.filename)}
           style="top:{item.index * ui.ITEM_H}px"
           onclick={(e) => ui.handleItemClick(e, item.filename)}
         >
           <img
-            class="tagger-thumb-img"
             src={imgSrc("staged", item.filename, "sm")}
             alt={item.filename}
             loading="lazy"
           />
-          <span class="tagger-thumb-name">{item.filename}</span>
+          <span class="name">{item.filename}</span>
         </button>
       {/each}
     </div>
@@ -59,17 +58,17 @@
 </div>
 
 <style>
-  .tagger-sidebar-list {
+  .list {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
   }
 
-  .virtual-scroll-content {
+  .scroll-content {
     position: relative;
   }
 
-  .tagger-thumb {
+  .item {
     position: absolute;
     left: 0;
     height: 72px;
@@ -89,33 +88,33 @@
       background 0.1s,
       border-color 0.15s;
     user-select: none;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &.selected {
+      background: var(--bg-active);
+      border-left-color: var(--text-dim);
+    }
+
+    &.active {
+      background: var(--bg-active);
+      border-left-color: var(--accent);
+    }
+
+    & img {
+      width: auto;
+      height: 60px;
+      max-width: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
   }
 
-  .tagger-thumb:hover {
-    background: var(--bg-hover);
-  }
-
-  .tagger-thumb.selected {
-    background: var(--bg-active);
-    border-left-color: var(--text-dim);
-  }
-
-  .tagger-thumb.active {
-    background: var(--bg-active);
-    border-left-color: var(--accent);
-  }
-
-  .tagger-thumb-img {
-    width: auto;
-    height: 60px;
-    max-width: 80px;
-    object-fit: cover;
-    border-radius: 4px;
-    background: var(--bg);
-    flex-shrink: 0;
-  }
-
-  .tagger-thumb-name {
+  .name {
     flex: 1;
     font-size: 0.6875rem;
     color: var(--text-muted);
@@ -125,7 +124,7 @@
     min-width: 0;
   }
 
-  .tagger-empty {
+  .empty {
     display: flex;
     align-items: center;
     justify-content: center;

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconRefresh } from "@tabler/icons-svelte";
-  import { createTaggerRefresh } from "./taggerRefresh.svelte.js";
+  import { TaggerRefresh } from "./taggerRefresh.svelte.js";
 
   type Props = {
     stagedFiles: string[];
@@ -10,7 +10,7 @@
 
   let { stagedFiles, selectedFiles, loading = $bindable() }: Props = $props();
 
-  const ui = createTaggerRefresh({
+  const ui = new TaggerRefresh({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -26,11 +26,10 @@
   });
 </script>
 
-<div class="tagger-sidebar-header">
-  <span class="tagger-sidebar-title">待審查</span>
-  <span class="badge">{ui.selectedSize > 1 ? `${ui.selectedSize}/` : ""}{ui.listLength}</span>
+<header>
+  <span class="title">待審查</span>
+  <span class="badge">{ui.badgeLabel}</span>
   <button
-    class="btn-refresh"
     class:spinning={ui.loading}
     title="重新掃描 staged 資料夾"
     onclick={ui.handleRefreshClick}
@@ -38,10 +37,10 @@
   >
     <IconRefresh size={14} />
   </button>
-</div>
+</header>
 
 <style>
-  .tagger-sidebar-header {
+  header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -49,7 +48,13 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .btn-refresh {
+  .title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -65,16 +70,20 @@
     transition:
       color 0.15s,
       background 0.15s;
-  }
 
-  .btn-refresh:hover {
-    color: var(--text);
-    background: var(--bg-hover);
-  }
+    &:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
 
-  .btn-refresh:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    &.spinning :global(svg) {
+      animation: spin 0.8s linear infinite;
+    }
   }
 
   @keyframes spin {
@@ -84,15 +93,5 @@
     to {
       transform: rotate(360deg);
     }
-  }
-
-  .btn-refresh.spinning :global(svg) {
-    animation: spin 0.8s linear infinite;
-  }
-
-  .tagger-sidebar-title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--text-muted);
   }
 </style>

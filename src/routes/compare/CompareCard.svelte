@@ -4,12 +4,12 @@
   import { blurhashStyle } from "$lib/client/blurhash";
   import { imgSrc } from "$lib/client/api";
 
-  type Props = { image: ImageWithId; onclick: () => void };
-  let { image, onclick }: Props = $props();
+  type Props = { image: ImageWithId };
+  let { image }: Props = $props();
 </script>
 
-<button class="compare-card" type="button" {onclick} title="在 Editor 中開啟">
-  <div class="compare-card-image">
+<a class="card" href="/editor/{encodeURIComponent(image.id)}" title="在 Editor 中開啟">
+  <div class="card-image">
     {#key image.id}
       <img
         src={imgSrc("committed", `${image.id}${image.ext}`)}
@@ -19,18 +19,18 @@
       />
     {/key}
   </div>
-  <div class="compare-card-info">
+  <div class="card-info">
     <Rating readonly value={image.rating ?? 0} size="0.875rem" />
-    <div class="compare-card-info-tags">
+    <div class="tags">
       {#each image.tags as tag}
         <span class="chip">{tag}</span>
       {/each}
     </div>
   </div>
-</button>
+</a>
 
 <style>
-  .compare-card {
+  .card {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -38,7 +38,7 @@
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 2);
     overflow: hidden;
-    cursor: pointer;
+
     transition:
       border-color 0.15s,
       box-shadow 0.15s;
@@ -49,7 +49,7 @@
     }
   }
 
-  .compare-card-image {
+  .card-image {
     flex: 1;
     display: flex;
     align-items: center;
@@ -65,7 +65,7 @@
     }
   }
 
-  .compare-card-info {
+  .card-info {
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
@@ -73,7 +73,7 @@
     border-top: 1px solid var(--border);
   }
 
-  .compare-card-info-tags {
+  .tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;

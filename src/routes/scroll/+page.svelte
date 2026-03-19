@@ -28,12 +28,12 @@
       首頁
     </a>
     <span class="page-header-title">垂直瀏覽</span>
-    <div class="select-wrapper">
+    <div class="controls">
       <Select bind:value={columns} options={columnOptions} />
     </div>
   </header>
 
-  <main class="page-content slide-up" bind:this={pageContentEl}>
+  <main class="slide-up" bind:this={pageContentEl}>
     <ScrollForm total={data.total} />
     <ScrollMasonry items={data.items} bind:columns {pageContentEl} />
   </main>
@@ -50,14 +50,14 @@
     overflow: hidden;
   }
 
-  .page-content {
+  main {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
   }
 
-  .select-wrapper {
+  .controls {
     margin-left: auto;
     display: flex;
     align-items: center;
