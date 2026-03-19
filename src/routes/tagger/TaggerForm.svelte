@@ -56,9 +56,9 @@
     <IconCheck size={16} />
     {ui.commitLabel}
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
+  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.loading}>
     <IconTrash size={16} />
-    {ui.trashLabel}
+    {ui.deleteLabel}
   </button>
   <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>
     <IconX size={16} />

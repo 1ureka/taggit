@@ -34,16 +34,12 @@ export class TaggerForm {
   /** 提交按鈕文字 */
   commitLabel: string;
   /** 刪除按鈕文字 */
-  trashLabel: string;
+  deleteLabel: string;
 
   constructor(private options: TaggerFormOptions) {
     this.selectedCount = $derived(options.selectedFiles.size);
-    this.commitLabel = $derived(
-      options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交",
-    );
-    this.trashLabel = $derived(
-      options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除",
-    );
+    this.commitLabel = $derived(options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交");
+    this.deleteLabel = $derived(options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除");
   }
 
   // ---
@@ -103,27 +99,25 @@ export class TaggerForm {
     }
   }
 
-  /** 將已選取的圖片移至垃圾桶 */
-  async #doTrash() {
+  /** 永久刪除已選取的圖片 */
+  async #doDelete() {
     if (this.options.loading || this.options.selectedFiles.size === 0) return;
 
     const n = this.options.selectedFiles.size;
     const msg =
       n === 1
-        ? `確定要將「${this.options.currentFile}」移至垃圾桶？`
-        : `確定要將選取的 ${n} 張圖片移至垃圾桶？`;
+        ? `確定要永久刪除「${this.options.currentFile}」？此操作無法復原。`
+        : `確定要永久刪除選取的 ${n} 張圖片？此操作無法復原。`;
     if (!(await requestConfirm(msg))) return;
 
     const names = [...this.options.selectedFiles];
     this.options.loading = true;
 
     try {
-      const [ok, fail] = await batchRun(names, 5, (fn) =>
-        api.del(`/api/staged/${encodeURIComponent(fn)}`),
-      );
+      const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/staged/${encodeURIComponent(fn)}`));
 
       if (ok) {
-        addToast(ok === 1 ? `已移至垃圾桶: ${names[0]}` : `已將 ${ok} 張圖片移至垃圾桶`, "info");
+        addToast(ok === 1 ? `已永久刪除: ${names[0]}` : `已永久刪除 ${ok} 張圖片`, "info");
       }
       if (fail) addToast(`${fail} 張刪除失敗`, "error");
 
@@ -153,7 +147,7 @@ export class TaggerForm {
       t: () => this.#focusTagInput(),
       T: () => this.#focusTagInput(),
       Enter: () => this.#doCommit(),
-      Delete: () => this.#doTrash(),
+      Delete: () => this.#doDelete(),
     };
 
     const action = actions[key];
@@ -171,8 +165,8 @@ export class TaggerForm {
   };
 
   /** 處理刪除按鈕點擊事件 */
-  handleTrashClick = () => {
-    this.#doTrash();
+  handleDeleteClick = () => {
+    this.#doDelete();
   };
 
   /** 處理重置按鈕點擊事件 */

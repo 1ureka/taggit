@@ -41,6 +41,9 @@ export class EditorForm {
       this.tags = [...options.image.tags];
       this.rating = options.image.rating;
       this.dirty = false;
+      return () => {
+        if (this.#saveTimer) clearTimeout(this.#saveTimer);
+      };
     });
   }
 
@@ -89,11 +92,11 @@ export class EditorForm {
     return "";
   }
 
-  /** 將圖片移入垃圾桶 */
-  async #doTrash() {
+  /** 取消提交，將圖片退回暫存狀態 */
+  async #doDelete() {
     if (this.options.loading) return;
 
-    const ok = await requestConfirm("確定要將此圖片移入垃圾桶嗎？");
+    const ok = await requestConfirm("確定要將此圖片退回暫存區嗎？");
     if (!ok) return;
 
     this.options.loading = true;
@@ -106,7 +109,7 @@ export class EditorForm {
         return;
       }
 
-      addToast("已移入垃圾桶", "success");
+      addToast("已退回暫存區", "success");
       goto("/editor");
     } finally {
       this.options.loading = false;
@@ -153,9 +156,9 @@ export class EditorForm {
     this.#saveChanges();
   };
 
-  /** 處理刪除按鈕點擊事件，確認後將圖片移入垃圾桶 */
-  handleTrashClick = () => {
-    this.#doTrash();
+  /** 處理退回按鈕點擊事件，確認後將圖片退回暫存區 */
+  handleDeleteClick = () => {
+    this.#doDelete();
   };
 
   // ---
