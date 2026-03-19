@@ -7,7 +7,7 @@
  */
 
 import type { JSONDatabase } from "./db.js";
-import type { ImageRecord, ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
+import type { ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
 import { sortCollator } from "$lib/utils.js";
 
 // ---
@@ -32,13 +32,6 @@ export function getImageCount(jsonDB: JSONDatabase): number {
  */
 export function hasImage(jsonDB: JSONDatabase, id: string): boolean {
   return id in jsonDB.data.images;
-}
-
-/**
- * 回傳全部 `[id, record]` 對，適合遍歷所有圖片。
- */
-export function allImageEntries(jsonDB: JSONDatabase): [string, ImageRecord][] {
-  return Object.entries(jsonDB.data.images);
 }
 
 // ---

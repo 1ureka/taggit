@@ -1,4 +1,4 @@
-import { getDB } from "$lib/server/db.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 
 // Graceful Shutdown
 //
@@ -6,7 +6,6 @@ import { getDB } from "$lib/server/db.js";
 // Only register once (HMR-safe via a globalThis flag).
 
 declare global {
-  // eslint-disable-next-line no-var
   var __sigintRegistered: boolean | undefined;
 }
 
@@ -14,13 +13,13 @@ if (!globalThis.__sigintRegistered) {
   globalThis.__sigintRegistered = true;
   process.on("SIGINT", () => {
     console.log("\n[hooks] SIGINT received – flushing DB…");
-    getDB().flush();
+    requireDatabase({ allowUnload: true }).db.flush();
     console.log("[hooks] DB flushed, exiting.");
     process.exit(0);
   });
   process.on("SIGTERM", () => {
-    console.log("\n[hooks] SIGTERM received \u2013 flushing DB\u2026");
-    getDB().flush();
+    console.log("\n[hooks] SIGTERM received – flushing DB…");
+    requireDatabase({ allowUnload: true }).db.flush();
     console.log("[hooks] DB flushed, exiting.");
     process.exit(0);
   });

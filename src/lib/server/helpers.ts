@@ -6,33 +6,10 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import { getDB, type JSONDatabase } from "./db.js";
-import { getCollectionPaths, IMG_EXTS } from "./config.js";
+import type { JSONDatabase } from "./db.js";
+import { IMG_EXTS } from "./config.js";
 import { sortCollator } from "$lib/utils.js";
 import type { CollectionPaths } from "$lib/types.js";
-
-/**
- * 若集合已知路徑，回傳 CollectionPaths；否則回傳 null。
- * 已知路徑不代表集合已載入 (DB 可能尚未載入或載入失敗)
- */
-export function requirePaths(): CollectionPaths | null {
-  const db = getDB();
-  const root = db.getCurrentRoot();
-  if (!root) return null;
-  return getCollectionPaths(root);
-}
-
-/**
- * 若集合已載入，回傳 JSONDatabase 實例；否則回傳 null。
- * 呼叫端需自行回傳 503。
- */
-export function requireDatabase(): { db: JSONDatabase; paths: CollectionPaths } | null {
-  const db = getDB();
-  if (!db.isLoaded()) return null;
-  const paths = requirePaths();
-  if (!paths) return null;
-  return { db, paths };
-}
 
 // ---
 

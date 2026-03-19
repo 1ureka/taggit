@@ -1,17 +1,16 @@
 /**
  * @file db.ts
- * 記憶體內 JSON 資料庫 —— 類別定義、持久化與單例。
+ * 記憶體內 JSON 資料庫 —— 類別定義與持久化。
  *
  * 本模組的職責：
  *   - {@link JSONDatabase} 類別：擁有所有記憶體內狀態（資料、索引、dirty 旗標）。
- *   - 透過 `globalThis.__db` 實現 HMR 安全的單例。
  *   - 防抖寫入 `db.json` 至磁碟。
  *   - 載入 / 切換目前的集合。
  *
+ * 單例管理與存取介面位於 {@link ./db-instance.ts}。
  * 查詢邏輯位於 {@link ./db-query.ts}。
  * 異動邏輯位於 {@link ./db-mutation.ts}。
- * 業務邏輯應透過 `helpers.ts` 的 `requireDatabase` / `requirePaths` 取得 db 與 paths，
- * 而非直接呼叫 {@link getDB}。
+ * 業務邏輯應透過 `db-instance.ts` 的 `requireDatabase` / `requirePaths` 取得 db 與 paths。
  */
 
 import fs from "fs";
@@ -21,7 +20,7 @@ import type { DBData, ImageRecord } from "$lib/types.js";
 /**
  * 封裝圖片資料庫的所有記憶體內狀態，以及索引維護與持久化邏輯。
  *
- * 實例通常透過模組層級的 {@link getDB} 單例取得，
+ * 實例通常透過 {@link ./db-instance.ts} 的 `requireDatabase` 取得，
  * 而非直接建構。
  */
 export class JSONDatabase {
@@ -192,32 +191,4 @@ export class JSONDatabase {
   getCurrentRoot(): string | null {
     return this.currentRoot;
   }
-}
-
-// ---
-
-declare global {
-  /** HMR 保護：在熱重載之間重用現有的 {@link JSONDatabase} 實例。 */
-  var __db: JSONDatabase | undefined;
-}
-
-/**
- * 回傳模組層級的 {@link JSONDatabase} 單例，首次存取時建立。
- * 實例儲存於 `globalThis`，使 Vite HMR 不會在重載間重設它。
- *
- * @deprecated 業務路由與 SSR 邏輯請改用 `requireDatabase()` / `requirePaths()`
- * （來自 `$lib/server/helpers.js`），它們提供型別安全的 null check
- * 並一次回傳 db + paths bundle。
- *
- * 僅限基礎設施層直接使用:
- * - hooks（flush）
- * - layout load（loadCollection）
- * - setup endpoint（loadCollection）
- * - helpers.ts 內部封裝。
- */
-export function getDB(): JSONDatabase {
-  if (!globalThis.__db) {
-    globalThis.__db = new JSONDatabase();
-  }
-  return globalThis.__db;
 }
