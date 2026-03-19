@@ -10,7 +10,9 @@ import { generateMetadata } from "$lib/server/thumbnail.js";
  */
 export const POST: RequestHandler = async () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { db, paths } = loaded;
   const images = db.data.images;
@@ -26,15 +28,18 @@ export const POST: RequestHandler = async () => {
     const meta = await generateMetadata(filePath);
 
     let changed = false;
+
     if (needsBlurhash && meta.blurhash) {
       record.blurhash = meta.blurhash;
       changed = true;
     }
+
     if (needsDimensions && meta.width > 0 && meta.height > 0) {
       record.width = meta.width;
       record.height = meta.height;
       changed = true;
     }
+
     if (changed) updated++;
   }
 
@@ -52,9 +57,12 @@ export const POST: RequestHandler = async () => {
  */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const images = loaded.db.data.images;
+
   let missing = 0;
 
   for (const record of Object.values(images)) {

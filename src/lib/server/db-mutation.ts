@@ -32,14 +32,19 @@ export function addImage(jsonDB: JSONDatabase, id: string, record: ImageRecord):
  *
  * @param jsonDB - 要異動的資料庫實例。
  * @param id - 要移除的圖片唯一識別碼。
- * @throws {Error} 若指定 id 的記錄不存在。
+ * @throws {Error & { status: 404 }} 若指定 id 的記錄不存在。
  */
 export function removeImage(jsonDB: JSONDatabase, id: string): ImageRecord {
   const rec = jsonDB.data.images[id];
-  if (!rec) throw new Error("Image not found: " + id);
+
+  if (!rec) {
+    throw Object.assign(new Error("找不到圖片: " + id), { status: 404 });
+  }
+
   jsonDB.indexRemove(id, rec);
   delete jsonDB.data.images[id];
   jsonDB.markDirty();
+
   return rec;
 }
 
@@ -65,18 +70,18 @@ interface UpdateImagePatch {
  * @param id - 要更新的圖片唯一識別碼。
  * @param patch - 包含 `expectedUpdatedAt` 與要更新欄位的補丁物件。
  * @returns 附帶 id 的已更新圖片。
- * @throws {Error} 若指定 id 的記錄不存在。
- * @throws {Error & { status: 409; record: ImageWithId }} 發生併發衝突時。
+ * @throws {Error & { status: 404 }} 若指定 id 的記錄不存在。
+ * @throws {Error & { status: 409 }} 發生併發衝突時。
  */
 export function updateImage(jsonDB: JSONDatabase, id: string, patch: UpdateImagePatch): ImageWithId {
   const rec = jsonDB.data.images[id];
 
   if (!rec) {
-    throw Object.assign(new Error("Image not found"), { status: 404 });
+    throw Object.assign(new Error("找不到圖片"), { status: 404 });
   }
 
   if (rec.updatedAt !== patch.expectedUpdatedAt) {
-    throw Object.assign(new Error("Conflict"), { status: 409 });
+    throw Object.assign(new Error("併發衝突"), { status: 409 });
   }
 
   jsonDB.indexRemove(id, rec);

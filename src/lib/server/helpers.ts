@@ -61,6 +61,6 @@ export async function parseBody<T = Record<string, unknown>>(request: Request): 
     const body = (await request.json()) as T;
     return [body, null];
   } catch {
-    return [null, json({ ok: false, error: "Invalid JSON body" }, { status: 400 })];
+    return [null, json({ ok: false, error: "無效的 JSON body" }, { status: 400 })];
   }
 }

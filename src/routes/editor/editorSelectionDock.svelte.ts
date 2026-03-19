@@ -1,6 +1,7 @@
 import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/client/api.js";
 import { addToast, requestConfirm } from "$lib/client/dom.js";
+import { batchRun } from "$lib/utils.js";
 
 /**
  * EditorSelectionDock 的配置選項
@@ -49,21 +50,9 @@ export class EditorSelectionDock {
 
     this.loading = true;
 
-    const res = await api.del<{ results: Array<{ id: string; ok: boolean; error?: string }> }>("/api/committed", {
-      ids,
-    });
-
-    let successCount = 0;
-    let failCount = 0;
-
-    if (res.ok && res.data) {
-      for (const r of res.data.results) {
-        if (r.ok) successCount++;
-        else failCount++;
-      }
-    } else {
-      failCount = ids.length;
-    }
+    const [successCount, failCount] = await batchRun(ids, 5, (id) =>
+      api.del(`/api/committed/${encodeURIComponent(id)}`),
+    );
 
     await invalidateAll();
     this.#clearSelection();

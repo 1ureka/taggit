@@ -14,14 +14,19 @@ import { parseBody } from "$lib/server/helpers.js";
  */
 export const GET: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
+  if (!isValidFilename(filename)) {
+    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
+  }
 
-  const { db } = loaded;
-  const image = getImageRecord(db, filename);
-  if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
+  const image = getImageRecord(loaded.db, filename);
+  if (!image) {
+    return json({ ok: false, error: "找不到圖片" }, { status: 404 });
+  }
 
   return json({ ok: true, data: image });
 };
@@ -35,10 +40,16 @@ export const GET: RequestHandler = ({ params }) => {
  */
 export const PATCH: RequestHandler = async ({ params, request }) => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
+  if (!isValidFilename(filename)) {
+    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
+  }
+
+  // ---
 
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
@@ -46,25 +57,24 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   const { tags, rating, name, expectedUpdatedAt } = body;
 
   if (typeof expectedUpdatedAt !== "number") {
-    return json({ ok: false, error: "expectedUpdatedAt is required (number)" }, { status: 400 });
+    return json({ ok: false, error: "無效的預期更新時間" }, { status: 400 });
   }
 
   if (tags !== undefined && !isValidTags(tags)) {
-    return json(
-      { ok: false, error: "Invalid tags (must be a non-empty array of unique, non-empty strings)" },
-      { status: 400 },
-    );
+    return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
   }
 
   if (rating !== undefined && !isValidRating(rating)) {
-    return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
+    return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
   }
 
   if (name !== undefined && !isValidName(name)) {
-    return json({ ok: false, error: "Invalid name (must be non-empty string, max 200 chars)" }, { status: 400 });
+    return json({ ok: false, error: "無效的名稱 (必須是非空字串，最多 200 個字元)" }, { status: 400 });
   }
 
   const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
+
+  // ---
 
   try {
     const { db } = loaded;
@@ -75,7 +85,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     if (e instanceof Error && "status" in e && typeof e.status === "number") {
       return json({ ok: false, error: e.message }, { status: e.status });
     }
-    throw e;
+
+    return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
   }
 };
 
@@ -88,16 +99,24 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
+  if (!isValidFilename(filename)) {
+    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
+  }
 
-  const { db } = loaded;
-  const image = getImageRecord(db, filename);
-  if (!image) return json({ ok: false, error: "Image not found" }, { status: 404 });
+  try {
+    removeImage(loaded.db, filename);
 
-  removeImage(db, filename);
+    return json({ ok: true, data: { filename } });
+  } catch (e) {
+    if (e instanceof Error && "status" in e && typeof e.status === "number") {
+      return json({ ok: false, error: e.message }, { status: e.status });
+    }
 
-  return json({ ok: true, data: { filename } });
+    return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
+  }
 };

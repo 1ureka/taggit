@@ -13,7 +13,7 @@ import { isValidTags } from "$lib/server/validation.js";
  */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   return json({ ok: true, data: { tags: getAllTags(loaded.db) } });
 };
 
@@ -28,7 +28,7 @@ export const GET: RequestHandler = () => {
 export const POST: RequestHandler = async ({ request }) => {
   const loaded = requireDatabase();
   if (!loaded) {
-    return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
   const [body, parseErr] = await parseBody(request);

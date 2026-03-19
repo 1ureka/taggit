@@ -11,7 +11,9 @@ import { requireDatabase } from "$lib/server/db-instance.js";
  */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { db, paths } = loaded;
   const missing: string[] = [];
@@ -32,7 +34,9 @@ export const GET: RequestHandler = () => {
  */
 export const DELETE: RequestHandler = () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { db, paths } = loaded;
   const removed: string[] = [];

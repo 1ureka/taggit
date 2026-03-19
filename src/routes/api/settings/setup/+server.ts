@@ -28,16 +28,13 @@ export const POST: RequestHandler = async ({ request }) => {
   const { collectionRoot } = body;
 
   if (!isValidAbsPath(collectionRoot)) {
-    return json({ ok: false, error: "collectionRoot is required and must be a non-empty string" }, { status: 400 });
+    return json({ ok: false, error: "無效的集合根目錄路徑" }, { status: 400 });
   }
 
   const root = collectionRoot.trim();
 
   if (!isCollectionValid(root)) {
-    return json(
-      { ok: false, error: "Path does not exist or could not create required subdirectories" },
-      { status: 422 },
-    );
+    return json({ ok: false, error: "路徑不存在或無法建立所需的子目錄" }, { status: 422 });
   }
 
   setCollectionRoot(root);
