@@ -37,14 +37,14 @@ export class EditorSelectionDock {
     this.#clearSelection();
   };
 
-  /** 處理刪除按鈕點擊事件，批次刪除已選取的圖片 */
+  /** 處理退回按鈕點擊事件，批次將已選取的圖片退回暫存區 */
   handleDeleteClick = async () => {
     if (this.loading) return;
 
     const ids = [...this.options.selected];
     if (ids.length === 0) return;
 
-    const ok = await requestConfirm(`確定要刪除已選取的 ${ids.length} 張圖片嗎？此操作無法復原。`);
+    const ok = await requestConfirm(`確定要將已選取的 ${ids.length} 張圖片退回暫存區嗎？`);
     if (!ok) return;
 
     this.loading = true;
@@ -66,14 +66,9 @@ export class EditorSelectionDock {
     this.loading = false;
 
     if (failCount > 0) {
-      addToast(`已刪除 ${successCount} 張，${failCount} 張失敗`, "error");
+      addToast(`已退回 ${successCount} 張，${failCount} 張失敗`, "error");
     } else {
-      addToast(`已刪除 ${successCount} 張圖片`, "success");
+      addToast(`已退回 ${successCount} 張圖片至暫存區`, "success");
     }
-  };
-
-  /** 處理退回按鈕點擊事件（空殼，後續實作） */
-  handleUnstageClick = async () => {
-    // 後續實作：committed → staged
   };
 }
