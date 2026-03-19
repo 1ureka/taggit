@@ -1,4 +1,3 @@
-import * as config from "$lib/server/config.js";
 import { getDB } from "$lib/server/db.js";
 
 // Graceful Shutdown
@@ -26,6 +25,3 @@ if (!globalThis.__sigintRegistered) {
     process.exit(0);
   });
 }
-
-// Ensure server.json exists at startup
-config.ensureServerJson();

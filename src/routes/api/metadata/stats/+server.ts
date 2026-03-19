@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import { getImageCount, getTagCount } from "$lib/server/db-query.js";
-import { getStagedFiles, getTrashFiles, requireDatabase } from "$lib/server/helpers.js";
+import { getStagedFiles, requireDatabase } from "$lib/server/helpers.js";
 
 /** GET /api/metadata/stats — return collection statistics */
 export const GET: RequestHandler = () => {
@@ -14,8 +14,7 @@ export const GET: RequestHandler = () => {
     data: {
       totalImages: getImageCount(db),
       totalTags: getTagCount(db),
-      stagedCount: getStagedFiles(paths).length,
-      trashCount: getTrashFiles(paths).length,
+      stagedCount: getStagedFiles(db, paths).length,
     },
   });
 };

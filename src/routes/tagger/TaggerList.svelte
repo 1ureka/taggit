@@ -45,11 +45,7 @@
           style="top:{item.index * ui.ITEM_H}px"
           onclick={(e) => ui.handleItemClick(e, item.filename)}
         >
-          <img
-            src={imgSrc("staged", item.filename, "sm")}
-            alt={item.filename}
-            loading="lazy"
-          />
+          <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
           <span class="name">{item.filename}</span>
         </button>
       {/each}

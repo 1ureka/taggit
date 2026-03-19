@@ -35,18 +35,16 @@ const SERVER_JSON_PATH = path.resolve("server.json");
 // ---
 
 /**
- * 確保 server.json 存在。若檔案不存在則建立空的 `{}`。
- * 在首次讀取時呼叫，確保所有程式路徑都是安全的。
+ * 讀取 server.json 的內容，若檔案不存在則建立空的 `{}`。
  */
-export function ensureServerJson(): void {
+function readServerJson(): ServerConfig {
+  console.log("[config] Reading server.json");
+
   if (!fs.existsSync(SERVER_JSON_PATH)) {
-    fs.writeFileSync(SERVER_JSON_PATH, "{}\n", "utf8");
+    writeServerJson({});
     console.log("[config] Created server.json");
   }
-}
 
-function readServerJson(): ServerConfig {
-  ensureServerJson();
   try {
     const raw = fs.readFileSync(SERVER_JSON_PATH, "utf8");
     return JSON.parse(raw) as ServerConfig;
@@ -56,7 +54,12 @@ function readServerJson(): ServerConfig {
   }
 }
 
+/**
+ * 將 server.json 寫入磁碟。
+ */
 function writeServerJson(data: ServerConfig): void {
+  console.log("[config] Writing server.json");
+
   fs.writeFileSync(SERVER_JSON_PATH, JSON.stringify(data, null, 2) + "\n", "utf8");
 }
 
@@ -72,7 +75,7 @@ export function getCollectionRoot(): string | null {
 
 /**
  * 將 collectionRoot 寫入 server.json。
- * 不會觸發 db.loadCollection()；呼叫端（API 或 hooks）須自行處理。
+ * 不會觸發 db.loadCollection()；呼叫端須自行處理。
  */
 export function setCollectionRoot(root: string): void {
   const cfg = readServerJson();
@@ -96,6 +99,7 @@ export function isCollectionValid(root: string): boolean {
       fs.mkdirSync(imagesDir, { recursive: true });
       console.log(`[config] Created directory: ${imagesDir}`);
     }
+
     return true;
   } catch (e) {
     console.error("[config] isCollectionValid error:", (e as Error).message);

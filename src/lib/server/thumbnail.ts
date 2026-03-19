@@ -110,7 +110,9 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
 
 // ---
 
-/** 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。 */
+/**
+ * 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。
+ */
 async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
 
@@ -194,14 +196,20 @@ export async function getImageMeta(filePath: string): Promise<{ width: number; h
   }
 }
 
-/** 清空縮圖快取，回傳被清除的項目數量。 */
+// ---
+
+/**
+ * 清空縮圖快取，回傳被清除的項目數量。
+ */
 export function clearCache(): number {
   const count = cache.stats.entries;
   cache.clear();
   return count;
 }
 
-/** 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。 */
+/**
+ * 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。
+ */
 export function getCacheStats(): { entries: number; bytes: number } {
   return cache.stats;
 }

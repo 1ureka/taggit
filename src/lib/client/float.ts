@@ -27,10 +27,10 @@ export function float(node: HTMLElement, opts: FloatOptions) {
   document.body.appendChild(node);
   node.dataset.open = "false";
 
-  /** ? */
+  /** autoUpdate 回傳的清除函式，用於停止自動重算 */
   let cleanup: (() => void) | undefined;
 
-  /** ? */
+  /** 依據選項建構 Floating UI 的 middleware 陣列 */
   function buildMiddleware(o: FloatOptions): Middleware[] {
     const middleware: Middleware[] = [offset(4), flip({ padding: 8 }), shift({ padding: 8 })];
 
@@ -45,7 +45,7 @@ export function float(node: HTMLElement, opts: FloatOptions) {
     return middleware;
   }
 
-  /** ? */
+  /** 使用 computePosition 重新計算浮動元素位置 */
   function recompute(o: FloatOptions) {
     if (!o.reference) return;
 
@@ -58,7 +58,7 @@ export function float(node: HTMLElement, opts: FloatOptions) {
     });
   }
 
-  /** ? */
+  /** 根據 open 狀態啟停 autoUpdate 並觸發初次定位 */
   function apply(o: FloatOptions) {
     cleanup?.();
     cleanup = undefined;

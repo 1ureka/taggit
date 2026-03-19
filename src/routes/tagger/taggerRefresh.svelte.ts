@@ -37,7 +37,7 @@ export class TaggerRefresh {
 
   // ---
 
-  /** 處理刷新按鈕點擊事件，重新掃描 staged 資料夾 */
+  /** 處理刷新按鈕點擊事件，重新載入暫存檔案列表 */
   handleRefreshClick = async () => {
     if (this.options.loading) return;
     this.options.loading = true;

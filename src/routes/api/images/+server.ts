@@ -6,7 +6,7 @@ import { requireDatabase } from "$lib/server/helpers.js";
 
 /**
  * GET /api/images — query images with optional filters + pagination
- * (sort random + limit = 2 can be used for `/random-pair` page)
+ * (sort random + limit = 2 is used by the /compare page)
  */
 export const GET: RequestHandler = ({ url }) => {
   const loaded = requireDatabase();

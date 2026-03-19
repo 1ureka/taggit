@@ -6,8 +6,9 @@ import { api } from "./api.js";
 type AsyncFn<T> = () => Promise<T>;
 
 /**
- * Returns a cached version of `fn` with a time-to-live (TTL).
- * The cached value is returned if it's still valid (not expired), otherwise `fn` is called to refresh it.
+ * Returns a stale-while-revalidate (SWR) cached version of `fn`.
+ * If cached data exists, it is returned immediately even when expired;
+ * a background revalidation is triggered when the TTL has elapsed.
  */
 function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
   let cachedData: T | null = null;

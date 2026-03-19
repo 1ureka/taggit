@@ -32,12 +32,7 @@
   <div class="empty">找不到符合的圖片</div>
 {/if}
 
-<div
-  class="container"
-  class:loading={ui.loading}
-  bind:this={ui.containerEl}
-  style:height="{ui.totalHeight}px"
->
+<div class="container" class:loading={ui.loading} bind:this={ui.containerEl} style:height="{ui.totalHeight}px">
   {#each ui.visibleItems as item (item.id)}
     <div
       class="item"
@@ -46,7 +41,7 @@
       style:height="{item.pixelH}px"
     >
       <img
-        src={imgSrc("committed", `${item.id}${item.ext}`, "md")}
+        src={imgSrc(item.id, "md")}
         style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
         alt={item.name || item.id}
         loading="lazy"

@@ -8,8 +8,6 @@
   let { image, loading }: Props = $props();
 
   const zp = new ZoomPan();
-  const previewFilename = $derived(image.id + image.ext);
-  const previewSrc = $derived(imgSrc("committed", previewFilename));
 </script>
 
 <svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
@@ -24,7 +22,7 @@
     ondblclick={zp.handleContainerReset}
     role="img"
   >
-    <img src={previewSrc} alt={previewFilename} draggable="false" class:loading style="transform:{zp.transform}" />
+    <img src={imgSrc(image.id)} alt={image.id} draggable="false" class:loading style="transform:{zp.transform}" />
   </div>
 </section>
 

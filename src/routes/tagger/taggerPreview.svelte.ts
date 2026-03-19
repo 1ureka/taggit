@@ -23,7 +23,7 @@ export class TaggerPreview {
   #prevFile: string | null = null;
 
   constructor(private options: TaggerPreviewOptions) {
-    this.previewSrc = $derived(options.currentFile ? imgSrc("staged", options.currentFile) : "");
+    this.previewSrc = $derived(options.currentFile ? imgSrc(options.currentFile) : "");
 
     $effect(() => {
       const file = options.currentFile;

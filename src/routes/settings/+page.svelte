@@ -31,7 +31,7 @@
       <div class="slide-up">
         <section id="section-collection">
           <h2 class="title">圖片集路徑</h2>
-          <p class="desc">設定圖片集的根目錄。此路徑下會自動建立三個子目錄：</p>
+          <p class="desc">設定圖片集的根目錄。此路徑下會自動建立 <code>images/</code> 子目錄：</p>
           <SettingsCollection collectionRoot={data.collectionRoot} />
         </section>
 
