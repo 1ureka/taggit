@@ -6,14 +6,15 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import type { JSONDatabase } from "./db.js";
-import { IMG_EXTS } from "./config.js";
-import { sortCollator } from "$lib/utils.js";
+
 import type { CollectionPaths } from "$lib/types.js";
+import type { JSONDatabase } from "$lib/server/db.js";
+import { IMG_EXTS } from "$lib/server/config.js";
+import { sortCollator } from "$lib/utils.js";
 
-// ---
-
-/** 列出 images/ 目錄中不在 db.json 中的圖片檔名（即 staged），依字母排序。 */
+/**
+ * 列出 `images/` 目錄中不在 `db.json` 中的圖片檔名（即 staged），依字母排序。
+ */
 export function getStagedFiles(db: JSONDatabase, paths: CollectionPaths): string[] {
   try {
     const dbImages = db.data.images;
@@ -50,8 +51,6 @@ export function uniqueFilename(dir: string, name: string): string {
     i++;
   }
 }
-
-// ---
 
 /**
  * 從 Request 解析 JSON body。

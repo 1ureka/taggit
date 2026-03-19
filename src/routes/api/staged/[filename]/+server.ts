@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import type { ImageRecord } from "$lib/types.js";
@@ -8,14 +7,15 @@ import { hasImage } from "$lib/server/db-query.js";
 import { addImage } from "$lib/server/db-mutation.js";
 
 import { IMG_EXTS } from "$lib/server/config.js";
-import { isValidTags, isValidRating } from "$lib/server/validation.js";
-import { requireDatabase, parseBody, uniqueFilename } from "$lib/server/helpers.js";
+import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
+import { parseBody } from "$lib/server/helpers.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /**
  * POST /api/staged/[filename] — commit a staged file.
  * Body: { tags, rating }
- * filename comes from URL param.
+ * filename comes from URL param (= the actual filename in images/).
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   const loaded = requireDatabase();
@@ -24,8 +24,15 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const { db, paths } = loaded;
   const filename = params.filename!;
 
+  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
+
   if (!IMG_EXTS.has(path.extname(filename).toLowerCase()))
     return json({ ok: false, error: "Not an image file" }, { status: 400 });
+
+  if (hasImage(db, filename)) return json({ ok: false, error: "Already committed" }, { status: 409 });
+
+  const filePath = path.join(paths.images, filename);
+  if (!fs.existsSync(filePath)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
 
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
@@ -40,25 +47,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
   if (trimmedTags.length === 0) return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
 
   const ext = path.extname(filename).toLowerCase();
-  const srcPath = path.join(paths.staged, filename);
-
-  let id: string;
-  do {
-    id = crypto.randomBytes(8).toString("hex");
-  } while (hasImage(db, id));
-
-  const destPath = path.join(paths.committed, id + ext);
 
   try {
-    const stat = fs.statSync(srcPath);
-    // 先移動檔案再取 metadata：若 getImageMeta 失敗，檔案會留在 committed/ 成為孤立檔案。
-    // 此情況可透過「設定 → 系統維護 → 孤立檔案檢查」偵測並清除，風險可控。
-    fs.renameSync(srcPath, destPath);
-
+    const stat = fs.statSync(filePath);
     const now = Date.now();
-    const meta = await getImageMeta(destPath);
+    const meta = await getImageMeta(filePath);
     const record: ImageRecord = {
-      ext,
       name: path.basename(filename, ext),
       tags: trimmedTags,
       rating: rating as number,
@@ -68,8 +62,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
       ...meta,
     };
 
-    addImage(db, id, record);
-    return json({ ok: true, data: { id, record } }, { status: 201 });
+    addImage(db, filename, record);
+    return json({ ok: true, data: { id: filename, ...record } }, { status: 201 });
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT")
       return json({ ok: false, error: "Staged file not found" }, { status: 404 });
@@ -78,20 +72,25 @@ export const POST: RequestHandler = async ({ params, request }) => {
 };
 
 /**
- * DELETE /api/staged/[filename] — move staged file to trash (no body needed).
+ * DELETE /api/staged/[filename] — permanently delete a staged file.
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
-  const { paths } = loaded;
+  const { db, paths } = loaded;
   const filename = params.filename!;
-  const src = path.join(paths.staged, filename);
 
-  if (!fs.existsSync(src)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+  if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
-  const trashName = uniqueFilename(paths.trash, filename);
-  fs.renameSync(src, path.join(paths.trash, trashName));
+  if (hasImage(db, filename))
+    return json({ ok: false, error: "Cannot delete committed image via staged endpoint" }, { status: 409 });
 
-  return json({ ok: true, data: { trashName } });
+  const filePath = path.join(paths.images, filename);
+
+  if (!fs.existsSync(filePath)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+
+  fs.unlinkSync(filePath);
+
+  return json({ ok: true, data: { filename } });
 };
