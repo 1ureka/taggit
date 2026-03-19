@@ -1,3 +1,8 @@
+/**
+ * @file api.ts
+ * 前端統一的 HTTP 請求工具與圖片 URL 構建。
+ */
+
 import type { ImageSize } from "$lib/types.js";
 import { hasKey } from "$lib/utils.js";
 

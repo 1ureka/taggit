@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import * as config from "$lib/server/config.js";
-import { getDB } from "$lib/server/db.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
 
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   config.setCollectionRoot(root);
-  getDB().loadCollection(root);
+  requireDatabase({ allowUnload: true }).db.loadCollection(root);
 
   return json({ ok: true, data: { collectionRoot: root } });
 };

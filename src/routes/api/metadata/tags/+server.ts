@@ -2,7 +2,8 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import { getAllTags } from "$lib/server/db-query.js";
 import { renameTag } from "$lib/server/db-mutation.js";
-import { parseBody, requireDatabase } from "$lib/server/helpers.js";
+import { parseBody } from "$lib/server/helpers.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidTags } from "$lib/server/validation.js";
 
 /** GET /api/metadata/tags — list all tags with counts, sorted by count desc */

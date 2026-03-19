@@ -1,3 +1,8 @@
+/**
+ * @file blurhash.ts
+ * 將 BlurHash 轉為可套用在 `<img>` 上的 CSS 背景樣式字串，用於載入佔位圖。
+ */
+
 import { blurhashToDataUri } from "@unpic/placeholder";
 
 /**

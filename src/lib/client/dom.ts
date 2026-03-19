@@ -1,3 +1,8 @@
+/**
+ * @file dom.ts
+ * 前端 DOM 工具函式 —— 輸入狀態判斷、捲動控制、Toast 通知與確認對話框。
+ */
+
 import type { ConfirmEventName, ConfirmPayload, ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
 
 /**

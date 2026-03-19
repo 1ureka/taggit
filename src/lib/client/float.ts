@@ -1,13 +1,12 @@
 /**
- * Svelte action that positions a floating element relative to a reference element
- * using @floating-ui/dom. Handles portal-to-body, auto-update, and cleanup.
+ * @file float.ts
+ * Svelte action —— 使用 @floating-ui/dom 將浮動元素定位於參照元素旁。
  *
- * Key design: uses `strategy: 'fixed'` so the portalled node is always
- * viewport-relative and NEVER affects document scrollWidth/scrollHeight,
- * eliminating spurious overflow-x regardless of the element's coordinates.
+ * 設計要點：採用 `strategy: 'fixed'`，使 portal 節點始終以視窗為基準定位，
+ * 不會影響 document 的 scrollWidth/scrollHeight，避免產生多餘的橫向捲軸。
  *
- * Usage:
- *   <div use:float={{ reference: triggerEl, open }}>…</div>
+ * 使用方式：
+ *   `<div use:float={{ reference: triggerEl, open }}>…</div>`
  */
 import { computePosition, autoUpdate, flip, offset, shift, size } from "@floating-ui/dom";
 import type { Placement, Middleware, ElementRects } from "@floating-ui/dom";

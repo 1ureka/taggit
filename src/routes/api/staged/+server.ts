@@ -1,17 +1,19 @@
 import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { getStagedFiles, uniqueFilename, requirePaths } from "$lib/server/helpers.js";
+import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
+import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 
 /** GET /api/staged — list staged image filenames */
 export const GET: RequestHandler = () => {
-  const paths = requirePaths();
-  if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
-  return json({ ok: true, data: { files: getStagedFiles(paths) } });
+  const loaded = requireDatabase();
+  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  const { db, paths } = loaded;
+  return json({ ok: true, data: { files: getStagedFiles(db, paths) } });
 };
 
-/** POST /api/staged — upload (copy) image files into the staged directory */
+/** POST /api/staged — upload image files into images/ (not yet committed to db.json) */
 export const POST: RequestHandler = async ({ request }) => {
   const paths = requirePaths();
   if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
@@ -48,8 +50,8 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    const destName = uniqueFilename(paths.staged, entry.name);
-    const destPath = path.join(paths.staged, destName);
+    const destName = uniqueFilename(paths.images, entry.name);
+    const destPath = path.join(paths.images, destName);
 
     try {
       const buffer = Buffer.from(await entry.arrayBuffer());

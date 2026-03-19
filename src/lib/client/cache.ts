@@ -1,3 +1,8 @@
+/**
+ * @file cache.ts
+ * Stale-While-Revalidate (SWR) 快取機制，用於前端標籤列表等資料的快取與重新驗證。
+ */
+
 import { addToast } from "$lib/client/dom.js";
 import type { TagInfo } from "$lib/types.js";
 import { api } from "./api.js";

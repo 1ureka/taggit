@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "@sveltejs/kit";
 import { queryImages } from "$lib/server/db-query.js";
 import { parseQueryParams } from "$lib/utils.js";
-import { requireDatabase } from "$lib/server/helpers.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 
 /**
  * GET /api/images — query images with optional filters + pagination

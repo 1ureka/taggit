@@ -3,7 +3,7 @@ import path from "path";
 import type { RequestHandler } from "@sveltejs/kit";
 
 import { MIME_TYPES } from "$lib/server/config.js";
-import { requirePaths } from "$lib/server/helpers.js";
+import { requirePaths } from "$lib/server/db-instance.js";
 import { getImage } from "$lib/server/thumbnail.js";
 import { isValidFilename, isValidSize } from "$lib/server/validation.js";
 

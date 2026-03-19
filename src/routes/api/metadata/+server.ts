@@ -1,6 +1,6 @@
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { requireDatabase } from "$lib/server/helpers.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /** POST /api/metadata — 為缺少 blurhash/寬高 的圖片補算元資料 */
@@ -13,12 +13,12 @@ export const POST: RequestHandler = async () => {
 
   let updated = 0;
 
-  for (const [id, record] of Object.entries(images)) {
+  for (const [filename, record] of Object.entries(images)) {
     const needsBlurhash = !record.blurhash;
     const needsDimensions = record.width === 0 || record.height === 0;
     if (!needsBlurhash && !needsDimensions) continue;
 
-    const filePath = path.join(paths.committed, id + record.ext);
+    const filePath = path.join(paths.images, filename);
     const meta = await getImageMeta(filePath);
 
     let changed = false;

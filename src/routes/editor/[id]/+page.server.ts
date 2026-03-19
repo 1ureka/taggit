@@ -1,7 +1,7 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect, error } from "@sveltejs/kit";
 import { getImage } from "$lib/server/db-query.js";
-import { requireDatabase } from "$lib/server/helpers.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 
 export const load: PageServerLoad = ({ params }) => {
   const loaded = requireDatabase();
