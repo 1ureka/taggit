@@ -5,7 +5,11 @@ import { execSync, execFileSync } from "child_process";
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { requireDatabase } from "$lib/server/db-instance.js";
 
-/** POST /api/maintenance/backup — create a ZIP backup of images/ + db.json and stream it as download */
+/**
+ * `POST /api/settings/backup`
+ *
+ * 建立 images/ 與 db.json 的 ZIP 備份並下載。
+ */
 export const POST: RequestHandler = () => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });

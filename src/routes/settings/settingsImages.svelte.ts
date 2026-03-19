@@ -44,7 +44,7 @@ export class SettingsImages {
     this.cacheBusy = true;
     this.cacheResult = "";
 
-    const res = await api.del<{ cleared: number }>("/api/maintenance/cache");
+    const res = await api.del<{ cleared: number }>("/api/settings/cache");
     if (res.ok && res.data) {
       this.cacheResult = `已清空 ${res.data.cleared} 筆快取`;
       this.cacheEntries = 0;

@@ -36,7 +36,7 @@ export class SettingsCollection {
     this.message = "";
     this.isError = false;
 
-    const res = await api.post("/api/maintenance/setup", { collectionRoot: this.inputValue.trim() });
+    const res = await api.post("/api/settings/setup", { collectionRoot: this.inputValue.trim() });
     this.saving = false;
 
     if (res.ok) {

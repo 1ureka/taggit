@@ -70,7 +70,7 @@ export class BrowseForm {
     }
 
     try {
-      const res = await api.get<QueryResult>(`/api/images?${params}`);
+      const res = await api.get<QueryResult>(`/api/committed?${params}`);
       this.matchCount = res.ok && res.data ? res.data.total : 0;
     } catch {
       this.matchCount = 0;

@@ -13,16 +13,17 @@ import { parseBody } from "$lib/server/helpers.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /**
- * POST /api/staged/[filename] — commit a staged file.
- * Body: { tags, rating }
- * filename comes from URL param (= the actual filename in images/).
+ * `POST /api/staged/[filename]`
+ *
+ * 將暫存檔案提交至資料庫。
+ * Body: `{ tags, rating }`，filename 來自 URL 路徑參數。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const { db, paths } = loaded;
-  const filename = params.filename!;
+  const { filename } = params;
 
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 
@@ -71,15 +72,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
   }
 };
 
+// ---
+
 /**
- * DELETE /api/staged/[filename] — permanently delete a staged file.
+ * `DELETE /api/staged/[filename]`
+ *
+ * 永久刪除暫存區中的指定檔案。
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
 
   const { db, paths } = loaded;
-  const filename = params.filename!;
+  const { filename } = params;
 
   if (!isValidFilename(filename)) return json({ ok: false, error: "Invalid filename" }, { status: 400 });
 

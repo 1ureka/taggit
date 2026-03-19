@@ -25,7 +25,7 @@ export class SettingsMaintenance {
     this.missingResult = "";
     this.missingList = [];
 
-    const res = await api.get<{ missing: string[] }>("/api/maintenance/missing");
+    const res = await api.get<{ missing: string[] }>("/api/settings/missing");
     if (res.ok && res.data) {
       this.missingList = res.data.missing;
       this.missingResult =
@@ -41,7 +41,7 @@ export class SettingsMaintenance {
     if (!(await requestConfirm(`確定要刪除 ${this.missingList.length} 個缺失記錄？此操作無法復原。`))) return;
 
     this.missingBusy = true;
-    const res = await api.del<{ deleted: number }>("/api/maintenance/missing");
+    const res = await api.del<{ deleted: number }>("/api/settings/missing");
     if (res.ok && res.data) {
       this.missingResult = `已刪除 ${res.data.deleted} 個缺失記錄`;
       this.missingList = [];
@@ -58,7 +58,7 @@ export class SettingsMaintenance {
     this.backupBusy = true;
     this.backupResult = "";
     try {
-      const res = await fetch("/api/maintenance/backup", { method: "POST" });
+      const res = await fetch("/api/settings/backup", { method: "POST" });
       if (!res.ok) {
         const data = await res.json();
         this.backupResult = "錯誤: " + (data.error || "未知");

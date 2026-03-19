@@ -5,7 +5,11 @@ import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
 import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 
-/** GET /api/staged — list staged image filenames */
+/**
+ * `GET /api/staged`
+ *
+ * 列出所有暫存區中的圖片檔名。
+ */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
@@ -13,7 +17,13 @@ export const GET: RequestHandler = () => {
   return json({ ok: true, data: { files: getStagedFiles(db, paths) } });
 };
 
-/** POST /api/staged — upload image files into images/ (not yet committed to db.json) */
+// ---
+
+/**
+ * `POST /api/staged`
+ *
+ * 上傳圖片檔案至 images/ 目錄（尚未提交至 db.json）。
+ */
 export const POST: RequestHandler = async ({ request }) => {
   const paths = requirePaths();
   if (!paths) return json({ ok: false, error: "No collection loaded" }, { status: 503 });

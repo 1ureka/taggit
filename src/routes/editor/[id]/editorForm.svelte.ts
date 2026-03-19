@@ -57,7 +57,7 @@ export class EditorForm {
     if (this.#saveTimer) clearTimeout(this.#saveTimer);
 
     try {
-      const res = await api.patch<ImageWithId>(`/api/images/${encodeURIComponent(this.options.image.id)}`, {
+      const res = await api.patch<ImageWithId>(`/api/committed/${encodeURIComponent(this.options.image.id)}`, {
         name: this.name,
         tags: this.tags,
         rating: this.rating,
@@ -102,7 +102,7 @@ export class EditorForm {
     this.options.loading = true;
 
     try {
-      const res = await api.del(`/api/images/${encodeURIComponent(this.options.image.id)}`);
+      const res = await api.del(`/api/committed/${encodeURIComponent(this.options.image.id)}`);
 
       if (!res.ok) {
         addToast("操作失敗: " + (res.error || "未知錯誤"), "error");

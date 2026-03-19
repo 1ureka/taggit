@@ -5,7 +5,11 @@ import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/s
 import { parseBody } from "$lib/server/helpers.js";
 import { requireDatabase } from "$lib/server/db-instance.js";
 
-/** GET /api/images/[filename] */
+/**
+ * `GET /api/committed/[filename]`
+ *
+ * 取得單張已提交圖片的中繼資料。
+ */
 export const GET: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
@@ -20,7 +24,13 @@ export const GET: RequestHandler = ({ params }) => {
   return json({ ok: true, data: image });
 };
 
-/** PATCH /api/images/[filename] — update tags and/or rating (conflict-safe) */
+// ---
+
+/**
+ * `PATCH /api/committed/[filename]`
+ *
+ * 更新圖片的標籤、評分或名稱（支援樂觀併發控制）。
+ */
 export const PATCH: RequestHandler = async ({ params, request }) => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
@@ -67,8 +77,12 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   }
 };
 
+// ---
+
 /**
- * DELETE /api/images/[filename] — 取消提交，僅移除 DB 記錄，檔案保留於 images/ 並回到 staged 狀態。
+ * `DELETE /api/committed/[filename]`
+ *
+ * 取消提交，僅移除 DB 記錄，檔案保留於 images/ 並回到 staged 狀態。
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();

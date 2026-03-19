@@ -6,16 +6,24 @@ import { parseBody } from "$lib/server/helpers.js";
 import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidTags } from "$lib/server/validation.js";
 
-/** GET /api/metadata/tags — list all tags with counts, sorted by count desc */
+/**
+ * `GET /api/metadata/tags`
+ *
+ * 列出所有標籤及其使用次數，依次數降序排列。
+ */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
   if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
   return json({ ok: true, data: { tags: getAllTags(loaded.db) } });
 };
 
+// ---
+
 /**
- * POST /api/metadata/tags — rename a tag globally.
- * Body: { oldName, newName }
+ * `POST /api/metadata/tags`
+ *
+ * 全域重新命名標籤。
+ * Body: `{ oldName, newName }`
  */
 export const POST: RequestHandler = async ({ request }) => {
   const loaded = requireDatabase();

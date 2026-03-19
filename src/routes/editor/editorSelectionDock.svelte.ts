@@ -48,17 +48,21 @@ export class EditorSelectionDock {
     if (!ok) return;
 
     this.loading = true;
+
+    const res = await api.del<{ results: Array<{ id: string; ok: boolean; error?: string }> }>("/api/committed", {
+      ids,
+    });
+
     let successCount = 0;
     let failCount = 0;
 
-    for (const id of ids) {
-      try {
-        const res = await api.del(`/api/images/${encodeURIComponent(id)}`);
-        if (res.ok) successCount++;
+    if (res.ok && res.data) {
+      for (const r of res.data.results) {
+        if (r.ok) successCount++;
         else failCount++;
-      } catch {
-        failCount++;
       }
+    } else {
+      failCount = ids.length;
     }
 
     await invalidateAll();

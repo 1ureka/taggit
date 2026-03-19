@@ -59,7 +59,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
  *
  * @example
  * ```ts
- * const res = await api.get<{ images: ImageWithId[] }>("/api/images?limit=20");
+ * const res = await api.get<{ images: ImageWithId[] }>("/api/committed?limit=20");
  * if (res.ok) console.log(res.data);
  * ```
  */

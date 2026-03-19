@@ -5,13 +5,23 @@ import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
 
-/** GET /api/maintenance/setup — return current collectionRoot */
+/**
+ * `GET /api/settings/setup`
+ *
+ * 取得目前的圖片集根目錄路徑。
+ */
 export const GET: RequestHandler = () => {
   const collectionRoot = config.getCollectionRoot();
   return json({ ok: true, data: { collectionRoot } });
 };
 
-/** POST /api/maintenance/setup — set a new collectionRoot */
+// ---
+
+/**
+ * `POST /api/settings/setup`
+ *
+ * 設定新的圖片集根目錄路徑。
+ */
 export const POST: RequestHandler = async ({ request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
