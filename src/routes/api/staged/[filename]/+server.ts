@@ -44,7 +44,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   if (!isValidRating(rating))
     return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
 
-  const trimmedTags = (tags as string[]).map((t) => t.trim());
+  const trimmedTags = tags.map((t) => t.trim());
   if (trimmedTags.length === 0) return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
 
   const ext = path.extname(filename).toLowerCase();
@@ -56,7 +56,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const record: ImageRecord = {
       name: path.basename(filename, ext),
       tags: trimmedTags,
-      rating: rating as number,
+      rating,
       committedAt: now,
       updatedAt: now,
       fileSize: stat.size,

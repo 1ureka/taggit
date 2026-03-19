@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "collectionRoot is required and must be a non-empty string" }, { status: 400 });
   }
 
-  const root = (collectionRoot as string).trim();
+  const root = collectionRoot.trim();
 
   if (!config.isCollectionValid(root)) {
     return json(
