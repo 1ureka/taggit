@@ -1,9 +1,10 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
+
+import { requireDatabase } from "$lib/server/db-instance.js";
 import { getAllTags } from "$lib/server/db-query.js";
 import { renameTag } from "$lib/server/db-mutation.js";
+
 import { parseBody } from "$lib/server/helpers.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidTags } from "$lib/server/validation.js";
 
 /**
@@ -13,7 +14,10 @@ import { isValidTags } from "$lib/server/validation.js";
  */
 export const GET: RequestHandler = () => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
+
   return json({ ok: true, data: { tags: getAllTags(loaded.db) } });
 };
 
@@ -38,7 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const fields = [body.oldName, body.newName];
   if (!isValidTags(fields)) {
-    return json({ ok: false, error: "oldName and newName must be valid, distinct tag strings" }, { status: 400 });
+    return json({ ok: false, error: "oldName 和 newName 必須是有效且不同的標籤字串" }, { status: 400 });
   }
 
   const oldName = fields[0].trim();
