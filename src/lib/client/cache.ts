@@ -64,7 +64,7 @@ function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
  * Fetches the list of tags from the server.
  */
 const fetchTags = async () => {
-  const res = await api.get<{ tags: TagInfo[] }>("/api/metadata/tags");
+  const res = await api.get<{ tags: TagInfo[] }>("/api/tags");
   return res.ok && res.data ? res.data.tags : [];
 };
 

@@ -4,7 +4,7 @@ import { requireDatabase } from "$lib/server/db-instance.js";
 import { getImageMeta } from "$lib/server/thumbnail.js";
 
 /**
- * `POST /api/metadata`
+ * `POST /api/settings/metadata`
  *
  * 為缺少 blurhash 或寬高的圖片補算元資料。
  */
@@ -46,7 +46,7 @@ export const POST: RequestHandler = async () => {
 // ---
 
 /**
- * `GET /api/metadata`
+ * `GET /api/settings/metadata`
  *
  * 檢查缺少元資料的圖片數量。
  */

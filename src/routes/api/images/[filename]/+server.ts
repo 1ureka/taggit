@@ -7,21 +7,26 @@ import { requirePaths } from "$lib/server/db-instance.js";
 import { getImage } from "$lib/server/thumbnail.js";
 import { isValidFilename, isValidSize } from "$lib/server/validation.js";
 
+/**
+ * `GET /api/images/[filename]`
+ *
+ * 依檔名與尺寸參數回傳圖片二進位資料。
+ */
 export const GET: RequestHandler = async ({ params, url }) => {
   const paths = requirePaths();
   if (!paths) {
     return new Response("No collection loaded", { status: 503 });
   }
 
-  const { file } = params;
+  const { filename } = params;
 
-  if (!isValidFilename(file)) {
+  if (!isValidFilename(filename)) {
     return new Response("Invalid filename", { status: 400 });
   }
 
   const baseDir = paths.images;
 
-  const filePath = path.resolve(baseDir, file);
+  const filePath = path.resolve(baseDir, filename);
   if (!filePath.startsWith(path.resolve(baseDir) + path.sep) && filePath !== path.resolve(baseDir)) {
     return new Response("Forbidden", { status: 403 });
   }
@@ -41,7 +46,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
   };
 
   if (sizeParam === "xl") {
-    const ext = path.extname(file).toLowerCase();
+    const ext = path.extname(filename).toLowerCase();
     headers["Content-Type"] = MIME_TYPES[ext] ?? "application/octet-stream";
   } else {
     headers["Content-Type"] = "image/webp";
@@ -52,7 +57,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
       const raw = fs.readFileSync(filePath);
       return new Response(raw, { headers });
     } else {
-      const buffer = await getImage(file, filePath, sizeParam);
+      const buffer = await getImage(filename, filePath, sizeParam);
       return new Response(new Uint8Array(buffer), { headers });
     }
   } catch {

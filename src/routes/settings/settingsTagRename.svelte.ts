@@ -46,7 +46,7 @@ export class SettingsTagRename {
     this.result = "";
     this.resultIsError = false;
 
-    const res = await api.post<{ affected: number }>("/api/metadata/tags", {
+    const res = await api.post<{ affected: number }>("/api/tags", {
       oldName: trimOld,
       newName: trimNew,
     });

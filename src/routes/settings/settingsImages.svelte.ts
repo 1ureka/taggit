@@ -62,7 +62,7 @@ export class SettingsImages {
     this.metaBusy = true;
     this.metaResult = "";
 
-    const res = await api.get<{ missing: number }>("/api/metadata");
+    const res = await api.get<{ missing: number }>("/api/settings/metadata");
     if (res.ok && res.data) {
       this.metaMissing = res.data.missing;
       this.metaResult = res.data.missing === 0 ? "所有圖片的元資料皆完整" : `找到 ${res.data.missing} 張圖片缺少元資料`;
@@ -77,7 +77,7 @@ export class SettingsImages {
     this.metaBusy = true;
     this.metaResult = "補算中，這可能需要一些時間…";
 
-    const res = await api.post<{ updated: number }>("/api/metadata");
+    const res = await api.post<{ updated: number }>("/api/settings/metadata");
     if (res.ok && res.data) {
       this.metaResult = res.data.updated > 0 ? `已為 ${res.data.updated} 張圖片補上元資料` : "沒有圖片需要補算";
       this.metaMissing = Math.max(0, this.metaMissing - res.data.updated);

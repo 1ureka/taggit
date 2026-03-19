@@ -7,7 +7,7 @@ import { requireDatabase } from "$lib/server/db-instance.js";
 import { isValidTags } from "$lib/server/validation.js";
 
 /**
- * `GET /api/metadata/tags`
+ * `GET /api/tags`
  *
  * 列出所有標籤及其使用次數，依次數降序排列。
  */
@@ -20,7 +20,7 @@ export const GET: RequestHandler = () => {
 // ---
 
 /**
- * `POST /api/metadata/tags`
+ * `POST /api/tags`
  *
  * 全域重新命名標籤。
  * Body: `{ oldName, newName }`
