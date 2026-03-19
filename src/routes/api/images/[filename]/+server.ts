@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { Readable } from "stream";
 import type { RequestHandler } from "@sveltejs/kit";
 
 import { MIME_TYPES } from "$lib/server/config.js";
@@ -52,9 +53,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
     if (sizeParam === "xl") {
       const ext = path.extname(filename).toLowerCase();
       headers["Content-Type"] = MIME_TYPES[ext] ?? "application/octet-stream";
+      headers["Content-Length"] = String(fs.statSync(filePath).size);
 
-      const buffer = fs.readFileSync(filePath);
-      return new Response(buffer, { headers });
+      const webStream = Readable.toWeb(fs.createReadStream(filePath)) as ReadableStream;
+      return new Response(webStream, { headers });
     } else {
       headers["Content-Type"] = "image/webp";
 
