@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconUpload } from "@tabler/icons-svelte";
-  import { createTaggerUpload } from "./taggerUpload.svelte.js";
+  import { TaggerUpload } from "./taggerUpload.svelte.js";
 
   type Props = {
     loading: boolean;
@@ -8,7 +8,7 @@
 
   let { loading = $bindable() }: Props = $props();
 
-  const ui = createTaggerUpload({
+  const ui = new TaggerUpload({
     get loading() {
       return loading;
     },

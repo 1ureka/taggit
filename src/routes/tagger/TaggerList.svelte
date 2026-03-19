@@ -1,6 +1,6 @@
 <script lang="ts">
   import { imgSrc } from "$lib/client/api.js";
-  import { createTaggerList } from "./taggerList.svelte.js";
+  import { TaggerList } from "./taggerList.svelte.js";
 
   type Props = {
     stagedFiles: string[];
@@ -10,7 +10,7 @@
 
   let { stagedFiles, currentFile = $bindable(), selectedFiles = $bindable() }: Props = $props();
 
-  const ui = createTaggerList({
+  const ui = new TaggerList({
     get stagedFiles() {
       return stagedFiles;
     },

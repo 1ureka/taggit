@@ -2,7 +2,7 @@
   import { IconCheck, IconTrash, IconX } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
-  import { createTaggerForm } from "./taggerForm.svelte.js";
+  import { TaggerForm } from "./taggerForm.svelte.js";
 
   type Props = {
     currentFile: string | null;
@@ -13,12 +13,9 @@
 
   let { currentFile, selectedFiles = $bindable(), loading = $bindable(), progress = $bindable() }: Props = $props();
 
-  const ui = createTaggerForm({
+  const ui = new TaggerForm({
     get currentFile() {
       return currentFile;
-    },
-    set currentFile(v) {
-      currentFile = v;
     },
     get selectedFiles() {
       return selectedFiles;
@@ -57,11 +54,11 @@
 <div class="tagger-actions">
   <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
     <IconCheck size={16} />
-    {ui.selectedCount > 1 ? `提交 ${ui.selectedCount} 張` : "提交"}
+    {ui.commitLabel}
   </button>
   <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
     <IconTrash size={16} />
-    {ui.selectedCount > 1 ? `刪除 ${ui.selectedCount} 張` : "刪除"}
+    {ui.trashLabel}
   </button>
   <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>
     <IconX size={16} />

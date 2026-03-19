@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
   import type { PageData } from "./$types.js";
@@ -15,8 +16,13 @@
 
   // ---
 
-  let currentFile = $state<string | null>(null);
-  let selectedFiles = $state<Set<string>>(new Set());
+  let currentFile = $state<string | null>(untrack(() => data.stagedFiles[0] ?? null));
+  let selectedFiles = $state<Set<string>>(
+    untrack(() => {
+      const first = data.stagedFiles[0];
+      return first ? new Set([first]) : new Set();
+    }),
+  );
   let loading = $state(false);
   let imageLoading = $state(false);
   let progress = $state(0);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconRefresh } from "@tabler/icons-svelte";
-  import { createTaggerRefresh } from "./taggerRefresh.svelte.js";
+  import { TaggerRefresh } from "./taggerRefresh.svelte.js";
 
   type Props = {
     stagedFiles: string[];
@@ -10,7 +10,7 @@
 
   let { stagedFiles, selectedFiles, loading = $bindable() }: Props = $props();
 
-  const ui = createTaggerRefresh({
+  const ui = new TaggerRefresh({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -28,7 +28,7 @@
 
 <div class="tagger-sidebar-header">
   <span class="tagger-sidebar-title">待審查</span>
-  <span class="badge">{ui.selectedSize > 1 ? `${ui.selectedSize}/` : ""}{ui.listLength}</span>
+  <span class="badge">{ui.badgeLabel}</span>
   <button
     class="btn-refresh"
     class:spinning={ui.loading}
