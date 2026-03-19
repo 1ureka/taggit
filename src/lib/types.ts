@@ -4,8 +4,6 @@
  * 連同使用者可編輯的名稱、標籤、評分一併持久化至 db.json。
  */
 export interface ImageRecord {
-  /** 檔案副檔名，含前導點號（如 `".png"`、`".jpg"`） */
-  ext: string;
   /** 使用者可編輯的圖片名稱 */
   name: string;
   /** 使用者指派的標籤列表 */
@@ -28,21 +26,12 @@ export interface ImageRecord {
 
 /**
  * 帶有唯一識別碼的圖片紀錄。
- * `id` 為提交時隨機產生的 16 字元十六進位字串，
- * 同時作為 db.json 中的鍵與磁碟上 committed 目錄的檔名前綴。
+ * `id` 為檔名（如 `"photo.png"`），同時作為 db.json 中的鍵。
  */
 export interface ImageWithId extends ImageRecord {
-  /** 圖片的唯一識別碼（16 字元十六進位字串） */
+  /** 圖片的唯一識別碼（= 檔名） */
   id: string;
 }
-
-/**
- * 圖片所在的區域。
- * - `"staged"`：新匯入待審查的暫存區
- * - `"committed"`：已提交並建檔的收藏區
- * - `"trash"`：已刪除的垃圾桶
- */
-export type ImageArea = "committed" | "staged" | "trash";
 
 /**
  * 圖片尺寸預設。
@@ -65,17 +54,12 @@ export interface ServerConfig {
 
 /**
  * 由收藏庫根目錄衍生的完整路徑集合。
- * 包含暫存、已提交、垃圾桶三個子目錄，以及資料庫檔案的路徑。
  */
 export interface CollectionPaths {
   /** 收藏庫根目錄 */
   root: string;
-  /** 暫存區目錄（`<root>/staged`） */
-  staged: string;
-  /** 已提交區目錄（`<root>/committed`） */
-  committed: string;
-  /** 垃圾桶目錄（`<root>/trash`） */
-  trash: string;
+  /** 圖片目錄（`<root>/images`） */
+  images: string;
   /** 資料庫檔案路徑（`<root>/db.json`） */
   db: string;
 }
@@ -144,21 +128,6 @@ export interface TagInfo {
   name: string;
   /** 使用該標籤的圖片數量 */
   count: number;
-}
-
-/**
- * 收藏庫的整體統計數據。
- * 用於首頁儀表板，呈現收藏庫的概覽資訊。
- */
-export interface Stats {
-  /** 已提交的圖片總數 */
-  totalImages: number;
-  /** 不重複的標籤總數 */
-  totalTags: number;
-  /** 暫存區中待審查的檔案數量 */
-  stagedCount: number;
-  /** 垃圾桶中的檔案數量 */
-  trashCount: number;
 }
 
 // ---

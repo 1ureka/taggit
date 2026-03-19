@@ -1,7 +1,7 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
 import { getImageCount, getTagCount } from "$lib/server/db-query.js";
-import { getStagedFiles, getTrashFiles, requireDatabase } from "$lib/server/helpers.js";
+import { getStagedFiles, requireDatabase } from "$lib/server/helpers.js";
 
 export const load: PageServerLoad = () => {
   const loaded = requireDatabase();
@@ -12,8 +12,7 @@ export const load: PageServerLoad = () => {
     stats: {
       totalImages: getImageCount(db),
       totalTags: getTagCount(db),
-      stagedCount: getStagedFiles(paths).length,
-      trashCount: getTrashFiles(paths).length,
+      stagedCount: getStagedFiles(db, paths).length,
     },
   };
 };

@@ -36,24 +36,13 @@ export function requireDatabase(): { db: JSONDatabase; paths: CollectionPaths } 
 
 // ---
 
-/** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
-export function getStagedFiles({ staged }: CollectionPaths): string[] {
+/** 列出 images/ 目錄中不在 db.json 中的圖片檔名（即 staged），依字母排序。 */
+export function getStagedFiles(db: JSONDatabase, paths: CollectionPaths): string[] {
   try {
+    const dbImages = db.data.images;
     return fs
-      .readdirSync(staged)
-      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
-      .sort((a, b) => sortCollator.compare(a, b));
-  } catch {
-    return [];
-  }
-}
-
-/** 列出 trash/ 目錄中的圖片檔名，依字母排序。 */
-export function getTrashFiles({ trash }: CollectionPaths): string[] {
-  try {
-    return fs
-      .readdirSync(trash)
-      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
+      .readdirSync(paths.images)
+      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()) && !(f in dbImages))
       .sort((a, b) => sortCollator.compare(a, b));
   } catch {
     return [];

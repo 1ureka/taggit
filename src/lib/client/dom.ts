@@ -1,4 +1,4 @@
-import type { ConfirmEventName, ConfirmPayload, ToastEventName, ToastPayload, ToastType } from "$lib/types";
+import type { ConfirmEventName, ConfirmPayload, ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
 
 /**
  * 判斷指定元素是否為可編輯的輸入元素（input、textarea 或 contentEditable）。

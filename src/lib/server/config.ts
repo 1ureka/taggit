@@ -5,13 +5,13 @@
  * 本模組的職責：
  *   - 確保 `server.json` 存在並提供讀寫介面。
  *   - 管理 `collectionRoot` 設定。
- *   - 驗證集合根目錄並自動建立必要的子目錄。
+ *   - 驗證集合根目錄並自動建立 `images/` 子目錄。
  *   - 從集合根路徑衍生所有相關路徑（{@link getCollectionPaths}）。
  */
 
 import fs from "fs";
 import path from "path";
-import type { ServerConfig, CollectionPaths, ImageArea } from "$lib/types.js";
+import type { ServerConfig, CollectionPaths } from "$lib/types.js";
 
 /** 支援的圖片副檔名 */
 export const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"]);
@@ -84,20 +84,17 @@ export function setCollectionRoot(root: string): void {
 /**
  * 驗證集合根路徑：
  * - 必須是已存在的目錄
- * - 若 staged/、committed/、trash/ 不存在則自動建立
+ * - 若 images/ 不存在則自動建立
  * 當集合可使用時回傳 true。
  */
 export function isCollectionValid(root: string): boolean {
   try {
     if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) return false;
 
-    const subdirs: ImageArea[] = ["staged", "committed", "trash"];
-    for (const sub of subdirs) {
-      const dir = path.join(root, sub);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`[config] Created directory: ${dir}`);
-      }
+    const imagesDir = path.join(root, "images");
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+      console.log(`[config] Created directory: ${imagesDir}`);
     }
     return true;
   } catch (e) {
@@ -112,9 +109,7 @@ export function isCollectionValid(root: string): boolean {
 export function getCollectionPaths(root: string): CollectionPaths {
   return {
     root,
-    staged: path.join(root, "staged"),
-    committed: path.join(root, "committed"),
-    trash: path.join(root, "trash"),
+    images: path.join(root, "images"),
     db: path.join(root, "db.json"),
   };
 }

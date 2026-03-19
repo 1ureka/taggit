@@ -1,7 +1,7 @@
 import { blurhashToDataUri } from "@unpic/placeholder";
 
 /**
- * 出廠預設 BlurHash — 中性灰調，用於 staged/trash 等沒有個別 BlurHash 的圖片。
+ * 出廠預設 BlurHash — 中性灰調，用於沒有個別 BlurHash 的圖片。
  */
 const FALLBACK_BLURHASH = "L7D07P00-o~q~pof00WB00NHM|4n";
 

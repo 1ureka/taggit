@@ -1,7 +1,7 @@
 /**
  * 選單項目格式
  */
-export type MenuItem = { value: string; label: string };
+type MenuItem = { value: string; label: string };
 
 /**
  * 選單組件的配置選項

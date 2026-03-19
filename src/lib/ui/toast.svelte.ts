@@ -1,5 +1,5 @@
 import { tick } from "svelte";
-import type { ToastEventName, ToastPayload, ToastType } from "$lib/types";
+import type { ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
 
 /**
  * Toast 項目資料結構

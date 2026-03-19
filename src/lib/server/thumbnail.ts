@@ -139,8 +139,8 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
  * 取得指定圖片的縮圖 Buffer（含 LRU 快取與 in-flight 去重）。
  * 若快取命中直接回傳；否則排程產生縮圖後寫入快取。
  */
-export async function getImage(area: string, file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
-  const cacheKey = `${size}:${area}/${file}`;
+export async function getImage(file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
+  const cacheKey = `${size}:${file}`;
 
   const cached = cache.get(cacheKey);
   if (cached) return cached;

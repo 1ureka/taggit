@@ -131,7 +131,7 @@
           const img = images[info.imgIdx];
 
           el = document.createElement("img");
-          el.src = imgSrc("committed", `${img.id}${img.ext}`);
+          el.src = imgSrc(img.id);
           el.alt = img.name || "";
           el.draggable = false;
           el.dataset.idx = String(info.imgIdx);

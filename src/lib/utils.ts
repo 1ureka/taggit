@@ -12,7 +12,7 @@ import type { QueryOptions } from "$lib/types.js";
  * 解析以逗號分隔的標籤字串。
  * 回傳裁切空白後的非空標籤陣列。
  */
-export function parseTags(raw: string | null): string[] {
+function parseTags(raw: string | null): string[] {
   if (!raw) return [];
   return raw
     .split(",")
@@ -23,7 +23,7 @@ export function parseTags(raw: string | null): string[] {
 /**
  * 將字串轉為有限整數，無效值回傳 undefined（避免 NaN 污染下游邏輯）
  */
-export function safeInt(raw: string | null): number | undefined {
+function safeInt(raw: string | null): number | undefined {
   if (raw == null) return undefined;
   const n = Number(raw);
   return Number.isFinite(n) ? Math.trunc(n) : undefined;
