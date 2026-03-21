@@ -8,8 +8,6 @@ import { tagCache } from "$lib/client/cache.js";
  * TaggerForm 的配置選項
  */
 type TaggerFormOptions = {
-  /** 唯讀：目前選取的檔名 */
-  currentFile: string | null;
   /** 雙向綁定：已選取的檔名集合 */
   selectedFiles: Set<string>;
   /** 雙向綁定：載入狀態 */
@@ -38,8 +36,12 @@ export class TaggerForm {
 
   constructor(private options: TaggerFormOptions) {
     this.selectedCount = $derived(options.selectedFiles.size);
-    this.commitLabel = $derived(options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交");
-    this.deleteLabel = $derived(options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除");
+    this.commitLabel = $derived(
+      options.loading ? "操作中..." : options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交",
+    );
+    this.deleteLabel = $derived(
+      options.loading ? "操作中..." : options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除",
+    );
   }
 
   // ---
@@ -104,10 +106,7 @@ export class TaggerForm {
     if (this.options.loading || this.options.selectedFiles.size === 0) return;
 
     const n = this.options.selectedFiles.size;
-    const msg =
-      n === 1
-        ? `確定要永久刪除「${this.options.currentFile}」？此操作無法復原。`
-        : `確定要永久刪除選取的 ${n} 張圖片？此操作無法復原。`;
+    const msg = `確定要永久刪除選取的 ${n} 張圖片？此操作無法復原。`;
     if (!(await requestConfirm(msg))) return;
 
     const names = [...this.options.selectedFiles];

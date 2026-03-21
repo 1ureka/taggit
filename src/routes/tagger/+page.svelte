@@ -4,7 +4,6 @@
   import type { PageData } from "./$types.js";
 
   import TaggerProgress from "./TaggerProgress.svelte";
-  import TaggerLoading from "./TaggerLoading.svelte";
   import TaggerRefresh from "./TaggerRefresh.svelte";
   import TaggerList from "./TaggerList.svelte";
   import TaggerUpload from "./TaggerUpload.svelte";
@@ -23,7 +22,6 @@
     }),
   );
   let loading = $state(false);
-  let imageLoading = $state(false);
   let progress = $state(0);
 
   // ---
@@ -72,7 +70,6 @@
       首頁
     </a>
     <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
-    <TaggerLoading {loading} {imageLoading} />
   </header>
 
   <main>
@@ -82,10 +79,10 @@
       <TaggerUpload bind:loading />
     </aside>
 
-    <TaggerPreview {currentFile} bind:imageLoading />
+    <TaggerPreview {currentFile} />
 
     <aside class="panel">
-      <TaggerForm {currentFile} bind:selectedFiles bind:loading bind:progress />
+      <TaggerForm bind:selectedFiles bind:loading bind:progress />
 
       <div class="separator"></div>
 

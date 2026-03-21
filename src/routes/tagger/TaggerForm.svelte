@@ -5,18 +5,14 @@
   import { TaggerForm } from "./taggerForm.svelte.js";
 
   type Props = {
-    currentFile: string | null;
     selectedFiles: Set<string>;
     loading: boolean;
     progress: number;
   };
 
-  let { currentFile, selectedFiles = $bindable(), loading = $bindable(), progress = $bindable() }: Props = $props();
+  let { selectedFiles = $bindable(), loading = $bindable(), progress = $bindable() }: Props = $props();
 
   const ui = new TaggerForm({
-    get currentFile() {
-      return currentFile;
-    },
     get selectedFiles() {
       return selectedFiles;
     },
@@ -53,11 +49,11 @@
 
 <div class="actions">
   <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
-    <IconCheck size={16} />
+    {#if !ui.loading}<IconCheck size={16} />{/if}
     {ui.commitLabel}
   </button>
   <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.loading}>
-    <IconTrash size={16} />
+    {#if !ui.loading}<IconTrash size={16} />{/if}
     {ui.deleteLabel}
   </button>
   <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>
