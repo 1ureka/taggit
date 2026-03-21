@@ -11,7 +11,7 @@
 
   let { stagedFiles, currentFile = $bindable(), selectedFiles = $bindable() }: Props = $props();
 
-  const selectList = new TaggerListSelect({
+  const uiSelect = new TaggerListSelect({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -29,7 +29,7 @@
     },
   });
 
-  const virtualList = new TaggerListVirtual({
+  const uiVirtual = new TaggerListVirtual({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -38,39 +38,39 @@
     },
   });
 
-  const actions = new TaggerListActions();
+  const uiActions = new TaggerListActions();
 </script>
 
-<svelte:window onkeydown={selectList.handleWindowKeydown} />
+<svelte:window onkeydown={uiSelect.handleWindowKeydown} />
 
 <header>
   <div class="title">
     <h1>待審查列表</h1>
-    <span class="badge">{selectList.badgeLabel}</span>
+    <span class="badge">{uiSelect.badgeLabel}</span>
   </div>
 
   <button
     class="btn btn-icon"
     title="重新掃描待審查資料夾"
-    onclick={actions.handleRefreshClick}
-    disabled={actions.pending}
+    onclick={uiActions.handleRefreshClick}
+    disabled={uiActions.pending}
   >
     <IconRefresh size={14} />
   </button>
 </header>
 
-<div class="list" bind:this={virtualList.listEl} onscroll={virtualList.handleListScroll}>
+<div class="list" bind:this={uiVirtual.listEl} onscroll={uiVirtual.handleListScroll}>
   {#if stagedFiles.length === 0}
     <div class="list-empty">沒有待審查的圖片</div>
   {:else}
-    <div class="list-content" style="height:{virtualList.listTotalHeight}px">
-      {#each virtualList.listVisibleItems as item (item.filename)}
+    <div class="list-content" style="height:{uiVirtual.listTotalHeight}px">
+      {#each uiVirtual.listVisibleItems as item (item.filename)}
         <TaggerListItem
           filename={item.filename}
           active={item.filename === currentFile}
           selected={selectedFiles.has(item.filename)}
           style="top:{item.top}px; height:{item.height}px"
-          onclick={(e) => selectList.handleItemClick(e, item.filename)}
+          onclick={(e) => uiSelect.handleItemClick(e, item.filename)}
         />
       {/each}
     </div>
@@ -78,8 +78,8 @@
 </div>
 
 <footer>
-  <label class="btn" class:pending={actions.pending}>
-    {#if actions.pending}
+  <label class="btn" class:pending={uiActions.pending}>
+    {#if uiActions.pending}
       操作中...
     {:else}
       <IconUpload size={14} />
@@ -91,8 +91,8 @@
       accept="image/*"
       multiple
       class="visually-hidden"
-      onchange={actions.handleUploadChange}
-      disabled={actions.pending}
+      onchange={uiActions.handleUploadChange}
+      disabled={uiActions.pending}
     />
   </label>
 </footer>
