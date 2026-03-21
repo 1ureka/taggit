@@ -15,7 +15,7 @@
 
 import fs from "fs";
 import { getCollectionPaths } from "./config.js";
-import { formatError } from "$lib/utils.js";
+import { formatError, isRecord } from "$lib/utils.js";
 import type { DBData, ImageRecord } from "$lib/types.js";
 
 /**
@@ -54,6 +54,63 @@ export class JSONDatabase {
   }
 
   // ---
+
+  /**
+   * 解析從 `db.json` 讀取的原始 `images` 欄位資料，確保其結構與類型正確。
+   *
+   * @param raw - `JSON.parse` 後的 `parsed.images` 原始值。
+   */
+  private parseImages(raw: unknown): Record<string, ImageRecord> {
+    if (!isRecord(raw)) {
+      console.warn("[db] images 欄位格式無效，重置為空資料庫");
+      return {};
+    }
+
+    const result: Record<string, ImageRecord> = {};
+    let skipped = 0;
+
+    for (const [id, record] of Object.entries(raw)) {
+      if (!isRecord(record)) {
+        console.warn(`[db] images["${id}"] 不是物件，已跳過`);
+        skipped++;
+        continue;
+      }
+
+      if (
+        typeof record.name === "string" &&
+        typeof record.rating === "number" &&
+        typeof record.committedAt === "number" &&
+        typeof record.updatedAt === "number" &&
+        typeof record.fileSize === "number" &&
+        typeof record.width === "number" &&
+        typeof record.height === "number" &&
+        typeof record.blurhash === "string" &&
+        Array.isArray(record.tags) &&
+        record.tags.every((t) => typeof t === "string")
+      ) {
+        result[id] = {
+          name: record.name,
+          tags: record.tags,
+          rating: record.rating,
+          committedAt: record.committedAt,
+          updatedAt: record.updatedAt,
+          fileSize: record.fileSize,
+          width: record.width,
+          height: record.height,
+          blurhash: record.blurhash,
+        };
+      } else {
+        console.warn(`[db] images["${id}"] 欄位格式有誤，已跳過`);
+        skipped++;
+      }
+    }
+
+    if (skipped > 0) {
+      console.warn(`[db] 共跳過 ${skipped} 筆無效記錄`);
+    }
+
+    return result;
+  }
 
   /**
    * 使用目前的 {@link data} 快照從頭重建標籤索引。
@@ -161,8 +218,8 @@ export class JSONDatabase {
     if (fs.existsSync(dbPath)) {
       try {
         const parsed = JSON.parse(fs.readFileSync(dbPath, "utf8"));
-        this.data.version = parsed.version ?? 1;
-        this.data.images = parsed.images ?? {};
+        this.data.version = typeof parsed.version === "number" ? parsed.version : 1;
+        this.data.images = this.parseImages(parsed.images);
         console.log(`[db] Loaded: ${Object.keys(this.data.images).length} images`);
       } catch (e) {
         console.error("[db] Load error, starting fresh:", formatError(e));

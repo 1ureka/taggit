@@ -160,3 +160,19 @@ export const sortCollator = new Intl.Collator(undefined, {
 export function hasKey<K extends string>(obj: unknown, key: K): obj is Record<K, unknown> {
   return typeof obj === "object" && obj !== null && key in obj;
 }
+
+/**
+ * 檢查值是否為純物件（非 null、非陣列、原型為 Object.prototype 或 null）
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
