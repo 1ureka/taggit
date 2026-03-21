@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { imgSrc } from "$lib/client/api.js";
+  import { IconRefresh } from "@tabler/icons-svelte";
   import { TaggerList } from "./taggerList.svelte.js";
-  import TaggerRefresh from "./TaggerRefresh.svelte";
+  import TaggerListItem from "./TaggerListItem.svelte";
   import TaggerUpload from "./TaggerUpload.svelte";
 
   type Props = {
@@ -38,26 +38,32 @@
     <h1>待審查列表</h1>
     <span class="badge">{ui.badgeLabel}</span>
   </div>
-  <TaggerRefresh />
+
+  <button
+    class="btn btn-icon"
+    title="重新掃描 staged 資料夾"
+    onclick={ui.handleRefreshClick}
+    disabled={ui.refreshPending}
+  >
+    <div>
+      <IconRefresh size={14} />
+    </div>
+  </button>
 </header>
 
 <div class="list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
   {#if stagedFiles.length === 0}
-    <div class="empty">沒有待審查的圖片</div>
+    <div class="list-empty">沒有待審查的圖片</div>
   {:else}
-    <div class="scroll-content" style="height:{ui.totalH}px">
-      {#each ui.visible as item (item.filename)}
-        <button
-          type="button"
-          class="item"
-          class:active={item.filename === currentFile}
-          class:selected={selectedFiles.has(item.filename)}
-          style="top:{item.index * ui.ITEM_H}px"
+    <div class="list-content" style="height:{ui.listTotalHeight}px">
+      {#each ui.listVisibleItems as item (item.filename)}
+        <TaggerListItem
+          filename={item.filename}
+          active={item.filename === currentFile}
+          selected={selectedFiles.has(item.filename)}
+          style="top:{item.top}px; height:{item.height}px"
           onclick={(e) => ui.handleItemClick(e, item.filename)}
-        >
-          <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
-          <span class="name">{item.filename}</span>
-        </button>
+        />
       {/each}
     </div>
   {/if}
@@ -75,23 +81,45 @@
     gap: 0.5rem;
     padding: 0.625rem 0.75rem;
     border-bottom: 1px solid var(--border);
+
+    & > .title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      & > h1 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+    }
+
+    & > button {
+      padding: 0.125rem;
+
+      & > div {
+        display: grid;
+        place-items: center;
+      }
+
+      &:disabled > div {
+        animation: spin 0.8s linear infinite;
+      }
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   footer {
     padding: 0.625rem 0.75rem;
     border-top: 1px solid var(--border);
-  }
-
-  .title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-
-    & > h1 {
-      font-size: 0.8125rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
   }
 
   .list {
@@ -100,67 +128,11 @@
     overflow-x: hidden;
   }
 
-  .scroll-content {
+  .list-content {
     position: relative;
   }
 
-  .item {
-    position: absolute;
-    left: 0;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.5rem;
-    cursor: pointer;
-    border: none;
-    border-left: 3px solid transparent;
-    background: transparent;
-    width: 100%;
-    text-align: left;
-    color: inherit;
-    font-family: inherit;
-    transition:
-      background 0.1s,
-      border-color 0.15s;
-    user-select: none;
-
-    &:hover {
-      background: var(--bg-hover);
-    }
-
-    &.selected {
-      background: var(--bg-active);
-      border-left-color: var(--text-dim);
-    }
-
-    &.active {
-      background: var(--bg-active);
-      border-left-color: var(--accent);
-    }
-
-    & img {
-      width: auto;
-      height: 60px;
-      max-width: 80px;
-      object-fit: cover;
-      border-radius: 4px;
-      background: var(--bg);
-      flex-shrink: 0;
-    }
-  }
-
-  .name {
-    flex: 1;
-    font-size: 0.6875rem;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-
-  .empty {
+  .list-empty {
     display: flex;
     align-items: center;
     justify-content: center;
