@@ -63,7 +63,9 @@
   {/if}
 </div>
 
-<TaggerUpload />
+<footer>
+  <TaggerUpload />
+</footer>
 
 <style>
   header {
@@ -73,6 +75,11 @@
     gap: 0.5rem;
     padding: 0.625rem 0.75rem;
     border-bottom: 1px solid var(--border);
+  }
+
+  footer {
+    padding: 0.625rem 0.75rem;
+    border-top: 1px solid var(--border);
   }
 
   .title {
