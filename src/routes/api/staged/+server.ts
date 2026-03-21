@@ -6,6 +6,8 @@ import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
 import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
+
 /**
  * `GET /api/staged`
  *
@@ -65,6 +67,11 @@ export const POST: RequestHandler = async ({ request }) => {
     const ext = path.extname(entry.name).toLowerCase();
     if (!IMG_EXTS.has(ext)) {
       errors.push(`${entry.name}: 不支援的檔案格式`);
+      continue;
+    }
+
+    if (entry.size > MAX_UPLOAD_BYTES) {
+      errors.push(`${entry.name}: 檔案大小超過限制，最大 50 MiB`);
       continue;
     }
 

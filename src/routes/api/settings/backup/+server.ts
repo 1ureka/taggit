@@ -1,7 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { execSync, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { requireDatabase } from "$lib/server/db-instance.js";
 import type { CollectionPaths } from "$lib/types";
@@ -17,8 +17,14 @@ const pack = (paths: CollectionPaths & { zip: string }) => {
     const dbArg = paths.db.replace(/'/g, "''");
     const zipArg = paths.zip.replace(/'/g, "''");
 
-    execSync(
-      `powershell -NoProfile -Command "Compress-Archive -Path '${imagesArg}','${dbArg}' -DestinationPath '${zipArg}' -Force"`,
+    // 使用 execFileSync 直接啟動 powershell，避免路徑透過 cmd.exe shell 解析
+    execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        `Compress-Archive -Path '${imagesArg}','${dbArg}' -DestinationPath '${zipArg}' -Force`,
+      ],
       { timeout },
     );
   } else {
