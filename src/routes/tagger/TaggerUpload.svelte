@@ -5,27 +5,31 @@
   const ui = new TaggerUpload();
 </script>
 
-<input
-  bind:this={ui.fileInputEl}
-  type="file"
-  accept="image/*"
-  multiple
-  class="visually-hidden"
-  onchange={ui.handleUploadChange}
-  tabindex={-1}
-/>
-
-<button class="btn btn-sm" onclick={ui.handleUploadClick} disabled={ui.pending}>
+<label class="btn" class:pending={ui.pending}>
   {#if ui.pending}
     操作中...
   {:else}
     <IconUpload size={14} />
     加入圖片
   {/if}
-</button>
+
+  <input
+    type="file"
+    accept="image/*"
+    multiple
+    class="visually-hidden"
+    onchange={ui.handleUploadChange}
+    disabled={ui.pending}
+  />
+</label>
 
 <style>
-  button.btn {
+  label.btn {
     width: 100%;
+
+    &.pending {
+      opacity: 0.5;
+      pointer-events: none;
+    }
   }
 </style>

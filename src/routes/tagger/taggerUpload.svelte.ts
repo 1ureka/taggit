@@ -6,17 +6,10 @@ import { addToast } from "$lib/client/dom.js";
  * TaggerUpload 的互動邏輯
  */
 export class TaggerUpload {
-  /** 隱藏的檔案上傳 input 元素 */
-  fileInputEl = $state<HTMLInputElement>();
   /** 上傳操作狀態 */
   pending = $state(false);
 
   // ---
-
-  /** 處理上傳按鈕點擊事件，觸發檔案選擇對話框 */
-  handleUploadClick = () => {
-    this.fileInputEl?.click();
-  };
 
   /** 處理檔案上傳 input change 事件 */
   handleUploadChange = async (e: Event) => {
