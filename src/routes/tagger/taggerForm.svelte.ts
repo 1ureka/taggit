@@ -27,22 +27,7 @@ export class TaggerForm {
   /** 操作狀態（提交與刪除共用鎖） */
   pending = $state(false);
 
-  /** 已選取的圖片數量 */
-  selectedCount: number;
-  /** 提交按鈕文字 */
-  commitLabel: string;
-  /** 刪除按鈕文字 */
-  deleteLabel: string;
-
-  constructor(private options: TaggerFormOptions) {
-    this.selectedCount = $derived(options.selectedFiles.size);
-    this.commitLabel = $derived(
-      this.pending ? "操作中..." : options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交",
-    );
-    this.deleteLabel = $derived(
-      this.pending ? "操作中..." : options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除",
-    );
-  }
+  constructor(private options: TaggerFormOptions) {}
 
   // ---
 
@@ -68,6 +53,11 @@ export class TaggerForm {
     if (this.tags.length === 0) {
       addToast("請至少加入一個標籤才能提交", "error");
       return;
+    }
+
+    if (this.options.selectedFiles.size > 1) {
+      const n = this.options.selectedFiles.size;
+      if (!(await requestConfirm(`確定要提交選取的 ${n} 張圖片？`))) return;
     }
 
     const names = [...this.options.selectedFiles];
