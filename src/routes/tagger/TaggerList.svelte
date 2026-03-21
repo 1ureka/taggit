@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconRefresh } from "@tabler/icons-svelte";
-  import { TaggerList } from "./taggerList.svelte.js";
+  import { TaggerList, TaggerVirtualList } from "./taggerList.svelte.js";
   import TaggerListItem from "./TaggerListItem.svelte";
   import TaggerUpload from "./TaggerUpload.svelte";
 
@@ -29,6 +29,15 @@
       selectedFiles = v;
     },
   });
+
+  const virtualList = new TaggerVirtualList({
+    get stagedFiles() {
+      return stagedFiles;
+    },
+    get currentFile() {
+      return currentFile;
+    },
+  });
 </script>
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
@@ -45,18 +54,16 @@
     onclick={ui.handleRefreshClick}
     disabled={ui.refreshPending}
   >
-    <div>
-      <IconRefresh size={14} />
-    </div>
+    <IconRefresh size={14} />
   </button>
 </header>
 
-<div class="list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
+<div class="list" bind:this={virtualList.listEl} onscroll={virtualList.handleListScroll}>
   {#if stagedFiles.length === 0}
     <div class="list-empty">沒有待審查的圖片</div>
   {:else}
-    <div class="list-content" style="height:{ui.listTotalHeight}px">
-      {#each ui.listVisibleItems as item (item.filename)}
+    <div class="list-content" style="height:{virtualList.listTotalHeight}px">
+      {#each virtualList.listVisibleItems as item (item.filename)}
         <TaggerListItem
           filename={item.filename}
           active={item.filename === currentFile}
@@ -97,12 +104,7 @@
     & > button {
       padding: 0.125rem;
 
-      & > div {
-        display: grid;
-        place-items: center;
-      }
-
-      &:disabled > div {
+      &:disabled > :global(svg) {
         animation: spin 0.8s linear infinite;
       }
     }
@@ -126,18 +128,18 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-  }
 
-  .list-content {
-    position: relative;
-  }
+    & > .list-content {
+      position: relative;
+    }
 
-  .list-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-size: 0.875rem;
-    color: var(--text-dim);
+    & > .list-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
   }
 </style>

@@ -22,60 +22,11 @@ export class TaggerList {
   /** header badge 顯示文字 */
   badgeLabel: string;
 
-  /** 捲動容器 DOM 引用 */
-  listEl = $state<HTMLDivElement | null>(null);
-  /** 虛擬列表單項固定高度 */
-  readonly #listItemHeight = 72;
-  /** 虛擬列表渲染緩衝區大小 */
-  readonly #listBuffer = 5;
-  /** 捲動容器目前的 listScrollTop */
-  #listScrollTop = $state(0);
-  /** 捲動容器可見高度 */
-  #listViewHeight = $state(typeof window !== "undefined" ? window.innerHeight : 400);
-  /** 虛擬列表內容總高度 */
-  listTotalHeight: number;
-  /** 可見的項目列表 */
-  listVisibleItems: { filename: string; top: number; height: number }[];
-
   constructor(private options: TaggerListOptions) {
-    this.listTotalHeight = $derived(options.stagedFiles.length * this.#listItemHeight);
-
-    this.listVisibleItems = $derived.by(() => {
-      const firstVisibleIdx = Math.floor(this.#listScrollTop / this.#listItemHeight);
-      const visibleCount = Math.ceil(this.#listViewHeight / this.#listItemHeight);
-
-      const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
-      const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
-
-      return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
-        filename,
-        top: (startIdx + i) * this.#listItemHeight,
-        height: this.#listItemHeight,
-      }));
-    });
-
     this.badgeLabel = $derived.by(() => {
       const total = options.stagedFiles.length;
       const selected = options.selectedFiles.size;
       return selected > 1 ? `${selected}/${total}` : `${total}`;
-    });
-
-    // ---
-
-    // scrollToActive：監聽 currentFile，將對應項目捲入可視區域
-    $effect(() => {
-      const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
-      if (idx >= 0) scrollToActive(this.listEl, idx, this.#listItemHeight);
-    });
-
-    // ResizeObserver：監聽 listEl，追蹤 listViewHeight
-    $effect(() => {
-      if (!this.listEl) return;
-      const ro = new ResizeObserver((entries) => {
-        for (const e of entries) this.#listViewHeight = e.contentRect.height;
-      });
-      ro.observe(this.listEl);
-      return () => ro.disconnect();
     });
   }
 
@@ -129,11 +80,6 @@ export class TaggerList {
     else this.#selectShift(filename);
   };
 
-  /** 處理列表捲動事件，同步 listScrollTop 狀態 */
-  handleListScroll = () => {
-    if (this.listEl) this.#listScrollTop = this.listEl.scrollTop;
-  };
-
   /** 處理重新整理按鈕點擊事件，重新掃描並更新清單 */
   handleRefreshClick = async () => {
     if (this.refreshPending) return;
@@ -158,5 +104,82 @@ export class TaggerList {
       e.preventDefault();
       this.#navigate(1);
     }
+  };
+}
+
+/**
+ * TaggerList 的虛擬化配置選項
+ */
+type TaggerVirtualListOptions = {
+  /** 暫存檔案列表 */
+  stagedFiles: string[];
+  /** 目前選取的檔案 */
+  currentFile: string | null;
+};
+
+/**
+ * TaggerList 的虛擬化邏輯
+ */
+export class TaggerVirtualList {
+  /** 捲動容器 DOM 引用 */
+  listEl = $state<HTMLDivElement | null>(null);
+  /** 虛擬列表單項固定高度 */
+  readonly #listItemHeight = 72;
+  /** 虛擬列表渲染緩衝區大小 */
+  readonly #listBuffer = 5;
+  /** 捲動容器目前的 listScrollTop */
+  #listScrollTop = $state(0);
+  /** 捲動容器可見高度 */
+  #listViewHeight = $state(typeof window !== "undefined" ? window.innerHeight : 400);
+  /** 虛擬列表內容總高度 */
+  listTotalHeight: number;
+  /** 可見的項目列表 */
+  listVisibleItems: { filename: string; top: number; height: number }[];
+
+  constructor(options: TaggerVirtualListOptions) {
+    this.listTotalHeight = $derived(options.stagedFiles.length * this.#listItemHeight);
+
+    this.listVisibleItems = $derived.by(() => {
+      const firstVisibleIdx = Math.floor(this.#listScrollTop / this.#listItemHeight);
+      const visibleCount = Math.ceil(this.#listViewHeight / this.#listItemHeight);
+
+      const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
+      const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+
+      return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+        filename,
+        top: (startIdx + i) * this.#listItemHeight,
+        height: this.#listItemHeight,
+      }));
+    });
+
+    // ---
+
+    // 監聽 currentFile，將對應項目捲入可視區域
+    $effect(() => {
+      if (!this.listEl) return;
+
+      const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      if (idx >= 0) scrollToActive(this.listEl, idx, this.#listItemHeight);
+    });
+
+    // ResizeObserver 監聽 listEl，追蹤容器可視高度變化
+    $effect(() => {
+      if (!this.listEl) return;
+
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) this.#listViewHeight = e.contentRect.height;
+      });
+
+      ro.observe(this.listEl);
+      return () => ro.disconnect();
+    });
+  }
+
+  // ---
+
+  /** 處理列表捲動事件，同步 listScrollTop 狀態 */
+  handleListScroll = () => {
+    if (this.listEl) this.#listScrollTop = this.listEl.scrollTop;
   };
 }
