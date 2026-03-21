@@ -10,8 +10,6 @@ import { tagCache } from "$lib/client/cache.js";
 type TaggerFormOptions = {
   /** 雙向綁定：已選取的檔名集合 */
   selectedFiles: Set<string>;
-  /** 雙向綁定：載入狀態 */
-  loading: boolean;
   /** 雙向綁定：已處理數量 */
   progress: number;
 };
@@ -26,6 +24,8 @@ export class TaggerForm {
   rating = $state(0);
   /** 標籤輸入框的容器 DOM 引用 */
   tagInputWrapEl = $state<HTMLDivElement>();
+  /** 操作狀態（提交與刪除共用鎖） */
+  pending = $state(false);
 
   /** 已選取的圖片數量 */
   selectedCount: number;
@@ -37,18 +37,11 @@ export class TaggerForm {
   constructor(private options: TaggerFormOptions) {
     this.selectedCount = $derived(options.selectedFiles.size);
     this.commitLabel = $derived(
-      options.loading ? "操作中..." : options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交",
+      this.pending ? "操作中..." : options.selectedFiles.size > 1 ? `提交 ${options.selectedFiles.size} 張` : "提交",
     );
     this.deleteLabel = $derived(
-      options.loading ? "操作中..." : options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除",
+      this.pending ? "操作中..." : options.selectedFiles.size > 1 ? `刪除 ${options.selectedFiles.size} 張` : "刪除",
     );
-  }
-
-  // ---
-
-  /** 存取載入狀態（委派至 options） */
-  get loading() {
-    return this.options.loading;
   }
 
   // ---
@@ -71,14 +64,14 @@ export class TaggerForm {
 
   /** 提交已選取的圖片 */
   async #doCommit() {
-    if (this.options.loading || this.options.selectedFiles.size === 0) return;
+    if (this.pending || this.options.selectedFiles.size === 0) return;
     if (this.tags.length === 0) {
       addToast("請至少加入一個標籤才能提交", "error");
       return;
     }
 
     const names = [...this.options.selectedFiles];
-    this.options.loading = true;
+    this.pending = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, async (fn) => {
@@ -97,20 +90,20 @@ export class TaggerForm {
       this.options.progress += ok;
       await invalidateAll();
     } finally {
-      this.options.loading = false;
+      this.pending = false;
     }
   }
 
   /** 永久刪除已選取的圖片 */
   async #doDelete() {
-    if (this.options.loading || this.options.selectedFiles.size === 0) return;
+    if (this.pending || this.options.selectedFiles.size === 0) return;
 
     const n = this.options.selectedFiles.size;
     const msg = `確定要永久刪除選取的 ${n} 張圖片？此操作無法復原。`;
     if (!(await requestConfirm(msg))) return;
 
     const names = [...this.options.selectedFiles];
-    this.options.loading = true;
+    this.pending = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/staged/${encodeURIComponent(fn)}`));
@@ -123,7 +116,7 @@ export class TaggerForm {
       this.options.progress += ok;
       await invalidateAll();
     } finally {
-      this.options.loading = false;
+      this.pending = false;
     }
   }
 

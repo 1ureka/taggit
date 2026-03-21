@@ -3,28 +3,13 @@ import { api } from "$lib/client/api.js";
 import { addToast } from "$lib/client/dom.js";
 
 /**
- * TaggerUpload 元件的配置選項
- */
-type TaggerUploadOptions = {
-  /** 雙向綁定：載入狀態 */
-  loading: boolean;
-};
-
-/**
  * TaggerUpload 的互動邏輯
  */
 export class TaggerUpload {
   /** 隱藏的檔案上傳 input 元素 */
   fileInputEl = $state<HTMLInputElement>();
-
-  constructor(private options: TaggerUploadOptions) {}
-
-  // ---
-
-  /** 存取載入狀態（委派至 options） */
-  get loading() {
-    return this.options.loading;
-  }
+  /** 上傳操作狀態 */
+  pending = $state(false);
 
   // ---
 
@@ -36,9 +21,9 @@ export class TaggerUpload {
   /** 處理檔案上傳 input change 事件 */
   handleUploadChange = async (e: Event) => {
     const input = e.target as HTMLInputElement;
-    if (!input.files?.length || this.options.loading) return;
+    if (!input.files?.length || this.pending) return;
 
-    this.options.loading = true;
+    this.pending = true;
     try {
       const body = new FormData();
       for (const f of input.files) body.append("files", f);
@@ -58,7 +43,7 @@ export class TaggerUpload {
     } catch {
       addToast("上傳請求失敗", "error");
     } finally {
-      this.options.loading = false;
+      this.pending = false;
       input.value = "";
     }
   };

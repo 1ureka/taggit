@@ -34,12 +34,17 @@ export class TaggerList {
   totalH: number;
   /** 可見的項目列表 */
   visible: { filename: string; index: number }[];
+  /** header badge 顯示文字 */
+  badgeLabel: string;
 
   constructor(private options: TaggerListOptions) {
-    this.#currentFileIndex = $derived(
-      options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1,
-    );
+    this.#currentFileIndex = $derived(options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1);
     this.totalH = $derived(options.stagedFiles.length * this.ITEM_H);
+    this.badgeLabel = $derived(
+      options.selectedFiles.size > 1
+        ? `${options.selectedFiles.size}/${options.stagedFiles.length}`
+        : `${options.stagedFiles.length}`,
+    );
 
     const startIdx = $derived(Math.max(0, Math.floor(this.#scrollTop / this.ITEM_H) - this.#BUFFER));
     const endIdx = $derived(

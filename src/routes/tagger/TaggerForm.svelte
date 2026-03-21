@@ -6,11 +6,10 @@
 
   type Props = {
     selectedFiles: Set<string>;
-    loading: boolean;
     progress: number;
   };
 
-  let { selectedFiles = $bindable(), loading = $bindable(), progress = $bindable() }: Props = $props();
+  let { selectedFiles = $bindable(), progress = $bindable() }: Props = $props();
 
   const ui = new TaggerForm({
     get selectedFiles() {
@@ -18,12 +17,6 @@
     },
     set selectedFiles(v) {
       selectedFiles = v;
-    },
-    get loading() {
-      return loading;
-    },
-    set loading(v) {
-      loading = v;
     },
     get progress() {
       return progress;
@@ -48,12 +41,12 @@
 <div class="separator"></div>
 
 <div class="actions">
-  <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
-    {#if !ui.loading}<IconCheck size={16} />{/if}
+  <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.pending}>
+    {#if !ui.pending}<IconCheck size={16} />{/if}
     {ui.commitLabel}
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.loading}>
-    {#if !ui.loading}<IconTrash size={16} />{/if}
+  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.pending}>
+    {#if !ui.pending}<IconTrash size={16} />{/if}
     {ui.deleteLabel}
   </button>
   <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>

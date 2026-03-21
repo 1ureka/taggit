@@ -1,4 +1,4 @@
-/* ─── Buttons ─── */
+/* 按鈕共用基礎 */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -14,72 +14,91 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+
   transition:
     scale 0.15s,
     background 0.15s,
     border-color 0.15s;
-  user-select: none;
-  white-space: nowrap;
-}
 
-.btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-hover);
-}
+  &:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+  }
 
-.btn:active {
-  scale: 0.98;
-}
+  &:active {
+    scale: 0.98;
+  }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-}
-
-.btn-primary:hover {
-  background: hsl(from var(--accent) h s calc(l - 25));
-  border-color: hsl(from var(--accent) h s calc(l - 25));
-}
-
-.btn-primary:focus-visible {
-  outline: 2px solid hsl(from var(--bg) h s l / 0.7);
-  outline-offset: -3px;
-}
-
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-}
-
-.btn-ghost:hover {
-  background: var(--bg-hover);
-  border-color: transparent;
-}
-
-.btn-destructive {
-  background: hsl(from var(--destructive) h s l / 0.1);
-  color: var(--destructive);
-  border-color: hsl(from var(--destructive) h s l / 0.5);
-}
-
-.btn-destructive:hover {
-  background: hsl(from var(--destructive) h s l / 0.2);
-  border-color: hsl(from var(--destructive) h s l / 0.75);
-}
-
-.btn-icon {
-  padding: 0.5rem;
-  min-width: 2rem;
-  min-height: 2rem;
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
 }
 
 .btn-sm {
   padding: 0.25rem 0.625rem;
   font-size: 0.8125rem;
+}
+
+/* --- */
+
+/* 主要按鈕 */
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+
+  &:hover {
+    background: hsl(from var(--accent) h s calc(l - 25));
+    border-color: hsl(from var(--accent) h s calc(l - 25));
+  }
+
+  &:focus-visible {
+    outline: 2px solid hsl(from var(--bg) h s l / 0.7);
+    outline-offset: -3px;
+  }
+}
+
+/* --- */
+
+/* 無背景按鈕 */
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+
+  &:hover {
+    background: var(--bg-hover);
+    border-color: transparent;
+  }
+}
+
+/* --- */
+
+/* 圖示按鈕 */
+.btn-icon {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+
+  &:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+}
+
+/* --- */
+
+/* 警告按鈕 */
+.btn-destructive {
+  background: hsl(from var(--destructive) h s l / 0.1);
+  color: var(--destructive);
+  border-color: hsl(from var(--destructive) h s l / 0.5);
+
+  &:hover {
+    background: hsl(from var(--destructive) h s l / 0.2);
+    border-color: hsl(from var(--destructive) h s l / 0.75);
+  }
 }

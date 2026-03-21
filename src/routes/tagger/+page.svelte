@@ -4,9 +4,7 @@
   import type { PageData } from "./$types.js";
 
   import TaggerProgress from "./TaggerProgress.svelte";
-  import TaggerRefresh from "./TaggerRefresh.svelte";
   import TaggerList from "./TaggerList.svelte";
-  import TaggerUpload from "./TaggerUpload.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
   import TaggerForm from "./TaggerForm.svelte";
 
@@ -21,7 +19,6 @@
       return first ? new Set([first]) : new Set();
     }),
   );
-  let loading = $state(false);
   let progress = $state(0);
 
   // ---
@@ -74,15 +71,13 @@
 
   <main>
     <aside class="sidebar">
-      <TaggerRefresh stagedFiles={data.stagedFiles} {selectedFiles} bind:loading />
       <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
-      <TaggerUpload bind:loading />
     </aside>
 
     <TaggerPreview {currentFile} />
 
     <aside class="panel">
-      <TaggerForm bind:selectedFiles bind:loading bind:progress />
+      <TaggerForm bind:selectedFiles bind:progress />
 
       <div class="separator"></div>
 

@@ -2,20 +2,7 @@
   import { IconUpload } from "@tabler/icons-svelte";
   import { TaggerUpload } from "./taggerUpload.svelte.js";
 
-  type Props = {
-    loading: boolean;
-  };
-
-  let { loading = $bindable() }: Props = $props();
-
-  const ui = new TaggerUpload({
-    get loading() {
-      return loading;
-    },
-    set loading(v) {
-      loading = v;
-    },
-  });
+  const ui = new TaggerUpload();
 </script>
 
 <footer>
@@ -28,9 +15,13 @@
     onchange={ui.handleUploadChange}
     tabindex={-1}
   />
-  <button class="btn btn-sm" onclick={ui.handleUploadClick} disabled={ui.loading}>
-    <IconUpload size={14} />
-    加入圖片
+  <button class="btn btn-sm" onclick={ui.handleUploadClick} disabled={ui.pending}>
+    {#if ui.pending}
+      操作中...
+    {:else}
+      <IconUpload size={14} />
+      加入圖片
+    {/if}
   </button>
 </footer>
 

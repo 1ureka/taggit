@@ -1,6 +1,8 @@
 <script lang="ts">
   import { imgSrc } from "$lib/client/api.js";
   import { TaggerList } from "./taggerList.svelte.js";
+  import TaggerRefresh from "./TaggerRefresh.svelte";
+  import TaggerUpload from "./TaggerUpload.svelte";
 
   type Props = {
     stagedFiles: string[];
@@ -31,6 +33,14 @@
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
+<header>
+  <div class="title">
+    <h1>待審查列表</h1>
+    <span class="badge">{ui.badgeLabel}</span>
+  </div>
+  <TaggerRefresh />
+</header>
+
 <div class="list" bind:this={ui.listEl} onscroll={ui.handleListScroll}>
   {#if stagedFiles.length === 0}
     <div class="empty">沒有待審查的圖片</div>
@@ -53,7 +63,30 @@
   {/if}
 </div>
 
+<TaggerUpload />
+
 <style>
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    & > h1 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  }
+
   .list {
     flex: 1;
     overflow-y: auto;
