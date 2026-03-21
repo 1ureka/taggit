@@ -1,3 +1,4 @@
+import { api } from "$lib/client/api.js";
 import { invalidateAll } from "$app/navigation";
 import { addToast, isInEditable, scrollToActive } from "$lib/client/dom.js";
 
@@ -14,11 +15,9 @@ type TaggerListOptions = {
 };
 
 /**
- * TaggerList 的互動邏輯
+ * TaggerList 的選取與切換啟用的互動邏輯
  */
-export class TaggerList {
-  /** 重新整理操作狀態 */
-  refreshPending = $state(false);
+export class TaggerListSelect {
   /** header badge 顯示文字 */
   badgeLabel: string;
 
@@ -80,18 +79,6 @@ export class TaggerList {
     else this.#selectShift(filename);
   };
 
-  /** 處理重新整理按鈕點擊事件，重新掃描並更新清單 */
-  handleRefreshClick = async () => {
-    if (this.refreshPending) return;
-    this.refreshPending = true;
-    try {
-      await invalidateAll();
-      addToast("列表已更新", "success");
-    } finally {
-      this.refreshPending = false;
-    }
-  };
-
   /** 處理 Window 鍵盤事件，執行方向鍵導航 */
   handleWindowKeydown = (e: KeyboardEvent) => {
     if (isInEditable(e.target)) return;
@@ -108,9 +95,59 @@ export class TaggerList {
 }
 
 /**
+ * TaggerList 的操作互動邏輯
+ */
+export class TaggerListActions {
+  /** 操作狀態 */
+  pending = $state(false);
+
+  /** 處理重新整理按鈕點擊事件，重新掃描並更新清單 */
+  handleRefreshClick = async () => {
+    if (this.pending) return;
+    this.pending = true;
+    try {
+      await invalidateAll();
+      addToast("列表已更新", "success");
+    } finally {
+      this.pending = false;
+    }
+  };
+
+  /** 處理檔案上傳 input change 事件 */
+  handleUploadChange = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    if (!input.files?.length || this.pending) return;
+
+    this.pending = true;
+    try {
+      const body = new FormData();
+      for (const f of input.files) body.append("files", f);
+
+      const res = await api.post<{ added: string[]; errors: string[] }>("/api/staged", body);
+
+      if (!res.ok || !res.data) {
+        addToast(res.error || "上傳失敗", "error");
+        return;
+      }
+
+      const { added, errors } = res.data;
+      if (errors.length) addToast(`${errors.length} 個檔案加入失敗`, "error");
+      if (added.length) addToast(`已加入 ${added.length} 張圖片`, "success");
+
+      await invalidateAll();
+    } catch {
+      addToast("上傳請求失敗", "error");
+    } finally {
+      this.pending = false;
+      input.value = "";
+    }
+  };
+}
+
+/**
  * TaggerList 的虛擬化配置選項
  */
-type TaggerVirtualListOptions = {
+type TaggerListVirtualOptions = {
   /** 暫存檔案列表 */
   stagedFiles: string[];
   /** 目前選取的檔案 */
@@ -120,7 +157,7 @@ type TaggerVirtualListOptions = {
 /**
  * TaggerList 的虛擬化邏輯
  */
-export class TaggerVirtualList {
+export class TaggerListVirtual {
   /** 捲動容器 DOM 引用 */
   listEl = $state<HTMLDivElement | null>(null);
   /** 虛擬列表單項固定高度 */
@@ -136,7 +173,7 @@ export class TaggerVirtualList {
   /** 可見的項目列表 */
   listVisibleItems: { filename: string; top: number; height: number }[];
 
-  constructor(options: TaggerVirtualListOptions) {
+  constructor(options: TaggerListVirtualOptions) {
     this.listTotalHeight = $derived(options.stagedFiles.length * this.#listItemHeight);
 
     this.listVisibleItems = $derived.by(() => {

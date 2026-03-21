@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { IconRefresh } from "@tabler/icons-svelte";
-  import { TaggerList, TaggerVirtualList } from "./taggerList.svelte.js";
+  import { IconRefresh, IconUpload } from "@tabler/icons-svelte";
+  import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
   import TaggerListItem from "./TaggerListItem.svelte";
-  import TaggerUpload from "./TaggerUpload.svelte";
 
   type Props = {
     stagedFiles: string[];
@@ -12,7 +11,7 @@
 
   let { stagedFiles, currentFile = $bindable(), selectedFiles = $bindable() }: Props = $props();
 
-  const ui = new TaggerList({
+  const selectList = new TaggerListSelect({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -30,7 +29,7 @@
     },
   });
 
-  const virtualList = new TaggerVirtualList({
+  const virtualList = new TaggerListVirtual({
     get stagedFiles() {
       return stagedFiles;
     },
@@ -38,21 +37,23 @@
       return currentFile;
     },
   });
+
+  const actions = new TaggerListActions();
 </script>
 
-<svelte:window onkeydown={ui.handleWindowKeydown} />
+<svelte:window onkeydown={selectList.handleWindowKeydown} />
 
 <header>
   <div class="title">
     <h1>待審查列表</h1>
-    <span class="badge">{ui.badgeLabel}</span>
+    <span class="badge">{selectList.badgeLabel}</span>
   </div>
 
   <button
     class="btn btn-icon"
-    title="重新掃描 staged 資料夾"
-    onclick={ui.handleRefreshClick}
-    disabled={ui.refreshPending}
+    title="重新掃描待審查資料夾"
+    onclick={actions.handleRefreshClick}
+    disabled={actions.pending}
   >
     <IconRefresh size={14} />
   </button>
@@ -69,7 +70,7 @@
           active={item.filename === currentFile}
           selected={selectedFiles.has(item.filename)}
           style="top:{item.top}px; height:{item.height}px"
-          onclick={(e) => ui.handleItemClick(e, item.filename)}
+          onclick={(e) => selectList.handleItemClick(e, item.filename)}
         />
       {/each}
     </div>
@@ -77,7 +78,23 @@
 </div>
 
 <footer>
-  <TaggerUpload />
+  <label class="btn" class:pending={actions.pending}>
+    {#if actions.pending}
+      操作中...
+    {:else}
+      <IconUpload size={14} />
+      加入圖片
+    {/if}
+
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      class="visually-hidden"
+      onchange={actions.handleUploadChange}
+      disabled={actions.pending}
+    />
+  </label>
 </footer>
 
 <style>
@@ -122,6 +139,15 @@
   footer {
     padding: 0.625rem 0.75rem;
     border-top: 1px solid var(--border);
+
+    & > label.btn {
+      width: 100%;
+
+      &.pending {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    }
   }
 
   .list {
