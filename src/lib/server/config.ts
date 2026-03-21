@@ -12,6 +12,7 @@
 import fs from "fs";
 import path from "path";
 import type { ServerConfig, CollectionPaths } from "$lib/types.js";
+import { formatError } from "$lib/utils.js";
 
 /** 支援的圖片副檔名 */
 export const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"]);
@@ -102,7 +103,7 @@ export function isCollectionValid(root: string): boolean {
 
     return true;
   } catch (e) {
-    console.error("[config] isCollectionValid error:", (e as Error).message);
+    console.error("[config] isCollectionValid error:", formatError(e));
     return false;
   }
 }

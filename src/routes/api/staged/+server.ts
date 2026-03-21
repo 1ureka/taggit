@@ -5,6 +5,7 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
 import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
+import { formatError } from "$lib/utils.js";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
 
@@ -83,7 +84,7 @@ export const POST: RequestHandler = async ({ request }) => {
       fs.writeFileSync(destPath, buffer);
       added.push(destName);
     } catch (e) {
-      errors.push(`${entry.name}: 無法寫入檔案 (${(e as Error).message})`);
+      errors.push(`${entry.name}: 無法寫入檔案 (${formatError(e)})`);
     }
   }
 

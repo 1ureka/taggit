@@ -63,6 +63,8 @@ export function buildQueryString(opts: QueryOptions): string {
   return qs ? `?${qs}` : "";
 }
 
+// ---
+
 /**
  * 將 Unix 毫秒時間戳格式化為本地日期時間字串。
  */
@@ -79,6 +81,17 @@ export function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
+
+/**
+ * 將錯誤物件格式化為字串。
+ */
+export function formatError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return String(err);
+}
+
+// ---
 
 /**
  * 回傳 `fn` 的防抖版本。
@@ -128,6 +141,8 @@ export async function batchRun<T>(
   return [ok, fail];
 }
 
+// ---
+
 /**
  * 用於自然排序的比較器，支援數字排序與區分大小寫
  */
@@ -136,6 +151,8 @@ export const sortCollator = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "variant",
 });
+
+// ---
 
 /**
  * 檢查物件是否包含特定 key，並縮小其型別範圍

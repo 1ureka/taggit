@@ -15,6 +15,7 @@
 
 import fs from "fs";
 import { getCollectionPaths } from "./config.js";
+import { formatError } from "$lib/utils.js";
 import type { DBData, ImageRecord } from "$lib/types.js";
 
 /**
@@ -128,7 +129,7 @@ export class JSONDatabase {
       this.dirty = false;
       console.log("[db] Flushed");
     } catch (e) {
-      console.error("[db] Flush error:", (e as Error).message);
+      console.error("[db] Flush error:", formatError(e));
     }
   }
 
@@ -164,7 +165,7 @@ export class JSONDatabase {
         this.data.images = parsed.images ?? {};
         console.log(`[db] Loaded: ${Object.keys(this.data.images).length} images`);
       } catch (e) {
-        console.error("[db] Load error, starting fresh:", (e as Error).message);
+        console.error("[db] Load error, starting fresh:", formatError(e));
         this.data = { version: 1, images: {} };
         this.markDirty();
       }

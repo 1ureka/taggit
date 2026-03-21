@@ -12,6 +12,7 @@
 import sharp from "sharp";
 import { encode } from "blurhash";
 import { LRUCache, TaskPool } from "./resources.js";
+import { formatError } from "$lib/utils.js";
 import type { ImageSize } from "$lib/types.js";
 
 type ProcessableSize = Exclude<ImageSize, "xl">;
@@ -191,7 +192,8 @@ export async function generateMetadata(filePath: string): Promise<{ width: numbe
     );
 
     return { width, height, blurhash };
-  } catch {
+  } catch (e) {
+    console.error(`[thumbnail] generateMetadata 失敗 (${filePath}):`, formatError(e));
     return { width: 0, height: 0, blurhash: "" };
   }
 }
