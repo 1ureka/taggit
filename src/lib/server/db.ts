@@ -17,6 +17,7 @@ import fs from "fs";
 import { getCollectionPaths } from "./config.js";
 import { formatError, isRecord } from "$lib/utils.js";
 import type { DBData, ImageRecord } from "$lib/types.js";
+import { log } from "$lib/server/helpers.js";
 
 /**
  * 封裝圖片資料庫的所有記憶體內狀態，以及索引維護與持久化邏輯。
@@ -62,7 +63,7 @@ export class JSONDatabase {
    */
   private parseImages(raw: unknown): Record<string, ImageRecord> {
     if (!isRecord(raw)) {
-      console.warn("[db] images 欄位格式無效，重置為空資料庫");
+      log({ level: "warn", module: "db", message: "images 欄位格式無效，重置為空資料庫" });
       return {};
     }
 
@@ -71,7 +72,6 @@ export class JSONDatabase {
 
     for (const [id, record] of Object.entries(raw)) {
       if (!isRecord(record)) {
-        console.warn(`[db] images["${id}"] 不是物件，已跳過`);
         skipped++;
         continue;
       }
@@ -100,13 +100,13 @@ export class JSONDatabase {
           blurhash: record.blurhash,
         };
       } else {
-        console.warn(`[db] images["${id}"] 欄位格式有誤，已跳過`);
+        log({ level: "warn", module: "db", message: `images["${id}"] 欄位格式有誤，已跳過` });
         skipped++;
       }
     }
 
     if (skipped > 0) {
-      console.warn(`[db] 共跳過 ${skipped} 筆無效記錄`);
+      log({ level: "warn", module: "db", message: `共跳過 ${skipped} 筆無效記錄` });
     }
 
     return result;
@@ -184,9 +184,9 @@ export class JSONDatabase {
       fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
       fs.renameSync(tmp, dbPath);
       this.dirty = false;
-      console.log("[db] Flushed");
+      log({ level: "info", module: "db", message: `已寫入至 ${dbPath}` });
     } catch (e) {
-      console.error("[db] Flush error:", formatError(e));
+      log({ level: "error", module: "db", message: `寫入至磁碟失敗: ${formatError(e)}` });
     }
   }
 
@@ -211,7 +211,7 @@ export class JSONDatabase {
 
     // 復原：若主資料庫不存在，優先使用 .tmp
     if (!fs.existsSync(dbPath) && fs.existsSync(tmp)) {
-      console.log("[db] Recovering from tmp file");
+      log({ level: "warn", module: "db", message: "主資料庫不存在，正在從 .tmp 復原…" });
       fs.renameSync(tmp, dbPath);
     }
 
@@ -220,14 +220,14 @@ export class JSONDatabase {
         const parsed = JSON.parse(fs.readFileSync(dbPath, "utf8"));
         this.data.version = typeof parsed.version === "number" ? parsed.version : 1;
         this.data.images = this.parseImages(parsed.images);
-        console.log(`[db] Loaded: ${Object.keys(this.data.images).length} images`);
+        log({ level: "info", module: "db", message: `已載入 ${Object.keys(this.data.images).length} 張圖片` });
       } catch (e) {
-        console.error("[db] Load error, starting fresh:", formatError(e));
+        log({ level: "error", module: "db", message: `載入資料庫失敗，將以全新狀態開始: ${formatError(e)}` });
         this.data = { version: 1, images: {} };
         this.markDirty();
       }
     } else {
-      console.log("[db] No existing db.json, starting fresh");
+      log({ level: "info", module: "db", message: "未找到現有的 db.json ，將以全新狀態開始" });
       this.markDirty();
     }
 

@@ -64,3 +64,61 @@ export async function parseBody<T = Record<string, unknown>>(request: Request): 
     return [null, json({ ok: false, error: "無效的 JSON body" }, { status: 400 })];
   }
 }
+
+// ---
+
+/**
+ * 日誌條目
+ */
+type LogEntry = {
+  level: "info" | "warn" | "error";
+  module: string;
+  message: string;
+  data?: Record<string, unknown>;
+};
+
+/** ANSI 轉義字元 */
+const escape = {
+  reset: "\x1b[0m",
+  gray: "\x1b[90m",
+  info: "\x1b[34m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
+  cyan: "\x1b[36m",
+};
+
+/** 在字串後補空白以達到指定長度 */
+function pad(str: string, length: number) {
+  if (str.length >= length) return str;
+  return str + " ".repeat(length - str.length);
+}
+
+/** 格式化時間戳為 HH:MM:SS */
+function formatTime(d: Date) {
+  return (
+    String(d.getHours()).padStart(2, "0") +
+    ":" +
+    String(d.getMinutes()).padStart(2, "0") +
+    ":" +
+    String(d.getSeconds()).padStart(2, "0")
+  );
+}
+
+/**
+ * 以結構化 JSON 格式印出日誌，包含時間戳、等級、模組、訊息和可選的額外資料。
+ */
+export function log(entry: Omit<LogEntry, "time">): void {
+  const timeStr = escape.gray + formatTime(new Date()) + escape.reset;
+  const levelStr = escape[entry.level] + pad(entry.level.toUpperCase(), 5) + escape.reset;
+  const moduleStr = escape.cyan + pad(entry.module, 10) + escape.reset;
+  const messageStr = entry.message;
+
+  let output = `${timeStr} ${levelStr} ${moduleStr} ${messageStr}`;
+
+  if (entry.data) {
+    const dataStr = JSON.stringify(entry.data, null, 2);
+    output += "\n" + escape.gray + dataStr + escape.reset;
+  }
+
+  console.log(output);
+}
