@@ -2,20 +2,14 @@
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { TaggerPreview } from "./taggerPreview.svelte.js";
 
-  type Props = { currentFile: string | null; imageLoading: boolean };
+  type Props = { currentFile: string | null };
 
-  let { currentFile, imageLoading = $bindable() }: Props = $props();
+  let { currentFile }: Props = $props();
 
   const zp = new ZoomPan();
   const ui = new TaggerPreview({
     get currentFile() {
       return currentFile;
-    },
-    get imageLoading() {
-      return imageLoading;
-    },
-    set imageLoading(v) {
-      imageLoading = v;
     },
     onChangeImage: zp.handleContainerReset,
   });
@@ -38,7 +32,7 @@
         src={ui.previewSrc}
         alt={currentFile}
         draggable="false"
-        class:loading={imageLoading}
+        class:loading={ui.imageLoading}
         style="transform:{zp.transform}"
         onload={ui.handleImageLoad}
       />

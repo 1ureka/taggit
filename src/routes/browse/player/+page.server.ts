@@ -2,7 +2,7 @@ import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
 import { queryImages } from "$lib/server/db-query.js";
 import { parseQueryParams } from "$lib/utils.js";
-import { requireDatabase } from "$lib/server/helpers.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
 
 const MAX_IMAGES = 200;
 

@@ -6,54 +6,21 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import { getDB, type JSONDatabase } from "./db.js";
-import { getCollectionPaths, IMG_EXTS } from "./config.js";
-import { sortCollator } from "$lib/utils.js";
+
 import type { CollectionPaths } from "$lib/types.js";
+import type { JSONDatabase } from "$lib/server/db.js";
+import { IMG_EXTS } from "$lib/server/config.js";
+import { sortCollator } from "$lib/utils.js";
 
 /**
- * 若集合已知路徑，回傳 CollectionPaths；否則回傳 null。
- * 已知路徑不代表集合已載入 (DB 可能尚未載入或載入失敗)
+ * 列出 `images/` 目錄中不在 `db.json` 中的圖片檔名（即 staged），依字母排序。
  */
-export function requirePaths(): CollectionPaths | null {
-  const db = getDB();
-  const root = db.getCurrentRoot();
-  if (!root) return null;
-  return getCollectionPaths(root);
-}
-
-/**
- * 若集合已載入，回傳 JSONDatabase 實例；否則回傳 null。
- * 呼叫端需自行回傳 503。
- */
-export function requireDatabase(): { db: JSONDatabase; paths: CollectionPaths } | null {
-  const db = getDB();
-  if (!db.isLoaded()) return null;
-  const paths = requirePaths();
-  if (!paths) return null;
-  return { db, paths };
-}
-
-// ---
-
-/** 列出 staged/ 目錄中的圖片檔名，依字母排序。 */
-export function getStagedFiles({ staged }: CollectionPaths): string[] {
+export function getStagedFiles(db: JSONDatabase, paths: CollectionPaths): string[] {
   try {
+    const dbImages = db.data.images;
     return fs
-      .readdirSync(staged)
-      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
-      .sort((a, b) => sortCollator.compare(a, b));
-  } catch {
-    return [];
-  }
-}
-
-/** 列出 trash/ 目錄中的圖片檔名，依字母排序。 */
-export function getTrashFiles({ trash }: CollectionPaths): string[] {
-  try {
-    return fs
-      .readdirSync(trash)
-      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()))
+      .readdirSync(paths.images)
+      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()) && !(f in dbImages))
       .sort((a, b) => sortCollator.compare(a, b));
   } catch {
     return [];
@@ -85,8 +52,6 @@ export function uniqueFilename(dir: string, name: string): string {
   }
 }
 
-// ---
-
 /**
  * 從 Request 解析 JSON body。
  * 成功時回傳 `[body, null]`，失敗時回傳 `[null, errorResponse]`。
@@ -96,6 +61,64 @@ export async function parseBody<T = Record<string, unknown>>(request: Request): 
     const body = (await request.json()) as T;
     return [body, null];
   } catch {
-    return [null, json({ ok: false, error: "Invalid JSON body" }, { status: 400 })];
+    return [null, json({ ok: false, error: "無效的 JSON body" }, { status: 400 })];
   }
+}
+
+// ---
+
+/**
+ * 日誌條目
+ */
+type LogEntry = {
+  level: "info" | "warn" | "error";
+  module: string;
+  message: string;
+  data?: Record<string, unknown>;
+};
+
+/** ANSI 轉義字元 */
+const escape = {
+  reset: "\x1b[0m",
+  gray: "\x1b[90m",
+  info: "\x1b[34m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
+  cyan: "\x1b[36m",
+};
+
+/** 在字串後補空白以達到指定長度 */
+function pad(str: string, length: number) {
+  if (str.length >= length) return str;
+  return str + " ".repeat(length - str.length);
+}
+
+/** 格式化時間戳為 HH:MM:SS */
+function formatTime(d: Date) {
+  return (
+    String(d.getHours()).padStart(2, "0") +
+    ":" +
+    String(d.getMinutes()).padStart(2, "0") +
+    ":" +
+    String(d.getSeconds()).padStart(2, "0")
+  );
+}
+
+/**
+ * 以結構化 JSON 格式印出日誌，包含時間戳、等級、模組、訊息和可選的額外資料。
+ */
+export function log(entry: Omit<LogEntry, "time">): void {
+  const timeStr = escape.gray + formatTime(new Date()) + escape.reset;
+  const levelStr = escape[entry.level] + pad(entry.level.toUpperCase(), 5) + escape.reset;
+  const moduleStr = escape.cyan + pad(entry.module, 20) + escape.reset;
+  const messageStr = entry.message;
+
+  let output = `${timeStr} ${levelStr} ${moduleStr} ${messageStr}`;
+
+  if (entry.data) {
+    const dataStr = JSON.stringify(entry.data, null, 2);
+    output += "\n" + escape.gray + dataStr + escape.reset;
+  }
+
+  console.log(output);
 }

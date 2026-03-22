@@ -1,97 +1,129 @@
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import type { ImageRecord } from "$lib/types.js";
+import { requireDatabase } from "$lib/server/db-instance.js";
+import { addRecord } from "$lib/server/db-mutation.js";
 import { hasImage } from "$lib/server/db-query.js";
-import { addImage } from "$lib/server/db-mutation.js";
 
+import type { ImageRecord } from "$lib/types.js";
 import { IMG_EXTS } from "$lib/server/config.js";
-import { isValidTags, isValidRating } from "$lib/server/validation.js";
-import { requireDatabase, parseBody, uniqueFilename } from "$lib/server/helpers.js";
-import { getImageMeta } from "$lib/server/thumbnail.js";
+import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { parseBody, log } from "$lib/server/helpers.js";
+import { generateMetadata } from "$lib/server/thumbnail.js";
 
 /**
- * POST /api/staged/[filename] — commit a staged file.
- * Body: { tags, rating }
- * filename comes from URL param.
+ * `POST /api/staged/[filename]`
+ *
+ * 將暫存檔案提交至資料庫。
+ * Body: `{ tags, rating }`，filename 來自 URL 路徑參數。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
   const { db, paths } = loaded;
-  const filename = params.filename!;
 
-  if (!IMG_EXTS.has(path.extname(filename).toLowerCase()))
-    return json({ ok: false, error: "Not an image file" }, { status: 400 });
+  // ---
+
+  const { filename } = params;
+  if (!isValidFilename(filename)) {
+    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
+  }
+
+  if (!IMG_EXTS.has(path.extname(filename).toLowerCase())) {
+    return json({ ok: false, error: "非圖片檔案" }, { status: 400 });
+  }
+
+  if (hasImage(db, filename)) {
+    return json({ ok: false, error: "已提交的圖片" }, { status: 409 });
+  }
+
+  const filePath = path.join(paths.images, filename);
+  if (!fs.existsSync(filePath)) {
+    return json({ ok: false, error: "檔案不存在" }, { status: 404 });
+  }
+
+  // ---
 
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
   const { tags, rating } = body;
 
-  if (!isValidTags(tags)) return json({ ok: false, error: "Invalid tags" }, { status: 400 });
-  if (!isValidRating(rating))
-    return json({ ok: false, error: "Invalid rating (must be integer 0–5)" }, { status: 400 });
+  if (!isValidTags(tags)) {
+    return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
+  }
 
-  const trimmedTags = (tags as string[]).map((t) => t.trim());
-  if (trimmedTags.length === 0) return json({ ok: false, error: "At least one tag is required" }, { status: 400 });
+  if (!isValidRating(rating)) {
+    return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
+  }
 
-  const ext = path.extname(filename).toLowerCase();
-  const srcPath = path.join(paths.staged, filename);
-
-  let id: string;
-  do {
-    id = crypto.randomBytes(8).toString("hex");
-  } while (hasImage(db, id));
-
-  const destPath = path.join(paths.committed, id + ext);
+  // ---
 
   try {
-    const stat = fs.statSync(srcPath);
-    // 先移動檔案再取 metadata：若 getImageMeta 失敗，檔案會留在 committed/ 成為孤立檔案。
-    // 此情況可透過「設定 → 系統維護 → 孤立檔案檢查」偵測並清除，風險可控。
-    fs.renameSync(srcPath, destPath);
-
     const now = Date.now();
-    const meta = await getImageMeta(destPath);
+
+    const ext = path.extname(filename).toLowerCase();
+    const stat = fs.statSync(filePath);
+    const meta = await generateMetadata(filePath);
+    const trimmedTags = tags.map((t) => t.trim());
+
     const record: ImageRecord = {
-      ext,
       name: path.basename(filename, ext),
       tags: trimmedTags,
-      rating: rating as number,
+      rating,
       committedAt: now,
       updatedAt: now,
       fileSize: stat.size,
       ...meta,
     };
 
-    addImage(db, id, record);
-    return json({ ok: true, data: { id, record } }, { status: 201 });
+    addRecord(db, filename, record);
+    log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
+    return json({ ok: true, data: { id: filename, ...record } }, { status: 201 });
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT")
-      return json({ ok: false, error: "Staged file not found" }, { status: 404 });
-    throw e;
+    if (e instanceof Error && "code" in e && e.code === "ENOENT") {
+      return json({ ok: false, error: "檔案不存在" }, { status: 404 });
+    }
+
+    log({ level: "error", module: "staged/[id]", message: `POST 未知錯誤: ${filename}`, data: { error: String(e) } });
+    return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
   }
 };
 
+// ---
+
 /**
- * DELETE /api/staged/[filename] — move staged file to trash (no body needed).
+ * `DELETE /api/staged/[filename]`
+ *
+ * 永久刪除暫存區中的指定檔案。
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const loaded = requireDatabase();
-  if (!loaded) return json({ ok: false, error: "No collection loaded" }, { status: 503 });
+  if (!loaded) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
+  }
 
-  const { paths } = loaded;
-  const filename = params.filename!;
-  const src = path.join(paths.staged, filename);
+  const { db, paths } = loaded;
 
-  if (!fs.existsSync(src)) return json({ ok: false, error: "Staged file not found" }, { status: 404 });
+  const { filename } = params;
+  if (!isValidFilename(filename)) {
+    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
+  }
 
-  const trashName = uniqueFilename(paths.trash, filename);
-  fs.renameSync(src, path.join(paths.trash, trashName));
+  if (hasImage(db, filename)) {
+    return json({ ok: false, error: "無法透過暫存區端點刪除已提交的圖片" }, { status: 409 });
+  }
 
-  return json({ ok: true, data: { trashName } });
+  const filePath = path.join(paths.images, filename);
+  if (!fs.existsSync(filePath)) {
+    return json({ ok: false, error: "檔案不存在" }, { status: 404 });
+  }
+
+  fs.unlinkSync(filePath);
+  log({ level: "info", module: "staged/[id]", message: `刪除暫存: ${filename}` });
+  return json({ ok: true, data: { filename } });
 };

@@ -195,6 +195,125 @@ export class Component {
 - 部分共用元件是純展示，沒有對應的 `.svelte.ts`，比如 `Alert.svelte`
 - 部分是獨立的無頭 UI，沒有對應的 `.svelte`，比如 `menu.svelte.ts`
 
+### 2.5 一個元件對應多個 class
+
+§2.1–2.3 的範例都是一個 `.svelte` 對應一個 class。但當元件的職責逐漸膨脹，**一個 `.svelte.ts` 可以 export 多個 class，由同一個 `.svelte` 分別實例化**。
+
+#### 拆分時機
+
+當一個 class 內部出現**彼此無交集的狀態群組**——各自的 `$state`、`$derived`、handler 互不引用——就是拆分的訊號。將這些獨立關注點拆成各自的 class，每個 class 保持單一職責、結構清晰。
+
+#### 檔案結構
+
+檔案數量不變，仍是雙檔案結構；差異只在 `.svelte.ts` 中 export 多個 class：
+
+```
+Panel.svelte              ← 結構 + 樣式（實例化多個 class）
+panel.svelte.ts           ← export PanelSelect, PanelActions, PanelLayout
+```
+
+#### `.svelte.ts` 範例
+
+```ts
+// panel.svelte.ts
+
+/**
+ * Panel 的選取互動邏輯
+ */
+export class PanelSelect {
+  /** 目前聚焦的項目 ID */
+  activeId = $state<string | null>(null);
+
+  constructor(private options: { items: string[] }) {}
+
+  // ---
+
+  /** 處理項目點擊事件 */
+  handleItemClick = (id: string) => {
+    this.activeId = id;
+  };
+}
+
+/**
+ * Panel 的非同步操作邏輯
+ */
+export class PanelActions {
+  /** 操作進行中 */
+  pending = $state(false);
+
+  /** 處理重新整理按鈕點擊事件 */
+  handleRefreshClick = async () => {
+    if (this.pending) return;
+    this.pending = true;
+    try {
+      await invalidateAll();
+    } finally {
+      this.pending = false;
+    }
+  };
+}
+
+/**
+ * Panel 的虛擬化邏輯
+ */
+export class PanelLayout {
+  /** 捲動容器 DOM 引用 */
+  containerEl = $state<HTMLDivElement | null>(null);
+  /** 可見的項目列表 */
+  visibleItems: { id: string; top: number }[];
+
+  constructor(options: { items: string[] }) {
+    this.visibleItems = $derived(/* 依據捲動位置計算可見範圍 */);
+  }
+
+  // ---
+
+  /** 處理列表捲動事件 */
+  handleScroll = () => { /* ... */ };
+}
+```
+
+每個 class 各自遵循 [§2.2](#22-無頭-ui-class) 的結構規則。class 之間若有交互需求（例如操作完成後需重設選取），透過 options callback 或透過 options.prop 雙向綁定同個狀態來源，不要讓 class 彼此直接引用。
+
+#### `.svelte` 範例
+
+```svelte
+<!-- Panel.svelte -->
+<script lang="ts">
+  import { PanelSelect, PanelActions, PanelLayout } from "./panel.svelte.js";
+
+  type Props = { items: string[] };
+  let { items }: Props = $props();
+
+  const uiSelect = new PanelSelect({
+    get items() { return items; },
+  });
+
+  const uiActions = new PanelActions();
+
+  const uiLayout = new PanelLayout({
+    get items() { return items; },
+  });
+</script>
+
+<button onclick={uiActions.handleRefreshClick} disabled={uiActions.pending}>
+  重新整理
+</button>
+
+<div bind:this={uiLayout.containerEl} onscroll={uiLayout.handleScroll}>
+  {#each uiLayout.visibleItems as item (item.id)}
+    <div
+      class:active={uiSelect.activeId === item.id}
+      onclick={() => uiSelect.handleItemClick(item.id)}
+    >
+      ...
+    </div>
+  {/each}
+</div>
+```
+
+實例化時每個 class 各自命名（`uiSelect`、`uiActions`、`uiLayout`），模板透過不同前綴存取對應的狀態與 handler，閱讀時一眼就能分辨每段互動屬於哪個關注點。
+
 ---
 
 ## 三、共享狀態

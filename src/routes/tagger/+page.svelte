@@ -1,14 +1,10 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
-  import TooSmallOverlay from "$lib/components/TooSmallOverlay.svelte";
   import type { PageData } from "./$types.js";
 
   import TaggerProgress from "./TaggerProgress.svelte";
-  import TaggerLoading from "./TaggerLoading.svelte";
-  import TaggerRefresh from "./TaggerRefresh.svelte";
   import TaggerList from "./TaggerList.svelte";
-  import TaggerUpload from "./TaggerUpload.svelte";
   import TaggerPreview from "./TaggerPreview.svelte";
   import TaggerForm from "./TaggerForm.svelte";
 
@@ -23,8 +19,6 @@
       return first ? new Set([first]) : new Set();
     }),
   );
-  let loading = $state(false);
-  let imageLoading = $state(false);
   let progress = $state(0);
 
   // ---
@@ -60,79 +54,58 @@
       return;
     }
   });
-
-  // Viewport guard
-  let windowWidth = $state(900);
-  let windowHeight = $state(600);
-  const MIN_WIDTH = 860;
-  const MIN_HEIGHT = 500;
-  let tooSmall = $derived(windowWidth < MIN_WIDTH || windowHeight < MIN_HEIGHT);
 </script>
 
 <svelte:head>
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
+<div class="page">
+  <header class="page-header">
+    <a href="/" class="btn btn-ghost btn-sm">
+      <IconArrowLeft size={16} />
+      首頁
+    </a>
+    <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
+  </header>
 
-{#if tooSmall}
-  <TooSmallOverlay
-    minWidth={MIN_WIDTH}
-    minHeight={MIN_HEIGHT}
-    currentWidth={windowWidth}
-    currentHeight={windowHeight}
-    label="Tagger"
-  />
-{:else}
-  <div class="page">
-    <header class="page-header">
-      <a href="/" class="btn btn-ghost btn-sm">
-        <IconArrowLeft size={16} />
-        首頁
-      </a>
-      <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
-      <TaggerLoading {loading} {imageLoading} />
-    </header>
+  <main>
+    <aside class="sidebar">
+      <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
+    </aside>
 
-    <main>
-      <aside class="sidebar">
-        <TaggerRefresh stagedFiles={data.stagedFiles} {selectedFiles} bind:loading />
-        <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
-        <TaggerUpload bind:loading />
-      </aside>
+    <TaggerPreview {currentFile} />
 
-      <TaggerPreview {currentFile} bind:imageLoading />
+    <aside class="panel">
+      <TaggerForm bind:selectedFiles bind:progress />
 
-      <aside class="panel">
-        <TaggerForm {currentFile} bind:selectedFiles bind:loading bind:progress />
+      <div class="separator"></div>
 
-        <div class="separator"></div>
-
-        <div class="shortcuts">
-          {#snippet key(label: string, keys: string[])}
+      <div class="shortcuts">
+        {#snippet key(label: string, keys: string[])}
+          <div>
             <div>
-              <div>
-                {#each keys as k}
-                  <span class="kbd">{k}</span>
-                {/each}
-              </div>
-              {label}
+              {#each keys as k}
+                <span class="kbd">{k}</span>
+              {/each}
             </div>
-          {/snippet}
-          {@render key("切換圖片", ["←", "→"])}
-          {@render key("評等", ["1", "-", "5"])}
-          {@render key("聚焦標籤", ["T"])}
-          {@render key("提交", ["Enter"])}
-        </div>
-      </aside>
-    </main>
-  </div>
-{/if}
+            {label}
+          </div>
+        {/snippet}
+        {@render key("切換圖片", ["←", "→"])}
+        {@render key("評等", ["1", "-", "5"])}
+        {@render key("聚焦標籤", ["T"])}
+        {@render key("提交", ["Enter"])}
+      </div>
+    </aside>
+  </main>
+</div>
 
 <style>
   .page {
     display: flex;
     flex-direction: column;
+    min-width: 860px;
     height: 100vh;
     overflow: hidden;
   }

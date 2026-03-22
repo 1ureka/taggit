@@ -11,7 +11,9 @@
 
 import sharp from "sharp";
 import { encode } from "blurhash";
-import { LRUCache, TaskPool } from "./resources.js";
+import { log } from "$lib/server/helpers.js";
+import { LRUCache, TaskPool } from "$lib/server/resources.js";
+import { formatError } from "$lib/utils.js";
 import type { ImageSize } from "$lib/types.js";
 
 type ProcessableSize = Exclude<ImageSize, "xl">;
@@ -110,7 +112,9 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
 
 // ---
 
-/** 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。 */
+/**
+ * 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。
+ */
 async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
 
@@ -139,8 +143,8 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
  * 取得指定圖片的縮圖 Buffer（含 LRU 快取與 in-flight 去重）。
  * 若快取命中直接回傳；否則排程產生縮圖後寫入快取。
  */
-export async function getImage(area: string, file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
-  const cacheKey = `${size}:${area}/${file}`;
+export async function getImageBuffer(file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
+  const cacheKey = `${size}:${file}`;
 
   const cached = cache.get(cacheKey);
   if (cached) return cached;
@@ -162,7 +166,7 @@ export async function getImage(area: string, file: string, sourcePath: string, s
  * 讀取圖片的寬高與 BlurHash 字串。
  * 發生錯誤時回傳寬高為 0、blurhash 為空字串。
  */
-export async function getImageMeta(filePath: string): Promise<{ width: number; height: number; blurhash: string }> {
+export async function generateMetadata(filePath: string): Promise<{ width: number; height: number; blurhash: string }> {
   try {
     const image = sharp(filePath);
     const meta = await image.metadata();
@@ -189,19 +193,26 @@ export async function getImageMeta(filePath: string): Promise<{ width: number; h
     );
 
     return { width, height, blurhash };
-  } catch {
+  } catch (e) {
+    log({ level: "error", module: "thumbnail", message: `生成圖片元資料失敗 (${filePath}): ${formatError(e)}` });
     return { width: 0, height: 0, blurhash: "" };
   }
 }
 
-/** 清空縮圖快取，回傳被清除的項目數量。 */
+// ---
+
+/**
+ * 清空縮圖快取，回傳被清除的項目數量。
+ */
 export function clearCache(): number {
   const count = cache.stats.entries;
   cache.clear();
   return count;
 }
 
-/** 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。 */
+/**
+ * 取得縮圖快取的統計資訊（項目數量與已使用位元組數）。
+ */
 export function getCacheStats(): { entries: number; bytes: number } {
   return cache.stats;
 }

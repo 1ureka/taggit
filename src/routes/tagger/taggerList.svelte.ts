@@ -1,4 +1,6 @@
-import { isInEditable, scrollToActive } from "$lib/client/dom.js";
+import { api } from "$lib/client/api.js";
+import { invalidateAll } from "$app/navigation";
+import { addToast, isInEditable, scrollToActive } from "$lib/client/dom.js";
 
 /**
  * TaggerList 的配置選項
@@ -13,59 +15,17 @@ type TaggerListOptions = {
 };
 
 /**
- * TaggerList 的互動邏輯
+ * TaggerList 的選取與切換啟用的互動邏輯
  */
-export class TaggerList {
-  /** 捲動容器 DOM 引用 */
-  listEl = $state<HTMLDivElement | null>(null);
-  /** 虛擬列表單項固定高度 */
-  readonly ITEM_H = 72;
-
-  /** 捲動容器目前的 scrollTop */
-  #scrollTop = $state(0);
-  /** 捲動容器可見高度 */
-  #viewH = $state(400);
-  /** 虛擬列表渲染緩衝區大小 */
-  readonly #BUFFER = 5;
-
-  /** 目前選取檔案在列表中的索引 */
-  #currentFileIndex: number;
-  /** 虛擬列表內容總高度 */
-  totalH: number;
-  /** 可見的項目列表 */
-  visible: { filename: string; index: number }[];
+export class TaggerListSelect {
+  /** header badge 顯示文字 */
+  badgeLabel: string;
 
   constructor(private options: TaggerListOptions) {
-    this.#currentFileIndex = $derived(
-      options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1,
-    );
-    this.totalH = $derived(options.stagedFiles.length * this.ITEM_H);
-
-    const startIdx = $derived(Math.max(0, Math.floor(this.#scrollTop / this.ITEM_H) - this.#BUFFER));
-    const endIdx = $derived(
-      Math.min(options.stagedFiles.length, Math.ceil((this.#scrollTop + this.#viewH) / this.ITEM_H) + this.#BUFFER),
-    );
-    this.visible = $derived(
-      options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
-        filename,
-        index: startIdx + i,
-      })),
-    );
-
-    // scrollToActive：監聽 currentFile，將對應項目捲入可視區域
-    $effect(() => {
-      const idx = this.#currentFileIndex;
-      if (idx >= 0) scrollToActive(this.listEl, idx, this.ITEM_H);
-    });
-
-    // ResizeObserver：監聽 listEl，追蹤 viewH
-    $effect(() => {
-      if (!this.listEl) return;
-      const ro = new ResizeObserver((entries) => {
-        for (const e of entries) this.#viewH = e.contentRect.height;
-      });
-      ro.observe(this.listEl);
-      return () => ro.disconnect();
+    this.badgeLabel = $derived.by(() => {
+      const total = options.stagedFiles.length;
+      const selected = options.selectedFiles.size;
+      return selected > 1 ? `${selected}/${total}` : `${total}`;
     });
   }
 
@@ -119,11 +79,6 @@ export class TaggerList {
     else this.#selectShift(filename);
   };
 
-  /** 處理列表捲動事件，同步 scrollTop 狀態 */
-  handleListScroll = () => {
-    if (this.listEl) this.#scrollTop = this.listEl.scrollTop;
-  };
-
   /** 處理 Window 鍵盤事件，執行方向鍵導航 */
   handleWindowKeydown = (e: KeyboardEvent) => {
     if (isInEditable(e.target)) return;
@@ -136,5 +91,132 @@ export class TaggerList {
       e.preventDefault();
       this.#navigate(1);
     }
+  };
+}
+
+/**
+ * TaggerList 的操作互動邏輯
+ */
+export class TaggerListActions {
+  /** 操作狀態 */
+  pending = $state(false);
+
+  /** 處理重新整理按鈕點擊事件，重新掃描並更新清單 */
+  handleRefreshClick = async () => {
+    if (this.pending) return;
+    this.pending = true;
+    try {
+      await invalidateAll();
+      addToast("列表已更新", "success");
+    } finally {
+      this.pending = false;
+    }
+  };
+
+  /** 處理檔案上傳 input change 事件 */
+  handleUploadChange = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    if (!input.files?.length || this.pending) return;
+
+    this.pending = true;
+    try {
+      const body = new FormData();
+      for (const f of input.files) body.append("files", f);
+
+      const res = await api.post<{ added: string[]; errors: string[] }>("/api/staged", body);
+
+      if (!res.ok || !res.data) {
+        addToast(res.error || "上傳失敗", "error");
+        return;
+      }
+
+      const { added, errors } = res.data;
+      if (errors.length) addToast(`${errors.length} 個檔案加入失敗`, "error");
+      if (added.length) addToast(`已加入 ${added.length} 張圖片`, "success");
+
+      await invalidateAll();
+    } catch {
+      addToast("上傳請求失敗", "error");
+    } finally {
+      this.pending = false;
+      input.value = "";
+    }
+  };
+}
+
+/**
+ * TaggerList 的虛擬化配置選項
+ */
+type TaggerListVirtualOptions = {
+  /** 暫存檔案列表 */
+  stagedFiles: string[];
+  /** 目前選取的檔案 */
+  currentFile: string | null;
+};
+
+/**
+ * TaggerList 的虛擬化邏輯
+ */
+export class TaggerListVirtual {
+  /** 捲動容器 DOM 引用 */
+  listEl = $state<HTMLDivElement | null>(null);
+  /** 虛擬列表單項固定高度 */
+  readonly #listItemHeight = 72;
+  /** 虛擬列表渲染緩衝區大小 */
+  readonly #listBuffer = 5;
+  /** 捲動容器目前的 listScrollTop */
+  #listScrollTop = $state(0);
+  /** 捲動容器可見高度 */
+  #listViewHeight = $state(typeof window !== "undefined" ? window.innerHeight : 400);
+  /** 虛擬列表內容總高度 */
+  listTotalHeight: number;
+  /** 可見的項目列表 */
+  listVisibleItems: { filename: string; top: number; height: number }[];
+
+  constructor(options: TaggerListVirtualOptions) {
+    this.listTotalHeight = $derived(options.stagedFiles.length * this.#listItemHeight);
+
+    this.listVisibleItems = $derived.by(() => {
+      const firstVisibleIdx = Math.floor(this.#listScrollTop / this.#listItemHeight);
+      const visibleCount = Math.ceil(this.#listViewHeight / this.#listItemHeight);
+
+      const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
+      const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+
+      return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+        filename,
+        top: (startIdx + i) * this.#listItemHeight,
+        height: this.#listItemHeight,
+      }));
+    });
+
+    // ---
+
+    // 監聽 currentFile，將對應項目捲入可視區域
+    $effect(() => {
+      if (!this.listEl) return;
+
+      const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      if (idx >= 0) scrollToActive(this.listEl, idx, this.#listItemHeight);
+    });
+
+    // ResizeObserver 監聽 listEl，追蹤容器可視高度變化
+    $effect(() => {
+      if (!this.listEl) return;
+
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) this.#listViewHeight = e.contentRect.height;
+      });
+
+      ro.observe(this.listEl);
+      return () => ro.disconnect();
+    });
+  }
+
+  // ---
+
+  /** 處理列表捲動事件，同步 listScrollTop 狀態 */
+  handleListScroll = () => {
+    if (this.listEl) this.#listScrollTop = this.listEl.scrollTop;
   };
 }

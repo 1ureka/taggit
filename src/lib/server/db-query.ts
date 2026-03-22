@@ -7,29 +7,79 @@
  */
 
 import type { JSONDatabase } from "./db.js";
-import type { ImageRecord, ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
+import type { ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
 import { sortCollator } from "$lib/utils.js";
 
 // ---
 
-/** 取得單張圖片（含 id），找不到回傳 `null`。 */
-export function getImage(jsonDB: JSONDatabase, id: string): ImageWithId | null {
+/**
+ * 取得單張圖片（含 id），找不到回傳 `null`。
+ */
+export function getImageRecord(jsonDB: JSONDatabase, id: string): ImageWithId | null {
   const rec = jsonDB.data.images[id];
   return rec ? { id, ...rec } : null;
 }
 
-/** 檢查資料庫是否存在指定 id。 */
+/**
+ * 已提交圖片的總數。
+ */
+export function getImageCount(jsonDB: JSONDatabase): number {
+  return Object.keys(jsonDB.data.images).length;
+}
+
+/**
+ * 檢查資料庫是否存在指定 id。
+ */
 export function hasImage(jsonDB: JSONDatabase, id: string): boolean {
   return id in jsonDB.data.images;
 }
 
-/** 回傳全部 `[id, record]` 對，適合遍歷所有圖片。 */
-export function allImageEntries(jsonDB: JSONDatabase): [string, ImageRecord][] {
-  return Object.entries(jsonDB.data.images);
+// ---
+
+/**
+ * 回傳所有標籤，依圖片數量降序排列。
+ */
+export function getAllTags(jsonDB: JSONDatabase): TagInfo[] {
+  const result: TagInfo[] = [];
+
+  for (const [name, ids] of jsonDB.tagIndex) {
+    result.push({ name, count: ids.size });
+  }
+
+  return result.sort((a, b) => b.count - a.count);
+}
+
+/**
+ * 目前使用中的不重複標籤數。
+ */
+export function getTagCount(jsonDB: JSONDatabase): number {
+  return jsonDB.tagIndex.size;
 }
 
 // ---
 
+/**
+ * 對多個標籤取交集，任一標籤不存在就直接回傳空集合。
+ */
+function intersectTags(jsonDB: JSONDatabase, tags: string[]): Set<string> {
+  const tagSets = tags.map((t) => jsonDB.tagIndex.get(t) ?? new Set<string>());
+
+  if (tagSets.some((s) => s.size === 0)) return new Set();
+
+  const result = new Set(tagSets[0]);
+  for (let i = 1; i < tagSets.length; i++) {
+    for (const id of result) {
+      if (!tagSets[i].has(id)) result.delete(id);
+    }
+  }
+  return result;
+}
+
+// ---
+
+/**
+ * 篩選圖片的參數型別
+ */
 interface FilterParams {
   /** 不區分大小寫的名稱子字串搜尋 */
   search: string;
@@ -41,7 +91,9 @@ interface FilterParams {
   ratingOp: "gte" | "lte" | "eq";
 }
 
-/** 依搜尋、標籤、評分條件篩選，回傳符合的 id 集合。 */
+/**
+ * 依搜尋、標籤、評分條件篩選，回傳符合的 id 集合。
+ */
 function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
   const images = jsonDB.data.images;
 
@@ -68,19 +120,25 @@ function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
   return ids;
 }
 
-/** 對多個標籤取交集，任一標籤不存在就直接回傳空集合。 */
-function intersectTags(jsonDB: JSONDatabase, tags: string[]): Set<string> {
-  const tagSets = tags.map((t) => jsonDB.tagIndex.get(t) ?? new Set<string>());
+// ---
 
-  if (tagSets.some((s) => s.size === 0)) return new Set();
+/**
+ * 從圖片取出用於排序的值。
+ */
+function sortKey(img: ImageWithId, sort: "committedAt" | "rating" | "name"): string {
+  if (sort === "rating") return String(img.rating ?? 0);
+  if (sort === "name") return (img.name ?? "").toLowerCase();
+  return String(img.committedAt ?? 0);
+}
 
-  const result = new Set(tagSets[0]);
-  for (let i = 1; i < tagSets.length; i++) {
-    for (const id of result) {
-      if (!tagSets[i].has(id)) result.delete(id);
-    }
+/**
+ * Fisher-Yates 洗牌。
+ */
+function shuffle<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return result;
 }
 
 // ---
@@ -123,42 +181,4 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
   }
 
   return { items, total, page: 1, pages: 1 };
-}
-
-/** 從圖片取出用於排序的值。 */
-function sortKey(img: ImageWithId, sort: "committedAt" | "rating" | "name"): string {
-  if (sort === "rating") return String(img.rating ?? 0);
-  if (sort === "name") return (img.name ?? "").toLowerCase();
-  return String(img.committedAt ?? 0);
-}
-
-/** Fisher-Yates 洗牌。 */
-function shuffle<T>(arr: T[]): void {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
-// ---
-
-/** 回傳所有標籤，依圖片數量降序排列。 */
-export function getAllTags(jsonDB: JSONDatabase): TagInfo[] {
-  const result: TagInfo[] = [];
-
-  for (const [name, ids] of jsonDB.tagIndex) {
-    result.push({ name, count: ids.size });
-  }
-
-  return result.sort((a, b) => b.count - a.count);
-}
-
-/** 已提交圖片的總數。 */
-export function getImageCount(jsonDB: JSONDatabase): number {
-  return Object.keys(jsonDB.data.images).length;
-}
-
-/** 目前使用中的不重複標籤數。 */
-export function getTagCount(jsonDB: JSONDatabase): number {
-  return jsonDB.tagIndex.size;
 }

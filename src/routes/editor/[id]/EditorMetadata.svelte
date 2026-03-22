@@ -7,11 +7,8 @@
 </script>
 
 <dl>
-  <dt>ID</dt>
-  <dd class="mono">{image.id}</dd>
-
   <dt>檔案名稱</dt>
-  <dd class="mono">{image.id}{image.ext}</dd>
+  <dd class="mono">{image.id}</dd>
 
   <dt>提交時間</dt>
   <dd>{image.committedAt ? formatDate(image.committedAt) : "—"}</dd>

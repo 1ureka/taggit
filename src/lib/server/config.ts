@@ -5,13 +5,15 @@
  * 本模組的職責：
  *   - 確保 `server.json` 存在並提供讀寫介面。
  *   - 管理 `collectionRoot` 設定。
- *   - 驗證集合根目錄並自動建立必要的子目錄。
+ *   - 驗證集合根目錄並自動建立 `images/` 子目錄。
  *   - 從集合根路徑衍生所有相關路徑（{@link getCollectionPaths}）。
  */
 
 import fs from "fs";
 import path from "path";
-import type { ServerConfig, CollectionPaths, ImageArea } from "$lib/types.js";
+import { log } from "$lib/server/helpers.js";
+import { formatError } from "$lib/utils.js";
+import type { ServerConfig, CollectionPaths } from "$lib/types.js";
 
 /** 支援的圖片副檔名 */
 export const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"]);
@@ -35,28 +37,30 @@ const SERVER_JSON_PATH = path.resolve("server.json");
 // ---
 
 /**
- * 確保 server.json 存在。若檔案不存在則建立空的 `{}`。
- * 在首次讀取時呼叫，確保所有程式路徑都是安全的。
+ * 讀取 server.json 的內容，若檔案不存在則建立空的 `{}`。
  */
-export function ensureServerJson(): void {
-  if (!fs.existsSync(SERVER_JSON_PATH)) {
-    fs.writeFileSync(SERVER_JSON_PATH, "{}\n", "utf8");
-    console.log("[config] Created server.json");
-  }
-}
-
 function readServerJson(): ServerConfig {
-  ensureServerJson();
+  log({ level: "info", module: "config", message: "正在讀取 server.json…" });
+
+  if (!fs.existsSync(SERVER_JSON_PATH)) {
+    writeServerJson({});
+    log({ level: "info", module: "config", message: "已建立 server.json" });
+  }
+
   try {
     const raw = fs.readFileSync(SERVER_JSON_PATH, "utf8");
     return JSON.parse(raw) as ServerConfig;
   } catch {
-    console.error("[config] Failed to parse server.json, treating as empty");
+    log({ level: "error", module: "config", message: "解析 server.json 失敗，將視為空配置" });
     return {};
   }
 }
 
+/**
+ * 將 server.json 寫入磁碟。
+ */
 function writeServerJson(data: ServerConfig): void {
+  log({ level: "info", module: "config", message: "正在寫入 server.json…" });
   fs.writeFileSync(SERVER_JSON_PATH, JSON.stringify(data, null, 2) + "\n", "utf8");
 }
 
@@ -72,36 +76,35 @@ export function getCollectionRoot(): string | null {
 
 /**
  * 將 collectionRoot 寫入 server.json。
- * 不會觸發 db.loadCollection()；呼叫端（API 或 hooks）須自行處理。
+ * 不會觸發 db.loadCollection()；呼叫端須自行處理。
  */
 export function setCollectionRoot(root: string): void {
   const cfg = readServerJson();
   cfg.collectionRoot = root;
   writeServerJson(cfg);
-  console.log(`[config] collectionRoot set to: ${root}`);
+  log({ level: "info", module: "config", message: `已設定集合根目錄為：${root}` });
 }
 
 /**
  * 驗證集合根路徑：
  * - 必須是已存在的目錄
- * - 若 staged/、committed/、trash/ 不存在則自動建立
- * 當集合可使用時回傳 true。
+ * - 若 images/ 不存在則自動建立
+ *
+ * 當集合可使用時回傳 `true`
  */
 export function isCollectionValid(root: string): boolean {
   try {
     if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) return false;
 
-    const subdirs: ImageArea[] = ["staged", "committed", "trash"];
-    for (const sub of subdirs) {
-      const dir = path.join(root, sub);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`[config] Created directory: ${dir}`);
-      }
+    const imagesDir = path.join(root, "images");
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+      log({ level: "info", module: "config", message: `已建立目錄：${imagesDir}` });
     }
+
     return true;
   } catch (e) {
-    console.error("[config] isCollectionValid error:", (e as Error).message);
+    log({ level: "error", module: "config", message: `驗證集合路徑失敗: ${formatError(e)}` });
     return false;
   }
 }
@@ -110,11 +113,5 @@ export function isCollectionValid(root: string): boolean {
  * 從集合根路徑衍生所有相關路徑。
  */
 export function getCollectionPaths(root: string): CollectionPaths {
-  return {
-    root,
-    staged: path.join(root, "staged"),
-    committed: path.join(root, "committed"),
-    trash: path.join(root, "trash"),
-    db: path.join(root, "db.json"),
-  };
+  return { root, images: path.join(root, "images"), db: path.join(root, "db.json") };
 }

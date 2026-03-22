@@ -1,3 +1,8 @@
+/**
+ * @file cache.ts
+ * Stale-While-Revalidate (SWR) 快取機制，用於前端標籤列表等資料的快取與重新驗證。
+ */
+
 import { addToast } from "$lib/client/dom.js";
 import type { TagInfo } from "$lib/types.js";
 import { api } from "./api.js";
@@ -6,8 +11,9 @@ import { api } from "./api.js";
 type AsyncFn<T> = () => Promise<T>;
 
 /**
- * Returns a cached version of `fn` with a time-to-live (TTL).
- * The cached value is returned if it's still valid (not expired), otherwise `fn` is called to refresh it.
+ * Returns a stale-while-revalidate (SWR) cached version of `fn`.
+ * If cached data exists, it is returned immediately even when expired;
+ * a background revalidation is triggered when the TTL has elapsed.
  */
 function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
   let cachedData: T | null = null;
@@ -58,7 +64,7 @@ function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
  * Fetches the list of tags from the server.
  */
 const fetchTags = async () => {
-  const res = await api.get<{ tags: TagInfo[] }>("/api/metadata/tags");
+  const res = await api.get<{ tags: TagInfo[] }>("/api/tags");
   return res.ok && res.data ? res.data.tags : [];
 };
 

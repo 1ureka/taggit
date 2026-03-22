@@ -1,5 +1,5 @@
 import type { TagInfo } from "$lib/types.js";
-import { tagCache } from "$lib/client/cache";
+import { tagCache } from "$lib/client/cache.js";
 
 /**
  * 自動補全組件的配置選項

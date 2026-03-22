@@ -15,6 +15,7 @@ export class ConfirmModal {
     $effect(() => {
       const onConfirmRequest = (e: Event) => {
         const { message: msg, resolve } = (e as CustomEvent<ConfirmPayload>).detail;
+        this.#resolveRef?.(false);
         this.message = msg;
         this.#resolveRef = resolve;
         this.open = true;

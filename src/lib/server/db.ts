@@ -1,27 +1,28 @@
 /**
  * @file db.ts
- * 記憶體內 JSON 資料庫 —— 類別定義、持久化與單例。
+ * 記憶體內 JSON 資料庫 —— 類別定義與持久化。
  *
  * 本模組的職責：
  *   - {@link JSONDatabase} 類別：擁有所有記憶體內狀態（資料、索引、dirty 旗標）。
- *   - 透過 `globalThis.__db` 實現 HMR 安全的單例。
  *   - 防抖寫入 `db.json` 至磁碟。
  *   - 載入 / 切換目前的集合。
  *
+ * 單例管理與存取介面位於 {@link ./db-instance.ts}。
  * 查詢邏輯位於 {@link ./db-query.ts}。
  * 異動邏輯位於 {@link ./db-mutation.ts}。
- * 業務邏輯應透過 `helpers.ts` 的 `requireDatabase` / `requirePaths` 取得 db 與 paths，
- * 而非直接呼叫 {@link getDB}。
+ * 業務邏輯應透過 `db-instance.ts` 的 `requireDatabase` / `requirePaths` 取得 db 與 paths。
  */
 
 import fs from "fs";
 import { getCollectionPaths } from "./config.js";
+import { formatError, isRecord } from "$lib/utils.js";
 import type { DBData, ImageRecord } from "$lib/types.js";
+import { log } from "$lib/server/helpers.js";
 
 /**
  * 封裝圖片資料庫的所有記憶體內狀態，以及索引維護與持久化邏輯。
  *
- * 實例通常透過模組層級的 {@link getDB} 單例取得，
+ * 實例通常透過 {@link ./db-instance.ts} 的 `requireDatabase` 取得，
  * 而非直接建構。
  */
 export class JSONDatabase {
@@ -54,6 +55,62 @@ export class JSONDatabase {
   }
 
   // ---
+
+  /**
+   * 解析從 `db.json` 讀取的原始 `images` 欄位資料，確保其結構與類型正確。
+   *
+   * @param raw - `JSON.parse` 後的 `parsed.images` 原始值。
+   */
+  private parseImages(raw: unknown): Record<string, ImageRecord> {
+    if (!isRecord(raw)) {
+      log({ level: "warn", module: "db", message: "images 欄位格式無效，重置為空資料庫" });
+      return {};
+    }
+
+    const result: Record<string, ImageRecord> = {};
+    let skipped = 0;
+
+    for (const [id, record] of Object.entries(raw)) {
+      if (!isRecord(record)) {
+        skipped++;
+        continue;
+      }
+
+      if (
+        typeof record.name === "string" &&
+        typeof record.rating === "number" &&
+        typeof record.committedAt === "number" &&
+        typeof record.updatedAt === "number" &&
+        typeof record.fileSize === "number" &&
+        typeof record.width === "number" &&
+        typeof record.height === "number" &&
+        typeof record.blurhash === "string" &&
+        Array.isArray(record.tags) &&
+        record.tags.every((t) => typeof t === "string")
+      ) {
+        result[id] = {
+          name: record.name,
+          tags: record.tags,
+          rating: record.rating,
+          committedAt: record.committedAt,
+          updatedAt: record.updatedAt,
+          fileSize: record.fileSize,
+          width: record.width,
+          height: record.height,
+          blurhash: record.blurhash,
+        };
+      } else {
+        log({ level: "warn", module: "db", message: `images["${id}"] 欄位格式有誤，已跳過` });
+        skipped++;
+      }
+    }
+
+    if (skipped > 0) {
+      log({ level: "warn", module: "db", message: `共跳過 ${skipped} 筆無效記錄` });
+    }
+
+    return result;
+  }
 
   /**
    * 使用目前的 {@link data} 快照從頭重建標籤索引。
@@ -127,9 +184,9 @@ export class JSONDatabase {
       fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
       fs.renameSync(tmp, dbPath);
       this.dirty = false;
-      console.log("[db] Flushed");
+      log({ level: "info", module: "db", message: `已寫入至 ${dbPath}` });
     } catch (e) {
-      console.error("[db] Flush error:", (e as Error).message);
+      log({ level: "error", module: "db", message: `寫入至磁碟失敗: ${formatError(e)}` });
     }
   }
 
@@ -154,23 +211,23 @@ export class JSONDatabase {
 
     // 復原：若主資料庫不存在，優先使用 .tmp
     if (!fs.existsSync(dbPath) && fs.existsSync(tmp)) {
-      console.log("[db] Recovering from tmp file");
+      log({ level: "warn", module: "db", message: "主資料庫不存在，正在從 .tmp 復原…" });
       fs.renameSync(tmp, dbPath);
     }
 
     if (fs.existsSync(dbPath)) {
       try {
         const parsed = JSON.parse(fs.readFileSync(dbPath, "utf8"));
-        this.data.version = parsed.version ?? 1;
-        this.data.images = parsed.images ?? {};
-        console.log(`[db] Loaded: ${Object.keys(this.data.images).length} images`);
+        this.data.version = typeof parsed.version === "number" ? parsed.version : 1;
+        this.data.images = this.parseImages(parsed.images);
+        log({ level: "info", module: "db", message: `已載入 ${Object.keys(this.data.images).length} 張圖片` });
       } catch (e) {
-        console.error("[db] Load error, starting fresh:", (e as Error).message);
+        log({ level: "error", module: "db", message: `載入資料庫失敗，將以全新狀態開始: ${formatError(e)}` });
         this.data = { version: 1, images: {} };
         this.markDirty();
       }
     } else {
-      console.log("[db] No existing db.json, starting fresh");
+      log({ level: "info", module: "db", message: "未找到現有的 db.json ，將以全新狀態開始" });
       this.markDirty();
     }
 
@@ -192,32 +249,4 @@ export class JSONDatabase {
   getCurrentRoot(): string | null {
     return this.currentRoot;
   }
-}
-
-// ---
-
-declare global {
-  /** HMR 保護：在熱重載之間重用現有的 {@link JSONDatabase} 實例。 */
-  var __db: JSONDatabase | undefined;
-}
-
-/**
- * 回傳模組層級的 {@link JSONDatabase} 單例，首次存取時建立。
- * 實例儲存於 `globalThis`，使 Vite HMR 不會在重載間重設它。
- *
- * @deprecated 業務路由與 SSR 邏輯請改用 `requireDatabase()` / `requirePaths()`
- * （來自 `$lib/server/helpers.js`），它們提供型別安全的 null check
- * 並一次回傳 db + paths bundle。
- *
- * 僅限基礎設施層直接使用:
- * - hooks（flush）
- * - layout load（loadCollection）
- * - setup endpoint（loadCollection）
- * - helpers.ts 內部封裝。
- */
-export function getDB(): JSONDatabase {
-  if (!globalThis.__db) {
-    globalThis.__db = new JSONDatabase();
-  }
-  return globalThis.__db;
 }

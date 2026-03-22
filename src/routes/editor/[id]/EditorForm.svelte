@@ -57,9 +57,9 @@
     <IconDeviceFloppy size={16} />
     {loading ? "操作中…" : "儲存"}
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={loading}>
+  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={loading}>
     <IconTrash size={16} />
-    刪除
+    退回暫存
   </button>
 </div>
 

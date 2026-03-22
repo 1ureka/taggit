@@ -6,9 +6,6 @@ import { imgSrc } from "$lib/client/api.js";
 type TaggerPreviewOptions = {
   /** 唯讀：目前選取的檔名 */
   get currentFile(): string | null;
-  /** 雙向綁定：圖片載入狀態 */
-  get imageLoading(): boolean;
-  set imageLoading(v: boolean);
   /** 圖片切換時呼叫（用於重置縮放等外部動作） */
   onChangeImage: () => void;
 };
@@ -19,16 +16,18 @@ type TaggerPreviewOptions = {
 export class TaggerPreview {
   /** 預覽圖片的 URL */
   previewSrc: string;
+  /** 圖片載入狀態 */
+  imageLoading = $state(false);
 
   #prevFile: string | null = null;
 
-  constructor(private options: TaggerPreviewOptions) {
-    this.previewSrc = $derived(options.currentFile ? imgSrc("staged", options.currentFile) : "");
+  constructor(options: TaggerPreviewOptions) {
+    this.previewSrc = $derived(options.currentFile ? imgSrc(options.currentFile) : "");
 
     $effect(() => {
       const file = options.currentFile;
       if (file !== this.#prevFile) {
-        if (file) options.imageLoading = true;
+        if (file) this.imageLoading = true;
         this.#prevFile = file;
         options.onChangeImage();
       }
@@ -39,6 +38,6 @@ export class TaggerPreview {
 
   /** 處理圖片載入完成事件，清除 imageLoading 狀態 */
   handleImageLoad = () => {
-    this.options.imageLoading = false;
+    this.imageLoading = false;
   };
 }

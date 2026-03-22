@@ -7,12 +7,7 @@
  * 每個函式同時作為 TypeScript 型別收窄（narrowing）使用。
  */
 
-import type { ImageArea, ImageSize } from "$lib/types.js";
-
-/** 16 字元小寫十六進位字串。 */
-export function isValidId(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9a-f]{16}$/.test(value);
-}
+import type { ImageSize } from "$lib/types.js";
 
 /** 標籤必須為非空陣列，每個元素為修剪後非空、不重複的字串（各最長 50 字元）。 */
 export function isValidTags(value: unknown): value is string[] {
@@ -21,10 +16,13 @@ export function isValidTags(value: unknown): value is string[] {
   const seen = new Set<string>();
   for (const t of value) {
     if (typeof t !== "string") return false;
+
     const trimmed = t.trim();
-    if (trimmed === "" || trimmed.length > 50 || seen.has(trimmed)) return false;
+    if (trimmed === "" || trimmed.length > 50 || trimmed.includes(",") || seen.has(trimmed)) return false;
+
     seen.add(trimmed);
   }
+
   return true;
 }
 
@@ -36,11 +34,6 @@ export function isValidRating(value: unknown): value is number {
 /** 絕對路徑看起來合理（非空字串）。 */
 export function isValidAbsPath(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-/** 檢查 area 參數是否為 committed / staged / trash 其中之一。 */
-export function isValidArea(value: unknown): value is ImageArea {
-  return value === "committed" || value === "staged" || value === "trash";
 }
 
 /** 檔名必須非空且不含路徑穿越字元。 */

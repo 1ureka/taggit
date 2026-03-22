@@ -12,7 +12,7 @@ import type { QueryOptions } from "$lib/types.js";
  * 解析以逗號分隔的標籤字串。
  * 回傳裁切空白後的非空標籤陣列。
  */
-export function parseTags(raw: string | null): string[] {
+function parseTags(raw: string | null): string[] {
   if (!raw) return [];
   return raw
     .split(",")
@@ -23,7 +23,7 @@ export function parseTags(raw: string | null): string[] {
 /**
  * 將字串轉為有限整數，無效值回傳 undefined（避免 NaN 污染下游邏輯）
  */
-export function safeInt(raw: string | null): number | undefined {
+function safeInt(raw: string | null): number | undefined {
   if (raw == null) return undefined;
   const n = Number(raw);
   return Number.isFinite(n) ? Math.trunc(n) : undefined;
@@ -63,6 +63,8 @@ export function buildQueryString(opts: QueryOptions): string {
   return qs ? `?${qs}` : "";
 }
 
+// ---
+
 /**
  * 將 Unix 毫秒時間戳格式化為本地日期時間字串。
  */
@@ -79,6 +81,17 @@ export function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
+
+/**
+ * 將錯誤物件格式化為字串。
+ */
+export function formatError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return String(err);
+}
+
+// ---
 
 /**
  * 回傳 `fn` 的防抖版本。
@@ -128,6 +141,8 @@ export async function batchRun<T>(
   return [ok, fail];
 }
 
+// ---
+
 /**
  * 用於自然排序的比較器，支援數字排序與區分大小寫
  */
@@ -137,9 +152,27 @@ export const sortCollator = new Intl.Collator(undefined, {
   sensitivity: "variant",
 });
 
+// ---
+
 /**
  * 檢查物件是否包含特定 key，並縮小其型別範圍
  */
 export function hasKey<K extends string>(obj: unknown, key: K): obj is Record<K, unknown> {
   return typeof obj === "object" && obj !== null && key in obj;
+}
+
+/**
+ * 檢查值是否為純物件（非 null、非陣列、原型為 Object.prototype 或 null）
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }

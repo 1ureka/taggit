@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/types.js";
   import Rating from "$lib/components/Rating.svelte";
-  import { blurhashStyle } from "$lib/client/blurhash";
-  import { imgSrc } from "$lib/client/api";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
+  import { imgSrc } from "$lib/client/api.js";
 
   type Props = { image: ImageWithId };
   let { image }: Props = $props();
@@ -12,7 +12,7 @@
   <div class="card-image">
     {#key image.id}
       <img
-        src={imgSrc("committed", `${image.id}${image.ext}`)}
+        src={imgSrc(image.id)}
         style={blurhashStyle({ fit: "contain", blurhash: image.blurhash, width: image.width, height: image.height })}
         alt={image.name || image.id}
         draggable="false"

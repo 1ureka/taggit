@@ -5,29 +5,18 @@
   import { TaggerForm } from "./taggerForm.svelte.js";
 
   type Props = {
-    currentFile: string | null;
     selectedFiles: Set<string>;
-    loading: boolean;
     progress: number;
   };
 
-  let { currentFile, selectedFiles = $bindable(), loading = $bindable(), progress = $bindable() }: Props = $props();
+  let { selectedFiles = $bindable(), progress = $bindable() }: Props = $props();
 
   const ui = new TaggerForm({
-    get currentFile() {
-      return currentFile;
-    },
     get selectedFiles() {
       return selectedFiles;
     },
     set selectedFiles(v) {
       selectedFiles = v;
-    },
-    get loading() {
-      return loading;
-    },
-    set loading(v) {
-      loading = v;
     },
     get progress() {
       return progress;
@@ -52,13 +41,13 @@
 <div class="separator"></div>
 
 <div class="actions">
-  <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.loading}>
-    <IconCheck size={16} />
-    {ui.commitLabel}
+  <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.pending}>
+    {#if !ui.pending}<IconCheck size={16} />{/if}
+    {ui.pending ? "操作中..." : "提交"}
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleTrashClick} disabled={ui.loading}>
-    <IconTrash size={16} />
-    {ui.trashLabel}
+  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.pending}>
+    {#if !ui.pending}<IconTrash size={16} />{/if}
+    {ui.pending ? "操作中..." : "刪除"}
   </button>
   <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>
     <IconX size={16} />

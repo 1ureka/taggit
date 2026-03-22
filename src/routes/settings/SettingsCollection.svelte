@@ -16,9 +16,7 @@
 </script>
 
 <ul>
-  <li><code>staged/</code> — 待審查的新圖片放在這裡，由 Tagger 進行標記與提交。</li>
-  <li><code>committed/</code> — 已提交的圖片與其標籤資料存放於此。</li>
-  <li><code>trash/</code> — 被刪除的圖片暫存在此，可從垃圾桶恢復或永久刪除。</li>
+  <li><code>images/</code> — 所有圖片存放於此。</li>
 </ul>
 
 {#if alert === "default"}

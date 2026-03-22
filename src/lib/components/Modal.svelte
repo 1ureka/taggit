@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { fade, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import { Modal } from "$lib/ui/modal.svelte.js";
 
   type Props = {
@@ -26,8 +28,21 @@
 </script>
 
 {#if open}
-  <div class="modal-overlay" role="presentation" onclick={ui.handleOverlayClick} onkeydown={ui.handleOverlayKeydown}>
-    <div class="modal scale-in" role="dialog" aria-modal="true" aria-label={label} bind:this={ui.dialogEl}>
+  <div
+    class="modal-overlay"
+    role="presentation"
+    onclick={ui.handleOverlayClick}
+    onkeydown={ui.handleOverlayKeydown}
+    transition:fade={{ duration: 150 }}
+  >
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      bind:this={ui.dialogEl}
+      transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
+    >
       {@render children()}
     </div>
   </div>
@@ -42,7 +57,6 @@
     align-items: center;
     justify-content: center;
     z-index: var(--z-modal);
-    animation: fadeIn 0.15s ease-out;
   }
 
   .modal {

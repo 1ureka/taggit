@@ -1,5 +1,10 @@
-import type { ImageArea, ImageSize } from "$lib/types";
-import { hasKey } from "$lib/utils";
+/**
+ * @file api.ts
+ * 前端統一的 HTTP 請求工具與圖片 URL 構建。
+ */
+
+import type { ImageSize } from "$lib/types.js";
+import { hasKey } from "$lib/utils.js";
 
 // ---
 
@@ -54,7 +59,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
  *
  * @example
  * ```ts
- * const res = await api.get<{ images: ImageWithId[] }>("/api/images?limit=20");
+ * const res = await api.get<{ images: ImageWithId[] }>("/api/committed?limit=20");
  * if (res.ok) console.log(res.data);
  * ```
  */
@@ -73,16 +78,16 @@ export const api = {
 };
 
 /**
- * 構建 `/img/{area}/{file}` 的圖片 URL，自動處理 URL 編碼與尺寸參數。
+ * 構建 `/api/images/{filename}` 的圖片 URL，自動處理 URL 編碼與尺寸參數。
  *
  * @example
  * ```ts
- * const url = imgSrc("committed", "一張圖片.jpg", "md");
- * // url 會是 "/img/committed/%E4%B8%80%E5%BC%B5%E5%9C%96%E7%89%87.jpg?size=md"
+ * const url = imgSrc("一張圖片.jpg", "md");
+ * // url 會是 "/api/images/%E4%B8%80%E5%BC%B5%E5%9C%96%E7%89%87.jpg?size=md"
  * ```
  */
-export function imgSrc(area: ImageArea, file: string, size?: ImageSize): string {
+export function imgSrc(file: string, size?: ImageSize): string {
   const encoded = encodeURIComponent(file);
   const sizeParam = size ? `?size=${size}` : "";
-  return `/img/${area}/${encoded}${sizeParam}`;
+  return `/api/images/${encoded}${sizeParam}`;
 }

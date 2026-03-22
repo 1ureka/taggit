@@ -1,7 +1,12 @@
+/**
+ * @file blurhash.ts
+ * 將 BlurHash 轉為可套用在 `<img>` 上的 CSS 背景樣式字串，用於載入佔位圖。
+ */
+
 import { blurhashToDataUri } from "@unpic/placeholder";
 
 /**
- * 出廠預設 BlurHash — 中性灰調，用於 staged/trash 等沒有個別 BlurHash 的圖片。
+ * 出廠預設 BlurHash — 中性灰調，用於沒有個別 BlurHash 的圖片。
  */
 const FALLBACK_BLURHASH = "L7D07P00-o~q~pof00WB00NHM|4n";
 

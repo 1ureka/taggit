@@ -7,7 +7,7 @@ import { page } from "$app/state";
 type PaginationOptions = {
   /** 總頁數 */
   pages: number;
-  /** 導航的基礎路徑（如 "/editor"、"/trash"） */
+  /** 導航的基礎路徑（如 "/editor"、"/browse"） */
   basePath: string;
 };
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import SelectCheckbox from "$lib/components/SelectCheckbox.svelte";
-  import { imgSrc } from "$lib/client/api";
-  import { blurhashStyle } from "$lib/client/blurhash";
+  import { imgSrc } from "$lib/client/api.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
   import type { ImageWithId } from "$lib/types.js";
 
   type Props = {
@@ -19,14 +19,14 @@
 <div class="card select-checkbox-host" class:selected {onclick}>
   <img
     class="card-thumb"
-    src={imgSrc("committed", `${image.id}${image.ext}`, "sm")}
+    src={imgSrc(image.id, "sm")}
     style={blurhashStyle({ fit: "cover", blurhash: image.blurhash })}
     alt={image.name || image.id}
     loading="lazy"
   />
 
   <div class="card-info">
-    <div class="card-name ellipsis">{image.name || image.id + image.ext}</div>
+    <div class="card-name ellipsis">{image.name || image.id}</div>
 
     <div class="card-meta ellipsis">
       {image.id}

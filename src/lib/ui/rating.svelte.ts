@@ -9,7 +9,7 @@
  * 因此懸停往下（H < V）時，H < i ≤ V 的星星會呈現「暗色 + 填滿圖示」——
  * 暗示這些星星「即將被取消」，這是原始元件設計保留的行為。
  */
-export type RatingStarState = {
+type RatingStarState = {
   /** true → 使用 IconStarFilled；false → 使用 IconStar */
   filled: boolean;
   /** true → 套用 class:bright（此星在顯示值範圍內，即 i ≤ displayValue） */

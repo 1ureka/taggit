@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import { IconSettings, IconTrash } from "@tabler/icons-svelte";
+  import { IconSettings } from "@tabler/icons-svelte";
   import HomeCards from "./HomeCards.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -26,11 +26,6 @@
       <a href="/settings">
         <IconSettings size={14} />
         設定
-      </a>
-      <span class="footer-dot">·</span>
-      <a href="/trash">
-        <IconTrash size={14} />
-        垃圾桶
       </a>
     </div>
   </div>
@@ -91,12 +86,6 @@
     justify-content: center;
     gap: 0.5rem;
     margin-top: 1rem;
-
-    & > .footer-dot {
-      color: var(--text-dim);
-      font-size: 0.8125rem;
-      user-select: none;
-    }
 
     & > a {
       display: inline-flex;
