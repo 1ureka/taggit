@@ -31,11 +31,6 @@ export class TaggerForm {
 
   // ---
 
-  /** 切換評等值 */
-  #toggleRating(n: number) {
-    this.rating = n === this.rating ? 0 : n;
-  }
-
   /** 聚焦標籤輸入框 */
   #focusTagInput() {
     this.tagInputWrapEl?.querySelector("input")?.focus();
@@ -118,12 +113,6 @@ export class TaggerForm {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     const { key } = e;
-
-    if (key >= "0" && key <= "5") {
-      e.preventDefault();
-      this.#toggleRating(parseInt(key));
-      return;
-    }
 
     const actions: Record<string, () => void> = {
       t: () => this.#focusTagInput(),
