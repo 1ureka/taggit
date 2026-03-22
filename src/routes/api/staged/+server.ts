@@ -3,7 +3,7 @@ import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
-import { getStagedFiles, uniqueFilename } from "$lib/server/helpers.js";
+import { getStagedFiles, uniqueFilename, log } from "$lib/server/helpers.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 import { formatError } from "$lib/utils.js";
 
@@ -91,6 +91,7 @@ export const POST: RequestHandler = async ({ request }) => {
   // ---
 
   if (added.length > 0) {
+    log({ level: "info", module: "staged", message: `新增了 ${added.length} 個檔案至暫存區` });
     return json({ ok: true, data: { added, errors } }, { status: 201 });
   }
 

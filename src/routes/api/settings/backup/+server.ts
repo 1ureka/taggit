@@ -62,10 +62,12 @@ export const POST: RequestHandler = () => {
       "Content-Disposition": `attachment; filename="backup-${timestamp}.zip"`,
     };
 
+    log({ level: "info", module: "settings/backup", message: `備份成功: backup-${timestamp}.zip` });
     return new Response(buffer, { headers });
 
     // ---
-  } catch {
+  } catch (e) {
+    log({ level: "error", module: "settings/backup", message: "備份失敗", data: { error: String(e) } });
     return json({ ok: false, error: "系統缺少壓縮工具或權限不足，無法建立備份。" }, { status: 500 });
   } finally {
     try {

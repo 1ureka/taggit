@@ -4,7 +4,7 @@ import { requireDatabase } from "$lib/server/db-instance.js";
 import { getAllTags } from "$lib/server/db-query.js";
 import { renameTag } from "$lib/server/db-mutation.js";
 
-import { parseBody } from "$lib/server/helpers.js";
+import { parseBody, log } from "$lib/server/helpers.js";
 import { isValidTags } from "$lib/server/validation.js";
 
 /**
@@ -49,5 +49,6 @@ export const POST: RequestHandler = async ({ request }) => {
   const newName = fields[1].trim();
 
   const affected = renameTag(loaded.db, oldName, newName);
+  log({ level: "info", module: "tags", message: `重命名標籤: "${oldName}" → "${newName}"`, data: { affected } });
   return json({ ok: true, data: { affected } });
 };

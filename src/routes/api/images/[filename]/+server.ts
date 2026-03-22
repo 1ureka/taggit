@@ -7,6 +7,7 @@ import { MIME_TYPES } from "$lib/server/config.js";
 import { requirePaths } from "$lib/server/db-instance.js";
 import { getImageBuffer } from "$lib/server/thumbnail.js";
 import { isValidFilename, isValidSize } from "$lib/server/validation.js";
+import { log } from "$lib/server/helpers.js";
 
 /**
  * `GET /api/images/[filename]`
@@ -63,7 +64,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
       const buffer = await getImageBuffer(filename, filePath, sizeParam);
       return new Response(new Uint8Array(buffer), { headers });
     }
-  } catch {
+  } catch (e) {
+    log({ level: "error", module: "images/[id]", message: `圖片代理失敗: ${filename}`, data: { error: String(e) } });
     return new Response("處理圖片失敗", { status: 500 });
   }
 };

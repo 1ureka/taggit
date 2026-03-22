@@ -9,7 +9,7 @@ import { hasImage } from "$lib/server/db-query.js";
 import type { ImageRecord } from "$lib/types.js";
 import { IMG_EXTS } from "$lib/server/config.js";
 import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
-import { parseBody } from "$lib/server/helpers.js";
+import { parseBody, log } from "$lib/server/helpers.js";
 import { generateMetadata } from "$lib/server/thumbnail.js";
 
 /**
@@ -82,12 +82,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
     };
 
     addRecord(db, filename, record);
+    log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
     return json({ ok: true, data: { id: filename, ...record } }, { status: 201 });
   } catch (e) {
     if (e instanceof Error && "code" in e && e.code === "ENOENT") {
       return json({ ok: false, error: "檔案不存在" }, { status: 404 });
     }
 
+    log({ level: "error", module: "staged/[id]", message: `POST 未知錯誤: ${filename}`, data: { error: String(e) } });
     return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
   }
 };
@@ -122,5 +124,6 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   fs.unlinkSync(filePath);
+  log({ level: "info", module: "staged/[id]", message: `刪除暫存: ${filename}` });
   return json({ ok: true, data: { filename } });
 };

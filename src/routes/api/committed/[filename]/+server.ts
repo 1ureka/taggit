@@ -5,7 +5,7 @@ import { updateRecord, removeRecord } from "$lib/server/db-mutation.js";
 import { getImageRecord } from "$lib/server/db-query.js";
 
 import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
-import { parseBody } from "$lib/server/helpers.js";
+import { parseBody, log } from "$lib/server/helpers.js";
 
 /**
  * `GET /api/committed/[filename]`
@@ -86,6 +86,13 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       return json({ ok: false, error: e.message }, { status: e.status });
     }
 
+    log({
+      level: "error",
+      module: "committed/[id]",
+      message: `PATCH 未知錯誤: ${filename}`,
+      data: { error: String(e) },
+    });
+
     return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
   }
 };
@@ -111,11 +118,19 @@ export const DELETE: RequestHandler = ({ params }) => {
   try {
     removeRecord(loaded.db, filename);
 
+    log({ level: "info", module: "committed/[id]", message: `取消提交: ${filename}` });
     return json({ ok: true, data: { filename } });
   } catch (e) {
     if (e instanceof Error && "status" in e && typeof e.status === "number") {
       return json({ ok: false, error: e.message }, { status: e.status });
     }
+
+    log({
+      level: "error",
+      module: "committed/[id]",
+      message: `DELETE 未知錯誤: ${filename}`,
+      data: { error: String(e) },
+    });
 
     return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
   }

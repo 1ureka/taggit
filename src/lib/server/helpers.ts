@@ -110,7 +110,7 @@ function formatTime(d: Date) {
 export function log(entry: Omit<LogEntry, "time">): void {
   const timeStr = escape.gray + formatTime(new Date()) + escape.reset;
   const levelStr = escape[entry.level] + pad(entry.level.toUpperCase(), 5) + escape.reset;
-  const moduleStr = escape.cyan + pad(entry.module, 10) + escape.reset;
+  const moduleStr = escape.cyan + pad(entry.module, 20) + escape.reset;
   const messageStr = entry.message;
 
   let output = `${timeStr} ${levelStr} ${moduleStr} ${messageStr}`;
