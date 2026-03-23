@@ -12,9 +12,9 @@
 
 <main>
   <div class="container slide-up">
-    <a href="/" class="btn btn-ghost btn-sm">
+    <a href="/" class="btn-ghost btn-sm">
       <IconArrowLeft size={16} />
-      返回首頁
+      <span>返回首頁</span>
     </a>
 
     <h1 class="title">水平瀏覽</h1>
@@ -31,7 +31,7 @@
     scrollbar-gutter: stable;
   }
 
-  .btn {
+  a {
     margin-bottom: 1rem;
     width: fit-content;
   }

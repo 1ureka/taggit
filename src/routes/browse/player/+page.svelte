@@ -398,7 +398,7 @@
 
   <div class="browse-dock" class:is-hidden={!dockVisible}>
     <!-- Play / Pause -->
-    <button class="btn btn-icon" bind:this={playBtnEl}>
+    <button class="btn-icon" bind:this={playBtnEl}>
       {#if playing}
         <IconPlayerPause size={18} />
       {:else}
@@ -420,9 +420,9 @@
     </div>
 
     <!-- Back to Filter -->
-    <button class="btn btn-sm" bind:this={backBtnEl}>
+    <button class="btn-outlined btn-sm" bind:this={backBtnEl}>
       <IconFilter size={16} />
-      篩選
+      <span>篩選</span>
     </button>
   </div>
 </div>

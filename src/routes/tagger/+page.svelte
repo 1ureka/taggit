@@ -62,9 +62,9 @@
 
 <div class="page">
   <header class="page-header">
-    <a href="/" class="btn btn-ghost btn-sm">
+    <a href="/" class="btn-ghost btn-sm">
       <IconArrowLeft size={16} />
-      首頁
+      <span>首頁</span>
     </a>
     <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
   </header>

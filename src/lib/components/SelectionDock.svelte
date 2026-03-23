@@ -15,7 +15,7 @@
 {#if count > 0}
   <div class="selection-dock" transition:fly={{ y: 20, duration: 200, opacity: 0 }}>
     <div class="dock-inner">
-      <button class="btn btn-ghost btn-sm dock-close" onclick={onclose} title="取消選取">
+      <button class="btn-ghost btn-sm dock-close" onclick={onclose} title="取消選取">
         <IconX size={16} />
       </button>
 

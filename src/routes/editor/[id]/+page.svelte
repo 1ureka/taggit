@@ -20,9 +20,9 @@
 
 <div class="page">
   <header class="page-header">
-    <a href="/editor" class="btn btn-ghost btn-sm">
+    <a href="/editor" class="btn-ghost btn-sm">
       <IconArrowLeft size={16} />
-      返回搜尋
+      <span>返回搜尋</span>
     </a>
     <span class="page-header-title">
       {data.image.name || data.image.id || ""}

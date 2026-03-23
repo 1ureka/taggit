@@ -45,8 +45,8 @@
     </p>
   {/if}
 
-  <button type="submit" class="btn btn-primary" disabled={ui.saving}>
-    {ui.saving ? "儲存中…" : "儲存"}
+  <button type="submit" class="btn-primary" class:pending={ui.saving} disabled={ui.saving}>
+    <span>儲存</span>
   </button>
 </form>
 

@@ -15,12 +15,22 @@
     掃描資料庫，找出有記錄但對應檔案已不存在的項目。這類記錄通常因檔案曾被手動刪除而產生。檢查後可選擇移除這些失效的資料庫記錄。
   </p>
   <div class="tool-actions">
-    <button class="btn btn-sm" onclick={ui.handleMissingCheckClick} disabled={ui.missingBusy}>
-      {ui.missingBusy ? "檢查中…" : "開始檢查"}
+    <button
+      class="btn-outlined btn-sm"
+      class:pending={ui.missingBusy}
+      onclick={ui.handleMissingCheckClick}
+      disabled={ui.missingBusy}
+    >
+      <span>開始檢查</span>
     </button>
     {#if ui.missingList.length > 0}
-      <button class="btn btn-sm btn-destructive" onclick={ui.handleMissingDeleteClick} disabled={ui.missingBusy}>
-        刪除 {ui.missingList.length} 個缺失記錄
+      <button
+        class="btn-destructive btn-sm"
+        class:pending={ui.missingBusy}
+        onclick={ui.handleMissingDeleteClick}
+        disabled={ui.missingBusy}
+      >
+        <span>刪除 {ui.missingList.length} 個缺失記錄</span>
       </button>
     {/if}
   </div>
@@ -44,8 +54,13 @@
   </div>
   <p class="tool-desc">將目前的圖片集（images/ 目錄與 db.json）打包為 ZIP 備份檔，下載至你的裝置。</p>
   <div class="tool-actions">
-    <button class="btn btn-sm" onclick={ui.handleBackupClick} disabled={ui.backupBusy}>
-      {ui.backupBusy ? "備份中…" : "下載備份"}
+    <button
+      class="btn-outlined btn-sm"
+      class:pending={ui.backupBusy}
+      onclick={ui.handleBackupClick}
+      disabled={ui.backupBusy}
+    >
+      <span>下載備份</span>
     </button>
   </div>
   {#if ui.backupResult}

@@ -79,12 +79,16 @@ export class Rating {
   };
 
   /**
-   * 處理評分容器鍵盤事件（容器需設置 tabindex="0"）
-   *
-   * ArrowRight/Up → +1，ArrowLeft/Down → -1，Home → 0，End → 5
+   * 處理評分容器鍵盤事件，支援數字鍵（0–5）直接設定評分，以及方向鍵和 Home/End 鍵調整評分
    */
   handleContainerKeydown = (e: KeyboardEvent) => {
     if (this.options.readonly) return;
+
+    if (e.key.length === 1 && e.key >= "0" && e.key <= "5") {
+      e.preventDefault();
+      this.#commit(parseInt(e.key));
+      return;
+    }
 
     switch (e.key) {
       case "ArrowRight":

@@ -1,31 +1,32 @@
 /* 按鈕共用基礎 */
-.btn {
+.btn-primary,
+.btn-ghost,
+.btn-outlined,
+.btn-destructive,
+.btn-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
+
   font-family: var(--font);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1;
-  color: var(--text);
-  background: var(--bg-card);
+
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
 
   transition:
     scale 0.15s,
     background 0.15s,
     border-color 0.15s;
-
-  &:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
-  }
 
   &:active {
     scale: 0.98;
@@ -35,19 +36,40 @@
     opacity: 0.5;
     pointer-events: none;
   }
-}
 
-.btn-sm {
-  padding: 0.25rem 0.625rem;
-  font-size: 0.8125rem;
+  &.btn-sm {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+  }
+
+  &.pending {
+    opacity: 0.5;
+    pointer-events: none;
+
+    /* 注意! 所有按鈕都不得使用直接文字，至少得用一層 <span> 包裹 */
+    & > * {
+      visibility: hidden;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
 }
 
 /* --- */
 
 /* 主要按鈕 */
 .btn-primary {
-  background: var(--accent);
   color: var(--bg);
+  background: var(--accent);
   border-color: var(--accent);
 
   &:hover {
@@ -59,12 +81,30 @@
     outline: 2px solid hsl(from var(--bg) h s l / 0.7);
     outline-offset: -3px;
   }
+
+  &.pending {
+    &::after {
+      border-color: var(--bg);
+      border-top-color: transparent;
+    }
+  }
 }
 
-/* --- */
+/* 邊框按鈕 */
+.btn-outlined {
+  color: var(--text);
+  background: var(--bg-card);
+  border-color: var(--border);
+
+  &:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+  }
+}
 
 /* 無背景按鈕 */
 .btn-ghost {
+  color: var(--text);
   background: transparent;
   border-color: transparent;
 
@@ -74,31 +114,41 @@
   }
 }
 
-/* --- */
-
-/* 圖示按鈕 */
-.btn-icon {
-  padding: 0.5rem;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-
-  &:hover {
-    color: var(--text);
-    background: var(--bg-hover);
-  }
-}
-
-/* --- */
-
 /* 警告按鈕 */
 .btn-destructive {
-  background: hsl(from var(--destructive) h s l / 0.1);
   color: var(--destructive);
+  background: hsl(from var(--destructive) h s l / 0.1);
   border-color: hsl(from var(--destructive) h s l / 0.5);
 
   &:hover {
     background: hsl(from var(--destructive) h s l / 0.2);
     border-color: hsl(from var(--destructive) h s l / 0.75);
+  }
+
+  &.pending {
+    &::after {
+      border-color: var(--destructive);
+      border-top-color: transparent;
+    }
+  }
+}
+
+/* 圖示按鈕 */
+.btn-icon {
+  color: var(--text-dim);
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+
+  &:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  &.pending {
+    &::after {
+      border-color: var(--text-dim);
+      border-top-color: transparent;
+    }
   }
 }

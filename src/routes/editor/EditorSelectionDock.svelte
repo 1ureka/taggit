@@ -17,8 +17,8 @@
 </script>
 
 <SelectionDock count={ui.count} onclose={ui.handleCloseClick}>
-  <button class="btn btn-destructive btn-sm" disabled={ui.loading} onclick={ui.handleDeleteClick}>
+  <button class="btn-destructive btn-sm" disabled={ui.loading} onclick={ui.handleDeleteClick}>
     <IconTrash size={14} />
-    退回暫存
+    <span>退回暫存</span>
   </button>
 </SelectionDock>

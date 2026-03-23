@@ -28,8 +28,8 @@
   />
 </div>
 
-<button class="btn btn-primary" onclick={ui.handleRenameClick} disabled={!ui.canSubmit}>
-  {ui.busy ? "重命名中…" : "重命名"}
+<button class="btn-primary" class:pending={ui.busy} onclick={ui.handleRenameClick} disabled={!ui.canSubmit}>
+  <span>重命名</span>
 </button>
 
 {#if ui.result}

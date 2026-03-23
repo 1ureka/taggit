@@ -32,9 +32,9 @@
 
   <div class="count">{ui.countText}</div>
 
-  <button class="btn btn-primary" style="width:100%" disabled={ui.startDisabled} onclick={ui.handleSubmit}>
+  <button class="btn-primary" style="width:100%" disabled={ui.startDisabled} onclick={ui.handleSubmit}>
     <IconPlayerPlay size={18} />
-    開始瀏覽
+    <span>開始瀏覽</span>
   </button>
 </div>
 
