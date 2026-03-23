@@ -45,19 +45,31 @@ export class ZoomPan {
     this.panY = 0;
   }
 
+  /** 執行縮放操作，delta 為正代表放大，負代表縮小 */
+  #zoom(delta: number) {
+    const step = 0.1;
+    const newScale = this.scale + delta * step * this.scale;
+    this.scale = Math.max(this.#minScale, Math.min(this.#maxScale, newScale));
+  }
+
+  /** 位移邏輯 */
+  #move(x: number, y: number) {
+    const step = 40; // 每次移動的像素
+    this.panX += x * step;
+    this.panY += y * step;
+  }
+
   // ---
 
   /** 處理容器滾輪事件，執行縮放 */
   handleContainerWheel = (e: WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    this.scale = Math.max(this.#minScale, Math.min(this.#maxScale, this.scale + delta * this.scale));
+    this.#zoom(e.deltaY > 0 ? -1 : 1);
   };
 
   /** 處理容器滑鼠按下事件，開始拖曳 */
   handleContainerMousedown = (e: MouseEvent) => {
     if (e.button !== 0) return;
-    e.preventDefault();
     this.isDragging = true;
     this.#dragStartX = e.clientX;
     this.#dragStartY = e.clientY;
@@ -68,6 +80,51 @@ export class ZoomPan {
   /** 處理容器重置事件，重置縮放與位移 */
   handleContainerReset = () => {
     this.#reset();
+  };
+
+  /** 處理容器鍵盤事件 */
+  handleContainerKeydown = (e: KeyboardEvent) => {
+    // Esc 或 Enter 或 Space: 重置
+    if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+      this.#reset();
+      return;
+    }
+
+    // Plus (+) 或 '=' 或 'z': 放大
+    if (e.key === "+" || e.key === "=" || (e.key.toLowerCase() === "z" && !e.shiftKey)) {
+      e.preventDefault();
+      this.#zoom(1);
+      return;
+    }
+
+    // Minus (-) 或 '_' 或 'Shift + Z': 縮小
+    if (e.key === "-" || e.key === "_" || (e.key.toLowerCase() === "z" && e.shiftKey)) {
+      e.preventDefault();
+      this.#zoom(-1);
+      return;
+    }
+
+    // 方向鍵：移動 (Pan)
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      this.#move(0, -1);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      this.#move(0, 1);
+      return;
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      this.#move(-1, 0);
+      return;
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      this.#move(1, 0);
+      return;
+    }
   };
 
   // ---
