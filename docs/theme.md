@@ -15,7 +15,8 @@
 | 檔案                             | 職責                                                                                    |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | `src/lib/styles/app.css`         | 入口：引入字體 + `app-basic.css` + CSS reset + `:root` 變數 + 全域基礎樣式              |
-| `src/lib/styles/app-basic.css`   | 全域可複用的 UI 原子：`.btn`, `.chip`, `.text-input`, `.modal`, `.kbd`, `.separator` 等 |
+| `src/lib/styles/app-basic.css`   | 全域可複用的 UI 原子：`.chip`, `.text-input`, `.modal`, `.kbd`, `.separator` 等 |
+| `src/lib/styles/app-button.css`   | 全域按鈕樣式：`.btn-primary`, `.btn-ghost`, `.btn-outlined`, `.btn-destructive`, `.btn-icon`；修飾符 `.btn-sm`, `.pending` |
 | 各 `.svelte` 檔案 `<style>` 區塊 | 元件級 scoped 樣式（包含 Toast、Rating 等）                                             |
 
 ### 1.3 CSS 變數一覽
@@ -69,7 +70,7 @@
 | 次要文字   | `color: color-mix(in oklch, var(--bg) 65%, var(--text))` |
 | 半透明暗色 | `hsl(from var(--bg) h s l / <alpha>)`                    |
 
-全域原子 class（`app-basic.css` 的 `.btn`, `.chip` 等）為全域命名、無 scope，目前無衝突但限制了命名自由度。
+全域原子 class（`app-basic.css` 的 `.chip` 等、`app-button.css` 的 `.btn-primary` 等）為全域命名、無 scope，目前無衝突但限制了命名自由度。
 
 ---
 
@@ -253,13 +254,13 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 
 ### 3.4 與全域原子 class 的分工
 
-`app-basic.css` 中定義的全域原子 class（`.btn`、`.chip`、`.text-input`、`.separator` 等）負責**跨元件複用的基礎 UI 單元**，在 template 中直接套用即可。元件的 scoped `<style>` 只負責佈局與組合——兩者互補，不重疊：
+`app-basic.css` 中定義的全域原子 class（`.chip`、`.text-input`、`.separator` 等）以及 `app-button.css` 中的按鈕 class（`.btn-primary`、`.btn-ghost` 等）負責**跨元件複用的基礎 UI 單元**，在 template 中直接套用即可。元件的 scoped `<style>` 只負責佈局與組合——兩者互補，不重疊：
 
 ```svelte
 <!-- 全域 class 控制基礎外觀，scoped style 控制佈局位置 -->
 <div class="actions">
-  <button class="btn btn-primary btn-sm">儲存</button>
-  <button class="btn btn-destructive btn-sm">刪除</button>
+  <button class="btn-primary btn-sm">儲存</button>
+  <button class="btn-destructive btn-sm">刪除</button>
 </div>
 
 <style>
@@ -268,7 +269,7 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
     flex-wrap: wrap;
     gap: 0.375rem;
 
-    & > :global(.btn) {
+    & > :global(button) {
       flex: 1;
       min-width: 0;
     }
@@ -281,16 +282,58 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 1. **能用語意 HTML 就不加 class**——`main`、`footer`、`dl`、`aside` 等在 scoped 環境下已是精確選擇器
 2. **class name 描述結構角色**——想像這是一個抽象 UI 元件而非特定業務頁面
 3. **善用 nesting 表示層級**——偽類、狀態 class、子元素選擇器收在父層內
-4. **全域原子不重造**——`app-basic.css` 已有的直接用，scoped style 只管佈局
+4. **全域原子不重造**——`app-basic.css`、`app-button.css` 已有的直接用，scoped style 只管佈局
 5. **不需要 BEM / 命名空間前綴**——Svelte scope 天然隔離
 
 ---
 
-## 4. Icon System — Svelte5 + Tabler Icons
+## 4. Button System
+
+> 定義於 `src/lib/styles/app-button.css`，所有按鈕變體皆為獨立 class，不需要基礎 `.btn` class。
+
+### 4.1 變體
+
+| Class              | 用途           | 外觀                                       |
+| ------------------ | -------------- | ------------------------------------------ |
+| `.btn-primary`     | 主要操作       | 白底深字，`var(--accent)` 背景             |
+| `.btn-outlined`    | 一般操作       | `var(--bg-card)` 背景 + `var(--border)` 邊框 |
+| `.btn-ghost`       | 輔助 / 返回    | 透明背景、無邊框                            |
+| `.btn-destructive` | 危險操作       | 紅色文字 + 紅色半透明背景                    |
+| `.btn-icon`        | 僅圖示         | 無邊框、等寬 padding                        |
+
+### 4.2 修飾符
+
+| Class      | 說明                                     |
+| ---------- | ---------------------------------------- |
+| `.btn-sm`  | 小尺寸（`padding: 0.25rem 0.625rem`）    |
+| `.pending` | 載入中：降低透明度 + 旋轉圓圈動畫         |
+
+### 4.3 用法範例
+
+```svelte
+<!-- 直接使用變體 class，不需要基礎 .btn -->
+<button class="btn-primary btn-sm" onclick={save}>儲存</button>
+<button class="btn-destructive btn-sm" onclick={del}>刪除</button>
+<a href="/" class="btn-ghost btn-sm">返回</a>
+<button class="btn-icon"><IconRefresh size={14} /></button>
+
+<!-- pending 狀態：按鈕內建旋轉載入圓圈 -->
+<button class="btn-primary" class:pending={loading}>提交</button>
+```
+
+### 4.4 注意事項
+
+- 變體 class 本身已包含所有基礎樣式（display、padding、border-radius、transition 等），不需額外加 `.btn`。
+- `:disabled` 時自動降低透明度並停用互動。
+- 在 scoped style 中選取全域按鈕時，使用 `& > :global(button)` 而非 `:global(.btn)`。
+
+---
+
+## 5. Icon System — Svelte5 + Tabler Icons
 
 > 本專案使用 [`@tabler/icons-svelte`](https://github.com/tabler/tabler-icons) 作為圖示庫。
 
-### 4.1 基本用法
+### 5.1 基本用法
 
 每個圖示為獨立的 Svelte 元件，按需 import 即可，不會打包未使用的圖示。
 
@@ -304,7 +347,7 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 <IconPlayerPlay />
 ```
 
-### 4.2 Props
+### 5.2 Props
 
 | 屬性     | 型別     | 預設值         | 說明                       |
 | -------- | -------- | -------------- | -------------------------- |
@@ -317,6 +360,6 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 <IconHeart size={48} stroke={1} color="red" />
 ```
 
-### 4.3 尋找圖示
+### 5.3 尋找圖示
 
 前往 [tabler.io/icons](https://tabler.io/icons) 搜尋所需圖示名稱，再轉換為 PascalCase 即為 import 名稱。
