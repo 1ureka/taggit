@@ -46,6 +46,7 @@
     opacity: 0.5;
     pointer-events: none;
 
+    /* 注意! 所有按鈕都不得使用直接文字，至少得用一層 <span> 包裹 */
     & > * {
       visibility: hidden;
     }

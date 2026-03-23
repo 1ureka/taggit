@@ -70,8 +70,6 @@
 | 次要文字   | `color: color-mix(in oklch, var(--bg) 65%, var(--text))` |
 | 半透明暗色 | `hsl(from var(--bg) h s l / <alpha>)`                    |
 
-全域原子 class（`app-basic.css` 的 `.chip` 等、`app-button.css` 的 `.btn-primary` 等）為全域命名、無 scope，目前無衝突但限制了命名自由度。
-
 ---
 
 ## 2. 現代 CSS 主題實踐（務必遵循）
@@ -311,21 +309,25 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 ### 4.3 用法範例
 
 ```svelte
-<!-- 直接使用變體 class，不需要基礎 .btn -->
-<button class="btn-primary btn-sm" onclick={save}>儲存</button>
-<button class="btn-destructive btn-sm" onclick={del}>刪除</button>
-<a href="/" class="btn-ghost btn-sm">返回</a>
-<button class="btn-icon"><IconRefresh size={14} /></button>
+<a href="/" class="btn-ghost btn-sm">
+  <IconArrowLeft size={16} />
+  <span>返回</span>
+</a>
+<button class="btn-icon">
+  <IconRefresh size={14} />
+</button>
 
 <!-- pending 狀態：按鈕內建旋轉載入圓圈 -->
-<button class="btn-primary" class:pending={loading}>提交</button>
+<button class="btn-primary" class:pending={loading} onclick={handleSubmit} disabled={loading}>
+  <span>提交</span>
+</button>
 ```
 
 ### 4.4 注意事項
 
 - 變體 class 本身已包含所有基礎樣式（display、padding、border-radius、transition 等），不需額外加 `.btn`。
+- `.pending` 狀態透過 `& > * { visibility: hidden }` 隱藏子元素，因此**按鈕內的文字必須包在 `<span>`（或其他元素）中**。
 - `:disabled` 時自動降低透明度並停用互動。
-- 在 scoped style 中選取全域按鈕時，使用 `& > :global(button)` 而非 `:global(.btn)`。
 
 ---
 
