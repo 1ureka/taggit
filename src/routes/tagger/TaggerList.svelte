@@ -164,4 +164,9 @@
       color: var(--text-dim);
     }
   }
+
+  label:has(:focus-visible) {
+    outline: 2px solid hsl(from var(--ring) h s l / 0.2);
+    outline-offset: -2px;
+  }
 </style>
