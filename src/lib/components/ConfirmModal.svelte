@@ -10,8 +10,8 @@
     <div class="modal-title">確認</div>
     <div class="modal-body">{ui.message}</div>
     <div class="modal-actions">
-      <button class="btn" onclick={ui.handleCancelClick}>取消</button>
-      <button class="btn btn-primary" onclick={ui.handleConfirmClick}>確認</button>
+      <button class="btn-outlined" onclick={ui.handleCancelClick}><span>取消</span></button>
+      <button class="btn-primary" onclick={ui.handleConfirmClick}><span>確認</span></button>
     </div>
   {/snippet}
 </Modal>

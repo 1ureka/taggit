@@ -41,17 +41,22 @@
 <div class="separator"></div>
 
 <div class="actions">
-  <button class="btn btn-primary btn-sm" onclick={ui.handleCommitClick} disabled={ui.pending}>
-    {#if !ui.pending}<IconCheck size={16} />{/if}
-    {ui.pending ? "操作中..." : "提交"}
+  <button class="btn-primary btn-sm" class:pending={ui.pending} onclick={ui.handleCommitClick} disabled={ui.pending}>
+    <IconCheck size={16} />
+    <span>提交</span>
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={ui.pending}>
-    {#if !ui.pending}<IconTrash size={16} />{/if}
-    {ui.pending ? "操作中..." : "刪除"}
+  <button
+    class="btn-destructive btn-sm"
+    class:pending={ui.pending}
+    onclick={ui.handleDeleteClick}
+    disabled={ui.pending}
+  >
+    <IconTrash size={16} />
+    <span>刪除</span>
   </button>
-  <button class="btn btn-ghost btn-sm" onclick={ui.handleResetClick}>
+  <button class="btn-ghost btn-sm" onclick={ui.handleResetClick}>
     <IconX size={16} />
-    重置
+    <span>重置</span>
   </button>
 </div>
 
@@ -76,7 +81,7 @@
     flex-wrap: wrap;
     gap: 0.375rem;
 
-    & > :global(.btn) {
+    & > :global(button) {
       flex: 1;
       min-width: 0;
     }

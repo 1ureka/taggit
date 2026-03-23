@@ -50,7 +50,7 @@
   </div>
 
   <button
-    class="btn btn-icon"
+    class="btn-icon"
     title="重新掃描待審查資料夾"
     onclick={uiActions.handleRefreshClick}
     disabled={uiActions.pending}
@@ -78,13 +78,9 @@
 </div>
 
 <footer>
-  <label class="btn" class:pending={uiActions.pending}>
-    {#if uiActions.pending}
-      操作中...
-    {:else}
-      <IconUpload size={14} />
-      加入圖片
-    {/if}
+  <label class="btn-outlined" class:pending={uiActions.pending}>
+    <IconUpload size={14} />
+    <span>加入圖片</span>
 
     <input
       type="file"
@@ -140,7 +136,7 @@
     padding: 0.625rem 0.75rem;
     border-top: 1px solid var(--border);
 
-    & > label.btn {
+    & > label {
       width: 100%;
 
       &.pending {

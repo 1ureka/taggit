@@ -7,12 +7,7 @@
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-<button
-  class="btn btn-primary defer-dim"
-  class:pending={ui.disabled}
-  onclick={ui.handleShuffleClick}
-  disabled={ui.disabled}
->
+<button class="btn-primary" class:pending={ui.disabled} onclick={ui.handleShuffleClick} disabled={ui.disabled}>
   <IconArrowsShuffle size={18} />
-  換一組 <span class="kbd">Space</span>
+  <span>換一組</span><span class="kbd">Space</span>
 </button>
