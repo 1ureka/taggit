@@ -13,9 +13,9 @@
   </div>
   <h1 class="error-status">{page.status}</h1>
   <p class="error-message">{page.error?.message ?? "發生未知錯誤"}</p>
-  <a href="/" class="btn">
+  <a href="/" class="btn-ghost">
     <IconArrowLeft size={16} />
-    返回首頁
+    <span>返回首頁</span>
   </a>
 </div>
 

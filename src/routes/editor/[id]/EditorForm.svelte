@@ -53,13 +53,18 @@
 <div class="separator"></div>
 
 <div class="actions">
-  <button class="btn btn-primary btn-sm" onclick={ui.handleSaveClick} disabled={!ui.dirty || loading}>
+  <button
+    class="btn-primary btn-sm"
+    class:pending={loading}
+    onclick={ui.handleSaveClick}
+    disabled={!ui.dirty || loading}
+  >
     <IconDeviceFloppy size={16} />
-    {loading ? "操作中…" : "儲存"}
+    <span>儲存</span>
   </button>
-  <button class="btn btn-destructive btn-sm" onclick={ui.handleDeleteClick} disabled={loading}>
+  <button class="btn-destructive btn-sm" class:pending={loading} onclick={ui.handleDeleteClick} disabled={loading}>
     <IconTrash size={16} />
-    退回暫存
+    <span>退回暫存</span>
   </button>
 </div>
 
@@ -98,7 +103,7 @@
     flex-wrap: wrap;
     gap: 0.375rem;
 
-    & > .btn {
+    & > :global(button) {
       flex: 1;
       min-width: 0;
     }

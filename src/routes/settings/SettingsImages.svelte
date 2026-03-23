@@ -29,8 +29,13 @@
   </div>
 
   <div class="tool-actions">
-    <button class="btn btn-sm" onclick={ui.handleClearBtnClick} disabled={ui.cacheBusy}>
-      {ui.cacheBusy ? "清空中…" : "清空快取"}
+    <button
+      class="btn-outlined btn-sm"
+      class:pending={ui.cacheBusy}
+      onclick={ui.handleClearBtnClick}
+      disabled={ui.cacheBusy}
+    >
+      <span>清空快取</span>
     </button>
   </div>
   {#if ui.cacheResult}
@@ -48,12 +53,22 @@
     檢查是否有圖片缺少寬高或 BlurHash 等元資料。這可能因提交時 sharp 處理失敗所導致。檢查後可選擇批次補算。
   </p>
   <div class="tool-actions">
-    <button class="btn btn-sm" onclick={ui.handleCheckBtnClick} disabled={ui.metaBusy}>
-      {ui.metaBusy ? "檢查中…" : "開始檢查"}
+    <button
+      class="btn-outlined btn-sm"
+      class:pending={ui.metaBusy}
+      onclick={ui.handleCheckBtnClick}
+      disabled={ui.metaBusy}
+    >
+      <span>開始檢查</span>
     </button>
     {#if ui.metaMissing > 0}
-      <button class="btn btn-sm" onclick={ui.handleFixBtnClick} disabled={ui.metaBusy}>
-        {ui.metaBusy ? "補算中…" : `補算 ${ui.metaMissing} 張`}
+      <button
+        class="btn-outlined btn-sm"
+        class:pending={ui.metaBusy}
+        onclick={ui.handleFixBtnClick}
+        disabled={ui.metaBusy}
+      >
+        <span>補算 {ui.metaMissing} 張</span>
       </button>
     {/if}
   </div>
