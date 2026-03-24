@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconCheck, IconTrash, IconX } from "@tabler/icons-svelte";
+  import { IconCheck, IconTrash } from "@tabler/icons-svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { TaggerForm } from "./taggerForm.svelte.js";
@@ -29,38 +29,40 @@
 
 <svelte:window onkeydown={ui.handleWindowKeydown} />
 
-<div class="field-rating">
-  <Rating bind:value={ui.rating} size="1.5rem" />
-</div>
-<div class="separator"></div>
+<div class="TODO-actual-form">
+  <div class="field-rating">
+    <Rating name="rating" bind:value={ui.rating} size="1.5rem" />
+  </div>
 
-<div class="field-tags" bind:this={ui.tagInputWrapEl}>
-  <Autocomplete bind:tags={ui.tags} variant="top" placeholder="輸入標籤..." onenter={ui.handleTagEnter} />
-</div>
+  <div class="separator"></div>
 
-<div class="separator"></div>
+  <div class="field-tags">
+    <Autocomplete bind:tags={ui.tags} variant="top" placeholder="輸入標籤..." />
+  </div>
 
-<div class="actions">
-  <button class="btn-primary btn-sm" class:pending={ui.pending} onclick={ui.handleCommitClick} disabled={ui.pending}>
-    <IconCheck size={16} />
-    <span>提交</span>
-  </button>
-  <button
-    class="btn-destructive btn-sm"
-    class:pending={ui.pending}
-    onclick={ui.handleDeleteClick}
-    disabled={ui.pending}
-  >
-    <IconTrash size={16} />
-    <span>刪除</span>
-  </button>
-  <button class="btn-ghost btn-sm" onclick={ui.handleResetClick}>
-    <IconX size={16} />
-    <span>重置</span>
-  </button>
+  <div class="separator"></div>
+
+  <div class="actions">
+    <button class="btn-primary" class:pending={ui.pending} onclick={ui.handleCommitClick} disabled={ui.pending}>
+      <IconCheck size={16} />
+      <span>提交<kbd>Ctrl + S</kbd></span>
+    </button>
+    <button class="btn-destructive" class:pending={ui.pending} onclick={ui.handleDeleteClick} disabled={ui.pending}>
+      <IconTrash size={16} />
+      <span>刪除<kbd>Ctrl + D</kbd></span>
+    </button>
+  </div>
 </div>
 
 <style>
+  .TODO-actual-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 0.75rem;
+  }
+
   .field-rating {
     display: flex;
     align-items: center;
@@ -78,12 +80,30 @@
 
   .actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
+    flex-direction: column;
+    gap: 0.5rem;
 
-    & > :global(button) {
+    & > button {
+      justify-content: space-between;
       flex: 1;
       min-width: 0;
+    }
+
+    & > button > span {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    & > button > span > kbd {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.8em;
     }
   }
 </style>

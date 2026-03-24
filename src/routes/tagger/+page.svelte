@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconArrowLeft, IconRefresh, IconUpload } from "@tabler/icons-svelte";
+  import { IconArrowBackUp, IconArrowLeft, IconRefresh, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
   import { imgSrc } from "$lib/client/api.js";
 
@@ -196,26 +196,14 @@
     </figure>
 
     <aside class="right-panel">
+      <header>
+        <h2>編輯屬性</h2>
+        <button class="btn-icon" type="button" title="重置所有欄位">
+          <IconArrowBackUp size={18} />
+        </button>
+      </header>
+
       <TaggerForm bind:selectedFiles={page.selectedFiles} bind:progress={page.progress} />
-
-      <div class="separator"></div>
-
-      <div class="shortcuts">
-        {#snippet key(label: string, keys: string[])}
-          <div>
-            <div>
-              {#each keys as k}
-                <span class="kbd">{k}</span>
-              {/each}
-            </div>
-            {label}
-          </div>
-        {/snippet}
-        {@render key("切換圖片", ["←", "→"])}
-        {@render key("評等", ["1", "-", "5"])}
-        {@render key("聚焦標籤", ["T"])}
-        {@render key("提交", ["Enter"])}
-      </div>
     </aside>
   </main>
 </div>
@@ -479,25 +467,20 @@
     width: 280px;
     display: flex;
     flex-direction: column;
-    padding: 0.75rem;
     border-left: 1px solid var(--border);
     background: var(--bg-card);
     overflow-y: auto;
   }
 
-  .shortcuts {
-    display: grid;
-    grid-template-columns: max-content 1fr max-content 1fr;
-    gap: 0.25rem 2rem;
-    font-size: 0.6875rem;
-    color: var(--text-muted);
+  .right-panel > header {
+    & > h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
 
-    & > div {
-      grid-column: span 2;
-      display: grid;
-      grid-template-columns: subgrid;
-      align-items: center;
-      gap: 0.25rem;
+    & > button {
+      padding: 0.125rem;
     }
   }
 </style>
