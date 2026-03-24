@@ -91,12 +91,12 @@
         </div>
       {:else}
         <div class="preview-container">
-          <div class="empty">未選取任何圖片</div>
+          <div class="empty">上傳新圖片或在側邊欄選擇圖片</div>
         </div>
       {/if}
 
       <figcaption>
-        {page.currentFile || "--"}
+        {page.currentFile || "未選取任何圖片"}
       </figcaption>
     </figure>
 
