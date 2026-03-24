@@ -1,6 +1,11 @@
 import { api } from "$lib/client/api.js";
 import { invalidateAll } from "$app/navigation";
-import { addToast, isInEditable, scrollToActive } from "$lib/client/dom.js";
+import { addToast, scrollToActive } from "$lib/client/dom.js";
+
+/**
+ * 單個項目的高度
+ */
+const ITEM_HEIGHT = 72;
 
 /**
  * TaggerList 的配置選項
@@ -18,14 +23,25 @@ type TaggerListOptions = {
  * TaggerList 的選取與切換啟用的互動邏輯
  */
 export class TaggerListSelect {
-  /** header badge 顯示文字 */
-  badgeLabel: string;
+  /** count badge 顯示文字 */
+  countLabel: string | null;
+  /** 選取的檔案數量顯示文字 */
+  selectedLabel: string | null;
 
   constructor(private options: TaggerListOptions) {
-    this.badgeLabel = $derived.by(() => {
+    this.countLabel = $derived.by(() => {
       const total = options.stagedFiles.length;
-      const selected = options.selectedFiles.size;
-      return selected > 1 ? `${selected}/${total}` : `${total}`;
+      if (total <= 0) return null;
+
+      const currentIndex = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      if (currentIndex < 0) return `${total}`;
+
+      return `${currentIndex + 1}/${total}`;
+    });
+
+    this.selectedLabel = $derived.by(() => {
+      const count = options.selectedFiles.size;
+      return count > 1 ? `${count} 已選取` : null;
     });
   }
 
@@ -71,25 +87,25 @@ export class TaggerListSelect {
 
   // ---
 
-  /** 處理列表項目點擊事件，根據修飾鍵執行對應的選取模式 */
-  handleItemClick = (e: MouseEvent, filename: string) => {
-    const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
+  /** 處理列表項目點擊事件，根據模式執行對應的選取行為 */
+  handleListClick = (filename: string, mode: "single" | "ctrl" | "shift") => {
     if (mode === "single") this.#selectSingle(filename);
     else if (mode === "ctrl") this.#selectCtrl(filename);
     else this.#selectShift(filename);
   };
 
-  /** 處理 Window 鍵盤事件，執行方向鍵導航 */
-  handleWindowKeydown = (e: KeyboardEvent) => {
-    if (isInEditable(e.target)) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-    if (e.key === "ArrowLeft") {
+  /** 處理列表鍵盤事件，執行方向鍵導航 */
+  handleListKeydown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
       this.#navigate(-1);
-    } else if (e.key === "ArrowRight") {
+      return;
+    }
+
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
       this.#navigate(1);
+      return;
     }
   };
 }
@@ -152,6 +168,8 @@ type TaggerListVirtualOptions = {
   stagedFiles: string[];
   /** 目前選取的檔案 */
   currentFile: string | null;
+  /** 點擊某個項目的 callback */
+  onClickItem?: (filename: string, mode: "single" | "ctrl" | "shift") => void;
 };
 
 /**
@@ -159,9 +177,7 @@ type TaggerListVirtualOptions = {
  */
 export class TaggerListVirtual {
   /** 捲動容器 DOM 引用 */
-  listEl = $state<HTMLDivElement | null>(null);
-  /** 虛擬列表單項固定高度 */
-  readonly #listItemHeight = 72;
+  scrollContainer = $state<HTMLElement | null>(null);
   /** 虛擬列表渲染緩衝區大小 */
   readonly #listBuffer = 5;
   /** 捲動容器目前的 listScrollTop */
@@ -173,20 +189,20 @@ export class TaggerListVirtual {
   /** 可見的項目列表 */
   listVisibleItems: { filename: string; top: number; height: number }[];
 
-  constructor(options: TaggerListVirtualOptions) {
-    this.listTotalHeight = $derived(options.stagedFiles.length * this.#listItemHeight);
+  constructor(private options: TaggerListVirtualOptions) {
+    this.listTotalHeight = $derived(options.stagedFiles.length * ITEM_HEIGHT);
 
     this.listVisibleItems = $derived.by(() => {
-      const firstVisibleIdx = Math.floor(this.#listScrollTop / this.#listItemHeight);
-      const visibleCount = Math.ceil(this.#listViewHeight / this.#listItemHeight);
+      const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
+      const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
 
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
       const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
       return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
         filename,
-        top: (startIdx + i) * this.#listItemHeight,
-        height: this.#listItemHeight,
+        top: (startIdx + i) * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
       }));
     });
 
@@ -194,29 +210,46 @@ export class TaggerListVirtual {
 
     // 監聽 currentFile，將對應項目捲入可視區域
     $effect(() => {
-      if (!this.listEl) return;
+      if (!this.scrollContainer) return;
 
       const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
-      if (idx >= 0) scrollToActive(this.listEl, idx, this.#listItemHeight);
+      if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
     });
 
     // ResizeObserver 監聽 listEl，追蹤容器可視高度變化
     $effect(() => {
-      if (!this.listEl) return;
+      if (!this.scrollContainer) return;
 
       const ro = new ResizeObserver((entries) => {
         for (const e of entries) this.#listViewHeight = e.contentRect.height;
       });
 
-      ro.observe(this.listEl);
+      ro.observe(this.scrollContainer);
       return () => ro.disconnect();
     });
   }
 
   // ---
 
+  /** 處理列表本身的點擊事件，透過數學方式計算出實際點擊的項目 */
+  handleListClick = (e: MouseEvent) => {
+    if (!this.scrollContainer) return;
+
+    const rect = this.scrollContainer.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const absoluteY = relativeY + this.scrollContainer.scrollTop;
+    const index = Math.floor(absoluteY / ITEM_HEIGHT);
+
+    if (index < 0 || index >= this.options.stagedFiles.length) return;
+
+    const filename = this.options.stagedFiles[index];
+    const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
+
+    if (this.options.onClickItem) this.options.onClickItem(filename, mode);
+  };
+
   /** 處理列表捲動事件，同步 listScrollTop 狀態 */
   handleListScroll = () => {
-    if (this.listEl) this.#listScrollTop = this.listEl.scrollTop;
+    if (this.scrollContainer) this.#listScrollTop = this.scrollContainer.scrollTop;
   };
 }

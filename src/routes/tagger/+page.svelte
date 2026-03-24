@@ -1,58 +1,96 @@
 <script lang="ts">
-  import { untrack } from "svelte";
-  import { IconArrowLeft } from "@tabler/icons-svelte";
+  import { IconArrowBackUp, IconArrowLeft, IconCheck } from "@tabler/icons-svelte";
+  import { IconRefresh, IconTrash, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
-  import TaggerProgress from "./TaggerProgress.svelte";
-  import TaggerList from "./TaggerList.svelte";
-  import TaggerPreview from "./TaggerPreview.svelte";
-  import TaggerForm from "./TaggerForm.svelte";
+  import Rating from "$lib/components/Rating.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
+  import { imgSrc } from "$lib/client/api.js";
+
+  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
+  import { TaggerPage } from "./taggerPage.svelte.js";
+  import { TaggerProgress } from "./taggerProgress.svelte.js";
+  import { TaggerPreview } from "./taggerPreview.svelte.js";
+  import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
+  import { TaggerForm } from "./taggerForm.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
   // ---
 
-  let currentFile = $state<string | null>(untrack(() => data.stagedFiles[0] ?? null));
-  let selectedFiles = $state<Set<string>>(
-    untrack(() => {
-      const first = data.stagedFiles[0];
-      return first ? new Set([first]) : new Set();
-    }),
-  );
-  let progress = $state(0);
+  const zp = new ZoomPan();
+
+  const page = new TaggerPage({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+  });
+
+  const progress = new TaggerProgress({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get progress() {
+      return page.progress;
+    },
+  });
 
   // ---
 
-  $effect(() => {
-    const list = data.stagedFiles;
+  const listSelect = new TaggerListSelect({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get currentFile() {
+      return page.currentFile;
+    },
+    set currentFile(v) {
+      page.currentFile = v;
+    },
+    get selectedFiles() {
+      return page.selectedFiles;
+    },
+    set selectedFiles(v) {
+      page.selectedFiles = v;
+    },
+  });
 
-    // 第一幀或剛上傳 (0 => N)
-    if (currentFile === null && list.length > 0) {
-      currentFile = list[0];
-      selectedFiles = new Set([list[0]]);
-      return;
-    }
+  const listVirtual = new TaggerListVirtual({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get currentFile() {
+      return page.currentFile;
+    },
+    onClickItem: listSelect.handleListClick,
+  });
 
-    // 波動 (N => N)
-    if (currentFile !== null && list.length > 0) {
-      if (!list.includes(currentFile)) {
-        currentFile = list[0];
-      }
-      const next = new Set([...selectedFiles].filter((f) => list.includes(f)));
-      if (next.size === 0) {
-        selectedFiles = new Set([currentFile]);
-      } else if (next.size !== selectedFiles.size) {
-        selectedFiles = next;
-      }
-      return;
-    }
+  const listActions = new TaggerListActions();
 
-    // 全數審查完 (N => 0)
-    if (currentFile !== null && list.length <= 0) {
-      currentFile = null;
-      selectedFiles = new Set();
-      return;
-    }
+  // ---
+
+  const preview = new TaggerPreview({
+    get currentFile() {
+      return page.currentFile;
+    },
+    onChangeImage: zp.handleContainerReset,
+  });
+
+  // ---
+
+  const form = new TaggerForm({
+    get selectedFiles() {
+      return page.selectedFiles;
+    },
+    set selectedFiles(v) {
+      page.selectedFiles = v;
+    },
+    get progress() {
+      return page.progress;
+    },
+    set progress(v) {
+      page.progress = v;
+    },
   });
 </script>
 
@@ -60,43 +98,180 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
+<svelte:window
+  onmousemove={zp.handleWindowMousemove}
+  onmouseup={zp.handleWindowMouseup}
+  onkeydown={form.handleWindowKeydown}
+/>
+
 <div class="page">
   <header class="page-header">
     <a href="/" class="btn-ghost btn-sm">
       <IconArrowLeft size={16} />
       <span>首頁</span>
     </a>
-    <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
+
+    <h1 class="page-header-title">標註圖片</h1>
+
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-bar-fill" style="width:{progress.progressPct}%"></div>
+      </div>
+      <span class="progress-text">{progress.progressLabel}</span>
+    </div>
   </header>
 
   <main>
-    <aside class="sidebar">
-      <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
+    <aside class="left-panel">
+      <header>
+        <div>
+          <h2>待審查列表</h2>
+          {#if listSelect.countLabel}
+            <span class="badge">{listSelect.countLabel}</span>
+          {/if}
+          {#if listSelect.selectedLabel}
+            <span class="badge">{listSelect.selectedLabel}</span>
+          {/if}
+        </div>
+
+        <button
+          class="btn-icon"
+          class:pending={listActions.pending}
+          title="重新掃描待審查資料夾"
+          onclick={listActions.handleRefreshClick}
+          disabled={listActions.pending}
+        >
+          <IconRefresh size={14} />
+        </button>
+      </header>
+
+      <div bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
+        {#if data.stagedFiles.length === 0}
+          <div class="empty">沒有待審查的圖片</div>
+        {:else}
+          <ul
+            style="height:{listVirtual.listTotalHeight}px"
+            tabindex="0"
+            role="listbox"
+            aria-label="待審查圖片列表"
+            aria-activedescendant={page.currentFile ? `staged-${page.currentFile}` : undefined}
+            onclick={listVirtual.handleListClick}
+            onkeydown={listSelect.handleListKeydown}
+          >
+            {#each listVirtual.listVisibleItems as item (item.filename)}
+              {@const active = item.filename === page.currentFile}
+              {@const selected = page.selectedFiles.has(item.filename)}
+              <li
+                id="staged-{item.filename}"
+                style="top:{item.top}px; height:{item.height}px"
+                class:active
+                class:selected
+                role="option"
+                aria-selected={selected}
+              >
+                <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
+                <span class="ellipsis">{item.filename}</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+
+      <footer>
+        <label class="btn-outlined" class:pending={listActions.pending}>
+          <IconUpload size={14} />
+          <span>加入圖片</span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            class="visually-hidden"
+            onchange={listActions.handleUploadChange}
+            disabled={listActions.pending}
+          />
+        </label>
+      </footer>
     </aside>
 
-    <TaggerPreview {currentFile} />
+    <figure>
+      {#if page.currentFile}
+        <div
+          class="preview-container"
+          class:dragging={zp.isDragging}
+          class:loading={preview.imageLoading}
+          onwheel={zp.handleContainerWheel}
+          onmousedown={zp.handleContainerMousedown}
+          ondblclick={zp.handleContainerReset}
+          onkeydown={zp.handleContainerKeydown}
+          tabindex="0"
+          role="button"
+          aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
+        >
+          <img
+            src={preview.previewSrc}
+            alt={page.currentFile}
+            draggable="false"
+            style="transform:{zp.transform}"
+            onload={preview.handleImageLoad}
+          />
+        </div>
+      {:else}
+        <div class="preview-container">
+          <div class="empty">上傳新圖片或在側邊欄選擇圖片</div>
+        </div>
+      {/if}
 
-    <aside class="panel">
-      <TaggerForm bind:selectedFiles bind:progress />
+      <figcaption>
+        {page.currentFile || "未選取任何圖片"}
+      </figcaption>
+    </figure>
 
-      <div class="separator"></div>
+    <aside class="right-panel">
+      <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+        <header>
+          <h2>編輯屬性</h2>
+          <button class="btn-icon" type="reset" title="重置所有欄位">
+            <IconArrowBackUp size={18} />
+          </button>
+        </header>
 
-      <div class="shortcuts">
-        {#snippet key(label: string, keys: string[])}
-          <div>
-            <div>
-              {#each keys as k}
-                <span class="kbd">{k}</span>
-              {/each}
-            </div>
-            {label}
+        <div class="form-fields">
+          <div class="field-rating">
+            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
           </div>
-        {/snippet}
-        {@render key("切換圖片", ["←", "→"])}
-        {@render key("評等", ["1", "-", "5"])}
-        {@render key("聚焦標籤", ["T"])}
-        {@render key("提交", ["Enter"])}
-      </div>
+
+          <div class="separator"></div>
+
+          <div class="field-tags">
+            <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+          </div>
+        </div>
+
+        <footer>
+          <button
+            class="btn-primary"
+            type="submit"
+            name="intent"
+            value="commit"
+            class:pending={form.pending}
+            disabled={form.pending}
+          >
+            <IconCheck size={16} />
+            <span>提交<kbd>Ctrl + S</kbd></span>
+          </button>
+          <button
+            class="btn-destructive"
+            type="submit"
+            name="intent"
+            value="delete"
+            class:pending={form.pending}
+            disabled={form.pending}
+          >
+            <IconTrash size={16} />
+            <span>刪除<kbd>Ctrl + D</kbd></span>
+          </button>
+        </footer>
+      </form>
     </aside>
   </main>
 </div>
@@ -110,15 +285,61 @@
     overflow: hidden;
   }
 
+  /* --- */
+
+  .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 24rem;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-active);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 3.5rem;
+    text-align: right;
+  }
+
+  /* --- */
+
   main {
     display: flex;
     flex: 1;
     min-height: 0;
   }
 
-  .sidebar {
-    width: 220px;
-    min-width: 220px;
+  aside header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0px 0.75rem;
+    height: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* --- */
+
+  .left-panel {
+    width: 280px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
@@ -126,30 +347,269 @@
     overflow: hidden;
   }
 
-  .panel {
-    width: 280px;
-    min-width: 280px;
-    display: flex;
-    flex-direction: column;
-    padding: 0.75rem;
-    border-left: 1px solid var(--border);
-    background: var(--bg-card);
-    overflow-y: auto;
+  .left-panel > header {
+    & > div:has(h2) {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    & > div:has(h2) > h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    & > button {
+      padding: 0.125rem;
+    }
   }
 
-  .shortcuts {
-    display: grid;
-    grid-template-columns: max-content 1fr max-content 1fr;
-    gap: 0.25rem 2rem;
-    font-size: 0.6875rem;
-    color: var(--text-muted);
+  .left-panel > footer {
+    padding: 0.625rem 0.75rem;
+    border-top: 1px solid var(--border);
 
-    & > div {
-      grid-column: span 2;
-      display: grid;
-      grid-template-columns: subgrid;
+    & > label {
+      width: 100%;
+    }
+
+    & > label:has(:focus-visible) {
+      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
+      outline-offset: -2px;
+    }
+  }
+
+  .left-panel > div:has(ul) {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    & > .empty {
+      display: flex;
       align-items: center;
-      gap: 0.25rem;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+
+    &:has(:focus-visible) {
+      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
+      outline-offset: -2px;
+    }
+  }
+
+  .left-panel > div:has(ul) > ul {
+    position: relative;
+
+    & > li {
+      position: absolute;
+      left: 0;
+      right: 0;
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  .left-panel > div:has(ul) > ul > li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-left: 3px solid transparent;
+    background: transparent;
+    user-select: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &.selected {
+      background: var(--bg-active);
+      border-left-color: var(--text-dim);
+    }
+
+    &.active {
+      background: var(--bg-active);
+      border-left-color: var(--accent);
+    }
+
+    & > img {
+      width: auto;
+      height: 60px;
+      max-width: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    & > span {
+      flex: 1;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+  }
+
+  /* --- */
+
+  figure:has(.preview-container) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    min-width: 0;
+  }
+
+  .preview-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    transition: opacity 0s step-start;
+
+    &.loading {
+      opacity: 0.4;
+      transition: opacity 0.2s step-end;
+    }
+
+    & > img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    & > .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+  }
+
+  .preview-container {
+    & > img {
+      transition: transform 0.1s ease-out;
+    }
+
+    &.dragging > img {
+      transition: none;
+    }
+  }
+
+  .preview-container {
+    cursor: grab;
+    user-select: none;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    &:has(.empty) {
+      cursor: auto;
+      user-select: auto;
+    }
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+    min-height: 1.75rem;
+  }
+
+  /* --- */
+
+  .right-panel {
+    width: 280px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  .right-panel > form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .right-panel > form > header {
+    & > h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    & > button {
+      padding: 0.125rem;
+    }
+  }
+
+  .right-panel > form > .form-fields {
+    flex: 1;
+    min-height: 0;
+    padding: 0.75rem;
+
+    & .field-rating {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0px;
+    }
+
+    & .field-tags {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+    }
+  }
+
+  .right-panel > form > footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding: 0.75rem;
+
+    & > button {
+      justify-content: space-between;
+      flex: 1;
+      min-width: 0;
+    }
+
+    & > button > span {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    & > button > span > kbd {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.8em;
     }
   }
 </style>

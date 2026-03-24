@@ -22,19 +22,12 @@ export class TaggerForm {
   tags = $state<string[]>([]);
   /** 評等 0–5 */
   rating = $state(0);
-  /** 標籤輸入框的容器 DOM 引用 */
-  tagInputWrapEl = $state<HTMLDivElement>();
   /** 操作狀態（提交與刪除共用鎖） */
   pending = $state(false);
 
   constructor(private options: TaggerFormOptions) {}
 
   // ---
-
-  /** 聚焦標籤輸入框 */
-  #focusTagInput() {
-    this.tagInputWrapEl?.querySelector("input")?.focus();
-  }
 
   /** 重置表單 */
   #resetForm() {
@@ -107,46 +100,44 @@ export class TaggerForm {
 
   // ---
 
-  /** 處理 Window 鍵盤事件，執行導航、評等、聚焦、提交或刪除操作 */
+  /** 處理 Window 鍵盤事件 */
   handleWindowKeydown = (e: KeyboardEvent) => {
     if (isInEditable(e.target)) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-    const { key } = e;
-
-    const actions: Record<string, () => void> = {
-      t: () => this.#focusTagInput(),
-      T: () => this.#focusTagInput(),
-      Enter: () => this.#doCommit(),
-      Delete: () => this.#doDelete(),
-    };
-
-    const action = actions[key];
-    if (action) {
+    // Ctrl + S
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
       e.preventDefault();
-      action();
+      this.#doCommit();
+      return;
+    }
+
+    // Ctrl + D
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      this.#doDelete();
+      return;
     }
   };
 
   // ---
 
-  /** 處理提交按鈕點擊事件 */
-  handleCommitClick = () => {
-    this.#doCommit();
+  /** 處理表單提交事件 */
+  handleFormSubmit = (e: SubmitEvent) => {
+    e.preventDefault();
+
+    const button = e.submitter instanceof HTMLButtonElement ? e.submitter : null;
+    const intent = button?.name === "intent" ? button.value : null;
+
+    if (intent === "delete") {
+      this.#doDelete();
+    } else {
+      this.#doCommit();
+    }
   };
 
-  /** 處理刪除按鈕點擊事件 */
-  handleDeleteClick = () => {
-    this.#doDelete();
-  };
-
-  /** 處理重置按鈕點擊事件 */
-  handleResetClick = () => {
+  /** 處理表單重置事件 */
+  handleFormReset = (e: Event) => {
+    e.preventDefault();
     this.#resetForm();
-  };
-
-  /** 處理標籤 Enter 事件，執行提交 */
-  handleTagEnter = () => {
-    this.#doCommit();
   };
 }

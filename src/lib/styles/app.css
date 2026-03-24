@@ -75,10 +75,15 @@ a {
 }
 
 button {
+  color: inherit;
   font-family: inherit;
   cursor: pointer;
   border: none;
   background: none;
+}
+
+figure {
+  margin: 0;
 }
 
 /* ── Custom Scrollbar ── */
