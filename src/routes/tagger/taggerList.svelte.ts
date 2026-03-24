@@ -159,7 +159,7 @@ type TaggerListVirtualOptions = {
  */
 export class TaggerListVirtual {
   /** 捲動容器 DOM 引用 */
-  listEl = $state<HTMLDivElement | null>(null);
+  scrollContainer = $state<HTMLElement | null>(null);
   /** 虛擬列表單項固定高度 */
   readonly #listItemHeight = 72;
   /** 虛擬列表渲染緩衝區大小 */
@@ -194,21 +194,21 @@ export class TaggerListVirtual {
 
     // 監聽 currentFile，將對應項目捲入可視區域
     $effect(() => {
-      if (!this.listEl) return;
+      if (!this.scrollContainer) return;
 
       const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
-      if (idx >= 0) scrollToActive(this.listEl, idx, this.#listItemHeight);
+      if (idx >= 0) scrollToActive(this.scrollContainer, idx, this.#listItemHeight);
     });
 
     // ResizeObserver 監聽 listEl，追蹤容器可視高度變化
     $effect(() => {
-      if (!this.listEl) return;
+      if (!this.scrollContainer) return;
 
       const ro = new ResizeObserver((entries) => {
         for (const e of entries) this.#listViewHeight = e.contentRect.height;
       });
 
-      ro.observe(this.listEl);
+      ro.observe(this.scrollContainer);
       return () => ro.disconnect();
     });
   }
@@ -217,6 +217,6 @@ export class TaggerListVirtual {
 
   /** 處理列表捲動事件，同步 listScrollTop 狀態 */
   handleListScroll = () => {
-    if (this.listEl) this.#listScrollTop = this.listEl.scrollTop;
+    if (this.scrollContainer) this.#listScrollTop = this.scrollContainer.scrollTop;
   };
 }
