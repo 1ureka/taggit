@@ -23,7 +23,7 @@ export class TaggerForm {
   /** 評等 0–5 */
   rating = $state(0);
   /** 標籤輸入框的容器 DOM 引用 */
-  tagInputWrapEl = $state<HTMLDivElement>();
+  tagInputWrapEl = $state<HTMLElement>();
   /** 操作狀態（提交與刪除共用鎖） */
   pending = $state(false);
 

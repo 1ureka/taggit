@@ -3,6 +3,8 @@
   import { Rating } from "$lib/ui/rating.svelte.js";
 
   type Props = {
+    /** 欄位名稱，用於表單提交 */
+    name?: string;
     /** 雙向綁定：目前分數（0–5），0 = 未評分 */
     value?: number;
     /** 星號大小（rem 長度單位，預設 1.25rem） */
@@ -13,7 +15,7 @@
     onchange?: (v: number) => void;
   };
 
-  let { value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
+  let { name, value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
 
   // Convert CSS rem string → px for tabler icon size prop (assumes 16px root)
   const iconPx = $derived(Math.round(parseFloat(size) * 16));
@@ -33,6 +35,10 @@
     },
   });
 </script>
+
+{#if name}
+  <input type="hidden" {name} {value} />
+{/if}
 
 <!--
   唯讀模式：role="img" 純展示，不可聚焦。

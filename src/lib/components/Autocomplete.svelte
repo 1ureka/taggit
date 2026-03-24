@@ -4,6 +4,8 @@
   import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
 
   type Props = {
+    /** 欄位名稱，用於表單提交。每個標籤會生成一個同名 hidden input。 */
+    name?: string;
     /** 雙向綁定：目前選中的標籤列表 */
     tags: string[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
@@ -16,7 +18,7 @@
     variant?: "top" | "inline";
   };
 
-  let { tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, variant = "top" }: Props = $props();
+  let { name, tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, variant = "top" }: Props = $props();
 
   const ui = new Autocomplete({
     onchange: () => onchange?.(),
@@ -29,6 +31,12 @@
     },
   });
 </script>
+
+{#if name}
+  {#each tags as tag}
+    <input type="hidden" {name} value={tag} />
+  {/each}
+{/if}
 
 <div class="autocomplete" class:autocomplete--top={variant === "top"} class:autocomplete--inline={variant === "inline"}>
   {#if tags.length > 0}
