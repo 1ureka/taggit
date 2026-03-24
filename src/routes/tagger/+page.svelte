@@ -1,58 +1,39 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
-  import TaggerProgress from "./TaggerProgress.svelte";
+  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
+  import { TaggerPage } from "./taggerPage.svelte.js";
+  import { TaggerProgress } from "./taggerProgress.svelte.js";
+  import { TaggerPreview } from "./taggerPreview.svelte.js";
+
   import TaggerList from "./TaggerList.svelte";
-  import TaggerPreview from "./TaggerPreview.svelte";
   import TaggerForm from "./TaggerForm.svelte";
+
+  const zp = new ZoomPan();
 
   let { data }: { data: PageData } = $props();
 
-  // ---
+  const page = new TaggerPage({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+  });
 
-  let currentFile = $state<string | null>(untrack(() => data.stagedFiles[0] ?? null));
-  let selectedFiles = $state<Set<string>>(
-    untrack(() => {
-      const first = data.stagedFiles[0];
-      return first ? new Set([first]) : new Set();
-    }),
-  );
-  let progress = $state(0);
+  const progress = new TaggerProgress({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get progress() {
+      return page.progress;
+    },
+  });
 
-  // ---
-
-  $effect(() => {
-    const list = data.stagedFiles;
-
-    // 第一幀或剛上傳 (0 => N)
-    if (currentFile === null && list.length > 0) {
-      currentFile = list[0];
-      selectedFiles = new Set([list[0]]);
-      return;
-    }
-
-    // 波動 (N => N)
-    if (currentFile !== null && list.length > 0) {
-      if (!list.includes(currentFile)) {
-        currentFile = list[0];
-      }
-      const next = new Set([...selectedFiles].filter((f) => list.includes(f)));
-      if (next.size === 0) {
-        selectedFiles = new Set([currentFile]);
-      } else if (next.size !== selectedFiles.size) {
-        selectedFiles = next;
-      }
-      return;
-    }
-
-    // 全數審查完 (N => 0)
-    if (currentFile !== null && list.length <= 0) {
-      currentFile = null;
-      selectedFiles = new Set();
-      return;
-    }
+  const preview = new TaggerPreview({
+    get currentFile() {
+      return page.currentFile;
+    },
+    onChangeImage: zp.handleContainerReset,
   });
 </script>
 
@@ -60,24 +41,67 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
+<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
+
 <div class="page">
   <header class="page-header">
     <a href="/" class="btn-ghost btn-sm">
       <IconArrowLeft size={16} />
       <span>首頁</span>
     </a>
-    <TaggerProgress stagedFiles={data.stagedFiles} {progress} />
+
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-bar-fill" style="width:{progress.progressPct}%"></div>
+      </div>
+      <span class="progress-text">{progress.progressLabel}</span>
+    </div>
   </header>
 
   <main>
     <aside class="sidebar">
-      <TaggerList stagedFiles={data.stagedFiles} bind:currentFile bind:selectedFiles />
+      <TaggerList
+        stagedFiles={data.stagedFiles}
+        bind:currentFile={page.currentFile}
+        bind:selectedFiles={page.selectedFiles}
+      />
     </aside>
 
-    <TaggerPreview {currentFile} />
+    <figure>
+      {#if page.currentFile}
+        <div
+          class="preview-container"
+          class:dragging={zp.isDragging}
+          class:loading={preview.imageLoading}
+          onwheel={zp.handleContainerWheel}
+          onmousedown={zp.handleContainerMousedown}
+          ondblclick={zp.handleContainerReset}
+          onkeydown={zp.handleContainerKeydown}
+          tabindex="0"
+          role="button"
+          aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
+        >
+          <img
+            src={preview.previewSrc}
+            alt={page.currentFile}
+            draggable="false"
+            style="transform:{zp.transform}"
+            onload={preview.handleImageLoad}
+          />
+        </div>
+      {:else}
+        <div class="preview-container">
+          <div class="empty">未選取任何圖片</div>
+        </div>
+      {/if}
+
+      <figcaption>
+        {page.currentFile || "--"}
+      </figcaption>
+    </figure>
 
     <aside class="panel">
-      <TaggerForm bind:selectedFiles bind:progress />
+      <TaggerForm bind:selectedFiles={page.selectedFiles} bind:progress={page.progress} />
 
       <div class="separator"></div>
 
@@ -110,11 +134,48 @@
     overflow: hidden;
   }
 
+  /* --- */
+
+  .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 24rem;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-active);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 3.5rem;
+    text-align: right;
+  }
+
+  /* --- */
+
   main {
     display: flex;
     flex: 1;
     min-height: 0;
   }
+
+  /* --- */
 
   .sidebar {
     width: 220px;
@@ -125,6 +186,82 @@
     background: var(--bg-card);
     overflow: hidden;
   }
+
+  /* --- */
+
+  figure:has(.preview-container) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    min-width: 0;
+  }
+
+  .preview-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+
+    transition: opacity 0s step-start;
+
+    &.loading {
+      opacity: 0.4;
+      transition: opacity 0.2s step-end;
+    }
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    & > img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
+      user-select: none;
+      pointer-events: none;
+      transition: transform 0.1s ease-out;
+    }
+
+    &.dragging > img {
+      transition: none;
+    }
+
+    &:has(.empty) {
+      cursor: auto;
+      user-select: auto;
+    }
+
+    & > .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+    min-height: 1.75rem;
+  }
+
+  /* --- */
 
   .panel {
     width: 280px;

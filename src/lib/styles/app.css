@@ -81,6 +81,10 @@ button {
   background: none;
 }
 
+figure {
+  margin: 0;
+}
+
 /* ── Custom Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
