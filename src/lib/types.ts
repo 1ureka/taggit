@@ -87,7 +87,9 @@ export interface QueryOptions {
   /** 圖片名稱的子字串搜尋（不區分大小寫） */
   search?: string;
   /** 標籤篩選，須同時符合所有指定標籤（AND 語意） */
-  tags?: string[];
+  includedTags?: string[];
+  /** 標籤篩選，須排除所有指定標籤（NOT 語意） */
+  excludedTags?: string[];
   /** 評分篩選的閾值 */
   rating?: number;
   /** 評分比較運算子：大於等於、小於等於、等於 */

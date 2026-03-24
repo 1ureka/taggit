@@ -37,7 +37,8 @@ export function parseQueryParams(url: URL): QueryOptions {
   const p = url.searchParams;
   return {
     search: p.get("search") ?? undefined,
-    tags: parseTags(p.get("tags")),
+    includedTags: parseTags(p.get("includedTags")),
+    excludedTags: parseTags(p.get("excludedTags")),
     rating: safeInt(p.get("rating")),
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
     sort: (p.get("sort") as "committedAt" | "rating" | "name" | "random") ?? "committedAt",
@@ -53,7 +54,8 @@ export function parseQueryParams(url: URL): QueryOptions {
 export function buildQueryString(opts: QueryOptions): string {
   const params = new URLSearchParams();
   if (opts.search?.trim()) params.set("search", opts.search.trim());
-  if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
+  if (opts.includedTags && opts.includedTags.length > 0) params.set("includedTags", opts.includedTags.join(","));
+  if (opts.excludedTags && opts.excludedTags.length > 0) params.set("excludedTags", opts.excludedTags.join(","));
   if (opts.rating !== undefined) params.set("rating", String(opts.rating));
   if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
   if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);

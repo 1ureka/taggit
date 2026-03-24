@@ -28,7 +28,7 @@ export class EditorForm {
   constructor() {
     const init = untrack(() => parseQueryParams(page.url));
     this.search = init.search ?? "";
-    this.selectedTags = init.tags ?? [];
+    this.selectedTags = init.includedTags ?? [];
     this.rating = init.rating;
     this.ratingOp = init.ratingOp ?? "gte";
     this.sort = init.sort ?? "committedAt";
@@ -41,7 +41,7 @@ export class EditorForm {
         this.search = vals.search ?? "";
       }
 
-      this.selectedTags = vals.tags ?? [];
+      this.selectedTags = vals.includedTags ?? [];
       this.rating = vals.rating;
       this.ratingOp = vals.ratingOp ?? "gte";
       this.sort = vals.sort ?? "committedAt";
@@ -55,7 +55,7 @@ export class EditorForm {
   #currentQueryString(): string {
     return buildQueryString({
       search: this.search,
-      tags: this.selectedTags,
+      includedTags: this.selectedTags,
       rating: this.rating,
       ratingOp: this.ratingOp,
       sort: this.sort,
