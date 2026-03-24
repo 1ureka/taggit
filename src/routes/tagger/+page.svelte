@@ -59,6 +59,7 @@
     get currentFile() {
       return page.currentFile;
     },
+    onClickItem: listSelect.handleListClick,
   });
 
   const listActions = new TaggerListActions();
@@ -79,11 +80,7 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window
-  onmousemove={zp.handleWindowMousemove}
-  onmouseup={zp.handleWindowMouseup}
-  onkeydown={listSelect.handleWindowKeydown}
-/>
+<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
 
 <div class="page">
   <header class="page-header">
@@ -130,16 +127,28 @@
         {#if data.stagedFiles.length === 0}
           <div class="empty">沒有待審查的圖片</div>
         {:else}
-          <ul style="height:{listVirtual.listTotalHeight}px">
+          <ul
+            style="height:{listVirtual.listTotalHeight}px"
+            tabindex="0"
+            role="listbox"
+            aria-label="待審查圖片列表"
+            aria-activedescendant={page.currentFile ? `staged-${page.currentFile}` : undefined}
+            onclick={listVirtual.handleListClick}
+            onkeydown={listSelect.handleListKeydown}
+          >
             {#each listVirtual.listVisibleItems as item (item.filename)}
               {@const active = item.filename === page.currentFile}
               {@const selected = page.selectedFiles.has(item.filename)}
-              {@const handleClick = (e: MouseEvent) => listSelect.handleItemClick(e, item.filename)}
-              <li style="top:{item.top}px; height:{item.height}px">
-                <button type="button" class:active class:selected onclick={handleClick}>
-                  <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
-                  <span class="ellipsis">{item.filename}</span>
-                </button>
+              <li
+                id="staged-{item.filename}"
+                style="top:{item.top}px; height:{item.height}px"
+                class:active
+                class:selected
+                role="option"
+                aria-selected={selected}
+              >
+                <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
+                <span class="ellipsis">{item.filename}</span>
               </li>
             {/each}
           </ul>
@@ -324,6 +333,11 @@
       font-size: 0.875rem;
       color: var(--text-dim);
     }
+
+    &:has(:focus-visible) {
+      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
+      outline-offset: -2px;
+    }
   }
 
   .left-panel > section > ul {
@@ -334,20 +348,21 @@
       left: 0;
       right: 0;
     }
+
+    &:focus-visible {
+      outline: none;
+    }
   }
 
-  .left-panel > section > ul > li > button {
-    width: 100%;
-    height: 100%;
-
+  .left-panel > section > ul > li {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.375rem 0.5rem;
     border-left: 3px solid transparent;
     background: transparent;
-    text-align: left;
-    transition: background 0.1s;
+    user-select: none;
+    cursor: pointer;
 
     &:hover {
       background: var(--bg-hover);
