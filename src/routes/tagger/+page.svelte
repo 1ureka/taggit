@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IconArrowLeft, IconRefresh, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
+  import { imgSrc } from "$lib/client/api.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { TaggerPage } from "./taggerPage.svelte.js";
@@ -8,7 +9,6 @@
   import { TaggerPreview } from "./taggerPreview.svelte.js";
   import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
 
-  import TaggerListItem from "./TaggerListItem.svelte";
   import TaggerForm from "./TaggerForm.svelte";
 
   const zp = new ZoomPan();
@@ -79,7 +79,11 @@
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
+<svelte:window
+  onmousemove={zp.handleWindowMousemove}
+  onmouseup={zp.handleWindowMouseup}
+  onkeydown={listSelect.handleWindowKeydown}
+/>
 
 <div class="page">
   <header class="page-header">
@@ -117,23 +121,25 @@
         </button>
       </header>
 
-      <div class="list-container" bind:this={listVirtual.listEl} onscroll={listVirtual.handleListScroll}>
+      <section bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
         {#if data.stagedFiles.length === 0}
           <div class="empty">沒有待審查的圖片</div>
         {:else}
-          <div class="list" style="height:{listVirtual.listTotalHeight}px">
+          <ul style="height:{listVirtual.listTotalHeight}px">
             {#each listVirtual.listVisibleItems as item (item.filename)}
-              <TaggerListItem
-                filename={item.filename}
-                active={item.filename === page.currentFile}
-                selected={page.selectedFiles.has(item.filename)}
-                style="top:{item.top}px; height:{item.height}px"
-                onclick={(e) => listSelect.handleItemClick(e, item.filename)}
-              />
+              {@const active = item.filename === page.currentFile}
+              {@const selected = page.selectedFiles.has(item.filename)}
+              {@const handleClick = (e: MouseEvent) => listSelect.handleItemClick(e, item.filename)}
+              <li style="top:{item.top}px; height:{item.height}px">
+                <button type="button" class:active class:selected onclick={handleClick}>
+                  <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
+                  <span class="ellipsis">{item.filename}</span>
+                </button>
+              </li>
             {/each}
-          </div>
+          </ul>
         {/if}
-      </div>
+      </section>
 
       <footer>
         <label class="btn-outlined" class:pending={listActions.pending}>
@@ -310,14 +316,10 @@
     }
   }
 
-  .left-panel > .list-container {
+  .left-panel > section {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-
-    & > .list {
-      position: relative;
-    }
 
     & > .empty {
       display: flex;
@@ -326,6 +328,60 @@
       height: 100%;
       font-size: 0.875rem;
       color: var(--text-dim);
+    }
+  }
+
+  .left-panel > section > ul {
+    position: relative;
+
+    & > li {
+      position: absolute;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  .left-panel > section > ul > li > button {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-left: 3px solid transparent;
+    background: transparent;
+    text-align: left;
+    transition: background 0.1s;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &.selected {
+      background: var(--bg-active);
+      border-left-color: var(--text-dim);
+    }
+
+    &.active {
+      background: var(--bg-active);
+      border-left-color: var(--accent);
+    }
+
+    & > img {
+      width: auto;
+      height: 60px;
+      max-width: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    & > span {
+      flex: 1;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
     }
   }
 
