@@ -1,18 +1,21 @@
 <script lang="ts">
-  import { IconArrowLeft } from "@tabler/icons-svelte";
+  import { IconArrowLeft, IconRefresh, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
   import { TaggerPreview } from "./taggerPreview.svelte.js";
+  import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
 
-  import TaggerList from "./TaggerList.svelte";
+  import TaggerListItem from "./TaggerListItem.svelte";
   import TaggerForm from "./TaggerForm.svelte";
 
   const zp = new ZoomPan();
 
   let { data }: { data: PageData } = $props();
+
+  // ---
 
   const page = new TaggerPage({
     get stagedFiles() {
@@ -29,12 +32,47 @@
     },
   });
 
+  // ---
+
+  const listSelect = new TaggerListSelect({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get currentFile() {
+      return page.currentFile;
+    },
+    set currentFile(v) {
+      page.currentFile = v;
+    },
+    get selectedFiles() {
+      return page.selectedFiles;
+    },
+    set selectedFiles(v) {
+      page.selectedFiles = v;
+    },
+  });
+
+  const listVirtual = new TaggerListVirtual({
+    get stagedFiles() {
+      return data.stagedFiles;
+    },
+    get currentFile() {
+      return page.currentFile;
+    },
+  });
+
+  const listActions = new TaggerListActions();
+
+  // ---
+
   const preview = new TaggerPreview({
     get currentFile() {
       return page.currentFile;
     },
     onChangeImage: zp.handleContainerReset,
   });
+
+  // ---
 </script>
 
 <svelte:head>
@@ -50,6 +88,8 @@
       <span>首頁</span>
     </a>
 
+    <h1 class="page-header-title">標註圖片</h1>
+
     <div class="progress-container">
       <div class="progress-bar">
         <div class="progress-bar-fill" style="width:{progress.progressPct}%"></div>
@@ -59,12 +99,56 @@
   </header>
 
   <main>
-    <aside class="sidebar">
-      <TaggerList
-        stagedFiles={data.stagedFiles}
-        bind:currentFile={page.currentFile}
-        bind:selectedFiles={page.selectedFiles}
-      />
+    <aside class="left-panel">
+      <header>
+        <div>
+          <h2>待審查列表</h2>
+          <span class="badge">{listSelect.badgeLabel}</span>
+        </div>
+
+        <button
+          class="btn-icon"
+          class:pending={listActions.pending}
+          title="重新掃描待審查資料夾"
+          onclick={listActions.handleRefreshClick}
+          disabled={listActions.pending}
+        >
+          <IconRefresh size={14} />
+        </button>
+      </header>
+
+      <div class="list-container" bind:this={listVirtual.listEl} onscroll={listVirtual.handleListScroll}>
+        {#if data.stagedFiles.length === 0}
+          <div class="empty">沒有待審查的圖片</div>
+        {:else}
+          <div class="list" style="height:{listVirtual.listTotalHeight}px">
+            {#each listVirtual.listVisibleItems as item (item.filename)}
+              <TaggerListItem
+                filename={item.filename}
+                active={item.filename === page.currentFile}
+                selected={page.selectedFiles.has(item.filename)}
+                style="top:{item.top}px; height:{item.height}px"
+                onclick={(e) => listSelect.handleItemClick(e, item.filename)}
+              />
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <footer>
+        <label class="btn-outlined" class:pending={listActions.pending}>
+          <IconUpload size={14} />
+          <span>加入圖片</span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            class="visually-hidden"
+            onchange={listActions.handleUploadChange}
+            disabled={listActions.pending}
+          />
+        </label>
+      </footer>
     </aside>
 
     <figure>
@@ -100,7 +184,7 @@
       </figcaption>
     </figure>
 
-    <aside class="panel">
+    <aside class="right-panel">
       <TaggerForm bind:selectedFiles={page.selectedFiles} bind:progress={page.progress} />
 
       <div class="separator"></div>
@@ -177,7 +261,7 @@
 
   /* --- */
 
-  .sidebar {
+  .left-panel {
     width: 220px;
     min-width: 220px;
     display: flex;
@@ -185,6 +269,64 @@
     border-right: 1px solid var(--border);
     background: var(--bg-card);
     overflow: hidden;
+  }
+
+  .left-panel > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+
+    & > div:has(h2) {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    & > div:has(h2) > h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    & > button {
+      padding: 0.125rem;
+    }
+  }
+
+  .left-panel > footer {
+    padding: 0.625rem 0.75rem;
+    border-top: 1px solid var(--border);
+
+    & > label {
+      width: 100%;
+    }
+
+    & > label:has(:focus-visible) {
+      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
+      outline-offset: -2px;
+    }
+  }
+
+  .left-panel > .list-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    & > .list {
+      position: relative;
+    }
+
+    & > .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
   }
 
   /* --- */
@@ -260,7 +402,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
     padding: 0.375rem 0.75rem;
     font-size: 0.6875rem;
     color: var(--text-dim);
@@ -271,7 +412,7 @@
 
   /* --- */
 
-  .panel {
+  .right-panel {
     width: 280px;
     min-width: 280px;
     display: flex;
