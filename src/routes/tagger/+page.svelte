@@ -107,7 +107,12 @@
       <header>
         <div>
           <h2>待審查列表</h2>
-          <span class="badge">{listSelect.badgeLabel}</span>
+          {#if listSelect.countLabel}
+            <span class="badge">{listSelect.countLabel}</span>
+          {/if}
+          {#if listSelect.selectedLabel}
+            <span class="badge">{listSelect.selectedLabel}</span>
+          {/if}
         </div>
 
         <button
@@ -265,11 +270,20 @@
     min-height: 0;
   }
 
+  aside > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0px 0.75rem;
+    height: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
   /* --- */
 
   .left-panel {
-    width: 220px;
-    min-width: 220px;
+    width: 280px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
@@ -278,13 +292,6 @@
   }
 
   .left-panel > header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.625rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-
     & > div:has(h2) {
       display: flex;
       align-items: center;
@@ -470,7 +477,6 @@
 
   .right-panel {
     width: 280px;
-    min-width: 280px;
     display: flex;
     flex-direction: column;
     padding: 0.75rem;

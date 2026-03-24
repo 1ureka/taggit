@@ -18,14 +18,25 @@ type TaggerListOptions = {
  * TaggerList 的選取與切換啟用的互動邏輯
  */
 export class TaggerListSelect {
-  /** header badge 顯示文字 */
-  badgeLabel: string;
+  /** count badge 顯示文字 */
+  countLabel: string | null;
+  /** 選取的檔案數量顯示文字 */
+  selectedLabel: string | null;
 
   constructor(private options: TaggerListOptions) {
-    this.badgeLabel = $derived.by(() => {
+    this.countLabel = $derived.by(() => {
       const total = options.stagedFiles.length;
-      const selected = options.selectedFiles.size;
-      return selected > 1 ? `${selected}/${total}` : `${total}`;
+      if (total <= 0) return null;
+
+      const currentIndex = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      if (currentIndex < 0) return `${total}`;
+
+      return `${currentIndex + 1}/${total}`;
+    });
+
+    this.selectedLabel = $derived.by(() => {
+      const count = options.selectedFiles.size;
+      return count > 1 ? `${count} 已選取` : null;
     });
   }
 

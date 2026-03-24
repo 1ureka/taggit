@@ -40,6 +40,8 @@
   background: var(--bg-active);
   border: 1px solid var(--border);
   border-radius: 9999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   user-select: none;
 }
