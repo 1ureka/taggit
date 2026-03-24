@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { IconArrowBackUp, IconArrowLeft, IconRefresh, IconUpload } from "@tabler/icons-svelte";
+  import { IconArrowBackUp, IconArrowLeft, IconCheck } from "@tabler/icons-svelte";
+  import { IconRefresh, IconTrash, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
+
+  import Rating from "$lib/components/Rating.svelte";
+  import Autocomplete from "$lib/components/Autocomplete.svelte";
   import { imgSrc } from "$lib/client/api.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
@@ -8,14 +12,13 @@
   import { TaggerProgress } from "./taggerProgress.svelte.js";
   import { TaggerPreview } from "./taggerPreview.svelte.js";
   import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
-
-  import TaggerForm from "./TaggerForm.svelte";
-
-  const zp = new ZoomPan();
+  import { TaggerForm } from "./taggerForm.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
   // ---
+
+  const zp = new ZoomPan();
 
   const page = new TaggerPage({
     get stagedFiles() {
@@ -74,13 +77,32 @@
   });
 
   // ---
+
+  const form = new TaggerForm({
+    get selectedFiles() {
+      return page.selectedFiles;
+    },
+    set selectedFiles(v) {
+      page.selectedFiles = v;
+    },
+    get progress() {
+      return page.progress;
+    },
+    set progress(v) {
+      page.progress = v;
+    },
+  });
 </script>
 
 <svelte:head>
   <title>Tagger — Image Manager</title>
 </svelte:head>
 
-<svelte:window onmousemove={zp.handleWindowMousemove} onmouseup={zp.handleWindowMouseup} />
+<svelte:window
+  onmousemove={zp.handleWindowMousemove}
+  onmouseup={zp.handleWindowMouseup}
+  onkeydown={form.handleWindowKeydown}
+/>
 
 <div class="page">
   <header class="page-header">
@@ -123,7 +145,7 @@
         </button>
       </header>
 
-      <section bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
+      <div bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
         {#if data.stagedFiles.length === 0}
           <div class="empty">沒有待審查的圖片</div>
         {:else}
@@ -153,7 +175,7 @@
             {/each}
           </ul>
         {/if}
-      </section>
+      </div>
 
       <footer>
         <label class="btn-outlined" class:pending={listActions.pending}>
@@ -205,14 +227,51 @@
     </figure>
 
     <aside class="right-panel">
-      <header>
-        <h2>編輯屬性</h2>
-        <button class="btn-icon" type="button" title="重置所有欄位">
-          <IconArrowBackUp size={18} />
-        </button>
-      </header>
+      <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+        <header>
+          <h2>編輯屬性</h2>
+          <button class="btn-icon" type="reset" title="重置所有欄位">
+            <IconArrowBackUp size={18} />
+          </button>
+        </header>
 
-      <TaggerForm bind:selectedFiles={page.selectedFiles} bind:progress={page.progress} />
+        <div class="form-fields">
+          <div class="field-rating">
+            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
+          </div>
+
+          <div class="separator"></div>
+
+          <div class="field-tags">
+            <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+          </div>
+        </div>
+
+        <footer>
+          <button
+            class="btn-primary"
+            type="submit"
+            name="intent"
+            value="commit"
+            class:pending={form.pending}
+            disabled={form.pending}
+          >
+            <IconCheck size={16} />
+            <span>提交<kbd>Ctrl + S</kbd></span>
+          </button>
+          <button
+            class="btn-destructive"
+            type="submit"
+            name="intent"
+            value="delete"
+            class:pending={form.pending}
+            disabled={form.pending}
+          >
+            <IconTrash size={16} />
+            <span>刪除<kbd>Ctrl + D</kbd></span>
+          </button>
+        </footer>
+      </form>
     </aside>
   </main>
 </div>
@@ -267,7 +326,7 @@
     min-height: 0;
   }
 
-  aside > header {
+  aside header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -320,7 +379,7 @@
     }
   }
 
-  .left-panel > section {
+  .left-panel > div:has(ul) {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -340,7 +399,7 @@
     }
   }
 
-  .left-panel > section > ul {
+  .left-panel > div:has(ul) > ul {
     position: relative;
 
     & > li {
@@ -354,7 +413,7 @@
     }
   }
 
-  .left-panel > section > ul > li {
+  .left-panel > div:has(ul) > ul > li {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -480,14 +539,17 @@
 
   .right-panel {
     width: 280px;
-    display: flex;
-    flex-direction: column;
     border-left: 1px solid var(--border);
     background: var(--bg-card);
-    overflow-y: auto;
   }
 
-  .right-panel > header {
+  .right-panel > form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .right-panel > form > header {
     & > h2 {
       font-size: 0.8125rem;
       font-weight: 600;
@@ -496,6 +558,58 @@
 
     & > button {
       padding: 0.125rem;
+    }
+  }
+
+  .right-panel > form > .form-fields {
+    flex: 1;
+    min-height: 0;
+    padding: 0.75rem;
+
+    & .field-rating {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0px;
+    }
+
+    & .field-tags {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+    }
+  }
+
+  .right-panel > form > footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding: 0.75rem;
+
+    & > button {
+      justify-content: space-between;
+      flex: 1;
+      min-width: 0;
+    }
+
+    & > button > span {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    & > button > span > kbd {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.8em;
     }
   }
 </style>

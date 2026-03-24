@@ -121,18 +121,23 @@ export class TaggerForm {
 
   // ---
 
-  /** 處理提交按鈕點擊事件 */
-  handleCommitClick = () => {
-    this.#doCommit();
+  /** 處理表單提交事件 */
+  handleFormSubmit = (e: SubmitEvent) => {
+    e.preventDefault();
+
+    const button = e.submitter instanceof HTMLButtonElement ? e.submitter : null;
+    const intent = button?.name === "intent" ? button.value : null;
+
+    if (intent === "delete") {
+      this.#doDelete();
+    } else {
+      this.#doCommit();
+    }
   };
 
-  /** 處理刪除按鈕點擊事件 */
-  handleDeleteClick = () => {
-    this.#doDelete();
-  };
-
-  /** 處理重置按鈕點擊事件 */
-  handleResetClick = () => {
+  /** 處理表單重置事件 */
+  handleFormReset = (e: Event) => {
+    e.preventDefault();
     this.#resetForm();
   };
 }
