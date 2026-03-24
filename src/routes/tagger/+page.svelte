@@ -205,18 +205,12 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    cursor: grab;
-    user-select: none;
 
     transition: opacity 0s step-start;
 
     &.loading {
       opacity: 0.4;
       transition: opacity 0.2s step-end;
-    }
-
-    &.dragging {
-      cursor: grabbing;
     }
 
     & > img {
@@ -226,16 +220,6 @@
       transform-origin: center center;
       user-select: none;
       pointer-events: none;
-      transition: transform 0.1s ease-out;
-    }
-
-    &.dragging > img {
-      transition: none;
-    }
-
-    &:has(.empty) {
-      cursor: auto;
-      user-select: auto;
     }
 
     & > .empty {
@@ -245,6 +229,30 @@
       height: 100%;
       font-size: 0.875rem;
       color: var(--text-dim);
+    }
+  }
+
+  .preview-container {
+    & > img {
+      transition: transform 0.1s ease-out;
+    }
+
+    &.dragging > img {
+      transition: none;
+    }
+  }
+
+  .preview-container {
+    cursor: grab;
+    user-select: none;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    &:has(.empty) {
+      cursor: auto;
+      user-select: auto;
     }
   }
 
