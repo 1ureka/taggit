@@ -69,9 +69,8 @@ export function blurhashStyle(options: BlurhashStyleOptions = {}): string {
     ].join(";");
   }
 
-  // 首先注意到，bmpW 和 bmpH 通常小於 64px，但當圖片呈現時，畫面在怎麼小，也應該大於 256px，這意味者
-  // Math.round 的 aspect ratio 誤差 **一定** 會被放大到肉眼可見的程度，從而導致 contain 的計算不準確
-  // 好一點的情況只是模糊背景比實際圖片小得感受，但壞一點會導致圖片載入完成後，邊緣仍存在模糊背景
+  // 首先注意到，bmpW 和 bmpH 通常小於 64px，但當圖片呈現時，畫面在怎麼小，視口也應該大於 256px，這意味者
+  // Math.round 的 aspect ratio 誤差 **一定** 會被放大到肉眼可見的程度，從而導致 contain 的計算不準確 (詳見下方補充)
 
   // 當指定了寬高且 fit 為 "contain" 時，為了確保 aspect ratio 與原圖完全一致
   // 改用 SVG 包裹一層，使用 preserveAspectRatio="none" 強制拉伸到指定尺寸，並將 SVG 的背景設為 BlurHash 圖像。
@@ -84,4 +83,12 @@ export function blurhashStyle(options: BlurhashStyleOptions = {}): string {
     "background-repeat:no-repeat",
     "background-position:center",
   ].join(";");
+
+  // 補充:
+  // 例如，假設一張圖片的原始尺寸是 233:144，其比例是 1.61805555555555... ，為無理數
+  // 但其 BlurHash 會被計算為 26:16 的尺寸，其比例為 1.625
+  // 當放到一個高度為 1024px, 寬度 1024px 的 object-fit: contain 的 img 上時
+  // 背景的 blurhash 圖像會被放大到 26/16 * 1024 = 1664px 的寬度，而實際圖片則是 1.618... * 1024 = 1,656.888...px 的寬度
+  // 這導致了圖片載入完成後，左右兩側仍會有模糊背景的殘留，這是絕對不可接受的
+  // 而 SVG 解法在數學上，精確且確定性的解決了該問題
 }
