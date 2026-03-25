@@ -2,6 +2,18 @@
   import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
 
+  type Props = {
+    search?: string;
+    includedTags?: string[];
+    excludedTags?: string[];
+    rating?: number | undefined;
+    ratingOp?: "gte" | "lte" | "eq";
+    sort?: string;
+    order?: string;
+    /** 是否允許隨機排序 */
+    allowRandomSort?: boolean;
+  };
+
   let {
     search = $bindable(""),
     includedTags = $bindable([]),
@@ -10,15 +22,8 @@
     ratingOp = $bindable("gte"),
     sort = $bindable("committedAt"),
     order = $bindable("desc"),
-  }: {
-    search?: string;
-    includedTags?: string[];
-    excludedTags?: string[];
-    rating?: number | undefined;
-    ratingOp?: "gte" | "lte" | "eq";
-    sort?: string;
-    order?: string;
-  } = $props();
+    allowRandomSort = true,
+  }: Props = $props();
 
   const ratingOpOptions = [
     { value: "gte", label: "≥" },
@@ -35,12 +40,19 @@
     { value: 5, label: "5" },
   ];
 
-  const sortOptions = [
-    { value: "committedAt", label: "時間" },
-    { value: "rating", label: "評分" },
-    { value: "name", label: "名稱" },
-    { value: "random", label: "隨機" },
-  ];
+  const sortOptions = $derived.by(() => {
+    const baseOptions = [
+      { value: "committedAt", label: "時間" },
+      { value: "rating", label: "評分" },
+      { value: "name", label: "名稱" },
+    ];
+
+    if (allowRandomSort) {
+      baseOptions.push({ value: "random", label: "隨機" });
+    }
+
+    return baseOptions;
+  });
 
   const orderOptions = [
     { value: "desc", label: "降冪" },
