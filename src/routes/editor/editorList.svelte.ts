@@ -48,31 +48,31 @@ export class EditorListSelect {
 
   // ---
 
-  /** 以單選模式選取指定檔名 */
-  #selectSingle(filename: string) {
-    this.options.selectedFiles = new Set([filename]);
-    this.options.navigateTo(filename);
+  /** 以單選模式選取指定檔案 */
+  #selectSingle(id: string) {
+    this.options.selectedFiles = new Set([id]);
+    this.options.navigateTo(id);
   }
 
-  /** 以 Ctrl 模式將指定檔名加入選取集合 */
-  #selectCtrl(filename: string) {
+  /** 以 Ctrl 模式將指定檔案加入選取集合 */
+  #selectCtrl(id: string) {
     const next = new Set(this.options.selectedFiles);
-    next.add(filename);
+    next.add(id);
     this.options.selectedFiles = next;
-    this.options.navigateTo(filename);
+    this.options.navigateTo(id);
   }
 
-  /** 以 Shift 模式選取 currentId 到指定檔名的範圍 */
-  #selectShift(filename: string) {
+  /** 以 Shift 模式選取 currentId 到指定檔案的範圍 */
+  #selectShift(id: string) {
     const list = this.options.imageIds;
     const anchorIdx = this.options.currentId ? list.indexOf(this.options.currentId) : 0;
-    const targetIdx = list.indexOf(filename);
+    const targetIdx = list.indexOf(id);
     const lo = Math.min(anchorIdx, targetIdx);
     const hi = Math.max(anchorIdx, targetIdx);
     const next = new Set<string>();
     for (let i = lo; i <= hi; i++) next.add(list[i]);
     this.options.selectedFiles = next;
-    this.options.navigateTo(filename);
+    this.options.navigateTo(id);
   }
 
   /** 移動游標至指定偏移量 */
@@ -89,10 +89,10 @@ export class EditorListSelect {
   // ---
 
   /** 處理列表項目點擊事件 */
-  handleListClick = (filename: string, mode: "single" | "ctrl" | "shift") => {
-    if (mode === "single") this.#selectSingle(filename);
-    else if (mode === "ctrl") this.#selectCtrl(filename);
-    else this.#selectShift(filename);
+  handleListClick = (id: string, mode: "single" | "ctrl" | "shift") => {
+    if (mode === "single") this.#selectSingle(id);
+    else if (mode === "ctrl") this.#selectCtrl(id);
+    else this.#selectShift(id);
   };
 
   /** 處理列表鍵盤事件 */

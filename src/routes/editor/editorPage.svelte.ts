@@ -53,9 +53,9 @@ export class EditorPage {
   // ---
 
   /** 導航到指定檔案（更新 URL 的 currentFile 參數） */
-  navigateTo = (filename: string) => {
+  navigateTo = (id: string) => {
     const url = new URL(window.location.href);
-    url.searchParams.set("currentFile", filename);
+    url.searchParams.set("currentFile", id);
     goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
   };
 }
