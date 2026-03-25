@@ -65,8 +65,8 @@
   // ---
 
   const preview = new EditorPreview({
-    get currentId() {
-      return data.currentRecord?.id ?? null;
+    get currentRecord() {
+      return data.currentRecord;
     },
     onChangeImage: zp.handleContainerReset,
   });
@@ -195,7 +195,6 @@
         <div
           class="preview-container"
           class:dragging={zp.isDragging}
-          class:loading={preview.imageLoading}
           onwheel={zp.handleContainerWheel}
           onmousedown={zp.handleContainerMousedown}
           ondblclick={zp.handleContainerReset}
@@ -204,13 +203,14 @@
           role="button"
           aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
         >
-          <img
-            src={preview.previewSrc}
-            alt={data.currentRecord.name}
-            draggable="false"
-            style="transform:{zp.transform}"
-            onload={preview.handleImageLoad}
-          />
+          {#key data.currentRecord.id}
+            <img
+              src={preview.previewSrc}
+              alt={data.currentRecord.name}
+              draggable="false"
+              style={`transform:${zp.transform};${preview.previewStyle}`}
+            />
+          {/key}
         </div>
       {:else}
         <div class="preview-container">
@@ -504,16 +504,9 @@
     justify-content: center;
     overflow: hidden;
 
-    transition: opacity 0s step-start;
-
-    &.loading {
-      opacity: 0.4;
-      transition: opacity 0.2s step-end;
-    }
-
     & > img {
-      max-width: 100%;
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       transform-origin: center center;
       user-select: none;
