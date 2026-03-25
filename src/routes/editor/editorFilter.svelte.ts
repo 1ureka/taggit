@@ -9,7 +9,8 @@ import type { QueryOptions } from "$lib/types.js";
  */
 type EditorFilterOptions = {
   /** 雙向綁定：操作狀態 (共用鎖) */
-  pending: boolean;
+  get pending(): boolean;
+  set pending(v: boolean);
 };
 
 /**
@@ -18,8 +19,6 @@ type EditorFilterOptions = {
 export class EditorFilter {
   /** Modal 是否開啟 */
   open = $state(false);
-  /** 篩選按鈕 pending（Modal 內的按鈕） */
-  filterPending = $state(false);
 
   // 表單狀態（從 URL 同步）
   search = $state("");
@@ -33,31 +32,32 @@ export class EditorFilter {
   constructor(private options: EditorFilterOptions) {
     // 初始化
     const initial = untrack(() => parseQueryParams(page.url));
-    this.search = initial.search ?? "";
-    this.includedTags = initial.includedTags ?? [];
-    this.excludedTags = initial.excludedTags ?? [];
-    this.rating = initial.rating;
-    this.ratingOp = initial.ratingOp ?? "gte";
-    this.sort = initial.sort ?? "committedAt";
-    this.order = initial.order ?? "desc";
+    this.#resetFields(initial);
 
     // URL 變動時同步
     $effect(() => {
-      const opts = parseQueryParams(page.url);
-      this.search = opts.search ?? "";
-      this.includedTags = opts.includedTags ?? [];
-      this.excludedTags = opts.excludedTags ?? [];
-      this.rating = opts.rating;
-      this.ratingOp = opts.ratingOp ?? "gte";
-      this.sort = opts.sort ?? "committedAt";
-      this.order = opts.order ?? "desc";
+      this.#resetFields(parseQueryParams(page.url));
     });
+  }
+
+  // ---
+
+  /** 根據提供的選項重置欄位 */
+  #resetFields(opts: QueryOptions) {
+    this.search = opts.search ?? "";
+    this.includedTags = opts.includedTags ?? [];
+    this.excludedTags = opts.excludedTags ?? [];
+    this.rating = opts.rating;
+    this.ratingOp = opts.ratingOp ?? "gte";
+    this.sort = opts.sort ?? "committedAt";
+    this.order = opts.order ?? "desc";
   }
 
   // ---
 
   /** 打開篩選 Modal */
   handleOpenClick = () => {
+    this.#resetFields(parseQueryParams(page.url));
     this.open = true;
   };
 
@@ -71,9 +71,8 @@ export class EditorFilter {
   /** 處理篩選表單提交 */
   handleFilterSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (this.filterPending) return;
+    if (this.options.pending) return;
 
-    this.filterPending = true;
     this.options.pending = true;
 
     try {
@@ -92,7 +91,6 @@ export class EditorFilter {
 
       this.open = false;
     } finally {
-      this.filterPending = false;
       this.options.pending = false;
     }
   };
@@ -100,12 +98,6 @@ export class EditorFilter {
   /** 處理篩選表單重置 */
   handleFilterReset = (e: Event) => {
     e.preventDefault();
-    this.search = "";
-    this.includedTags = [];
-    this.excludedTags = [];
-    this.rating = undefined;
-    this.ratingOp = "gte";
-    this.sort = "committedAt";
-    this.order = "desc";
+    this.#resetFields({});
   };
 }
