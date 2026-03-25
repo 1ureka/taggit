@@ -13,6 +13,8 @@ type EditorFormOptions = {
   currentRecord: ImageWithId | null;
   /** 雙向綁定：已選取的檔名集合 */
   selectedFiles: Set<string>;
+  /** 雙向綁定：操作狀態 (共用鎖) */
+  pending: boolean;
 };
 
 /**
@@ -25,8 +27,6 @@ export class EditorForm {
   tags = $state<string[]>([]);
   /** 評等 0–5 */
   rating = $state(0);
-  /** 操作狀態（存檔與刪除共用鎖） */
-  pending = $state(false);
   /** 多選時名稱欄位是否 disabled */
   nameDisabled: boolean;
 
@@ -74,7 +74,7 @@ export class EditorForm {
 
   /** 存檔已選取的圖片 */
   async #doSave() {
-    if (this.pending || this.options.selectedFiles.size === 0) return;
+    if (this.options.pending || this.options.selectedFiles.size === 0) return;
     if (this.tags.length === 0) {
       addToast("請至少加入一個標籤才能存檔", "error");
       return;
@@ -88,7 +88,7 @@ export class EditorForm {
     }
 
     const names = [...this.options.selectedFiles];
-    this.pending = true;
+    this.options.pending = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, async (fn) => {
@@ -118,13 +118,13 @@ export class EditorForm {
       tagCache.invalidate();
       await invalidateAll();
     } finally {
-      this.pending = false;
+      this.options.pending = false;
     }
   }
 
   /** 刪除已選取的圖片（取消提交，回到 staged） */
   async #doDelete() {
-    if (this.pending || this.options.selectedFiles.size === 0) return;
+    if (this.options.pending || this.options.selectedFiles.size === 0) return;
 
     const n = this.options.selectedFiles.size;
     const msg =
@@ -132,7 +132,7 @@ export class EditorForm {
     if (!(await requestConfirm(msg))) return;
 
     const names = [...this.options.selectedFiles];
-    this.pending = true;
+    this.options.pending = true;
 
     try {
       const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/committed/${encodeURIComponent(fn)}`));
@@ -145,7 +145,7 @@ export class EditorForm {
       tagCache.invalidate();
       await invalidateAll();
     } finally {
-      this.pending = false;
+      this.options.pending = false;
     }
   }
 

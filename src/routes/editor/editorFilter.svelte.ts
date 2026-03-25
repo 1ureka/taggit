@@ -8,8 +8,8 @@ import type { QueryOptions } from "$lib/types.js";
  * EditorFilter 的配置選項
  */
 type EditorFilterOptions = {
-  /** 共用鎖引用（與 listActions 共享 pending 鎖） */
-  refs: { pending: boolean };
+  /** 雙向綁定：操作狀態 (共用鎖) */
+  pending: boolean;
 };
 
 /**
@@ -74,7 +74,7 @@ export class EditorFilter {
     if (this.filterPending) return;
 
     this.filterPending = true;
-    this.options.refs.pending = true;
+    this.options.pending = true;
 
     try {
       const opts: QueryOptions = {
@@ -93,7 +93,7 @@ export class EditorFilter {
       this.open = false;
     } finally {
       this.filterPending = false;
-      this.options.refs.pending = false;
+      this.options.pending = false;
     }
   };
 

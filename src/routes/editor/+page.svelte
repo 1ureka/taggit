@@ -22,7 +22,7 @@
 
   const zp = new ZoomPan();
 
-  const editorPage = new EditorPage({
+  const page = new EditorPage({
     get imageIds() {
       return data.imageIds;
     },
@@ -33,8 +33,6 @@
 
   // ---
 
-  const refs = { pending: false };
-
   const listSelect = new EditorListSelect({
     get imageIds() {
       return data.imageIds;
@@ -43,12 +41,12 @@
       return data.currentRecord?.id ?? null;
     },
     get selectedFiles() {
-      return editorPage.selectedFiles;
+      return page.selectedFiles;
     },
     set selectedFiles(v) {
-      editorPage.selectedFiles = v;
+      page.selectedFiles = v;
     },
-    navigateTo: editorPage.navigateTo,
+    navigateTo: page.navigateTo,
   });
 
   const listVirtual = new EditorListVirtual({
@@ -75,20 +73,33 @@
   // ---
 
   const form = new EditorForm({
+    get pending() {
+      return page.pending;
+    },
+    set pending(v) {
+      page.pending = v;
+    },
     get currentRecord() {
       return data.currentRecord;
     },
     get selectedFiles() {
-      return editorPage.selectedFiles;
+      return page.selectedFiles;
     },
     set selectedFiles(v) {
-      editorPage.selectedFiles = v;
+      page.selectedFiles = v;
     },
   });
 
   // ---
 
-  const filter = new EditorFilter({ refs });
+  const filter = new EditorFilter({
+    get pending() {
+      return page.pending;
+    },
+    set pending(v) {
+      page.pending = v;
+    },
+  });
 </script>
 
 <svelte:head>
@@ -126,10 +137,10 @@
 
         <button
           class="btn-icon"
-          class:pending={listActions.pending || refs.pending}
+          class:pending={page.pending}
           title="重新載入列表"
           onclick={listActions.handleRefreshClick}
-          disabled={listActions.pending || refs.pending}
+          disabled={page.pending}
         >
           <IconRefresh size={14} />
         </button>
@@ -150,7 +161,7 @@
           >
             {#each listVirtual.listVisibleItems as item (item.filename)}
               {@const active = item.filename === (data.currentRecord?.id ?? null)}
-              {@const selected = editorPage.selectedFiles.has(item.filename)}
+              {@const selected = page.selectedFiles.has(item.filename)}
               <li
                 id="img-{item.filename}"
                 style="top:{item.top}px; height:{item.height}px"
@@ -249,8 +260,8 @@
             type="submit"
             name="intent"
             value="save"
-            class:pending={form.pending}
-            disabled={form.pending}
+            class:pending={page.pending}
+            disabled={page.pending}
           >
             <IconCheck size={16} />
             <span>存檔<kbd>Ctrl + S</kbd></span>
@@ -260,8 +271,8 @@
             type="submit"
             name="intent"
             value="delete"
-            class:pending={form.pending}
-            disabled={form.pending}
+            class:pending={page.pending}
+            disabled={page.pending}
           >
             <IconTrash size={16} />
             <span>刪除<kbd>Ctrl + D</kbd></span>
@@ -292,7 +303,7 @@
       <button class="btn-ghost" type="reset">
         <span>重置</span>
       </button>
-      <button class="btn-primary" type="submit" class:pending={filter.filterPending} disabled={filter.filterPending}>
+      <button class="btn-primary" type="submit" class:pending={page.pending} disabled={page.pending}>
         <span>篩選</span>
       </button>
     </div>

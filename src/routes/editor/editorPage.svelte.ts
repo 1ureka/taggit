@@ -18,6 +18,8 @@ type EditorPageOptions = {
 export class EditorPage {
   /** 已選取的檔名集合（不進 URL，僅前端） */
   selectedFiles = $state<Set<string>>(new Set());
+  /** 所有編輯頁面的操作的共用鎖 */
+  pending = $state(false);
 
   constructor(options: EditorPageOptions) {
     // 初始化
