@@ -145,7 +145,7 @@
         </button>
       </header>
 
-      <div bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
+      <div class="list-container" bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
         {#if data.stagedFiles.length === 0}
           <div class="empty">沒有待審查的圖片</div>
         {:else}
@@ -379,7 +379,7 @@
     }
   }
 
-  .left-panel > div:has(ul) {
+  .left-panel > .list-container {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -399,7 +399,7 @@
     }
   }
 
-  .left-panel > div:has(ul) > ul {
+  .left-panel > .list-container > ul {
     position: relative;
 
     & > li {
@@ -413,7 +413,7 @@
     }
   }
 
-  .left-panel > div:has(ul) > ul > li {
+  .left-panel > .list-container > ul > li {
     display: flex;
     align-items: center;
     gap: 0.5rem;
