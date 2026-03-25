@@ -11,21 +11,21 @@ export const load: PageServerLoad = ({ url }) => {
   const opts = parseQueryParams(url);
   const result = queryImages(loaded.db, { ...opts, limit: 0 });
 
-  const requestedFile = url.searchParams.get("currentFile");
+  const requestedId = url.searchParams.get("currentId");
   const committedFiles: { id: string; name: string }[] = [];
-  let resolvedFile: string | null = null; // fallback: URL 指定 → 篩選結果第一張 → null
+  let resolvedId: string | null = null; // fallback: URL 指定 → 篩選結果第一張 → null
 
   for (const item of result.items) {
     committedFiles.push({ id: item.id, name: item.name });
-    if (item.id === requestedFile) {
-      resolvedFile = item.id;
+    if (item.id === requestedId) {
+      resolvedId = item.id;
     }
   }
 
-  if (!resolvedFile && committedFiles.length > 0) {
-    resolvedFile = committedFiles[0].id;
+  if (!resolvedId && committedFiles.length > 0) {
+    resolvedId = committedFiles[0].id;
   }
 
-  const currentRecord = resolvedFile ? getImageRecord(loaded.db, resolvedFile) : null;
+  const currentRecord = resolvedId ? getImageRecord(loaded.db, resolvedId) : null;
   return { committedFiles, currentRecord };
 };
