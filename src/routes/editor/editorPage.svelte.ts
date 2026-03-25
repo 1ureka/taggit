@@ -54,10 +54,6 @@ export class EditorPage {
   navigateTo = (filename: string) => {
     const url = new URL(window.location.href);
     url.searchParams.set("currentFile", filename);
-    goto(url.pathname + url.search, {
-      replaceState: true,
-      noScroll: true,
-      keepFocus: true,
-    });
+    goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
   };
 }
