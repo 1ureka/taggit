@@ -21,6 +21,8 @@ type EditorFormOptions = {
  * EditorForm 的互動邏輯
  */
 export class EditorForm {
+  /** 是否編輯過 */
+  dirty = $state(false);
   /** 名稱 */
   name = $state("");
   /** 標籤列表 */
@@ -29,30 +31,36 @@ export class EditorForm {
   rating = $state(0);
   /** 多選時名稱欄位是否 disabled */
   nameDisabled: boolean;
+  /** 提交按鈕是否 disabled */
+  saveDisabled: boolean;
+  /** 刪除按鈕是否 disabled */
+  deleteDisabled: boolean;
 
   constructor(private options: EditorFormOptions) {
     this.nameDisabled = $derived(options.selectedFiles.size > 1);
 
+    this.saveDisabled = $derived.by(() => {
+      if (!this.dirty) return true;
+      if (this.options.currentRecord === null) return true;
+      if (this.options.pending) return true;
+      if (this.options.selectedFiles.size === 0) return true;
+      if (this.tags.length === 0) return true;
+      return false;
+    });
+
+    this.deleteDisabled = $derived.by(() => {
+      if (this.options.currentRecord === null) return true;
+      if (this.options.pending) return true;
+      if (this.options.selectedFiles.size === 0) return true;
+      return false;
+    });
+
     // 初始化表單
-    const rec = options.currentRecord;
-    if (rec) {
-      this.name = rec.name;
-      this.tags = [...rec.tags];
-      this.rating = rec.rating;
-    }
+    this.#resetForm();
 
     // currentRecord 變動時同步表單
     $effect(() => {
-      const rec = options.currentRecord;
-      if (rec) {
-        this.name = rec.name;
-        this.tags = [...rec.tags];
-        this.rating = rec.rating;
-      } else {
-        this.name = "";
-        this.tags = [];
-        this.rating = 0;
-      }
+      this.#resetForm();
     });
   }
 
@@ -61,6 +69,7 @@ export class EditorForm {
   /** 重置表單為 currentRecord 的值 */
   #resetForm() {
     const rec = this.options.currentRecord;
+
     if (rec) {
       this.name = rec.name;
       this.tags = [...rec.tags];
@@ -70,30 +79,27 @@ export class EditorForm {
       this.tags = [];
       this.rating = 0;
     }
+
+    this.dirty = false;
   }
 
   /** 存檔已選取的圖片 */
   async #doSave() {
-    if (this.options.pending || this.options.selectedFiles.size === 0) return;
-    if (this.tags.length === 0) {
-      addToast("請至少加入一個標籤才能存檔", "error");
-      return;
-    }
+    if (this.saveDisabled) return;
 
     const isMulti = this.options.selectedFiles.size > 1;
-
     if (isMulti) {
       const n = this.options.selectedFiles.size;
       if (!(await requestConfirm(`確定要將當前設定覆蓋到選取的 ${n} 張圖片？（名稱不會被覆蓋）`))) return;
     }
 
-    const names = [...this.options.selectedFiles];
+    const ids = [...this.options.selectedFiles];
     this.options.pending = true;
 
     try {
-      const [ok, fail] = await batchRun(names, 5, async (fn) => {
+      const [ok, fail] = await batchRun(ids, 5, async (id) => {
         // 先取得最新的 record 以獲得 expectedUpdatedAt
-        const getRes = await api.get<ImageWithId>(`/api/committed/${encodeURIComponent(fn)}`);
+        const getRes = await api.get<ImageWithId>(`/api/committed/${encodeURIComponent(id)}`);
         if (!getRes.ok || !getRes.data) return { ok: false };
 
         const patch: Record<string, unknown> = {
@@ -107,12 +113,10 @@ export class EditorForm {
           patch.name = this.name;
         }
 
-        return api.patch(`/api/committed/${encodeURIComponent(fn)}`, patch);
+        return api.patch(`/api/committed/${encodeURIComponent(id)}`, patch);
       });
 
-      if (ok) {
-        addToast(ok === 1 ? `已存檔: ${names[0]}` : `已存檔 ${ok} 張圖片`, "success");
-      }
+      if (ok) addToast(ok === 1 ? `已存檔: ${ids[0]}` : `已存檔 ${ok} 張圖片`, "success");
       if (fail) addToast(`${fail} 張存檔失敗`, "error");
 
       tagCache.invalidate();
@@ -124,7 +128,7 @@ export class EditorForm {
 
   /** 刪除已選取的圖片（取消提交，回到 staged） */
   async #doDelete() {
-    if (this.options.pending || this.options.selectedFiles.size === 0) return;
+    if (this.deleteDisabled) return;
 
     const n = this.options.selectedFiles.size;
     const msg =
@@ -132,15 +136,13 @@ export class EditorForm {
     const desc = "此操作會將圖片包括名稱的所有屬性刪除，圖片本身則回到暫存區";
     if (!(await requestConfirm(`${msg}（${desc}）`))) return;
 
-    const names = [...this.options.selectedFiles];
+    const ids = [...this.options.selectedFiles];
     this.options.pending = true;
 
     try {
-      const [ok, fail] = await batchRun(names, 5, (fn) => api.del(`/api/committed/${encodeURIComponent(fn)}`));
+      const [ok, fail] = await batchRun(ids, 5, (id) => api.del(`/api/committed/${encodeURIComponent(id)}`));
 
-      if (ok) {
-        addToast(ok === 1 ? `已取消提交: ${names[0]}` : `已取消提交 ${ok} 張圖片`, "info");
-      }
+      if (ok) addToast(ok === 1 ? `已取消提交: ${ids[0]}` : `已取消提交 ${ok} 張圖片`, "info");
       if (fail) addToast(`${fail} 張刪除失敗`, "error");
 
       tagCache.invalidate();
@@ -191,5 +193,10 @@ export class EditorForm {
   handleFormReset = (e: Event) => {
     e.preventDefault();
     this.#resetForm();
+  };
+
+  /** 處理表單編輯事件 */
+  handleFieldChange = () => {
+    this.dirty = true;
   };
 }

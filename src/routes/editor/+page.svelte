@@ -234,7 +234,7 @@
 
         <div class="form-fields">
           <div class="field-rating">
-            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
+            <Rating name="rating" bind:value={form.rating} size="1.5rem" onchange={form.handleFieldChange} />
           </div>
 
           <div class="separator"></div>
@@ -248,13 +248,19 @@
               placeholder="圖片名稱..."
               bind:value={form.name}
               disabled={form.nameDisabled}
+              oninput={form.handleFieldChange}
             />
           </div>
 
           <div class="separator"></div>
 
           <div class="field-tags">
-            <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+            <Autocomplete
+              bind:tags={form.tags}
+              variant="top"
+              placeholder="輸入標籤..."
+              onchange={form.handleFieldChange}
+            />
           </div>
         </div>
 
@@ -265,7 +271,7 @@
             name="intent"
             value="save"
             class:pending={page.pending}
-            disabled={page.pending}
+            disabled={form.saveDisabled}
           >
             <IconCheck size={16} />
             <span>存檔<kbd>Ctrl + S</kbd></span>
@@ -276,7 +282,7 @@
             name="intent"
             value="delete"
             class:pending={page.pending}
-            disabled={page.pending}
+            disabled={form.deleteDisabled}
           >
             <IconTrash size={16} />
             <span>刪除<kbd>Ctrl + D</kbd></span>
