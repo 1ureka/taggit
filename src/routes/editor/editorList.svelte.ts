@@ -112,21 +112,29 @@ export class EditorListSelect {
 }
 
 /**
+ * EditorList 的操作互動配置選項
+ */
+type EditorListOptions = {
+  /** 雙向綁定：操作狀態 (共用鎖) */
+  get pending(): boolean;
+  set pending(v: boolean);
+};
+
+/**
  * EditorList 的操作互動邏輯
  */
 export class EditorListActions {
-  /** 操作狀態 */
-  pending = $state(false);
+  constructor(private options: EditorListOptions) {}
 
   /** 處理重新整理按鈕點擊事件 */
   handleRefreshClick = async () => {
-    if (this.pending) return;
-    this.pending = true;
+    if (this.options.pending) return;
+    this.options.pending = true;
     try {
       await invalidateAll();
       addToast("列表已更新", "success");
     } finally {
-      this.pending = false;
+      this.options.pending = false;
     }
   };
 }

@@ -60,7 +60,14 @@
     onClickItem: listSelect.handleListClick,
   });
 
-  const listActions = new EditorListActions();
+  const listActions = new EditorListActions({
+    get pending() {
+      return page.pending;
+    },
+    set pending(v) {
+      page.pending = v;
+    },
+  });
 
   // ---
 
