@@ -11,7 +11,7 @@ import type { ImageWithId } from "$lib/types.js";
 type EditorFormOptions = {
   /** 唯讀：SSR 回傳的當前圖片記錄 */
   currentRecord: ImageWithId | null;
-  /** 雙向綁定：已選取的檔名集合 */
+  /** 雙向綁定：已選取的檔案 id 集合 */
   selectedFiles: Set<string>;
   /** 雙向綁定：操作狀態 (共用鎖) */
   pending: boolean;
@@ -129,7 +129,8 @@ export class EditorForm {
     const n = this.options.selectedFiles.size;
     const msg =
       n === 1 ? `確定要取消提交 ${[...this.options.selectedFiles][0]}？` : `確定要取消提交選取的 ${n} 張圖片？`;
-    if (!(await requestConfirm(msg))) return;
+    const desc = "此操作會將圖片包括名稱的所有屬性刪除，圖片本身則回到暫存區";
+    if (!(await requestConfirm(`${msg}（${desc}）`))) return;
 
     const names = [...this.options.selectedFiles];
     this.options.pending = true;
