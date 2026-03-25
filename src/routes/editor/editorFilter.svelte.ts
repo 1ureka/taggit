@@ -87,7 +87,7 @@ export class EditorFilter {
         order: this.order,
       };
 
-      const qs = buildQueryString(opts);
+      const qs = buildQueryString(opts, new URLSearchParams(page.url.searchParams));
       await goto(`/editor${qs}`, { replaceState: true, noScroll: true, keepFocus: true });
 
       this.open = false;
