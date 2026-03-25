@@ -8,6 +8,7 @@
   import Modal from "$lib/components/Modal.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
   import { imgSrc } from "$lib/client/api.js";
+  import { formatDate, formatSize } from "$lib/utils.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { EditorPage } from "./editorPage.svelte.js";
@@ -232,6 +233,12 @@
         </header>
 
         <div class="form-fields">
+          <div class="field-rating">
+            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
+          </div>
+
+          <div class="separator"></div>
+
           <div class="field-name">
             <label for="editor-name">名稱</label>
             <input
@@ -242,12 +249,6 @@
               bind:value={form.name}
               disabled={form.nameDisabled}
             />
-          </div>
-
-          <div class="separator"></div>
-
-          <div class="field-rating">
-            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
           </div>
 
           <div class="separator"></div>
@@ -282,6 +283,23 @@
           </button>
         </footer>
       </form>
+
+      {#if data.currentRecord}
+        {@const committedAt = data.currentRecord.committedAt}
+        {@const fileSize = data.currentRecord.fileSize}
+        <dl>
+          <dt>提交時間</dt>
+          <dd class="ellipsis">{committedAt ? formatDate(committedAt) : "—"}</dd>
+
+          <dt>檔案大小</dt>
+          <dd class="ellipsis">{fileSize ? formatSize(fileSize) : "—"}</dd>
+
+          {#if data.currentRecord.width && data.currentRecord.height}
+            <dt>解析度</dt>
+            <dd class="ellipsis">{data.currentRecord.width} × {data.currentRecord.height}</dd>
+          {/if}
+        </dl>
+      {/if}
     </aside>
   </main>
 </div>
@@ -299,6 +317,7 @@
         bind:ratingOp={filter.ratingOp}
         bind:sort={filter.sort}
         bind:order={filter.order}
+        allowRandomSort={false}
       />
     </div>
 
@@ -553,12 +572,15 @@
     width: 280px;
     border-left: 1px solid var(--border);
     background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
   }
 
   .right-panel > form {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
   }
 
   .right-panel > form > header {
@@ -635,6 +657,28 @@
       margin: 0;
       font-family: var(--font-mono);
       font-size: 0.8em;
+    }
+  }
+
+  /* --- */
+
+  .right-panel > dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    margin: 0;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+
+    & > dt {
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    & > dd {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
     }
   }
 
