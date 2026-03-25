@@ -135,12 +135,12 @@ export class EditorListActions {
  * EditorListVirtual 的配置選項
  */
 type EditorListVirtualOptions = {
-  /** SSR 回傳的 id 列表 */
-  imageIds: string[];
+  /** SSR 回傳的已提交檔案列表 */
+  committedFiles: { id: string; name: string }[];
   /** 目前的圖片 id */
   currentId: string | null;
-  /** 點擊某個項目的 callback */
-  onClickItem?: (filename: string, mode: "single" | "ctrl" | "shift") => void;
+  /** 點擊某個提交項目的 callback */
+  onClickItem?: (id: string, mode: "single" | "ctrl" | "shift") => void;
 };
 
 /**
@@ -158,20 +158,21 @@ export class EditorListVirtual {
   /** 虛擬列表內容總高度 */
   listTotalHeight: number;
   /** 可見的項目列表 */
-  listVisibleItems: { filename: string; top: number; height: number }[];
+  listVisibleItems: { id: string; name: string; top: number; height: number }[];
 
   constructor(private options: EditorListVirtualOptions) {
-    this.listTotalHeight = $derived(options.imageIds.length * ITEM_HEIGHT);
+    this.listTotalHeight = $derived(options.committedFiles.length * ITEM_HEIGHT);
 
     this.listVisibleItems = $derived.by(() => {
       const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
       const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
 
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
-      const endIdx = Math.min(options.imageIds.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+      const endIdx = Math.min(options.committedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
-      return options.imageIds.slice(startIdx, endIdx).map((filename, i) => ({
-        filename,
+      return options.committedFiles.slice(startIdx, endIdx).map(({ id, name }, i) => ({
+        id,
+        name,
         top: (startIdx + i) * ITEM_HEIGHT,
         height: ITEM_HEIGHT,
       }));
@@ -180,8 +181,9 @@ export class EditorListVirtual {
     // 監聽 currentId，將對應項目捲入可視區域
     $effect(() => {
       if (!this.scrollContainer) return;
+      if (!options.currentId) return;
 
-      const idx = options.currentId ? options.imageIds.indexOf(options.currentId) : -1;
+      const idx = options.committedFiles.findIndex(({ id }) => id === options.currentId);
       if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
     });
 
@@ -209,12 +211,12 @@ export class EditorListVirtual {
     const absoluteY = relativeY + this.scrollContainer.scrollTop;
     const index = Math.floor(absoluteY / ITEM_HEIGHT);
 
-    if (index < 0 || index >= this.options.imageIds.length) return;
+    if (index < 0 || index >= this.options.committedFiles.length) return;
 
-    const filename = this.options.imageIds[index];
+    const { id } = this.options.committedFiles[index];
     const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
 
-    if (this.options.onClickItem) this.options.onClickItem(filename, mode);
+    if (this.options.onClickItem) this.options.onClickItem(id, mode);
   };
 
   /** 處理列表捲動事件 */

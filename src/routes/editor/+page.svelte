@@ -24,7 +24,7 @@
 
   const page = new EditorPage({
     get imageIds() {
-      return data.imageIds;
+      return data.committedFiles.map(({ id }) => id);
     },
     get currentRecord() {
       return data.currentRecord;
@@ -35,7 +35,7 @@
 
   const listSelect = new EditorListSelect({
     get imageIds() {
-      return data.imageIds;
+      return data.committedFiles.map(({ id }) => id);
     },
     get currentId() {
       return data.currentRecord?.id ?? null;
@@ -50,8 +50,8 @@
   });
 
   const listVirtual = new EditorListVirtual({
-    get imageIds() {
-      return data.imageIds;
+    get committedFiles() {
+      return data.committedFiles;
     },
     get currentId() {
       return data.currentRecord?.id ?? null;
@@ -147,7 +147,7 @@
       </header>
 
       <div class="list-container" bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
-        {#if data.imageIds.length === 0}
+        {#if data.committedFiles.length === 0}
           <div class="empty">沒有符合條件的圖片</div>
         {:else}
           <ul
@@ -159,19 +159,22 @@
             onclick={listVirtual.handleListClick}
             onkeydown={listSelect.handleListKeydown}
           >
-            {#each listVirtual.listVisibleItems as item (item.filename)}
-              {@const active = item.filename === (data.currentRecord?.id ?? null)}
-              {@const selected = page.selectedFiles.has(item.filename)}
+            {#each listVirtual.listVisibleItems as item (item.id)}
+              {@const active = item.id === (data.currentRecord?.id ?? null)}
+              {@const selected = page.selectedFiles.has(item.id)}
               <li
-                id="img-{item.filename}"
+                id="img-{item.id}"
                 style="top:{item.top}px; height:{item.height}px"
                 class:active
                 class:selected
                 role="option"
                 aria-selected={selected}
               >
-                <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
-                <span class="ellipsis">{item.filename}</span>
+                <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" />
+                <div class="list-item-info">
+                  <span class="ellipsis">{item.name}</span>
+                  <span class="ellipsis">{item.id}</span>
+                </div>
               </li>
             {/each}
           </ul>
@@ -202,7 +205,7 @@
         >
           <img
             src={preview.previewSrc}
-            alt={data.currentRecord.id}
+            alt={data.currentRecord.name}
             draggable="false"
             style="transform:{zp.transform}"
             onload={preview.handleImageLoad}
@@ -215,7 +218,7 @@
       {/if}
 
       <figcaption>
-        {data.currentRecord?.id || "未選取任何圖片"}
+        {data.currentRecord?.name || "未選取任何圖片"}
       </figcaption>
     </figure>
 
@@ -442,9 +445,22 @@
       background: var(--bg);
       flex-shrink: 0;
     }
+  }
 
-    & > span {
-      flex: 1;
+  .list-container > ul > li > .list-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    overflow: hidden;
+
+    & > span:nth-of-type(1) {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    & > span:nth-of-type(2) {
       font-size: 0.6875rem;
       color: var(--text-muted);
     }

@@ -10,13 +10,22 @@ export const load: PageServerLoad = ({ url }) => {
 
   const opts = parseQueryParams(url);
   const result = queryImages(loaded.db, { ...opts, limit: 0 });
-  const imageIds = result.items.map((item) => item.id);
 
-  // currentFile fallback: URL 指定 → 篩選結果第一張 → null
   const requestedFile = url.searchParams.get("currentFile");
-  const resolvedFile = requestedFile && imageIds.includes(requestedFile) ? requestedFile : (imageIds[0] ?? null);
+  const committedFiles: { id: string; name: string }[] = [];
+  let resolvedFile: string | null = null; // fallback: URL 指定 → 篩選結果第一張 → null
+
+  for (const item of result.items) {
+    committedFiles.push({ id: item.id, name: item.name });
+    if (item.id === requestedFile) {
+      resolvedFile = item.id;
+    }
+  }
+
+  if (!resolvedFile && committedFiles.length > 0) {
+    resolvedFile = committedFiles[0].id;
+  }
 
   const currentRecord = resolvedFile ? getImageRecord(loaded.db, resolvedFile) : null;
-
-  return { imageIds, currentRecord };
+  return { committedFiles, currentRecord };
 };
