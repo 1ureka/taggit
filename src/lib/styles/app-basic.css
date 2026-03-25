@@ -29,6 +29,12 @@
   color: var(--text-dim);
 }
 
+.text-input:disabled {
+  background: var(--bg-active);
+  border-color: var(--border-hover);
+  color: var(--text-dim);
+}
+
 /* ─── Chips ─── */
 .chip {
   display: inline-flex;

@@ -87,7 +87,6 @@
     border-radius: var(--radius);
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.15s;
 
     &:hover {
       border-color: var(--border-hover);
@@ -95,11 +94,13 @@
 
     /* 主按鈕: 變體 */
     &.select-sm {
-      padding: 0.25rem 0.5rem;
+      padding: 0px 0.5rem;
+      height: 1.75rem;
       font-size: 0.8125rem;
     }
     &.select-md {
-      padding: 0.5rem 0.75rem;
+      padding: 0px 0.75rem;
+      height: 2rem;
       font-size: 0.875rem;
     }
     &.select-stretch {

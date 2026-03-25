@@ -50,11 +50,11 @@
   <Autocomplete bind:tags={selectedTags} variant="inline" placeholder="篩選標籤..." {onchange} />
   <div class="filter-controls">
     <span class="filter-label">評分</span>
-    <Select bind:value={ratingOp} options={ratingOpOptions} stretch onchange={() => onchange?.()} />
-    <Select bind:value={rating} options={ratingOptions} stretch onchange={() => onchange?.()} />
+    <Select bind:value={ratingOp} options={ratingOpOptions} stretch {onchange} />
+    <Select bind:value={rating} options={ratingOptions} stretch {onchange} />
     <span class="filter-label">排序</span>
-    <Select bind:value={sort} options={sortOptions} stretch onchange={() => onchange?.()} />
-    <Select bind:value={order} options={orderOptions} stretch onchange={() => onchange?.()} />
+    <Select bind:value={sort} options={sortOptions} stretch {onchange} />
+    <Select bind:value={order} options={orderOptions} stretch {onchange} />
   </div>
 </div>
 

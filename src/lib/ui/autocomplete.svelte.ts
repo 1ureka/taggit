@@ -117,6 +117,7 @@ export class Autocomplete {
   handleInputKeydown = (e: KeyboardEvent) => {
     /** 當按下 Escape 鍵且下拉選單顯示時，關閉下拉選單 */
     if (e.key === "Escape" && this.showDropdown) {
+      e.stopPropagation();
       this.#closeDropdown();
       return;
     }
