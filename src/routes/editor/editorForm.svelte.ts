@@ -3,18 +3,21 @@ import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
 import { tagCache } from "$lib/client/cache.js";
-import type { ImageWithId } from "$lib/types.js";
+import type { ImageHeader, ImageWithId } from "$lib/types.js";
 
 /**
  * EditorForm 的配置選項
  */
 type EditorFormOptions = {
+  /** 唯讀：SSR 回傳的已提交檔案列表 */
+  get committedFiles(): ImageHeader[];
   /** 唯讀：SSR 回傳的當前圖片記錄 */
-  currentRecord: ImageWithId | null;
-  /** 雙向綁定：已選取的檔案 id 集合 */
-  selectedFiles: Set<string>;
+  get currentRecord(): ImageWithId | null;
+  /** 唯讀：已選取的檔案 id 集合 */
+  get selectedFiles(): Set<string>;
   /** 雙向綁定：操作狀態 (共用鎖) */
-  pending: boolean;
+  get pending(): boolean;
+  set pending(v: boolean);
 };
 
 /**
@@ -93,30 +96,35 @@ export class EditorForm {
       if (!(await requestConfirm(`確定要將當前設定覆蓋到選取的 ${n} 張圖片？（名稱不會被覆蓋）`))) return;
     }
 
-    const ids = [...this.options.selectedFiles];
     this.options.pending = true;
+    const records: ImageHeader[] = [];
+    const fileMap = new Map(this.options.committedFiles.map((rec) => [rec.id, rec]));
+
+    for (const id of this.options.selectedFiles) {
+      const rec = fileMap.get(id);
+      if (rec) {
+        records.push(rec);
+      } else {
+        return addToast(`未找到圖片 ${id} 的紀錄`, "error");
+      }
+    }
 
     try {
-      const [ok, fail] = await batchRun(ids, 5, async (id) => {
-        // 先取得最新的 record 以獲得 expectedUpdatedAt
-        const getRes = await api.get<ImageWithId>(`/api/committed/${encodeURIComponent(id)}`);
-        if (!getRes.ok || !getRes.data) return { ok: false };
-
+      const [ok, fail] = await batchRun(records, 5, async (record) => {
         const patch: Record<string, unknown> = {
           tags: this.tags,
           rating: this.rating,
-          expectedUpdatedAt: getRes.data.updatedAt,
+          expectedUpdatedAt: record.updatedAt,
         };
 
-        // 單選時才更新名稱
         if (!isMulti) {
-          patch.name = this.name;
+          patch.name = this.name; // 單選時才更新名稱
         }
 
-        return api.patch(`/api/committed/${encodeURIComponent(id)}`, patch);
+        return api.patch(`/api/committed/${encodeURIComponent(record.id)}`, patch);
       });
 
-      if (ok) addToast(ok === 1 ? `已存檔: ${ids[0]}` : `已存檔 ${ok} 張圖片`, "success");
+      if (ok) addToast(ok === 1 ? `已存檔: ${records[0].id}` : `已存檔 ${ok} 張圖片`, "success");
       if (fail) addToast(`${fail} 張存檔失敗`, "error");
 
       tagCache.invalidate();

@@ -1,5 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { addToast, scrollToActive } from "$lib/client/dom.js";
+import type { ImageHeader } from "$lib/types.js";
 
 /**
  * 單個項目的高度
@@ -11,13 +12,14 @@ const ITEM_HEIGHT = 72;
  */
 type EditorListSelectOptions = {
   /** SSR 回傳的 id 列表 */
-  imageIds: string[];
+  get imageIds(): string[];
   /** 目前的圖片 id（來自 currentRecord） */
-  currentId: string | null;
+  get currentId(): string | null;
   /** 雙向綁定：已選取的檔名集合 */
-  selectedFiles: Set<string>;
+  get selectedFiles(): Set<string>;
+  set selectedFiles(v: Set<string>);
   /** 導航到指定檔案 */
-  navigateTo: (filename: string) => void;
+  get navigateTo(): (id: string) => void;
 };
 
 /**
@@ -144,11 +146,11 @@ export class EditorListActions {
  */
 type EditorListVirtualOptions = {
   /** SSR 回傳的已提交檔案列表 */
-  committedFiles: { id: string; name: string }[];
+  get committedFiles(): ImageHeader[];
   /** 目前的圖片 id */
-  currentId: string | null;
+  get currentId(): string | null;
   /** 點擊某個提交項目的 callback */
-  onClickItem?: (id: string, mode: "single" | "ctrl" | "shift") => void;
+  get onClickItem(): ((id: string, mode: "single" | "ctrl" | "shift") => void) | undefined;
 };
 
 /**

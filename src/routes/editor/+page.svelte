@@ -81,6 +81,9 @@
   // ---
 
   const form = new EditorForm({
+    get committedFiles() {
+      return data.committedFiles;
+    },
     get pending() {
       return page.pending;
     },
@@ -92,9 +95,6 @@
     },
     get selectedFiles() {
       return page.selectedFiles;
-    },
-    set selectedFiles(v) {
-      page.selectedFiles = v;
     },
   });
 

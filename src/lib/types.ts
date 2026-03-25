@@ -34,6 +34,11 @@ export interface ImageWithId extends ImageRecord {
 }
 
 /**
+ * 精簡後，只包含必要資訊的圖片紀錄，通常用於列表或需要節省頻寬的情境。
+ */
+export type ImageHeader = Pick<ImageWithId, "id" | "name" | "updatedAt">;
+
+/**
  * 圖片尺寸預設。
  * - `"sm"`：小型縮圖（最大 512×512 像素）
  * - `"md"`：中型縮圖（最大 1024×1024 像素）
