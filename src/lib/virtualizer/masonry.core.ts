@@ -46,7 +46,7 @@ type MasonryItem<T> = T & {
   style: string;
 };
 
-export type { MasonryLayout, MasonryItem };
+export type { ItemWithSize, MasonryLayout, MasonryItem };
 
 // ---
 
@@ -96,7 +96,7 @@ export function createMasonryLayout<T extends ItemWithSize>(items: T[], columns:
  * - viewportEl 只能包含 masonryEl (包含所有 visibleItems 的容器) 作為直接子元素
  * - viewportEl 與 masonryEl  不得包含 padding, border 等 CSS 屬性
  */
-export function createMasonryItems<T extends ItemWithSize>(params: {
+export function createMasonryContent<T extends ItemWithSize>(params: {
   /** 以權重為基礎的瀑布流佈局結果 */
   layout: MasonryLayout<T>;
   /** 滾動容器的 DOM 元素，必須包含 masonryEl 作為直接子元素 */
