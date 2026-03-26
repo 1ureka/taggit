@@ -10,19 +10,16 @@
     tags: string[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
     placeholder?: string;
-    /** 空輸入時按 Enter 觸發（非新增標籤行為）。用於 tagger 的「提交」等外部動作 */
-    onenter?: () => void;
     /** 當標籤變更時觸發 */
     onchange?: () => void;
     /** 佈局變體（compact 請改用 TagAutocompleteCompact） */
     variant?: "top" | "inline";
   };
 
-  let { name, tags = $bindable([]), placeholder = "輸入標籤...", onenter, onchange, variant = "top" }: Props = $props();
+  let { name, tags = $bindable([]), placeholder = "輸入標籤...", onchange, variant = "top" }: Props = $props();
 
   const ui = new Autocomplete({
     onchange: () => onchange?.(),
-    onenter: () => onenter?.(),
     get selectedTags() {
       return tags;
     },

@@ -9,8 +9,6 @@ type AutocompleteOptions = {
   selectedTags: string[];
   /** 當標籤變更時觸發 */
   onchange?: () => void;
-  /** 空輸入時按 Enter 觸發（非新增標籤行為）。可用於比如「提交」等外部動作 */
-  onenter?: () => void;
 };
 
 /**
@@ -154,22 +152,15 @@ export class Autocomplete {
       return;
     }
 
-    /** 當按下 Enter 鍵時，若有高亮標籤則選中該標籤；若輸入框有內容則新增標籤；否則觸發 onenter 回調 (阻止瀏覽器提交表單) */
+    /** 當按下 Enter 鍵時，若有高亮標籤則選中該標籤；若輸入框有內容則新增標籤 */
     if (e.key === "Enter") {
       e.preventDefault();
 
       if (this.activeIndex >= 0 && this.activeIndex < this.dropdownTags.length) {
         this.#addTag(this.dropdownTags[this.activeIndex].name);
-        return;
-      }
-
-      if (this.inputValue.trim()) {
+      } else if (this.inputValue.trim()) {
         this.#addTag(this.inputValue.trim());
-        return;
       }
-
-      this.options.onenter?.();
-      return;
     }
   };
 
