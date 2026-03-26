@@ -84,7 +84,9 @@ interface FilterParams {
   /** 不區分大小寫的名稱子字串搜尋 */
   search: string;
   /** 必須同時包含的標籤（AND 語意） */
-  tags: string[];
+  includedTags: string[];
+  /** 必須排除的標籤（NOT 語意） */
+  excludedTags: string[];
   /** 評分門檻或精確值 */
   rating: number | undefined;
   /** 評分比較運算子 */
@@ -96,11 +98,31 @@ interface FilterParams {
  */
 function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
   const images = jsonDB.data.images;
+  let ids: Set<string>;
 
   // 1. 起始集合：有指定標籤就取交集，否則全部
-  const ids = f.tags.length > 0 ? intersectTags(jsonDB, f.tags) : new Set(Object.keys(images));
+  if (f.includedTags.length > 0) {
+    ids = intersectTags(jsonDB, f.includedTags);
+    if (ids.size === 0) return ids;
+  } else {
+    ids = new Set(Object.keys(images));
+  }
 
-  // 2. 名稱子字串篩選
+  // 2. 排除指定標籤
+  if (f.excludedTags.length > 0) {
+    for (const tag of f.excludedTags) {
+      const excludedSet = jsonDB.tagIndex.get(tag);
+      if (!excludedSet) continue;
+
+      for (const id of excludedSet) {
+        ids.delete(id);
+      }
+
+      if (ids.size === 0) break;
+    }
+  }
+
+  // 3. 名稱子字串篩選
   if (f.search) {
     for (const id of ids) {
       const name = (images[id].name ?? "").toLowerCase();
@@ -108,7 +130,7 @@ function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
     }
   }
 
-  // 3. 評分篩選
+  // 4. 評分篩選
   if (f.rating !== undefined) {
     for (const id of ids) {
       const r = images[id].rating ?? 0;
@@ -149,7 +171,8 @@ function shuffle<T>(arr: T[]): void {
  */
 export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): QueryResult {
   const search = opts.search?.trim().toLowerCase() ?? "";
-  const tags = opts.tags ?? [];
+  const includedTags = opts.includedTags ?? [];
+  const excludedTags = opts.excludedTags ?? [];
   const rating = opts.rating;
   const ratingOp = opts.ratingOp ?? "gte";
   const sort = opts.sort ?? "committedAt";
@@ -158,7 +181,7 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
   const page = Math.max(1, opts.page ?? 1);
 
   // 1. 篩選
-  const ids = filterIds(jsonDB, { search, tags, rating, ratingOp });
+  const ids = filterIds(jsonDB, { search, includedTags, excludedTags, rating, ratingOp });
   let items: ImageWithId[] = [...ids].map((id) => ({ id, ...jsonDB.data.images[id] }));
 
   // 2. 排序

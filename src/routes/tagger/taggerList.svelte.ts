@@ -12,11 +12,15 @@ const ITEM_HEIGHT = 72;
  */
 type TaggerListOptions = {
   /** 暫存檔案列表 */
-  stagedFiles: string[];
+  get stagedFiles(): string[];
   /** 雙向綁定：目前選取的檔名 */
-  currentFile: string | null;
+  get currentFile(): string | null;
+  set currentFile(v: string | null);
+  /** 目前的選取的檔案索引 */
+  get currentIndex(): number | null;
   /** 雙向綁定：已選取的檔名集合 */
-  selectedFiles: Set<string>;
+  get selectedFiles(): Set<string>;
+  set selectedFiles(v: Set<string>);
 };
 
 /**
@@ -33,7 +37,7 @@ export class TaggerListSelect {
       const total = options.stagedFiles.length;
       if (total <= 0) return null;
 
-      const currentIndex = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      const currentIndex = options.currentIndex ?? -1;
       if (currentIndex < 0) return `${total}`;
 
       return `${currentIndex + 1}/${total}`;
@@ -64,7 +68,7 @@ export class TaggerListSelect {
   /** 以 Shift 模式選取 currentFile 到指定檔名的範圍 */
   #selectShift(filename: string) {
     const list = this.options.stagedFiles;
-    const anchorIdx = this.options.currentFile ? list.indexOf(this.options.currentFile) : 0;
+    const anchorIdx = this.options.currentIndex ?? 0;
     const targetIdx = list.indexOf(filename);
     const lo = Math.min(anchorIdx, targetIdx);
     const hi = Math.max(anchorIdx, targetIdx);
@@ -76,8 +80,8 @@ export class TaggerListSelect {
 
   /** 移動游標至指定偏移量 */
   #navigate(delta: -1 | 1) {
-    if (!this.options.currentFile) return;
-    const idx = this.options.stagedFiles.indexOf(this.options.currentFile);
+    if (this.options.currentIndex === null) return;
+    const idx = this.options.currentIndex;
     const next = idx + delta;
     if (next < 0 || next >= this.options.stagedFiles.length) return;
     const nextFile = this.options.stagedFiles[next];
@@ -165,9 +169,9 @@ export class TaggerListActions {
  */
 type TaggerListVirtualOptions = {
   /** 暫存檔案列表 */
-  stagedFiles: string[];
-  /** 目前選取的檔案 */
-  currentFile: string | null;
+  get stagedFiles(): string[];
+  /** 目前的選取的檔案索引 */
+  get currentIndex(): number | null;
   /** 點擊某個項目的 callback */
   onClickItem?: (filename: string, mode: "single" | "ctrl" | "shift") => void;
 };
@@ -193,26 +197,47 @@ export class TaggerListVirtual {
     this.listTotalHeight = $derived(options.stagedFiles.length * ITEM_HEIGHT);
 
     this.listVisibleItems = $derived.by(() => {
+      const stagedFiles = options.stagedFiles;
+      const currentIndex = options.currentIndex;
+
       const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
       const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
 
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
-      const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+      const endIdx = Math.min(stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
-      return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+      const items = stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
         filename,
         top: (startIdx + i) * ITEM_HEIGHT,
         height: ITEM_HEIGHT,
       }));
+
+      // 以下將確保 ID 存在於 DOM，保證 aria-activedescendant 可用
+      if (currentIndex === null) return items;
+      if (currentIndex >= startIdx && currentIndex < endIdx) return items;
+
+      const currentItem = {
+        filename: stagedFiles[currentIndex],
+        top: currentIndex * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+      };
+
+      if (currentIndex < startIdx && currentIndex >= 0) {
+        items.unshift(currentItem);
+      } else if (currentIndex >= endIdx && currentIndex < stagedFiles.length) {
+        items.push(currentItem);
+      }
+
+      return items;
     });
 
     // ---
 
-    // 監聽 currentFile，將對應項目捲入可視區域
+    // 監聽 currentIndex，將對應項目捲入可視區域
     $effect(() => {
       if (!this.scrollContainer) return;
 
-      const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      const idx = options.currentIndex ?? -1;
       if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
     });
 

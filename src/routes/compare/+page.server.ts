@@ -10,7 +10,7 @@ export const load: PageServerLoad = ({ url }) => {
 
   const params = parseQueryParams(url);
   const result = queryImages(loaded.db, {
-    tags: params.tags,
+    includedTags: params.includedTags,
     rating: params.rating,
     ratingOp: params.rating !== undefined ? "gte" : undefined,
     sort: "random",

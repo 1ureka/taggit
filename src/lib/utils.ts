@@ -30,6 +30,21 @@ function safeInt(raw: string | null): number | undefined {
 }
 
 /**
+ * QueryOptions 的鍵列表
+ */
+const queryOptionsKeys: (keyof QueryOptions)[] = [
+  "excludedTags",
+  "includedTags",
+  "order",
+  "page",
+  "rating",
+  "ratingOp",
+  "search",
+  "sort",
+  "limit",
+] as const;
+
+/**
  * 從 URL 的 searchParams 中提取 {@link QueryOptions}。
  * 處理 tags、rating、ratingOp、sort、order、page、limit。
  */
@@ -37,7 +52,8 @@ export function parseQueryParams(url: URL): QueryOptions {
   const p = url.searchParams;
   return {
     search: p.get("search") ?? undefined,
-    tags: parseTags(p.get("tags")),
+    includedTags: parseTags(p.get("includedTags")),
+    excludedTags: parseTags(p.get("excludedTags")),
     rating: safeInt(p.get("rating")),
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
     sort: (p.get("sort") as "committedAt" | "rating" | "name" | "random") ?? "committedAt",
@@ -50,15 +66,18 @@ export function parseQueryParams(url: URL): QueryOptions {
 /**
  * 將篩選條件構建為 query string（預設值省略）。為 {@link parseQueryParams} 的反向操作。
  */
-export function buildQueryString(opts: QueryOptions): string {
-  const params = new URLSearchParams();
+export function buildQueryString(opts: QueryOptions, params?: URLSearchParams): string {
+  params = params ?? new URLSearchParams();
+  queryOptionsKeys.forEach((key) => params.delete(key));
   if (opts.search?.trim()) params.set("search", opts.search.trim());
-  if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
+  if (opts.includedTags && opts.includedTags.length > 0) params.set("includedTags", opts.includedTags.join(","));
+  if (opts.excludedTags && opts.excludedTags.length > 0) params.set("excludedTags", opts.excludedTags.join(","));
   if (opts.rating !== undefined) params.set("rating", String(opts.rating));
   if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
   if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);
   if (opts.order && opts.order !== "desc") params.set("order", opts.order);
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
+  if (opts.limit && opts.limit > 0) params.set("limit", String(opts.limit));
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -77,9 +96,9 @@ export function formatDate(ms: number): string {
  */
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
 }
 
 /**

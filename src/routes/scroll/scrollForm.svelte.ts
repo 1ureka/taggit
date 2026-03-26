@@ -20,7 +20,7 @@ export class ScrollForm {
 
   constructor() {
     const init = untrack(() => parseQueryParams(page.url));
-    this.selectedTags = init.tags ?? [];
+    this.selectedTags = init.includedTags ?? [];
     this.rating = init.rating;
     this.ratingOp = init.ratingOp ?? "gte";
     this.sort = init.sort ?? "committedAt";
@@ -28,7 +28,7 @@ export class ScrollForm {
 
     $effect(() => {
       const vals = parseQueryParams(page.url);
-      this.selectedTags = vals.tags ?? [];
+      this.selectedTags = vals.includedTags ?? [];
       this.rating = vals.rating;
       this.ratingOp = vals.ratingOp ?? "gte";
       this.sort = vals.sort ?? "committedAt";
@@ -40,7 +40,7 @@ export class ScrollForm {
 
   #currentQueryString(): string {
     return buildQueryString({
-      tags: this.selectedTags,
+      includedTags: this.selectedTags,
       rating: this.rating,
       ratingOp: this.ratingOp,
       sort: this.sort,

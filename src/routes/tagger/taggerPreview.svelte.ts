@@ -17,7 +17,7 @@ export class TaggerPreview {
   /** 預覽圖片的 URL */
   previewSrc: string;
   /** 圖片載入狀態 */
-  imageLoading = $state(false);
+  imageLoading = $state(true);
 
   #prevFile: string | null = null;
 

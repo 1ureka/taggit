@@ -1,104 +1,258 @@
-import { goto } from "$app/navigation";
-import { isInEditable } from "$lib/client/dom.js";
-import type { ImageWithId } from "$lib/types.js";
+import { invalidateAll } from "$app/navigation";
+import { addToast, scrollToActive } from "$lib/client/dom.js";
+import type { ImageHeader } from "$lib/types.js";
 
 /**
- * EditorList 的配置選項
+ * 單個項目的高度
  */
-type EditorListOptions = {
-  /** 當前頁面的圖片列表 */
-  items: ImageWithId[];
-  /** 雙向綁定：已選取的圖片 ID 集合 */
-  selected: Set<string>;
+const ITEM_HEIGHT = 72;
+
+/**
+ * EditorListSelect 的配置選項
+ */
+type EditorListSelectOptions = {
+  /** SSR 回傳的 id 列表 */
+  get imageIds(): string[];
+  /** 目前的圖片索引 */
+  get currentIndex(): number | null;
+  /** 雙向綁定：已選取的檔名集合 */
+  get selectedFiles(): Set<string>;
+  set selectedFiles(v: Set<string>);
+  /** 導航到指定檔案 */
+  get navigateTo(): (id: string) => void;
 };
 
 /**
- * EditorList 的互動邏輯
+ * EditorList 的選取與切換啟用的互動邏輯
  */
-export class EditorList {
-  constructor(private options: EditorListOptions) {}
+export class EditorListSelect {
+  /** count badge 顯示文字 */
+  countLabel: string | null;
+  /** 選取的檔案數量顯示文字 */
+  selectedLabel: string | null;
+
+  constructor(private options: EditorListSelectOptions) {
+    this.countLabel = $derived.by(() => {
+      const total = options.imageIds.length;
+      if (total <= 0) return null;
+
+      const currentIndex = options.currentIndex ?? -1;
+      if (currentIndex < 0) return `${total}`;
+
+      return `${currentIndex + 1}/${total}`;
+    });
+
+    this.selectedLabel = $derived.by(() => {
+      const count = options.selectedFiles.size;
+      return count > 1 ? `${count} 已選取` : null;
+    });
+  }
 
   // ---
 
-  /** 是否有任何圖片被選取 */
-  #isSelecting(): boolean {
-    return this.options.selected.size > 0;
+  /** 以單選模式選取指定檔案 */
+  #selectSingle(id: string) {
+    this.options.selectedFiles = new Set([id]);
+    this.options.navigateTo(id);
   }
 
-  /** 選取當前頁面所有圖片 */
-  #selectAll() {
-    this.options.selected = new Set(this.options.items.map((item) => item.id));
+  /** 以 Ctrl 模式將指定檔案加入選取集合 */
+  #selectCtrl(id: string) {
+    const next = new Set(this.options.selectedFiles);
+    next.add(id);
+    this.options.selectedFiles = next;
+    this.options.navigateTo(id);
   }
 
-  /** 反轉當前頁面的選取狀態 */
-  #invertSelection() {
+  /** 以 Shift 模式選取 currentIndex 到指定檔案的範圍 */
+  #selectShift(id: string) {
+    const list = this.options.imageIds;
+    const anchorIdx = this.options.currentIndex ?? 0;
+    const targetIdx = list.indexOf(id);
+    const lo = Math.min(anchorIdx, targetIdx);
+    const hi = Math.max(anchorIdx, targetIdx);
     const next = new Set<string>();
-    for (const item of this.options.items) {
-      if (!this.options.selected.has(item.id)) next.add(item.id);
-    }
-    this.options.selected = next;
+    for (let i = lo; i <= hi; i++) next.add(list[i]);
+    this.options.selectedFiles = next;
+    this.options.navigateTo(id);
   }
 
-  /** 清除所有選取 */
-  #clearSelection() {
-    this.options.selected = new Set();
-  }
-
-  /** 切換單張圖片的選取狀態 */
-  #toggleSelect(id: string) {
-    const next = new Set(this.options.selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    this.options.selected = next;
+  /** 移動游標至指定偏移量 */
+  #navigate(delta: -1 | 1) {
+    if (this.options.currentIndex === null) return;
+    const idx = this.options.currentIndex;
+    const next = idx + delta;
+    if (next < 0 || next >= this.options.imageIds.length) return;
+    const nextFile = this.options.imageIds[next];
+    this.options.selectedFiles = new Set([nextFile]);
+    this.options.navigateTo(nextFile);
   }
 
   // ---
 
-  /** 處理圖片卡片點擊事件，選取模式下切換選取、否則導航至編輯頁 */
-  handleCardClick = (id: string) => {
-    if (this.#isSelecting()) {
-      this.#toggleSelect(id);
-    } else {
-      goto(`/editor/${id}`);
-    }
+  /** 處理列表項目點擊事件 */
+  handleListClick = (id: string, mode: "single" | "ctrl" | "shift") => {
+    if (mode === "single") this.#selectSingle(id);
+    else if (mode === "ctrl") this.#selectCtrl(id);
+    else this.#selectShift(id);
   };
 
-  /** 處理 Checkbox 變更事件，切換該圖片的選取狀態 */
-  handleCheckboxChange = (id: string) => {
-    this.#toggleSelect(id);
-  };
-
-  /** 處理 Window 鍵盤事件，執行全選、反轉、清除等快捷鍵操作 */
-  handleWindowKeydown = (e: KeyboardEvent) => {
-    if (isInEditable(e.target)) return;
-
-    /** Esc 清除選取 */
-    if (e.key === "Escape" && this.#isSelecting()) {
+  /** 處理列表鍵盤事件 */
+  handleListKeydown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
-      this.#clearSelection();
+      this.#navigate(-1);
       return;
     }
 
-    const isCtrl = e.ctrlKey || e.metaKey;
-    const isA = e.key === "a" || e.key === "A";
-    const isI = e.key === "i" || e.key === "I";
-
-    /** Ctrl + Shift + A 清除選取 */
-    if (isCtrl && isA && e.shiftKey) {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
-      this.#clearSelection();
+      this.#navigate(1);
+      return;
     }
+  };
+}
 
-    /** Ctrl + A 全選 */
-    if (isCtrl && isA && !e.shiftKey) {
-      e.preventDefault();
-      this.#selectAll();
-    }
+/**
+ * EditorList 的操作互動配置選項
+ */
+type EditorListOptions = {
+  /** 雙向綁定：操作狀態 (共用鎖) */
+  get pending(): boolean;
+  set pending(v: boolean);
+};
 
-    /** Ctrl + I 反轉選取 */
-    if (isCtrl && isI) {
-      e.preventDefault();
-      this.#invertSelection();
+/**
+ * EditorList 的操作互動邏輯
+ */
+export class EditorListActions {
+  constructor(private options: EditorListOptions) {}
+
+  /** 處理重新整理按鈕點擊事件 */
+  handleRefreshClick = async () => {
+    if (this.options.pending) return;
+    this.options.pending = true;
+    try {
+      await invalidateAll();
+      addToast("列表已更新", "success");
+    } finally {
+      this.options.pending = false;
     }
+  };
+}
+
+/**
+ * EditorListVirtual 的配置選項
+ */
+type EditorListVirtualOptions = {
+  /** SSR 回傳的已提交檔案列表 */
+  get committedFiles(): ImageHeader[];
+  /** 目前的圖片索引 */
+  get currentIndex(): number | null;
+  /** 點擊某個提交項目的 callback */
+  get onClickItem(): ((id: string, mode: "single" | "ctrl" | "shift") => void) | undefined;
+};
+
+/**
+ * EditorList 的虛擬化邏輯
+ */
+export class EditorListVirtual {
+  /** 捲動容器 DOM 引用 */
+  scrollContainer = $state<HTMLElement | null>(null);
+  /** 虛擬列表渲染緩衝區大小 */
+  readonly #listBuffer = 5;
+  /** 捲動容器目前的 scrollTop */
+  #listScrollTop = $state(0);
+  /** 捲動容器可見高度 */
+  #listViewHeight = $state(typeof window !== "undefined" ? window.innerHeight : 400);
+  /** 虛擬列表內容總高度 */
+  listTotalHeight: number;
+  /** 可見的項目列表 */
+  listVisibleItems: { id: string; name: string; top: number; height: number }[];
+
+  constructor(private options: EditorListVirtualOptions) {
+    this.listTotalHeight = $derived(options.committedFiles.length * ITEM_HEIGHT);
+
+    this.listVisibleItems = $derived.by(() => {
+      const committedFiles = options.committedFiles;
+      const currentIndex = options.currentIndex;
+
+      const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
+      const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
+
+      const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
+      const endIdx = Math.min(committedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+
+      const items = committedFiles.slice(startIdx, endIdx).map((item, i) => ({
+        id: item.id,
+        name: item.name,
+        top: (startIdx + i) * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+      }));
+
+      // 以下將確保 ID 存在於 DOM，保證 aria-activedescendant 可用
+      if (currentIndex === null) return items;
+      if (currentIndex >= startIdx && currentIndex < endIdx) return items;
+
+      const currentItem = {
+        id: committedFiles[currentIndex].id,
+        name: committedFiles[currentIndex].name,
+        top: currentIndex * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+      };
+
+      if (currentIndex < startIdx && currentIndex >= 0) {
+        items.unshift(currentItem);
+      } else if (currentIndex >= endIdx && currentIndex < committedFiles.length) {
+        items.push(currentItem);
+      }
+
+      return items;
+    });
+
+    // 監聽 currentIndex，將對應項目捲入可視區域
+    $effect(() => {
+      if (!this.scrollContainer) return;
+      if (options.currentIndex === null) return;
+
+      const idx = options.currentIndex;
+      if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
+    });
+
+    // ResizeObserver 監聽容器高度
+    $effect(() => {
+      if (!this.scrollContainer) return;
+
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) this.#listViewHeight = e.contentRect.height;
+      });
+
+      ro.observe(this.scrollContainer);
+      return () => ro.disconnect();
+    });
+  }
+
+  // ---
+
+  /** 處理列表本身的點擊事件 */
+  handleListClick = (e: MouseEvent) => {
+    if (!this.scrollContainer) return;
+
+    const rect = this.scrollContainer.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const absoluteY = relativeY + this.scrollContainer.scrollTop;
+    const index = Math.floor(absoluteY / ITEM_HEIGHT);
+
+    if (index < 0 || index >= this.options.committedFiles.length) return;
+
+    const { id } = this.options.committedFiles[index];
+    const mode = e.ctrlKey || e.metaKey ? "ctrl" : e.shiftKey ? "shift" : "single";
+
+    if (this.options.onClickItem) this.options.onClickItem(id, mode);
+  };
+
+  /** 處理列表捲動事件 */
+  handleListScroll = () => {
+    if (this.scrollContainer) this.#listScrollTop = this.scrollContainer.scrollTop;
   };
 }

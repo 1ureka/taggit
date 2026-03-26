@@ -14,12 +14,12 @@ export class CompareFilter {
 
   constructor() {
     const init = untrack(() => parseQueryParams(page.url));
-    this.filterTags = init.tags ?? [];
+    this.filterTags = init.includedTags ?? [];
     this.filterMinRating = init.rating ?? 0;
 
     $effect(() => {
       const params = parseQueryParams(page.url);
-      this.filterTags = params.tags ?? [];
+      this.filterTags = params.includedTags ?? [];
       this.filterMinRating = params.rating ?? 0;
     });
   }
@@ -27,7 +27,7 @@ export class CompareFilter {
   /** 處理篩選變更事件，以 goto() 導航觸發 SSR 重跑 */
   handleFilterChange = () => {
     const qs = buildQueryString({
-      tags: this.filterTags,
+      includedTags: this.filterTags,
       rating: this.filterMinRating > 0 ? this.filterMinRating : undefined,
     });
 

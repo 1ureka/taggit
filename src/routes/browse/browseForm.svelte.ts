@@ -61,7 +61,7 @@ export class BrowseForm {
     const params = new URLSearchParams({ limit: "1", page: "1" });
 
     if (this.tags.length > 0) {
-      params.set("tags", this.tags.join(","));
+      params.set("includedTags", this.tags.join(","));
     }
 
     if (this.rating > 0) {
@@ -88,7 +88,7 @@ export class BrowseForm {
     params.set("sort", this.sort);
 
     if (this.tags.length > 0) {
-      params.set("tags", this.tags.join(","));
+      params.set("includedTags", this.tags.join(","));
     }
     if (this.rating > 0) {
       params.set("rating", String(this.rating));
