@@ -16,6 +16,8 @@ type EditorPageOptions = {
  * Editor 頁面的頁面級互動邏輯
  */
 export class EditorPage {
+  /** 當前的圖片索引 */
+  currentIndex: number | null;
   /** 已選取的檔名集合（不進 URL，僅前端） */
   selectedFiles = $state<Set<string>>(new Set());
   /** 所有編輯頁面的操作的共用鎖 */
@@ -25,6 +27,13 @@ export class EditorPage {
     // 初始化
     const first = options.currentRecord?.id ?? null;
     this.selectedFiles = first ? new Set([first]) : new Set();
+
+    this.currentIndex = $derived.by(() => {
+      const id = options.currentRecord?.id ?? null;
+      if (!id) return null;
+      const idx = options.imageIds.indexOf(id);
+      return idx >= 0 ? idx : null;
+    });
 
     // SSR 資料變動時的 reconciliation
     $effect(() => {

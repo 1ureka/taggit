@@ -38,8 +38,8 @@
     get imageIds() {
       return data.committedFiles.map(({ id }) => id);
     },
-    get currentId() {
-      return data.currentRecord?.id ?? null;
+    get currentIndex() {
+      return page.currentIndex;
     },
     get selectedFiles() {
       return page.selectedFiles;
@@ -54,8 +54,8 @@
     get committedFiles() {
       return data.committedFiles;
     },
-    get currentId() {
-      return data.currentRecord?.id ?? null;
+    get currentIndex() {
+      return page.currentIndex;
     },
     onClickItem: listSelect.handleListClick,
   });

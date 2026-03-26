@@ -13,8 +13,8 @@ const ITEM_HEIGHT = 72;
 type EditorListSelectOptions = {
   /** SSR 回傳的 id 列表 */
   get imageIds(): string[];
-  /** 目前的圖片 id（來自 currentRecord） */
-  get currentId(): string | null;
+  /** 目前的圖片索引 */
+  get currentIndex(): number | null;
   /** 雙向綁定：已選取的檔名集合 */
   get selectedFiles(): Set<string>;
   set selectedFiles(v: Set<string>);
@@ -36,7 +36,7 @@ export class EditorListSelect {
       const total = options.imageIds.length;
       if (total <= 0) return null;
 
-      const currentIndex = options.currentId ? options.imageIds.indexOf(options.currentId) : -1;
+      const currentIndex = options.currentIndex ?? -1;
       if (currentIndex < 0) return `${total}`;
 
       return `${currentIndex + 1}/${total}`;
@@ -64,10 +64,10 @@ export class EditorListSelect {
     this.options.navigateTo(id);
   }
 
-  /** 以 Shift 模式選取 currentId 到指定檔案的範圍 */
+  /** 以 Shift 模式選取 currentIndex 到指定檔案的範圍 */
   #selectShift(id: string) {
     const list = this.options.imageIds;
-    const anchorIdx = this.options.currentId ? list.indexOf(this.options.currentId) : 0;
+    const anchorIdx = this.options.currentIndex ?? 0;
     const targetIdx = list.indexOf(id);
     const lo = Math.min(anchorIdx, targetIdx);
     const hi = Math.max(anchorIdx, targetIdx);
@@ -79,8 +79,8 @@ export class EditorListSelect {
 
   /** 移動游標至指定偏移量 */
   #navigate(delta: -1 | 1) {
-    if (!this.options.currentId) return;
-    const idx = this.options.imageIds.indexOf(this.options.currentId);
+    if (this.options.currentIndex === null) return;
+    const idx = this.options.currentIndex;
     const next = idx + delta;
     if (next < 0 || next >= this.options.imageIds.length) return;
     const nextFile = this.options.imageIds[next];
@@ -147,8 +147,8 @@ export class EditorListActions {
 type EditorListVirtualOptions = {
   /** SSR 回傳的已提交檔案列表 */
   get committedFiles(): ImageHeader[];
-  /** 目前的圖片 id */
-  get currentId(): string | null;
+  /** 目前的圖片索引 */
+  get currentIndex(): number | null;
   /** 點擊某個提交項目的 callback */
   get onClickItem(): ((id: string, mode: "single" | "ctrl" | "shift") => void) | undefined;
 };
@@ -180,20 +180,41 @@ export class EditorListVirtual {
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
       const endIdx = Math.min(options.committedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
-      return options.committedFiles.slice(startIdx, endIdx).map(({ id, name }, i) => ({
-        id,
-        name,
+      const items = options.committedFiles.slice(startIdx, endIdx).map((item, i) => ({
+        id: item.id,
+        name: item.name,
         top: (startIdx + i) * ITEM_HEIGHT,
         height: ITEM_HEIGHT,
       }));
+
+      if (options.currentIndex === null) return items;
+
+      // 確保 ID 存在於 DOM，保證 aria-activedescendant 可用
+      if (options.currentIndex < startIdx && options.currentIndex >= 0) {
+        items.unshift({
+          id: options.committedFiles[options.currentIndex].id,
+          name: options.committedFiles[options.currentIndex].name,
+          top: options.currentIndex * ITEM_HEIGHT,
+          height: ITEM_HEIGHT,
+        });
+      } else if (options.currentIndex >= endIdx && options.currentIndex < options.committedFiles.length) {
+        items.push({
+          id: options.committedFiles[options.currentIndex].id,
+          name: options.committedFiles[options.currentIndex].name,
+          top: options.currentIndex * ITEM_HEIGHT,
+          height: ITEM_HEIGHT,
+        });
+      }
+
+      return items;
     });
 
-    // 監聽 currentId，將對應項目捲入可視區域
+    // 監聽 currentIndex，將對應項目捲入可視區域
     $effect(() => {
       if (!this.scrollContainer) return;
-      if (!options.currentId) return;
+      if (options.currentIndex === null) return;
 
-      const idx = options.committedFiles.findIndex(({ id }) => id === options.currentId);
+      const idx = options.currentIndex;
       if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
     });
 
