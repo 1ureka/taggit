@@ -165,9 +165,9 @@ export class TaggerListActions {
  */
 type TaggerListVirtualOptions = {
   /** 暫存檔案列表 */
-  stagedFiles: string[];
-  /** 目前選取的檔案 */
-  currentFile: string | null;
+  get stagedFiles(): string[];
+  /** 目前的選取的檔案索引 */
+  get currentIndex(): number | null;
   /** 點擊某個項目的 callback */
   onClickItem?: (filename: string, mode: "single" | "ctrl" | "shift") => void;
 };
@@ -193,26 +193,47 @@ export class TaggerListVirtual {
     this.listTotalHeight = $derived(options.stagedFiles.length * ITEM_HEIGHT);
 
     this.listVisibleItems = $derived.by(() => {
+      const stagedFiles = options.stagedFiles;
+      const currentIndex = options.currentIndex;
+
       const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
       const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
 
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
-      const endIdx = Math.min(options.stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+      const endIdx = Math.min(stagedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
-      return options.stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
+      const items = stagedFiles.slice(startIdx, endIdx).map((filename, i) => ({
         filename,
         top: (startIdx + i) * ITEM_HEIGHT,
         height: ITEM_HEIGHT,
       }));
+
+      // 以下將確保 ID 存在於 DOM，保證 aria-activedescendant 可用
+      if (currentIndex === null) return items;
+      if (currentIndex >= startIdx && currentIndex < endIdx) return items;
+
+      const currentItem = {
+        filename: stagedFiles[currentIndex],
+        top: currentIndex * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+      };
+
+      if (currentIndex < startIdx && currentIndex >= 0) {
+        items.unshift(currentItem);
+      } else if (currentIndex >= endIdx && currentIndex < stagedFiles.length) {
+        items.push(currentItem);
+      }
+
+      return items;
     });
 
     // ---
 
-    // 監聽 currentFile，將對應項目捲入可視區域
+    // 監聽 currentIndex，將對應項目捲入可視區域
     $effect(() => {
       if (!this.scrollContainer) return;
 
-      const idx = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      const idx = options.currentIndex ?? -1;
       if (idx >= 0) scrollToActive(this.scrollContainer, idx, ITEM_HEIGHT);
     });
 

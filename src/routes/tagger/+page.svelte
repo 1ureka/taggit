@@ -59,8 +59,8 @@
     get stagedFiles() {
       return data.stagedFiles;
     },
-    get currentFile() {
-      return page.currentFile;
+    get currentIndex() {
+      return page.currentIndex;
     },
     onClickItem: listSelect.handleListClick,
   });

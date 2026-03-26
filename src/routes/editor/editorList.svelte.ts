@@ -174,36 +174,37 @@ export class EditorListVirtual {
     this.listTotalHeight = $derived(options.committedFiles.length * ITEM_HEIGHT);
 
     this.listVisibleItems = $derived.by(() => {
+      const committedFiles = options.committedFiles;
+      const currentIndex = options.currentIndex;
+
       const firstVisibleIdx = Math.floor(this.#listScrollTop / ITEM_HEIGHT);
       const visibleCount = Math.ceil(this.#listViewHeight / ITEM_HEIGHT);
 
       const startIdx = Math.max(0, firstVisibleIdx - this.#listBuffer);
-      const endIdx = Math.min(options.committedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
+      const endIdx = Math.min(committedFiles.length, firstVisibleIdx + visibleCount + this.#listBuffer);
 
-      const items = options.committedFiles.slice(startIdx, endIdx).map((item, i) => ({
+      const items = committedFiles.slice(startIdx, endIdx).map((item, i) => ({
         id: item.id,
         name: item.name,
         top: (startIdx + i) * ITEM_HEIGHT,
         height: ITEM_HEIGHT,
       }));
 
-      if (options.currentIndex === null) return items;
+      // 以下將確保 ID 存在於 DOM，保證 aria-activedescendant 可用
+      if (currentIndex === null) return items;
+      if (currentIndex >= startIdx && currentIndex < endIdx) return items;
 
-      // 確保 ID 存在於 DOM，保證 aria-activedescendant 可用
-      if (options.currentIndex < startIdx && options.currentIndex >= 0) {
-        items.unshift({
-          id: options.committedFiles[options.currentIndex].id,
-          name: options.committedFiles[options.currentIndex].name,
-          top: options.currentIndex * ITEM_HEIGHT,
-          height: ITEM_HEIGHT,
-        });
-      } else if (options.currentIndex >= endIdx && options.currentIndex < options.committedFiles.length) {
-        items.push({
-          id: options.committedFiles[options.currentIndex].id,
-          name: options.committedFiles[options.currentIndex].name,
-          top: options.currentIndex * ITEM_HEIGHT,
-          height: ITEM_HEIGHT,
-        });
+      const currentItem = {
+        id: committedFiles[currentIndex].id,
+        name: committedFiles[currentIndex].name,
+        top: currentIndex * ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+      };
+
+      if (currentIndex < startIdx && currentIndex >= 0) {
+        items.unshift(currentItem);
+      } else if (currentIndex >= endIdx && currentIndex < committedFiles.length) {
+        items.push(currentItem);
       }
 
       return items;

@@ -14,6 +14,8 @@ type TaggerPageOptions = {
 export class TaggerPage {
   /** 目前選取的檔名 */
   currentFile = $state<string | null>(null);
+  /** 當前的檔案索引 */
+  currentIndex: number | null;
   /** 已選取的檔名集合 */
   selectedFiles = $state<Set<string>>(new Set());
   /** 已經提交或刪除的項目數量 */
@@ -23,6 +25,13 @@ export class TaggerPage {
     const first = options.stagedFiles[0] ?? null;
     this.currentFile = first;
     this.selectedFiles = first ? new Set([first]) : new Set();
+
+    this.currentIndex = $derived.by(() => {
+      const id = this.currentFile ?? null;
+      if (!id) return null;
+      const idx = options.stagedFiles.indexOf(id);
+      return idx >= 0 ? idx : null;
+    });
 
     // 當暫存檔案列表變化或 currentFile 變化時，重新驗證
     $effect(() => {
