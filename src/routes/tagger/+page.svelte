@@ -47,6 +47,9 @@
     set currentFile(v) {
       page.currentFile = v;
     },
+    get currentIndex() {
+      return page.currentIndex;
+    },
     get selectedFiles() {
       return page.selectedFiles;
     },

@@ -12,11 +12,15 @@ const ITEM_HEIGHT = 72;
  */
 type TaggerListOptions = {
   /** 暫存檔案列表 */
-  stagedFiles: string[];
+  get stagedFiles(): string[];
   /** 雙向綁定：目前選取的檔名 */
-  currentFile: string | null;
+  get currentFile(): string | null;
+  set currentFile(v: string | null);
+  /** 目前的選取的檔案索引 */
+  get currentIndex(): number | null;
   /** 雙向綁定：已選取的檔名集合 */
-  selectedFiles: Set<string>;
+  get selectedFiles(): Set<string>;
+  set selectedFiles(v: Set<string>);
 };
 
 /**
@@ -33,7 +37,7 @@ export class TaggerListSelect {
       const total = options.stagedFiles.length;
       if (total <= 0) return null;
 
-      const currentIndex = options.currentFile ? options.stagedFiles.indexOf(options.currentFile) : -1;
+      const currentIndex = options.currentIndex ?? -1;
       if (currentIndex < 0) return `${total}`;
 
       return `${currentIndex + 1}/${total}`;
@@ -64,7 +68,7 @@ export class TaggerListSelect {
   /** 以 Shift 模式選取 currentFile 到指定檔名的範圍 */
   #selectShift(filename: string) {
     const list = this.options.stagedFiles;
-    const anchorIdx = this.options.currentFile ? list.indexOf(this.options.currentFile) : 0;
+    const anchorIdx = this.options.currentIndex ?? 0;
     const targetIdx = list.indexOf(filename);
     const lo = Math.min(anchorIdx, targetIdx);
     const hi = Math.max(anchorIdx, targetIdx);
@@ -76,8 +80,8 @@ export class TaggerListSelect {
 
   /** 移動游標至指定偏移量 */
   #navigate(delta: -1 | 1) {
-    if (!this.options.currentFile) return;
-    const idx = this.options.stagedFiles.indexOf(this.options.currentFile);
+    if (this.options.currentIndex === null) return;
+    const idx = this.options.currentIndex;
     const next = idx + delta;
     if (next < 0 || next >= this.options.stagedFiles.length) return;
     const nextFile = this.options.stagedFiles[next];
