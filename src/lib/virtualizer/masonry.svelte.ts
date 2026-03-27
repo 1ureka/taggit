@@ -3,25 +3,13 @@ import { createMasonryContent, createMasonryLayout } from "$lib/virtualizer/maso
 import { RAFAggregator } from "$lib/virtualizer/raf-aggregator.js";
 
 /**
- * 初始斷點設定，根據 viewport 寬度決定欄位數，注意，這不是響應式，也不應該響應式
- */
-const breakpoints = [
-  { width: 1600, cols: 6 },
-  { width: 1200, cols: 5 },
-  { width: 900, cols: 4 },
-  { width: 600, cols: 2 },
-  { width: 0, cols: 1 },
-];
-
-/**
- * 預設的欄位數
- */
-const defaultColumns = 3;
-
-/**
  * Masonry 的配置選項
  */
-type MasonryOptions = {
+type MasonryOptions<T extends ItemWithSize> = {
+  /** 初始的項目列表 */
+  get initialItems(): T[];
+  /** 預設的欄位數 */
+  get defaultColumns(): number | undefined;
   /** 水平內邊距，用於在兩側留白 */
   get paddingX(): number | undefined;
   /** 垂直內邊距，用於在上下留白 */
@@ -44,43 +32,12 @@ type MasonryLayoutChannel<T extends ItemWithSize> = {
  *
  * - viewportEl 只能包含 masonryEl (包含所有 visibleItems 的容器) 作為直接子元素
  * - viewportEl 與 masonryEl  不得包含 padding, border 等 CSS 屬性
- *
- * ---
- *
- * * @example <caption>頁面首次渲染</caption>
- * ```svelte
- * <script lang="ts">
- *   let { data }: { data: PageData } = $props();
- *   const masonry = new Masonry({paddingX: 8, paddingY: 8, gap: 8});
- *   masonry.handleLoadItems(data.items); // 該行在首次載入 SSR 將能夠執行，確保初始畫面就已經算完並顯示
- * </script>
- * ```
- * * @example <caption>分頁載入更多</caption>
- * ```svelte
- * <script lang="ts">
- *   const loadMore = async () => {
- *     const newItems = await fetch({page: page + 1, size: 20});
- *     masonry.handleLoadItems(newItems);
- *   };
- * </script>
- * ```
- * * @example <caption>重新排序</caption>
- * ```svelte
- * <script lang="ts">
- *   $effect(() => {
- *     masonry.handleResetItems(data.items);
- *   });
- *   const sortBy = async (criteria: SortCriteria) => {
- *     await goto(`?sort=${criteria}`, { ... });
- *   };
- * </script>
- * ```
  */
 export class Masonry<T extends ItemWithSize> {
   /** 滾動容器的 DOM 元素，必須包含 masonryEl 作為直接子元素 */
   viewportEl = $state<HTMLElement | null>(null);
   /** 當需要重新計算布局時的 `make(chan MasonryLayoutChannel<T>)` */
-  #dirtyLayoutCh: MasonryLayoutChannel<T> = $state({ items: [], columns: this.#initColumns() });
+  #dirtyLayoutCh: MasonryLayoutChannel<T> = $state({ items: [], columns: 3 });
   /** 當需要重新計算內容時的 `make(chan struct{})` */
   #dirtyContentCh = $state([]);
   /** 以權重為基礎的瀑布流佈局結果 */
@@ -92,7 +49,11 @@ export class Masonry<T extends ItemWithSize> {
   /** 瀑布流內容的總高度 */
   masonryHeight: number;
 
-  constructor(options: MasonryOptions) {
+  // ---
+
+  constructor(options: MasonryOptions<T>) {
+    this.#dirtyLayoutCh = { items: options.initialItems, columns: options.defaultColumns ?? 3 };
+
     this.#layout = $derived.by(() => {
       const { items, columns, layout } = this.#dirtyLayoutCh; // ... <-dirtyLayoutCh
 
@@ -144,14 +105,6 @@ export class Masonry<T extends ItemWithSize> {
     });
   }
 
-  /** 在頁面初始化時決定欄位數 */
-  #initColumns() {
-    if (typeof window === "undefined") return defaultColumns;
-    if (typeof window.innerWidth !== "number") return defaultColumns;
-    const width = window.innerWidth;
-    return breakpoints.find((b) => width >= b.width)?.cols ?? defaultColumns;
-  }
-
   // ---
 
   /** 處理欄位變化事件 */
@@ -166,8 +119,8 @@ export class Masonry<T extends ItemWithSize> {
     this.#dirtyLayoutCh = { ...this.#dirtyLayoutCh, items };
   };
 
-  /** 處理資料重設，比如重新排序等 */
-  handleResetItems = (items: T[]) => {
+  /** 處理資料重新載入，比如重新排序等 */
+  handleReloadItems = (items: T[]) => {
     // dirtyLayoutCh <- { items, columns: prev.columns, layout: undefined }
     this.#dirtyLayoutCh = { items, columns: this.#dirtyLayoutCh.columns };
   };

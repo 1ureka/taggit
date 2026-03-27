@@ -4,7 +4,7 @@
  *              透過 RAF 聚合器限制計算頻率，回傳當前可見項目與總高度
  */
 
-import { RAFAggregator } from "./raf-aggregator.js";
+import { RAFAggregator } from "$lib/virtualizer/raf-aggregator.js";
 import { getVirtualizedItems, type Layout, type VirtualizedItem } from "./masonry-layout.js";
 
 // ─── Virtualizer ────────────────────────────────────────────────────────
