@@ -46,7 +46,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
   // ---
 
   const headers: HeadersInit = {
-    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Cache-Control": "private, max-age=60",
     "Content-Type": "application/octet-stream",
   };
 
