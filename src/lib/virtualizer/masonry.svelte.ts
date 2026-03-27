@@ -1,15 +1,15 @@
 import type { ItemWithSize, MasonryItem, MasonryLayout } from "$lib/virtualizer/masonry.core";
 import { createMasonryContent, createMasonryLayout } from "$lib/virtualizer/masonry.core";
-import { RAFAggregator } from "$lib/virtualizer/raf-aggregator.js";
+import { untrack } from "svelte";
 
 /**
  * Masonry 的配置選項
  */
 type MasonryOptions<T extends ItemWithSize> = {
   /** 初始的項目列表 */
-  get initialItems(): T[];
+  initialItems: T[];
   /** 預設的欄位數 */
-  get defaultColumns(): number | undefined;
+  defaultColumns?: number;
   /** 水平內邊距，用於在兩側留白 */
   get paddingX(): number | undefined;
   /** 垂直內邊距，用於在上下留白 */
@@ -91,16 +91,13 @@ export class Masonry<T extends ItemWithSize> {
 
       const markDirty = () => (this.#dirtyContentCh = []); // dirtyContentCh <- []
 
-      const aggregator = new RAFAggregator(markDirty, { fps: 30, idleTimeout: 500 });
-      const handleEvent = () => aggregator.notify();
-
-      const resizeObserver = new ResizeObserver(handleEvent);
+      const resizeObserver = new ResizeObserver(markDirty);
       resizeObserver.observe(viewportEl);
-      viewportEl.addEventListener("scroll", handleEvent, { passive: true });
+      viewportEl.addEventListener("scroll", markDirty, { passive: true });
 
       return () => {
         resizeObserver.disconnect();
-        viewportEl.removeEventListener("scroll", handleEvent);
+        viewportEl.removeEventListener("scroll", markDirty);
       };
     });
   }
@@ -110,18 +107,18 @@ export class Masonry<T extends ItemWithSize> {
   /** 處理欄位變化事件 */
   handleColumnChange = (columns: number) => {
     // dirtyLayoutCh <- { items: prev.items, columns, layout: undefined }
-    this.#dirtyLayoutCh = { items: this.#dirtyLayoutCh.items, columns };
+    this.#dirtyLayoutCh = { items: untrack(() => this.#dirtyLayoutCh.items), columns };
   };
 
   /** 處理資料載入 */
   handleLoadItems = (items: T[]) => {
     // dirtyLayoutCh <- { items, columns: prev.columns, layout: prev.layout }
-    this.#dirtyLayoutCh = { ...this.#dirtyLayoutCh, items };
+    this.#dirtyLayoutCh = { ...untrack(() => this.#dirtyLayoutCh), items };
   };
 
   /** 處理資料重新載入，比如重新排序等 */
   handleReloadItems = (items: T[]) => {
     // dirtyLayoutCh <- { items, columns: prev.columns, layout: undefined }
-    this.#dirtyLayoutCh = { items, columns: this.#dirtyLayoutCh.columns };
+    this.#dirtyLayoutCh = { items, columns: untrack(() => this.#dirtyLayoutCh.columns) };
   };
 }

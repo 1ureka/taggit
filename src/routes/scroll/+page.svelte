@@ -35,7 +35,7 @@
 
   <main class="slide-up" bind:this={pageContentEl}>
     <ScrollForm total={data.total} />
-    <ScrollMasonry items={data.items} bind:columns {pageContentEl} />
+    <ScrollMasonry items={data.items} bind:columns />
   </main>
 </div>
 
@@ -51,10 +51,10 @@
   }
 
   main {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
   }
 
   .controls {

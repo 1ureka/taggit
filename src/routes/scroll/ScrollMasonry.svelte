@@ -3,27 +3,40 @@
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { ScrollMasonry } from "./scrollMasonry.svelte.js";
+  import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
 
-  type Props = {
-    items: ImageWithId[];
-    columns: number;
-    pageContentEl: HTMLElement | null;
-  };
+  type Props = { items: ImageWithId[]; columns: number };
+  let { items, columns = $bindable() }: Props = $props();
 
-  let { items, columns = $bindable(), pageContentEl }: Props = $props();
+  const masonry = new Masonry({
+    get initialItems() {
+      return items;
+    },
+    paddingX: 24,
+    paddingY: 12,
+    gap: 6,
+  });
+
+  $effect(() => {
+    const breakpoints = [
+      { width: 1600, cols: 6 },
+      { width: 1200, cols: 5 },
+      { width: 900, cols: 4 },
+      { width: 600, cols: 2 },
+      { width: 0, cols: 1 },
+    ];
+
+    const width = window.innerWidth;
+    columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
+  });
+
+  $effect(() => {
+    masonry.handleColumnChange(columns);
+  });
 
   const ui = new ScrollMasonry({
     get items() {
       return items;
-    },
-    get columns() {
-      return columns;
-    },
-    set columns(v) {
-      columns = v;
-    },
-    get pageContentEl() {
-      return pageContentEl;
     },
   });
 </script>
@@ -32,30 +45,33 @@
   <div class="empty">找不到符合的圖片</div>
 {/if}
 
-<div class="container" class:loading={ui.loading} bind:this={ui.containerEl} style:height="{ui.totalHeight}px">
-  {#each ui.visibleItems as item (item.id)}
-    <div
-      class="item"
-      style:transform="translate3d({item.pixelX}px, {item.pixelY}px, 0)"
-      style:width="{item.pixelW}px"
-      style:height="{item.pixelH}px"
-    >
-      <img
-        src={imgSrc(item.id, "md")}
-        style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-        alt={item.name || item.id}
-        loading="lazy"
-        draggable="false"
-        ondblclick={() => ui.handleImageDblClick(item)}
-      />
-    </div>
-  {/each}
+<div class="viewport" bind:this={masonry.viewportEl}>
+  <div class="masonry" class:loading={ui.loading} style:height="{masonry.masonryHeight}px">
+    {#each masonry.masonryItems as item (item.id)}
+      <div class="masonry-item" style={item.style}>
+        <img
+          src={imgSrc(item.id, "md")}
+          style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
+          alt={item.name || item.id}
+          loading="lazy"
+          draggable="false"
+          ondblclick={() => ui.handleImageDblClick(item)}
+        />
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>
-  .container {
+  .viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .masonry {
     position: relative;
-    margin-top: 0.75rem;
     overflow-x: hidden;
     transition: opacity 0s step-start;
 
@@ -65,21 +81,14 @@
     }
   }
 
-  .item {
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding: 3px;
-
-    & img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      border-radius: 4px;
-      -webkit-user-select: none;
-      user-select: none;
-    }
+  .masonry-item > img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: 4px;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .empty {
