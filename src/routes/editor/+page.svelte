@@ -127,7 +127,7 @@
       <span>首頁</span>
     </a>
 
-    <h1 class="page-header-title">編輯圖片</h1>
+    <h1 class="page-header-title">管理圖片</h1>
   </header>
 
   <main>
