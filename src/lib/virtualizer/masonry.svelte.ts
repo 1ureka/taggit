@@ -1,13 +1,12 @@
 import type { ItemWithSize, MasonryItem, MasonryLayout } from "$lib/virtualizer/masonry.core";
 import { createMasonryContent, createMasonryLayout } from "$lib/virtualizer/masonry.core";
-import { untrack } from "svelte";
 
 /**
  * Masonry 的配置選項
  */
 type MasonryOptions<T extends ItemWithSize> = {
-  /** 初始的項目列表 */
-  initialItems: T[];
+  /** 原始的項目列表 */
+  get items(): T[];
   /** 水平內邊距，用於在兩側留白 */
   get paddingX(): number | undefined;
   /** 垂直內邊距，用於在上下留白 */
@@ -27,10 +26,8 @@ export class Masonry<T extends ItemWithSize> {
   viewportEl = $state<HTMLElement | null>(null);
   /** 布局欄位數量 */
   columns = $state(3);
-  /** 當需要重新計算布局時的 `make(chan struct{items, layout})` */
-  #dirtyLayoutCh: { items: T[]; layout?: MasonryLayout<T> } = $state({ items: [] });
   /** 當需要重新計算內容時的 `make(chan struct{})` */
-  #dirtyContentCh = $state([]);
+  #dirtyCh = $state([]);
   /** 以權重為基礎的瀑布流佈局結果 */
   #layout: MasonryLayout<T>;
   /** 二分搜尋虛擬化項目計算結果 */
@@ -43,26 +40,11 @@ export class Masonry<T extends ItemWithSize> {
   // ---
 
   constructor(options: MasonryOptions<T>) {
-    this.#dirtyLayoutCh = { items: options.initialItems };
-
-    this.#layout = $derived.by(() => {
-      const { items, layout } = this.#dirtyLayoutCh; // ... <-dirtyLayoutCh
-      const columns = this.columns;
-
-      if (layout && layout.tracks.length === columns) {
-        return createMasonryLayout({ items, columns, existingLayout: layout });
-      }
-
-      return createMasonryLayout({ items, columns });
-    });
+    this.#layout = $derived(createMasonryLayout({ items: options.items, columns: this.columns }));
 
     this.#content = $derived.by(() => {
-      if (!this.viewportEl) {
-        return { visibleItems: [], masonryHeight: 0 };
-      }
-
-      this.#dirtyContentCh; // _ = <-dirtyContentCh
-
+      if (!this.viewportEl) return { visibleItems: [], masonryHeight: 0 };
+      this.#dirtyCh; // _ = <-dirtyCh
       return createMasonryContent({
         layout: this.#layout,
         viewportEl: this.viewportEl,
@@ -81,7 +63,7 @@ export class Masonry<T extends ItemWithSize> {
       const viewportEl = this.viewportEl;
       if (!viewportEl) return;
 
-      const markDirty = () => (this.#dirtyContentCh = []); // dirtyContentCh <- []
+      const markDirty = () => (this.#dirtyCh = []); // dirtyCh <- []
 
       const resizeObserver = new ResizeObserver(markDirty);
       resizeObserver.observe(viewportEl);
@@ -93,18 +75,4 @@ export class Masonry<T extends ItemWithSize> {
       };
     });
   }
-
-  // ---
-
-  /** 處理資料載入 */
-  handleLoadItems = (items: T[]) => {
-    // dirtyLayoutCh <- { items, layout: prev.layout }
-    this.#dirtyLayoutCh = { items, layout: untrack(() => this.#dirtyLayoutCh.layout) };
-  };
-
-  /** 處理資料重新載入，比如重新排序等 */
-  handleReloadItems = (items: T[]) => {
-    // dirtyLayoutCh <- { items, layout: undefined }
-    this.#dirtyLayoutCh = { items };
-  };
 }

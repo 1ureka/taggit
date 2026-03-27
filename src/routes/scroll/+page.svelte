@@ -27,7 +27,7 @@
   let { data }: { data: PageData } = $props();
 
   const masonry = new Masonry({
-    get initialItems() {
+    get items() {
       return data.items;
     },
     paddingX: 24,
@@ -59,7 +59,7 @@
 
     <h1 class="page-header-title">瀏覽圖片</h1>
 
-    <div class="controls">
+    <div>
       <Select bind:value={masonry.columns} options={columnOptions} />
     </div>
   </header>
@@ -67,11 +67,11 @@
   <main class="slide-up">
     <ScrollForm total={data.total} />
 
-    {#if data.total === 0 && !navigating.to}
-      <div class="empty">找不到符合的圖片</div>
-    {/if}
-
     <div class="masonry-viewport" bind:this={masonry.viewportEl}>
+      {#if data.total === 0 && !navigating.to}
+        <p>找不到符合的圖片</p>
+      {/if}
+
       <div class="masonry" style:height="{masonry.masonryHeight}px">
         {#each masonry.masonryItems as item (item.id)}
           <div class="masonry-item" style={item.style}>
@@ -110,20 +110,15 @@
 
   /* --- */
 
+  header.page-header > h1 + div {
+    margin-left: auto;
+  }
+
   main {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
-  }
-
-  /* --- */
-
-  .controls {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   /* --- */
@@ -147,11 +142,11 @@
     border-radius: 4px;
   }
 
-  .empty {
+  .masonry-viewport > p {
     text-align: center;
     color: var(--text-dim);
     font-size: 0.875rem;
-    padding: 3rem 1rem;
+    padding: 3rem 0px;
   }
 
   /* --- */
