@@ -52,20 +52,39 @@ export type { ItemWithSize, MasonryLayout, MasonryItem };
 
 /**
  * 貪婪權重式瀑布流佈局
- * @param items 項目陣列，每個項目需包含寬高屬性
- * @param columns 欄位數量
- * @returns 瀑布流佈局結果
  */
-export function createMasonryLayout<T extends ItemWithSize>(items: T[], columns: number): MasonryLayout<T> {
-  columns = Math.max(1, columns);
+export function createMasonryLayout<T extends ItemWithSize>(params: {
+  /** 項目陣列，每個項目需包含寬高屬性，當提供 existingLayout 時，代表要增量更新的項目 */
+  items: T[];
+  /** 欄位數量 */
+  columns: number;
+  /** 可選的已存在 layout，用於增量更新 */
+  existingLayout?: MasonryLayout<T>;
+}): MasonryLayout<T> {
+  const { items, existingLayout } = params;
+  const columns = Math.max(1, Math.floor(params.columns));
 
   if (items.length === 0) {
     return { tracks: Array.from({ length: columns }, () => []), yMax: 0 };
   }
 
-  const columnHeights = new Float64Array(columns); // 初始化為 0
-  const tracks: MasonryTracks<T> = Array.from({ length: columns }, () => []);
-  let yMax = 0;
+  let columnHeights: Float64Array<ArrayBuffer>;
+  let tracks: MasonryTracks<T>;
+  let yMax: number;
+
+  if (existingLayout) {
+    columnHeights = Float64Array.from({ length: columns }, (_, i) => {
+      const track = existingLayout.tracks[i] || [];
+      return track.length > 0 ? track[track.length - 1].yEnd : 0;
+    });
+
+    tracks = [...existingLayout.tracks];
+    yMax = existingLayout.yMax;
+  } else {
+    columnHeights = new Float64Array(columns);
+    tracks = Array.from({ length: columns }, () => []);
+    yMax = 0;
+  }
 
   for (const item of items) {
     // 權重高度：h / w（寬為 0 則視為 1:1）
@@ -103,10 +122,12 @@ export function createMasonryContent<T extends ItemWithSize>(params: {
   viewportEl: HTMLElement;
   /** 水平內邊距，用於在兩側留白 */
   paddingX?: number;
+  /** 垂直內邊距，用於在上下留白 */
+  paddingY?: number;
   /** 項目與項目之間的間距，只在呼叫者有實際使用 style 時才生效 */
   gap?: number;
 }) {
-  const { layout, viewportEl, paddingX = 0, gap = 0 } = params;
+  const { layout, viewportEl, paddingX = 0, paddingY = 0, gap = 0 } = params;
 
   // 當佈局無效或可見區域寬度為 0 時，通常不可能發生
   if (layout.tracks.length === 0 || layout.yMax <= 0 || viewportEl.clientWidth <= 0) {
@@ -116,11 +137,11 @@ export function createMasonryContent<T extends ItemWithSize>(params: {
   // ---
 
   const pixelViewWidth = viewportEl.clientWidth - paddingX * 2;
-  const pixelViewTop = viewportEl.scrollTop;
+  const pixelViewTop = viewportEl.scrollTop - paddingY;
   const pixelViewBottom = pixelViewTop + viewportEl.clientHeight;
 
   const pixelColumnWidth = pixelViewWidth / layout.tracks.length;
-  const pixelMasonryHeight = layout.yMax * pixelColumnWidth;
+  const pixelMasonryHeight = layout.yMax * pixelColumnWidth + paddingY * 2;
 
   // 當可見區域完全在內容之外時，通常不可能發生，或者發生在 paddingX 大於 viewport 寬度時
   if (pixelViewBottom <= 0 || pixelViewTop >= pixelMasonryHeight || pixelColumnWidth <= 0) {
@@ -187,7 +208,7 @@ export function createMasonryContent<T extends ItemWithSize>(params: {
       const { item, yStart, yEnd } = track[i];
 
       const pixelX = column * pixelColumnWidth + paddingX;
-      const pixelY = yStart * pixelColumnWidth;
+      const pixelY = yStart * pixelColumnWidth + paddingY;
       const pixelW = pixelColumnWidth;
       const pixelH = (yEnd - yStart) * pixelColumnWidth;
 
