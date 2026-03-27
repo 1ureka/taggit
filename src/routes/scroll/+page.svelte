@@ -1,23 +1,30 @@
 <script lang="ts">
+  import { fly } from "svelte/transition";
+  import { navigating } from "$app/state";
+  import { IconArrowUp, IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
-  import { IconArrowLeft } from "@tabler/icons-svelte";
+
+  import Select from "$lib/components/Select.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
-  import Select from "$lib/components/Select.svelte";
-
-  import ScrollFab from "./ScrollFab.svelte";
+  import { ScrollFab } from "./scrollFab.svelte.js";
   import ScrollForm from "./ScrollForm.svelte";
 
+  const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
+
+  const breakpoints = [
+    { width: 1600, cols: 6 },
+    { width: 1200, cols: 5 },
+    { width: 900, cols: 4 },
+    { width: 600, cols: 2 },
+    { width: 0, cols: 1 },
+  ];
+
+  // ---
+
   let { data }: { data: PageData } = $props();
-
-  let pageContentEl = $state<HTMLElement | null>(null);
-
-  const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({
-    value: n,
-    label: `${n} 欄`,
-  }));
 
   const masonry = new Masonry({
     get initialItems() {
@@ -29,16 +36,13 @@
   });
 
   $effect(() => {
-    const breakpoints = [
-      { width: 1600, cols: 6 },
-      { width: 1200, cols: 5 },
-      { width: 900, cols: 4 },
-      { width: 600, cols: 2 },
-      { width: 0, cols: 1 },
-    ];
+    masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
+  });
 
-    const width = window.innerWidth;
-    masonry.columns = breakpoints.find((b) => width >= b.width)?.cols ?? 3;
+  const fab = new ScrollFab({
+    get viewportEl() {
+      return masonry.viewportEl;
+    },
   });
 </script>
 
@@ -60,10 +64,10 @@
     </div>
   </header>
 
-  <main class="slide-up" bind:this={pageContentEl}>
+  <main class="slide-up">
     <ScrollForm total={data.total} />
 
-    {#if data.total === 0}
+    {#if data.total === 0 && !navigating.to}
       <div class="empty">找不到符合的圖片</div>
     {/if}
 
@@ -84,7 +88,16 @@
   </main>
 </div>
 
-<ScrollFab {pageContentEl} />
+{#if fab.show}
+  <button
+    class="fab bottom-right"
+    onclick={fab.handleFabClick}
+    aria-label="回到頂部"
+    transition:fly={{ y: 16, duration: 200, opacity: 0 }}
+  >
+    <IconArrowUp size={20} />
+  </button>
+{/if}
 
 <style>
   .page {
@@ -139,5 +152,35 @@
     color: var(--text-dim);
     font-size: 0.875rem;
     padding: 3rem 1rem;
+  }
+
+  /* --- */
+
+  .fab {
+    position: fixed;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: var(--bg);
+
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s;
+
+    &.bottom-right {
+      bottom: 1.5rem;
+      right: 1.5rem;
+    }
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
   }
 </style>
