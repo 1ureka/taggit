@@ -1,24 +1,24 @@
 /**
  * 選項單元格式
  */
-export type SelectItem = { value: string | number | undefined; label: string };
+export type SelectItem<T> = { value: T; label: string };
 
 /**
  * 下拉選單組件的配置選項
  */
-type SelectOptions = {
+type SelectOptions<T> = {
   /** 雙向綁定：目前選中的值 */
-  value: string | number | undefined;
+  value: T | undefined;
   /** 選項列表 */
-  list: SelectItem[];
+  list: SelectItem<T>[];
   /** 當選項變更時觸發的回調 */
-  onchange?: (value: string | number | undefined) => void;
+  onchange?: (value: T) => void;
 };
 
 /**
  * 下拉選單的互動邏輯
  */
-export class Select {
+export class Select<T> {
   /** 觸發器按鈕實例的引用 (DOM) */
   triggerEl = $state<HTMLButtonElement>();
   /** 下拉選單是否開啟 */
@@ -29,14 +29,14 @@ export class Select {
   /** 根據目前 options.value 找到對應的 label */
   selectedLabel: string;
 
-  constructor(private options: SelectOptions) {
+  constructor(private options: SelectOptions<T>) {
     this.selectedLabel = $derived(this.options.list.find((item) => item.value === this.options.value)?.label ?? "");
   }
 
   // ---
 
   /** 執行選取動作 */
-  #selectOption(item: SelectItem) {
+  #selectOption(item: SelectItem<T>) {
     this.options.value = item.value;
     this.options.onchange?.(item.value);
     this.#closeDropdown();
@@ -120,7 +120,7 @@ export class Select {
   // ---
 
   /** 處理 selectItem 點擊事件 */
-  handleOptionMouseDown = (e: MouseEvent, item: SelectItem) => {
+  handleOptionMouseDown = (e: MouseEvent, item: SelectItem<T>) => {
     e.preventDefault();
     this.#selectOption(item);
   };
