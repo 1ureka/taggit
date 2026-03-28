@@ -6,6 +6,11 @@
   import CompareShuffle from "./CompareShuffle.svelte";
 
   let { data }: { data: PageData } = $props();
+
+  const handleBack = (e: MouseEvent) => {
+    e.preventDefault();
+    history.back();
+  };
 </script>
 
 <svelte:head>
@@ -14,10 +19,10 @@
 
 <div class="page">
   <header class="page-header">
-    <a href="/" class="btn-ghost btn-sm">
+    <button type="button" class="btn-ghost btn-sm" onclick={handleBack}>
       <IconArrowLeft size={16} />
-      <span>首頁</span>
-    </a>
+      <span>上一頁</span>
+    </button>
 
     <h1 class="page-header-title">比較</h1>
 
