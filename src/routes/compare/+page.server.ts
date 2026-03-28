@@ -9,10 +9,5 @@ export const load: PageServerLoad = ({ url }) => {
   if (!loaded) throw redirect(303, "/settings?alert=error");
 
   const result = queryImages(loaded.db, { ...parseQueryParams(url), sort: "random", limit: 2 });
-
-  return {
-    pairA: result.items[0] ?? null,
-    pairB: result.items[1] ?? null,
-    total: result.total,
-  };
+  return { pairs: result.items, total: result.total };
 };
