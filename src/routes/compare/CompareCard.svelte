@@ -8,7 +8,7 @@
   let { image }: Props = $props();
 </script>
 
-<a class="card" href="/editor/{encodeURIComponent(image.id)}" title="在 Editor 中開啟">
+<a class="card" href="/editor?currentId={encodeURIComponent(image.id)}" title="在 Editor 中開啟">
   <div class="card-image">
     {#key image.id}
       <img
