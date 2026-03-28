@@ -12,7 +12,7 @@ export const load: PageServerLoad = ({ url }) => {
 
   if (result.total === 0) {
     const newUrl = new URL(url);
-    newUrl.pathname = "/scroll";
+    newUrl.pathname = "/browse";
     throw redirect(302, newUrl);
   }
 

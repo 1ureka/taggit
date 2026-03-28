@@ -38,7 +38,7 @@
     <nav>
       {@render card("/tagger", IconTag, "新增圖片", "審查並標記暫存圖片")}
       {@render card("/editor", IconAlbum, "管理圖片", "編輯已提交圖片")}
-      {@render card("/scroll", IconLibraryPhoto, "瀏覽圖片", "以瀑布流、播放器、隨機抽選等多種方式")}
+      {@render card("/browse", IconLibraryPhoto, "瀏覽圖片", "以瀑布流、播放器、隨機抽選等多種方式")}
     </nav>
 
     <small>
