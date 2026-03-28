@@ -32,15 +32,15 @@
       <span>上一頁</span>
     </button>
 
-    <h1 class="page-header-title">比較</h1>
+    <h1 class="page-header-title">比較圖片</h1>
 
-    <span class="count">{data.total} 張</span>
+    <small>共 {data.total} 張</small>
   </header>
 
   <main class="defer-dim slide-up" class:pending={shuffle.pending}>
     {#if data.pairs.length < 2}
       {#if !shuffle.pending}
-        <div class="empty">篩選條件下的圖片不足兩張</div>
+        <p>篩選條件下的圖片不足兩張</p>
       {/if}
     {:else}
       {#each data.pairs as image (image.id)}
@@ -87,7 +87,7 @@
 
   /* --- */
 
-  .count {
+  header > small {
     font-size: 0.75rem;
     font-family: var(--font-mono);
     color: var(--text-dim);
@@ -104,7 +104,7 @@
     flex: 1;
     min-height: 0;
 
-    & .empty {
+    & > p {
       flex: 1;
       display: flex;
       align-items: center;
