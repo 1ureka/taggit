@@ -195,3 +195,10 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
 }
+
+/**
+ * 檢查陣列是否為非空，並縮小其型別範圍
+ */
+export function isNonEmpty<T>(arr: T[]): arr is [T, ...T[]] {
+  return arr.length > 0;
+}
