@@ -1,21 +1,21 @@
 import { throttle } from "$lib/utils.js";
 
 /**
- * ScrollFab 的配置選項
+ * BrowseFab 的配置選項
  */
-type ScrollFabOptions = {
+type BrowseFabOptions = {
   /** 滾動容器 DOM 引用 */
   viewportEl: HTMLElement | null;
 };
 
 /**
- * ScrollFab 的互動邏輯
+ * BrowseFab 的互動邏輯
  */
-export class ScrollFab {
+export class BrowseFab {
   /** 是否顯示回到頂部按鈕 */
   show = $state(false);
 
-  constructor(private options: ScrollFabOptions) {
+  constructor(private options: BrowseFabOptions) {
     $effect(() => {
       const el = options.viewportEl;
       if (!el) return;

@@ -7,7 +7,7 @@ import type { QueryOptions } from "$lib/types";
 /**
  * 篩選表單的互動邏輯
  */
-export class ScrollForm {
+export class BrowseForm {
   /** 搜尋關鍵字 */
   search = $state<string>("");
   /** 要包含的標籤 */
