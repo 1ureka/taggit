@@ -12,6 +12,10 @@
     order?: string;
     /** 是否允許隨機排序 */
     allowRandomSort?: boolean;
+    /** 搜尋文字變化事件 */
+    onchangeSearch?: (value: string) => void;
+    /** 任一欄位變化事件，排除搜尋欄位 */
+    onchange?: () => void;
   };
 
   let {
@@ -23,6 +27,8 @@
     sort = $bindable("committedAt"),
     order = $bindable("desc"),
     allowRandomSort = true,
+    onchangeSearch,
+    onchange,
   }: Props = $props();
 
   const ratingOpOptions = [
@@ -61,34 +67,40 @@
 </script>
 
 <div class="filter-fields">
-  <div class="field-row">
-    <label class="field-label" for="filter-search">名稱</label>
-    <input id="filter-search" class="text-input" type="text" placeholder="搜尋名稱..." bind:value={search} />
-  </div>
+  <label class="field-row">
+    <span class="field-label">名稱</span>
+    <input
+      class="text-input"
+      type="text"
+      placeholder="搜尋名稱..."
+      bind:value={search}
+      oninput={() => onchangeSearch?.(search)}
+    />
+  </label>
 
   <div class="field-row">
     <span class="field-label">包含的標籤</span>
-    <Autocomplete bind:tags={includedTags} variant="inline" placeholder="包含標籤..." />
+    <Autocomplete bind:tags={includedTags} variant="inline" placeholder="包含標籤..." {onchange} />
   </div>
 
   <div class="field-row">
     <span class="field-label">排除的標籤</span>
-    <Autocomplete bind:tags={excludedTags} variant="inline" placeholder="排除標籤..." />
+    <Autocomplete bind:tags={excludedTags} variant="inline" placeholder="排除標籤..." {onchange} />
   </div>
 
   <div class="field-row">
     <span class="field-label">評等</span>
     <div class="field-inline">
-      <Select bind:value={ratingOp} options={ratingOpOptions} size="md" stretch />
-      <Select bind:value={rating} options={ratingOptions} size="md" stretch />
+      <Select bind:value={ratingOp} options={ratingOpOptions} size="md" stretch {onchange} />
+      <Select bind:value={rating} options={ratingOptions} size="md" stretch {onchange} />
     </div>
   </div>
 
   <div class="field-row">
     <span class="field-label">排序</span>
     <div class="field-inline">
-      <Select bind:value={sort} options={sortOptions} size="md" stretch />
-      <Select bind:value={order} options={orderOptions} size="md" stretch />
+      <Select bind:value={sort} options={sortOptions} size="md" stretch {onchange} />
+      <Select bind:value={order} options={orderOptions} size="md" stretch {onchange} />
     </div>
   </div>
 </div>
