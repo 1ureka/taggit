@@ -114,7 +114,7 @@
       <span>首頁</span>
     </a>
 
-    <h1 class="page-header-title">標註圖片</h1>
+    <h1 class="page-header-title">新增圖片</h1>
 
     <div class="progress-container">
       <div class="progress-bar">

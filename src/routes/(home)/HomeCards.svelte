@@ -22,11 +22,11 @@
 {/snippet}
 
 <nav>
-  {@render card("/tagger", IconTag, "Tagger", "審查並標記新圖片")}
-  {@render card("/editor", IconPencil, "Editor", "編輯已提交圖片")}
-  {@render card("/browse", IconPlayerPlay, "Browse", "水平輪播瀏覽")}
-  {@render card("/scroll", IconLayoutList, "Scroll", "垂直捲動瀏覽")}
-  {@render card("/compare", IconArrowsLeftRight, "Compare", "隨機比較")}
+  {@render card("/tagger", IconTag, "新增圖片", "審查並標記暫存圖片")}
+  {@render card("/editor", IconPencil, "管理圖片", "編輯已提交圖片")}
+  <!-- {@render card("/browse", IconPlayerPlay, "Browse", "水平輪播瀏覽")} -->
+  {@render card("/scroll", IconLayoutList, "瀏覽圖片", "垂直捲動瀏覽")}
+  <!-- {@render card("/compare", IconArrowsLeftRight, "Compare", "隨機比較")} -->
 </nav>
 
 <style>

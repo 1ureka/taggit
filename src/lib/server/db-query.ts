@@ -8,7 +8,7 @@
 
 import type { JSONDatabase } from "./db.js";
 import type { ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
-import { sortCollator } from "$lib/utils.js";
+import { isNonEmpty, sortCollator } from "$lib/utils.js";
 
 // ---
 
@@ -61,18 +61,35 @@ export function getTagCount(jsonDB: JSONDatabase): number {
 /**
  * 對多個標籤取交集，任一標籤不存在就直接回傳空集合。
  */
-function intersectTags(jsonDB: JSONDatabase, tags: string[]): Set<string> {
-  const tagSets = tags.map((t) => jsonDB.tagIndex.get(t) ?? new Set<string>());
+function intersectTags(jsonDB: JSONDatabase, tags: [string, ...string[]]): Set<string> {
+  const tagSets: Set<string>[] = [];
 
-  if (tagSets.some((s) => s.size === 0)) return new Set();
-
-  const result = new Set(tagSets[0]);
-  for (let i = 1; i < tagSets.length; i++) {
-    for (const id of result) {
-      if (!tagSets[i].has(id)) result.delete(id);
-    }
+  // 如果有任何一個標籤不存在，交集必為空
+  for (const t of tags) {
+    const set = jsonDB.tagIndex.get(t);
+    if (!set) return new Set();
+    tagSets.push(set);
   }
-  return result;
+
+  // 以集合大小排序，先處理較小的集合可以快速縮小交集範圍
+  tagSets.sort((a, b) => a.size - b.size);
+
+  return tagSets.reduce((acc, current) => acc.intersection(current));
+}
+
+/**
+ * 對多個標籤取差集，任一標籤不存在則忽略。
+ */
+function differenceTags(jsonDB: JSONDatabase, tags: [string, ...string[]], base: Set<string>): Set<string> {
+  for (const t of tags) {
+    const set = jsonDB.tagIndex.get(t);
+    if (!set) continue;
+
+    base = base.difference(set);
+    if (base.size === 0) break;
+  }
+
+  return base;
 }
 
 // ---
@@ -101,26 +118,20 @@ function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
   let ids: Set<string>;
 
   // 1. 起始集合：有指定標籤就取交集，否則全部
-  if (f.includedTags.length > 0) {
+  if (isNonEmpty(f.includedTags)) {
     ids = intersectTags(jsonDB, f.includedTags);
-    if (ids.size === 0) return ids;
   } else {
     ids = new Set(Object.keys(images));
   }
 
+  if (ids.size === 0) return ids;
+
   // 2. 排除指定標籤
-  if (f.excludedTags.length > 0) {
-    for (const tag of f.excludedTags) {
-      const excludedSet = jsonDB.tagIndex.get(tag);
-      if (!excludedSet) continue;
-
-      for (const id of excludedSet) {
-        ids.delete(id);
-      }
-
-      if (ids.size === 0) break;
-    }
+  if (isNonEmpty(f.excludedTags)) {
+    ids = differenceTags(jsonDB, f.excludedTags, ids);
   }
+
+  if (ids.size === 0) return ids;
 
   // 3. 名稱子字串篩選
   if (f.search) {
@@ -129,6 +140,8 @@ function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
       if (!name.includes(f.search)) ids.delete(id);
     }
   }
+
+  if (ids.size === 0) return ids;
 
   // 4. 評分篩選
   if (f.rating !== undefined) {

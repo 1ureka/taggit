@@ -3,7 +3,6 @@
   import { navigating } from "$app/state";
   import { IconArrowLeft } from "@tabler/icons-svelte";
   import CompareCard from "./CompareCard.svelte";
-  import CompareFilter from "./CompareFilter.svelte";
   import CompareShuffle from "./CompareShuffle.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -19,8 +18,10 @@
       <IconArrowLeft size={16} />
       <span>首頁</span>
     </a>
-    <span class="page-header-title">比較</span>
-    <CompareFilter total={data.total} />
+
+    <h1 class="page-header-title">比較</h1>
+
+    <span class="count">{data.total} 張</span>
   </header>
 
   <main class="defer-dim" class:pending={navigating.to}>
@@ -44,6 +45,14 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+  }
+
+  .count {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    white-space: nowrap;
+    margin-left: auto;
   }
 
   main {

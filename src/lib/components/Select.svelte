@@ -1,25 +1,25 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import { IconChevronDown } from "@tabler/icons-svelte";
   import { float } from "$lib/client/float.js";
   import { Select, type SelectItem } from "$lib/ui/select.svelte.js";
 
   type Props = {
     /** 雙向綁定：目前選中的值 */
-    value?: string | number;
+    value: T | undefined;
     /** 選項列表 */
-    options?: SelectItem[];
+    options: SelectItem<T>[];
     /** 大小，預設 "sm" */
     size?: "sm" | "md";
     /** 是否撐滿容器寬度，預設 false */
     stretch?: boolean;
     /** 當選項變更時觸發 */
-    onchange?: () => void;
+    onchange?: (value: T) => void;
   };
 
-  let { value = $bindable(undefined), options = [], size = "sm", stretch = false, onchange }: Props = $props();
+  let { value = $bindable(undefined), options, size = "sm", stretch = false, onchange }: Props = $props();
 
-  const ui = new Select({
-    onchange: () => onchange?.(),
+  const ui = new Select<T>({
+    onchange: (v) => onchange?.(v),
     get list() {
       return options;
     },
