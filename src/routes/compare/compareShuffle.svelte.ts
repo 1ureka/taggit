@@ -1,21 +1,35 @@
 import { navigating } from "$app/state";
 import { invalidateAll } from "$app/navigation";
-import { isInEditable } from "$lib/client/dom.js";
+import { isInEditable } from "$lib/client/dom";
 
 /**
  * CompareShuffle 的互動邏輯
  */
 export class CompareShuffle {
-  /** 按鈕是否禁用（導航中） */
-  disabled: boolean;
+  /** 是否正在 invalidating */
+  #invalidating = $state(false);
+  /** 目前是否無法使用 shuffle，當頁面導航中或正在 invalidating 時為 true */
+  pending: boolean;
 
   constructor() {
-    this.disabled = $derived(!!navigating.to);
+    this.pending = $derived(!!navigating.to || this.#invalidating);
   }
+
+  // ---
+
+  /** 執行 Shuffle 操作 */
+  async #shuffle() {
+    if (this.pending) return;
+    this.#invalidating = true;
+    await invalidateAll();
+    this.#invalidating = false;
+  }
+
+  // ---
 
   /** 處理 Shuffle 按鈕點擊事件，強制 load 重跑 */
   handleShuffleClick = () => {
-    invalidateAll();
+    this.#shuffle();
   };
 
   /** 處理 Window 鍵盤事件，Space 觸發 Shuffle */
@@ -23,7 +37,7 @@ export class CompareShuffle {
     if (isInEditable(e.target)) return;
     if (e.key === " ") {
       e.preventDefault();
-      invalidateAll();
+      this.#shuffle();
     }
   };
 }

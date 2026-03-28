@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import { navigating } from "$app/state";
-  import { IconArrowLeft } from "@tabler/icons-svelte";
+  import { IconArrowLeft, IconArrowsShuffle } from "@tabler/icons-svelte";
+
   import CompareCard from "./CompareCard.svelte";
-  import CompareShuffle from "./CompareShuffle.svelte";
+
+  import { CompareShuffle } from "./compareShuffle.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -11,11 +12,15 @@
     e.preventDefault();
     history.back();
   };
+
+  const shuffle = new CompareShuffle();
 </script>
 
 <svelte:head>
   <title>Compare — Image Manager</title>
 </svelte:head>
+
+<svelte:window onkeydown={shuffle.handleWindowKeydown} />
 
 <div class="page">
   <header class="page-header">
@@ -29,19 +34,29 @@
     <span class="count">{data.total} 張</span>
   </header>
 
-  <main class="defer-dim" class:pending={navigating.to}>
-    {#if !data.pairA || !data.pairB}
-      {#if !navigating.to}
+  <main class="defer-dim" class:pending={shuffle.pending}>
+    {#if data.pairs.length < 2}
+      {#if !shuffle.pending}
         <div class="empty">篩選條件下的圖片不足兩張</div>
       {/if}
     {:else}
-      <CompareCard image={data.pairA} />
-      <CompareCard image={data.pairB} />
+      {#each data.pairs as image (image.id)}
+        <CompareCard {image} />
+      {/each}
     {/if}
   </main>
 
   <footer>
-    <CompareShuffle />
+    <button
+      type="button"
+      class="btn-primary"
+      class:pending={shuffle.pending}
+      onclick={shuffle.handleShuffleClick}
+      disabled={shuffle.pending}
+    >
+      <IconArrowsShuffle size={18} />
+      <span>換一組</span><span class="kbd">Space</span>
+    </button>
   </footer>
 </div>
 
@@ -52,6 +67,8 @@
     height: 100vh;
   }
 
+  /* --- */
+
   .count {
     font-size: 0.75rem;
     font-family: var(--font-mono);
@@ -59,6 +76,8 @@
     white-space: nowrap;
     margin-left: auto;
   }
+
+  /* --- */
 
   main {
     display: flex;
@@ -76,6 +95,8 @@
       font-size: 0.875rem;
     }
   }
+
+  /* --- */
 
   footer {
     display: grid;
