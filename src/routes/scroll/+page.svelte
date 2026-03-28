@@ -1,23 +1,24 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { navigating } from "$app/state";
-  import { IconArrowUp, IconArrowLeft } from "@tabler/icons-svelte";
+  import { IconArrowUp, IconArrowLeft, IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import Select from "$lib/components/Select.svelte";
+  import FilterFields from "$lib/components/FilterFields.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
   import { ScrollFab } from "./scrollFab.svelte.js";
-  import ScrollForm from "./ScrollForm.svelte";
+  import { ScrollForm } from "./scrollForm.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
   const breakpoints = [
-    { width: 1600, cols: 6 },
-    { width: 1200, cols: 5 },
-    { width: 900, cols: 4 },
+    { width: 1600, cols: 5 },
+    { width: 1200, cols: 4 },
+    { width: 900, cols: 3 },
     { width: 600, cols: 2 },
     { width: 0, cols: 1 },
   ];
@@ -31,7 +32,7 @@
       return data.items;
     },
     paddingX: 24,
-    paddingY: 12,
+    paddingY: 24,
     gap: 6,
   });
 
@@ -44,6 +45,8 @@
       return masonry.viewportEl;
     },
   });
+
+  const form = new ScrollForm();
 </script>
 
 <svelte:head>
@@ -65,7 +68,39 @@
   </header>
 
   <main class="slide-up">
-    <ScrollForm total={data.total} />
+    <aside class="left-panel">
+      <header>
+        <div>
+          <h2>搜尋與排序</h2>
+          <p>共 {data.total} 張</p>
+        </div>
+
+        <div>
+          <FilterFields
+            bind:search={form.search}
+            bind:includedTags={form.includedTags}
+            bind:excludedTags={form.excludedTags}
+            bind:rating={form.rating}
+            bind:ratingOp={form.ratingOp}
+            bind:sort={form.sort}
+            bind:order={form.order}
+            onchangeSearch={form.handleSearchChange}
+            onchange={form.handleChange}
+          />
+        </div>
+      </header>
+
+      <footer>
+        <a class="btn-primary" href={`/browse/player?${form.queryString}`}>
+          <IconPlayerPlayFilled size={16} />
+          <span>播放</span>
+        </a>
+        <a class="btn-outlined" href={`/compare?${form.queryString}`}>
+          <IconArrowsLeftRight size={16} />
+          <span>比較</span>
+        </a>
+      </footer>
+    </aside>
 
     <div class="masonry-viewport" bind:this={masonry.viewportEl}>
       {#if data.total === 0 && !navigating.to}
@@ -116,9 +151,71 @@
 
   main {
     display: flex;
-    flex-direction: column;
+    align-items: stretch;
     flex: 1;
     min-height: 0;
+  }
+
+  /* --- */
+
+  aside.left-panel {
+    position: relative;
+    overflow-y: auto;
+    width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+  }
+
+  aside.left-panel > header {
+    display: flex;
+    flex-direction: column;
+
+    & > div:has(h2) {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0px 0.75rem;
+      height: 2.5rem;
+      border-bottom: 1px solid var(--border);
+
+      & > h2 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      & > p {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+    }
+
+    & > div:not(:has(h2)) {
+      padding: 0.75rem;
+    }
+  }
+
+  aside.left-panel > footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+
+    & > a {
+      justify-content: space-between;
+    }
+
+    & > a > span {
+      flex: 1;
+      text-align: center;
+    }
   }
 
   /* --- */
