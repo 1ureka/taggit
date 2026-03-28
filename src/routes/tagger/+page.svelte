@@ -8,10 +8,11 @@
   import { imgSrc } from "$lib/client/api.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
+  import { List } from "$lib/virtualizer/list.svelte";
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
   import { TaggerPreview } from "./taggerPreview.svelte.js";
-  import { TaggerListSelect, TaggerListActions, TaggerListVirtual } from "./taggerList.svelte.js";
+  import { TaggerListSelect, TaggerListActions } from "./taggerList.svelte.js";
   import { TaggerForm } from "./taggerForm.svelte.js";
 
   let { data }: { data: PageData } = $props();
@@ -58,14 +59,17 @@
     },
   });
 
-  const listVirtual = new TaggerListVirtual({
-    get stagedFiles() {
-      return data.stagedFiles;
+  const listVirtual = new List({
+    get items() {
+      return data.stagedFiles.map((name) => ({ filename: name }));
     },
     get currentIndex() {
       return page.currentIndex;
     },
-    onClickItem: listSelect.handleListClick,
+    onClickItem: ({ filename }, mode) => {
+      listSelect.handleListClick(filename, mode);
+    },
+    itemHeight: 72,
   });
 
   const listActions = new TaggerListActions();
@@ -148,12 +152,12 @@
         </button>
       </header>
 
-      <div class="list-container" bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
+      <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
         {#if data.stagedFiles.length === 0}
           <div class="empty">沒有待審查的圖片</div>
         {:else}
           <ul
-            style="height:{listVirtual.listTotalHeight}px"
+            style="height:{listVirtual.listHeight}px"
             tabindex="0"
             role="listbox"
             aria-label="待審查圖片列表"
@@ -161,12 +165,12 @@
             onclick={listVirtual.handleListClick}
             onkeydown={listSelect.handleListKeydown}
           >
-            {#each listVirtual.listVisibleItems as item (item.filename)}
+            {#each listVirtual.visibleItems as item (item.filename)}
               {@const active = item.filename === page.currentFile}
               {@const selected = page.selectedFiles.has(item.filename)}
               <li
                 id="staged-{item.filename}"
-                style="top:{item.top}px; height:{item.height}px"
+                style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
                 class:active
                 class:selected
                 role="option"
@@ -407,6 +411,7 @@
 
     & > li {
       position: absolute;
+      top: 0;
       left: 0;
       right: 0;
     }
