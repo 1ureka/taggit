@@ -31,6 +31,12 @@ export class ScrollFab {
 
   /** 處理 FAB 點擊事件，滾動到頂部 */
   handleFabClick = () => {
-    this.options.viewportEl?.scrollTo({ top: 0, behavior: "smooth" });
+    const viewportEl = this.options.viewportEl;
+    if (!viewportEl) return;
+
+    // 避免當 resize, filter 等無法預測的事件後，內容變成不須滾動時，onScroll 無法觸發，使用者永遠關閉不了 FAB 的情況
+    if (viewportEl.scrollTop <= 300) this.show = false;
+
+    viewportEl.scrollTo({ top: 0, behavior: "smooth" });
   };
 }
