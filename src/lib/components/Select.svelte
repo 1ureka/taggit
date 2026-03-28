@@ -7,7 +7,7 @@
     /** 雙向綁定：目前選中的值 */
     value: T | undefined;
     /** 選項列表 */
-    options?: SelectItem<T>[];
+    options: SelectItem<T>[];
     /** 大小，預設 "sm" */
     size?: "sm" | "md";
     /** 是否撐滿容器寬度，預設 false */
@@ -16,7 +16,7 @@
     onchange?: (value: T) => void;
   };
 
-  let { value = $bindable(undefined), options = [], size = "sm", stretch = false, onchange }: Props = $props();
+  let { value = $bindable(undefined), options, size = "sm", stretch = false, onchange }: Props = $props();
 
   const ui = new Select<T>({
     onchange: (v) => onchange?.(v),
