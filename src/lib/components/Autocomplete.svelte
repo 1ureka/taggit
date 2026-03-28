@@ -82,6 +82,7 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     align-content: flex-start;
+    max-width: 100%;
   }
 
   .autocomplete {
