@@ -7,7 +7,6 @@ import { parseQueryParams } from "$lib/utils.js";
  * `GET /api/committed`
  *
  * 查詢已提交圖片，支援篩選與分頁。
- * （sort=random + limit=2 供 /compare 頁面使用）
  */
 export const GET: RequestHandler = ({ url }) => {
   const loaded = requireDatabase();
