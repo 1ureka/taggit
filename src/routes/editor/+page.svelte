@@ -11,9 +11,10 @@
   import { formatDate, formatSize } from "$lib/utils.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
+  import { List } from "$lib/virtualizer/list.svelte";
   import { EditorPage } from "./editorPage.svelte.js";
   import { EditorPreview } from "./editorPreview.svelte.js";
-  import { EditorListSelect, EditorListActions, EditorListVirtual } from "./editorList.svelte.js";
+  import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
   import { EditorFilter } from "./editorFilter.svelte.js";
 
@@ -50,14 +51,15 @@
     navigateTo: page.navigateTo,
   });
 
-  const listVirtual = new EditorListVirtual({
-    get committedFiles() {
+  const listVirtual = new List({
+    get items() {
       return data.committedFiles;
     },
     get currentIndex() {
       return page.currentIndex;
     },
     onClickItem: listSelect.handleListClick,
+    itemHeight: 72,
   });
 
   const listActions = new EditorListActions({
@@ -154,12 +156,12 @@
         </button>
       </header>
 
-      <div class="list-container" bind:this={listVirtual.scrollContainer} onscroll={listVirtual.handleListScroll}>
+      <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
         {#if data.committedFiles.length === 0}
           <div class="empty">沒有符合條件的圖片</div>
         {:else}
           <ul
-            style="height:{listVirtual.listTotalHeight}px"
+            style="height:{listVirtual.listHeight}px"
             tabindex="0"
             role="listbox"
             aria-label="圖片列表"
@@ -167,12 +169,12 @@
             onclick={listVirtual.handleListClick}
             onkeydown={listSelect.handleListKeydown}
           >
-            {#each listVirtual.listVisibleItems as item (item.id)}
+            {#each listVirtual.visibleItems as item (item.id)}
               {@const active = item.id === (data.currentRecord?.id ?? null)}
               {@const selected = page.selectedFiles.has(item.id)}
               <li
                 id="img-{item.id}"
-                style="top:{item.top}px; height:{item.height}px"
+                style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
                 class:active
                 class:selected
                 role="option"
@@ -435,6 +437,7 @@
 
     & > li {
       position: absolute;
+      top: 0;
       left: 0;
       right: 0;
     }

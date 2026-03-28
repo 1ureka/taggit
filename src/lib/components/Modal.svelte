@@ -66,5 +66,7 @@
     padding: 1.5rem;
     max-width: 28rem;
     width: 90%;
+    max-height: 80vh;
+    overflow: auto;
   }
 </style>
