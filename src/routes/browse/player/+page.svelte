@@ -16,8 +16,34 @@
   const IDLE_TIMEOUT = 2500;
   const DEBOUNCE_RESIZE = 150;
 
-  // ─── Only two pieces of Svelte reactive state: dock visibility & play icon ─
+  // ---
+
   let dockVisible = $state(true);
+
+  $effect(() => {
+    let rafId: number | null = null;
+    let lastActivityTime = 0;
+
+    function handleActivity() {
+      dockVisible = true;
+      lastActivityTime = Date.now();
+    }
+
+    function loop() {
+      if (Date.now() - lastActivityTime > IDLE_TIMEOUT) dockVisible = false;
+      rafId = requestAnimationFrame(loop);
+    }
+
+    document.addEventListener("mousemove", handleActivity);
+    rafId = requestAnimationFrame(loop);
+
+    return () => {
+      document.removeEventListener("mousemove", handleActivity);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  });
+
+  // ─── Only two pieces of Svelte reactive state: dock visibility & play icon ─
   let playing = $state(true);
   let speedDisplay = $state("1.5");
 
@@ -46,7 +72,6 @@
     let seeking = false;
     let rafId: number | null = null;
     let lastUpdateX = -Infinity;
-    let idleTimer: ReturnType<typeof setTimeout> | null = null;
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Virtualisation maps (closure-local, high-frequency mutation)
@@ -270,26 +295,6 @@
 
     carouselEl.addEventListener("click", handleCarouselClick);
 
-    // ─── Dock Auto-Hide ──────────────────────────────────────────────────
-
-    function showDock() {
-      dockVisible = true;
-    }
-
-    function resetIdleTimer() {
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        dockVisible = false;
-      }, IDLE_TIMEOUT);
-    }
-
-    function handleMousemove() {
-      showDock();
-      resetIdleTimer();
-    }
-
-    document.addEventListener("mousemove", handleMousemove);
-
     // ─── Keyboard ────────────────────────────────────────────────────────
 
     function handleKeydown(e: KeyboardEvent) {
@@ -342,7 +347,6 @@
     applyTransform();
     updateVisibleImages();
     updateProgress();
-    resetIdleTimer();
     carouselEl.focus();
     rafId = requestAnimationFrame(tick);
 
@@ -350,11 +354,9 @@
 
     return () => {
       if (rafId != null) cancelAnimationFrame(rafId);
-      if (idleTimer) clearTimeout(idleTimer);
       if (resizeTimer) clearTimeout(resizeTimer);
 
       carouselEl?.removeEventListener("click", handleCarouselClick);
-      document.removeEventListener("mousemove", handleMousemove);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("resize", handleResize);
 
