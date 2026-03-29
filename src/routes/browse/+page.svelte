@@ -47,6 +47,19 @@
   });
 
   const form = new BrowseForm();
+
+  // ---
+
+  const handleToggleLeftPanel = () => {
+    const root = document.documentElement;
+    const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
+
+    if (!Boolean(property.trim())) {
+      root.style.setProperty("--left-panel-width", "0px");
+    } else {
+      root.style.removeProperty("--left-panel-width");
+    }
+  };
 </script>
 
 <svelte:head>
@@ -68,39 +81,7 @@
   </header>
 
   <main class="slide-up">
-    <aside class="left-panel">
-      <header>
-        <div>
-          <h2>搜尋與排序</h2>
-          <p>共 {data.total} 張</p>
-        </div>
-
-        <div>
-          <FilterFields
-            bind:search={form.search}
-            bind:includedTags={form.includedTags}
-            bind:excludedTags={form.excludedTags}
-            bind:rating={form.rating}
-            bind:ratingOp={form.ratingOp}
-            bind:sort={form.sort}
-            bind:order={form.order}
-            onchangeSearch={form.handleSearchChange}
-            onchange={form.handleChange}
-          />
-        </div>
-      </header>
-
-      <footer>
-        <a class="btn-primary" href={`/browse/player${form.queryString}`}>
-          <IconPlayerPlayFilled size={16} />
-          <span>播放</span>
-        </a>
-        <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
-          <IconArrowsLeftRight size={16} />
-          <span>比較</span>
-        </a>
-      </footer>
-    </aside>
+    <div class="left-panel-spacer"></div>
 
     <div class="masonry-viewport" bind:this={masonry.viewportEl}>
       {#if data.total === 0 && !navigating.to}
@@ -120,6 +101,46 @@
         {/each}
       </div>
     </div>
+
+    <aside class="left-panel">
+      <div>
+        <header>
+          <div>
+            <h2>搜尋與排序</h2>
+            <p>共 {data.total} 張</p>
+          </div>
+
+          <div>
+            <FilterFields
+              bind:search={form.search}
+              bind:includedTags={form.includedTags}
+              bind:excludedTags={form.excludedTags}
+              bind:rating={form.rating}
+              bind:ratingOp={form.ratingOp}
+              bind:sort={form.sort}
+              bind:order={form.order}
+              onchangeSearch={form.handleSearchChange}
+              onchange={form.handleChange}
+            />
+          </div>
+        </header>
+
+        <footer>
+          <a class="btn-primary" href={`/browse/player${form.queryString}`}>
+            <IconPlayerPlayFilled size={16} />
+            <span>播放</span>
+          </a>
+          <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
+            <IconArrowsLeftRight size={16} />
+            <span>比較</span>
+          </a>
+        </footer>
+      </div>
+
+      <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
+        <div class="inverse-border"></div>
+      </button>
+    </aside>
   </main>
 </div>
 
@@ -150,6 +171,7 @@
   }
 
   main {
+    position: relative;
     display: flex;
     align-items: stretch;
     flex: 1;
@@ -158,19 +180,96 @@
 
   /* --- */
 
+  .left-panel-spacer {
+    width: var(--left-panel-width, 280px);
+  }
+
   aside.left-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    overflow: visible;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
+    transition: transform 0.15s ease-out;
+  }
+
+  aside.left-panel > button {
+    position: absolute;
+    overflow: visible;
+    top: 0;
+    left: 100%;
+    width: 32px;
+    height: 100px;
+    background-color: var(--bg-card);
+    border-bottom-right-radius: 16px;
+    border: 1px solid var(--border);
+    border-top: 0px;
+    border-left: 0px;
+
+    & > .inverse-border {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 16px;
+      /* 註1: 16px 小於 masonry 的 paddingX: 24，因此背景覆蓋不會覆蓋到圖片 */
+      /* 註2: 16px 又剛好是極限，因為 borderRadius 要是 button 寬度的一半: 16px */
+      height: 16px;
+      background-color: var(--bg-card);
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: var(--bg);
+        border-top-left-radius: 16px;
+        border: 1px solid var(--border);
+        border-bottom: 0px;
+        border-right: 0px;
+      }
+    }
+
+    display: grid;
+    place-items: center;
+
+    &::after {
+      content: "";
+      display: block;
+      width: 20%;
+      height: 60%;
+      background: var(--border);
+      border-radius: 999px;
+      transition:
+        background 0.15s,
+        transform 0.15s;
+    }
+
+    &:hover::after {
+      background: var(--border-hover);
+      scale: 1.05;
+    }
+
+    &:active::after {
+      scale: 0.95;
+    }
+  }
+
+  /* --- */
+
+  aside.left-panel > div {
     position: relative;
     overflow-y: auto;
     width: 280px;
-    background: var(--bg-card);
-    border-right: 1px solid var(--border);
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: space-between;
   }
 
-  aside.left-panel > header {
+  aside.left-panel > div > header {
     display: flex;
     flex-direction: column;
 
@@ -201,7 +300,7 @@
     }
   }
 
-  aside.left-panel > footer {
+  aside.left-panel > div > footer {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
