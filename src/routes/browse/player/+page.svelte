@@ -7,41 +7,17 @@
   import { isInEditable } from "$lib/client/dom.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/client/api.js";
+  import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
+  import { debounce } from "$lib/utils.js";
 
   let { data }: { data: PageData } = $props();
+
+  const autoHide = new PlayerAutoHide();
 
   // ─── Constants ──────────────────────────────────────────────────────────
   const BUFFER_PX = 2000;
   const UPDATE_THRESHOLD = 300;
-  const IDLE_TIMEOUT = 2500;
   const DEBOUNCE_RESIZE = 150;
-
-  // ---
-
-  let dockVisible = $state(true);
-
-  $effect(() => {
-    let rafId: number | null = null;
-    let lastActivityTime = 0;
-
-    function handleActivity() {
-      dockVisible = true;
-      lastActivityTime = Date.now();
-    }
-
-    function loop() {
-      if (Date.now() - lastActivityTime > IDLE_TIMEOUT) dockVisible = false;
-      rafId = requestAnimationFrame(loop);
-    }
-
-    document.addEventListener("mousemove", handleActivity);
-    rafId = requestAnimationFrame(loop);
-
-    return () => {
-      document.removeEventListener("mousemove", handleActivity);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
-  });
 
   // ─── Only two pieces of Svelte reactive state: dock visibility & play icon ─
   let playing = $state(true);
@@ -54,6 +30,25 @@
   let speedSliderEl: HTMLInputElement | undefined = $state();
   let playBtnEl: HTMLButtonElement | undefined = $state();
   let feedbackEl: HTMLDivElement | undefined = $state();
+
+  function buildLayout(images: ImageWithId[]) {
+    const vh = window.innerHeight;
+
+    const offsets = [];
+    const widths = [];
+
+    let x = 0;
+    for (const img of images) {
+      const ratio = img.width > 0 && img.height > 0 ? img.width / img.height : 1;
+      const w = Math.round(vh * ratio);
+      offsets.push(x);
+      widths.push(w);
+      x += w;
+    }
+
+    const stripWidth = x;
+    return { offsets, widths, stripWidth };
+  }
 
   onMount(() => {
     const images: ImageWithId[] = data.images;
@@ -72,32 +67,13 @@
     let seeking = false;
     let rafId: number | null = null;
     let lastUpdateX = -Infinity;
-    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Virtualisation maps (closure-local, high-frequency mutation)
     const renderedMap = new Map<string, { el: HTMLImageElement; left: number }>();
-    const pool = new Map<number, HTMLImageElement>();
 
-    // ─── Layout ──────────────────────────────────────────────────────────
-
-    function buildLayout() {
-      const vh = window.innerHeight;
-      offsets = [];
-      widths = [];
-      let x = 0;
-      for (const img of images) {
-        const ratio = img.width > 0 && img.height > 0 ? img.width / img.height : 1;
-        const w = Math.round(vh * ratio);
-        offsets.push(x);
-        widths.push(w);
-        x += w;
-      }
-      stripWidth = x;
-
-      // Clear all rendered elements
+    function resetView() {
       carouselEl!.innerHTML = "";
       renderedMap.clear();
-      pool.clear();
       lastUpdateX = -Infinity;
     }
 
@@ -124,16 +100,12 @@
         }
       }
 
-      // Pool unneeded elements for reuse (avoids re-decode on wrap)
-      const stale: string[] = [];
-      for (const [key] of renderedMap) {
-        if (!needed.has(key)) stale.push(key);
-      }
-      for (const key of stale) {
-        const entry = renderedMap.get(key)!;
-        const imgIdx = parseInt(key.split("_").pop()!, 10);
-        pool.set(imgIdx, entry.el);
-        renderedMap.delete(key);
+      // Remove unneeded elements
+      for (const [key, { el }] of renderedMap) {
+        if (!needed.has(key)) {
+          el.remove();
+          renderedMap.delete(key);
+        }
       }
 
       // Update existing / create new (reuse from pool when possible)
@@ -147,37 +119,26 @@
           continue;
         }
 
-        let el = pool.get(info.imgIdx);
-        if (el) {
-          pool.delete(info.imgIdx);
-        } else {
-          const img = images[info.imgIdx];
+        const img = images[info.imgIdx];
+        const el = document.createElement("img");
+        el.src = imgSrc(img.id);
+        el.alt = img.name || "";
+        el.draggable = false;
+        el.dataset.idx = String(info.imgIdx);
 
-          el = document.createElement("img");
-          el.src = imgSrc(img.id);
-          el.alt = img.name || "";
-          el.draggable = false;
-          el.dataset.idx = String(info.imgIdx);
+        el.style.cssText = blurhashStyle({
+          fit: "contain",
+          blurhash: img.blurhash,
+          width: img.width,
+          height: img.height,
+        });
 
-          el.style.cssText = blurhashStyle({
-            fit: "contain",
-            blurhash: img.blurhash,
-            width: img.width,
-            height: img.height,
-          });
-
-          el.style.width = widths[info.imgIdx] + "px";
-          carouselEl.appendChild(el);
-        }
+        el.style.width = widths[info.imgIdx] + "px";
         el.style.left = info.left + "px";
+
+        carouselEl.appendChild(el);
         renderedMap.set(key, { el, left: info.left });
       }
-
-      // Discard leftover pool elements
-      for (const [, el] of pool) {
-        el.remove();
-      }
-      pool.clear();
 
       lastUpdateX = scrollX;
     }
@@ -284,12 +245,8 @@
     }
 
     // ─── Click ───────────────────────────────────────────────────────────
-    // Only toggle play when the carousel itself already has focus.
-    // If focus was elsewhere (e.g. a dock input), the click simply
-    // transfers focus to the carousel — no play/pause change.
 
     function handleCarouselClick() {
-      if (document.activeElement !== carouselEl) return;
       togglePlay();
     }
 
@@ -313,18 +270,21 @@
 
     // ─── Resize ──────────────────────────────────────────────────────────
 
-    function handleResize() {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (images.length === 0) return;
-        const pct = stripWidth > 0 ? scrollX / stripWidth : 0;
-        buildLayout();
-        scrollX = pct * stripWidth;
-        applyTransform();
-        updateVisibleImages();
-        updateProgress();
-      }, DEBOUNCE_RESIZE);
-    }
+    const handleResize = debounce(() => {
+      if (images.length === 0) return;
+      const pct = stripWidth > 0 ? scrollX / stripWidth : 0;
+
+      const layout = buildLayout(images);
+      offsets = layout.offsets;
+      widths = layout.widths;
+      stripWidth = layout.stripWidth;
+      resetView();
+
+      scrollX = pct * stripWidth;
+      applyTransform();
+      updateVisibleImages();
+      updateProgress();
+    }, DEBOUNCE_RESIZE);
 
     window.addEventListener("resize", handleResize);
 
@@ -343,18 +303,21 @@
 
     // ─── Start! ──────────────────────────────────────────────────────────
 
-    buildLayout();
+    const layout = buildLayout(images);
+    offsets = layout.offsets;
+    widths = layout.widths;
+    stripWidth = layout.stripWidth;
+    resetView();
+
     applyTransform();
     updateVisibleImages();
     updateProgress();
-    carouselEl.focus();
     rafId = requestAnimationFrame(tick);
 
     // ─── Cleanup ─────────────────────────────────────────────────────────
 
     return () => {
       if (rafId != null) cancelAnimationFrame(rafId);
-      if (resizeTimer) clearTimeout(resizeTimer);
 
       carouselEl?.removeEventListener("click", handleCarouselClick);
       window.removeEventListener("keydown", handleKeydown);
@@ -373,8 +336,6 @@
 
       for (const [, entry] of renderedMap) entry.el.remove();
       renderedMap.clear();
-      for (const [, el] of pool) el.remove();
-      pool.clear();
     };
   });
 </script>
@@ -385,12 +346,12 @@
 
 <div class="browse-player">
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="browse-carousel" bind:this={carouselEl} tabindex="0" role="application" aria-label="圖片播放區"></div>
+  <div class="browse-carousel" bind:this={carouselEl} aria-label="圖片播放區"></div>
 
   <!-- YouTube-style play/pause feedback -->
   <div class="browse-feedback" bind:this={feedbackEl}></div>
 
-  <div class="browse-dock" class:is-hidden={!dockVisible}>
+  <div class="browse-dock" class:is-hidden={!autoHide.show}>
     <!-- Play / Pause -->
     <button class="btn-icon" bind:this={playBtnEl}>
       {#if playing}
