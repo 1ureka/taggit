@@ -7,7 +7,7 @@ import type { QueryOptions } from "$lib/types";
 /**
  * 篩選表單的互動邏輯
  */
-export class ScrollForm {
+export class BrowseForm {
   /** 搜尋關鍵字 */
   search = $state<string>("");
   /** 要包含的標籤 */
@@ -65,7 +65,7 @@ export class ScrollForm {
 
   /** 處理所有條件變更事件，除了搜尋關鍵字，立即觸發 URL 導航 */
   handleChange = () => {
-    goto(`/scroll${this.queryString}`, { replaceState: true, noScroll: true, keepFocus: true });
+    goto(`/browse${this.queryString}`, { replaceState: true, noScroll: true, keepFocus: true });
   };
 
   /** 處理搜尋關鍵字變更事件，延遲觸發 URL 導航 */

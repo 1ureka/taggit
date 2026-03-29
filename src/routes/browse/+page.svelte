@@ -10,8 +10,8 @@
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
-  import { ScrollFab } from "./scrollFab.svelte.js";
-  import { ScrollForm } from "./scrollForm.svelte.js";
+  import { BrowseFab } from "./browseFab.svelte.js";
+  import { BrowseForm } from "./browseForm.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
@@ -40,17 +40,17 @@
     masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
   });
 
-  const fab = new ScrollFab({
+  const fab = new BrowseFab({
     get viewportEl() {
       return masonry.viewportEl;
     },
   });
 
-  const form = new ScrollForm();
+  const form = new BrowseForm();
 </script>
 
 <svelte:head>
-  <title>Scroll — Image Manager</title>
+  <title>Browse — Image Manager</title>
 </svelte:head>
 
 <div class="page">

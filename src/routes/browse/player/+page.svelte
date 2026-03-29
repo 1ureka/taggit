@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
-  import { IconPlayerPause, IconPlayerPlay, IconFilter } from "@tabler/icons-svelte";
+  import { IconPlayerPause, IconPlayerPlay } from "@tabler/icons-svelte";
   import type { ImageWithId } from "$lib/types.js";
   import type { PageData } from "./$types.js";
 
@@ -28,7 +27,6 @@
   let textEl: HTMLSpanElement | undefined = $state();
   let speedSliderEl: HTMLInputElement | undefined = $state();
   let playBtnEl: HTMLButtonElement | undefined = $state();
-  let backBtnEl: HTMLButtonElement | undefined = $state();
   let feedbackEl: HTMLDivElement | undefined = $state();
 
   onMount(() => {
@@ -256,8 +254,8 @@
       speedDisplay = speed.toFixed(1);
     }
 
-    function backToFilter() {
-      goto("/browse");
+    function handleNavigateBack() {
+      history.back();
     }
 
     // ─── Click ───────────────────────────────────────────────────────────
@@ -302,7 +300,7 @@
         togglePlay();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        backToFilter();
+        handleNavigateBack();
       }
     }
 
@@ -337,9 +335,6 @@
     if (playBtnEl) {
       playBtnEl.addEventListener("click", togglePlay);
     }
-    if (backBtnEl) {
-      backBtnEl.addEventListener("click", backToFilter);
-    }
 
     // ─── Start! ──────────────────────────────────────────────────────────
 
@@ -373,9 +368,6 @@
       if (playBtnEl) {
         playBtnEl.removeEventListener("click", togglePlay);
       }
-      if (backBtnEl) {
-        backBtnEl.removeEventListener("click", backToFilter);
-      }
 
       for (const [, entry] of renderedMap) entry.el.remove();
       renderedMap.clear();
@@ -386,7 +378,7 @@
 </script>
 
 <svelte:head>
-  <title>Browse Player — Image Manager</title>
+  <title>Player — Image Manager</title>
 </svelte:head>
 
 <div class="browse-player">
@@ -418,12 +410,6 @@
       <input bind:this={speedSliderEl} id="browse-speed" type="range" min="0.2" max="6" step="0.1" value="1.5" />
       <span>{speedDisplay}</span>
     </div>
-
-    <!-- Back to Filter -->
-    <button class="btn-outlined btn-sm" bind:this={backBtnEl}>
-      <IconFilter size={16} />
-      <span>篩選</span>
-    </button>
   </div>
 </div>
 
