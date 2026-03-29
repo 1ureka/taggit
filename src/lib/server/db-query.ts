@@ -68,7 +68,7 @@ function intersectTags(jsonDB: JSONDatabase, tags: [string, ...string[]]): Set<s
   for (const t of tags) {
     const set = jsonDB.tagIndex.get(t);
     if (!set) return new Set();
-    tagSets.push(set);
+    tagSets.push(new Set(set));
   }
 
   // 以集合大小排序，先處理較小的集合可以快速縮小交集範圍
@@ -85,7 +85,7 @@ function differenceTags(jsonDB: JSONDatabase, tags: [string, ...string[]], base:
     const set = jsonDB.tagIndex.get(t);
     if (!set) continue;
 
-    base = base.difference(set);
+    base = base.difference(new Set(set));
     if (base.size === 0) break;
   }
 
