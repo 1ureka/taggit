@@ -50,6 +50,12 @@
 
   // ---
 
+  $effect(() => {
+    if (window.innerWidth < 600) {
+      document.documentElement.style.setProperty("--left-panel-width", "0px");
+    }
+  });
+
   const handleToggleLeftPanel = () => {
     const root = document.documentElement;
     const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
@@ -182,6 +188,11 @@
 
   .left-panel-spacer {
     width: var(--left-panel-width, 280px);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: 0px;
+    }
   }
 
   aside.left-panel {
@@ -191,8 +202,14 @@
     overflow: visible;
     background: var(--bg-card);
     border-right: 1px solid var(--border);
+    width: 280px;
     transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
-    transition: transform 0.15s ease-out;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: calc(100% - 32px);
+      transform: translateX(calc(-100% + var(--left-panel-width, 100%)));
+    }
   }
 
   aside.left-panel > button {
@@ -261,7 +278,7 @@
   aside.left-panel > div {
     position: relative;
     overflow-y: auto;
-    width: 280px;
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
