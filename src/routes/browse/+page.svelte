@@ -106,6 +106,17 @@
           </div>
         {/each}
       </div>
+
+      {#if fab.show}
+        <button
+          class="fab bottom-right"
+          onclick={fab.handleFabClick}
+          aria-label="回到頂部"
+          transition:fly={{ y: 16, duration: 200, opacity: 0 }}
+        >
+          <IconArrowUp size={20} />
+        </button>
+      {/if}
     </div>
 
     <aside class="left-panel">
@@ -149,17 +160,6 @@
     </aside>
   </main>
 </div>
-
-{#if fab.show}
-  <button
-    class="fab bottom-right"
-    onclick={fab.handleFabClick}
-    aria-label="回到頂部"
-    transition:fly={{ y: 16, duration: 200, opacity: 0 }}
-  >
-    <IconArrowUp size={20} />
-  </button>
-{/if}
 
 <style>
   .page {
@@ -365,7 +365,7 @@
   /* --- */
 
   .fab {
-    position: fixed;
+    position: absolute;
     width: 48px;
     height: 48px;
     border-radius: 50%;
