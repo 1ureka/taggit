@@ -20,7 +20,7 @@
     { width: 1200, cols: 4 },
     { width: 900, cols: 3 },
     { width: 600, cols: 2 },
-    { width: 0, cols: 1 },
+    { width: 0, cols: 2 },
   ];
 
   // ---
