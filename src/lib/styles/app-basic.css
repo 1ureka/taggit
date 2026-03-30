@@ -10,7 +10,9 @@
 .text-input {
   display: block;
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0px 0.75rem;
+  height: 2rem;
+  min-height: 2rem;
   font-family: var(--font);
   font-size: 0.875rem;
   color: var(--text);
@@ -21,7 +23,8 @@
   transition: border-color 0.15s;
 }
 
-.text-input:focus {
+.text-input:focus,
+.text-input:focus-visible {
   border-color: var(--border-hover);
 }
 
