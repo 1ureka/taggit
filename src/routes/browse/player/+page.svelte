@@ -31,7 +31,11 @@
   let playBtnEl: HTMLButtonElement | undefined = $state();
   let feedbackEl: HTMLDivElement | undefined = $state();
 
-  function buildLayout(images: ImageWithId[]) {
+  // ---
+
+  type CarouselLayout = { offsets: number[]; widths: number[]; stripWidth: number };
+
+  function buildLayout(images: ImageWithId[]): CarouselLayout {
     const vh = window.innerHeight;
 
     const offsets = [];
@@ -50,25 +54,20 @@
     return { offsets, widths, stripWidth };
   }
 
+  // ---
+
   onMount(() => {
     const images: ImageWithId[] = data.images;
     if (!images.length || !carouselEl) return;
 
-    // ═══════════════════════════════════════════════════════════
-    //  Pure JS state — NO $state, NO proxy, NO reactivity
-    // ═══════════════════════════════════════════════════════════
+    let layout: CarouselLayout = { offsets: [], widths: [], stripWidth: 0 };
     let scrollX = 0;
-    let stripWidth = 0;
-    let offsets: number[] = [];
-    let widths: number[] = [];
     let isPlaying = true;
     let speed = 1.5;
     let lastTime = 0;
     let seeking = false;
     let rafId: number | null = null;
     let lastUpdateX = -Infinity;
-
-    // Virtualisation maps (closure-local, high-frequency mutation)
     const renderedMap = new Map<string, { el: HTMLImageElement; left: number }>();
 
     function resetView() {
@@ -79,7 +78,7 @@
 
     // ─── Virtualisation ──────────────────────────────────────────────────
 
-    function updateVisibleImages() {
+    function updateVisibleImages({ offsets, widths, stripWidth }: CarouselLayout) {
       if (stripWidth <= 0 || images.length === 0 || !carouselEl) return;
 
       const vw = window.innerWidth;
@@ -149,7 +148,7 @@
 
     // ─── Progress ────────────────────────────────────────────────────────
 
-    function updateProgress() {
+    function updateProgress({ offsets, widths, stripWidth }: CarouselLayout) {
       if (stripWidth <= 0 || images.length === 0) return;
 
       // Update slider (0-1000) — direct DOM write
@@ -179,22 +178,22 @@
       const dt = ts - lastTime;
       lastTime = ts;
 
-      if (isPlaying && stripWidth > 0 && !seeking) {
+      if (isPlaying && layout.stripWidth > 0 && !seeking) {
         scrollX += speed * (dt / 16.667);
 
         let wrapped = false;
-        if (scrollX >= stripWidth) {
-          scrollX -= stripWidth;
+        if (scrollX >= layout.stripWidth) {
+          scrollX -= layout.stripWidth;
           wrapped = true;
         }
 
         applyTransform();
 
         if (wrapped || Math.abs(scrollX - lastUpdateX) >= UPDATE_THRESHOLD) {
-          updateVisibleImages();
+          updateVisibleImages(layout);
         }
 
-        updateProgress();
+        updateProgress(layout);
       }
 
       rafId = requestAnimationFrame(tick);
@@ -224,10 +223,10 @@
     function handleProgressInput(e: Event) {
       seeking = true;
       const pct = parseInt((e.target as HTMLInputElement).value, 10) / 1000;
-      scrollX = pct * stripWidth;
+      scrollX = pct * layout.stripWidth;
       applyTransform();
-      updateVisibleImages();
-      updateProgress();
+      updateVisibleImages(layout);
+      updateProgress(layout);
     }
 
     function handleProgressChange() {
@@ -272,18 +271,15 @@
 
     const handleResize = debounce(() => {
       if (images.length === 0) return;
-      const pct = stripWidth > 0 ? scrollX / stripWidth : 0;
+      const pct = layout.stripWidth > 0 ? scrollX / layout.stripWidth : 0;
 
-      const layout = buildLayout(images);
-      offsets = layout.offsets;
-      widths = layout.widths;
-      stripWidth = layout.stripWidth;
+      layout = buildLayout(images);
       resetView();
 
-      scrollX = pct * stripWidth;
+      scrollX = pct * layout.stripWidth;
       applyTransform();
-      updateVisibleImages();
-      updateProgress();
+      updateVisibleImages(layout);
+      updateProgress(layout);
     }, DEBOUNCE_RESIZE);
 
     window.addEventListener("resize", handleResize);
@@ -303,15 +299,12 @@
 
     // ─── Start! ──────────────────────────────────────────────────────────
 
-    const layout = buildLayout(images);
-    offsets = layout.offsets;
-    widths = layout.widths;
-    stripWidth = layout.stripWidth;
+    layout = buildLayout(images);
     resetView();
 
     applyTransform();
-    updateVisibleImages();
-    updateProgress();
+    updateVisibleImages(layout);
+    updateProgress(layout);
     rafId = requestAnimationFrame(tick);
 
     // ─── Cleanup ─────────────────────────────────────────────────────────
