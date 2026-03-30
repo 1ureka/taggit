@@ -25,68 +25,58 @@
 
 <svelte:window onkeydown={shuffle.handleWindowKeydown} />
 
-<div class="page">
-  <header class="page-header">
-    <button type="button" class="btn-ghost btn-sm" onclick={handleBack}>
-      <IconArrowLeft size={16} />
-      <span>上一頁</span>
-    </button>
+<header class="page-header">
+  <button type="button" class="btn-ghost btn-sm" onclick={handleBack}>
+    <IconArrowLeft size={16} />
+    <span>上一頁</span>
+  </button>
 
-    <h1 class="page-header-title">比較圖片</h1>
+  <h1 class="page-header-title">比較圖片</h1>
 
-    <small>共 {data.total} 張</small>
-  </header>
+  <small>共 {data.total} 張</small>
+</header>
 
-  <main class="defer-dim slide-up" class:pending={shuffle.pending}>
-    {#if data.pairs.length < 2}
-      {#if !shuffle.pending}
-        <p>篩選條件下的圖片不足兩張</p>
-      {/if}
-    {:else}
-      {#each data.pairs as image (image.id)}
-        <a class="card" href="/editor?currentId={encodeURIComponent(image.id)}" title="在管理圖片中開啟">
-          <div class="card-image">
-            {#key image.id}
-              {@const blurhash = image.blurhash}
-              {@const width = image.width}
-              {@const height = image.height}
-              {@const style = blurhashStyle({ fit: "contain", blurhash, width, height })}
-              <img src={imgSrc(image.id)} {style} alt={image.name || image.id} draggable="false" />
-            {/key}
-          </div>
-
-          <div class="card-info">
-            <Rating readonly value={image.rating ?? 0} size="0.875rem" />
-            <Tags tags={image.tags} />
-          </div>
-        </a>
-      {/each}
+<main class="defer-dim slide-up" class:pending={shuffle.pending}>
+  {#if data.pairs.length < 2}
+    {#if !shuffle.pending}
+      <p>篩選條件下的圖片不足兩張</p>
     {/if}
-  </main>
+  {:else}
+    {#each data.pairs as image (image.id)}
+      <a class="card" href="/editor?currentId={encodeURIComponent(image.id)}" title="在管理圖片中開啟">
+        <div class="card-image">
+          {#key image.id}
+            {@const blurhash = image.blurhash}
+            {@const width = image.width}
+            {@const height = image.height}
+            {@const style = blurhashStyle({ fit: "contain", blurhash, width, height })}
+            <img src={imgSrc(image.id)} {style} alt={image.name || image.id} draggable="false" />
+          {/key}
+        </div>
 
-  <footer>
-    <button
-      type="button"
-      class="btn-primary"
-      class:pending={shuffle.pending}
-      onclick={shuffle.handleShuffleClick}
-      disabled={shuffle.pending}
-    >
-      <IconArrowsShuffle size={18} />
-      <span>換一組</span><span class="kbd">Space</span>
-    </button>
-  </footer>
-</div>
+        <div class="card-info">
+          <Rating readonly value={image.rating ?? 0} size="0.875rem" />
+          <Tags tags={image.tags} />
+        </div>
+      </a>
+    {/each}
+  {/if}
+</main>
+
+<footer>
+  <button
+    type="button"
+    class="btn-primary"
+    class:pending={shuffle.pending}
+    onclick={shuffle.handleShuffleClick}
+    disabled={shuffle.pending}
+  >
+    <IconArrowsShuffle size={18} />
+    <span>換一組</span><span class="kbd">Space</span>
+  </button>
+</footer>
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-
-  /* --- */
-
   header > small {
     font-size: 0.75rem;
     font-family: var(--font-mono);
