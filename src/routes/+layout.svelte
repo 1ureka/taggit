@@ -13,16 +13,16 @@
 
 {@render children()}
 
-<Toast />
 <ConfirmModal />
+<Toast />
 
 <style>
   :global(body) {
     display: flex;
     flex-direction: column;
-    min-width: var(--min-page-width, auto);
-    height: 100dvh;
     align-items: stretch;
-    overflow: hidden;
+    height: 100dvh;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 </style>

@@ -282,12 +282,6 @@
 </main>
 
 <style>
-  :global(body) {
-    --min-page-width: 860px;
-  }
-
-  /* --- */
-
   .progress-container {
     display: flex;
     align-items: center;
@@ -325,6 +319,7 @@
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 860px;
   }
 
   aside header {

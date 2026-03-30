@@ -346,14 +346,11 @@
 </Modal>
 
 <style>
-  :global(body) {
-    --min-page-width: 860px;
-  }
-
   main {
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 860px;
   }
 
   aside header {
