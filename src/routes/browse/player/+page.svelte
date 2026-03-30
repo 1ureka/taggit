@@ -7,17 +7,19 @@
   import { isInEditable } from "$lib/client/dom.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/client/api.js";
+  import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
+  import { debounce } from "$lib/utils.js";
 
   let { data }: { data: PageData } = $props();
+
+  const autoHide = new PlayerAutoHide();
 
   // ─── Constants ──────────────────────────────────────────────────────────
   const BUFFER_PX = 2000;
   const UPDATE_THRESHOLD = 300;
-  const IDLE_TIMEOUT = 2500;
   const DEBOUNCE_RESIZE = 150;
 
   // ─── Only two pieces of Svelte reactive state: dock visibility & play icon ─
-  let dockVisible = $state(true);
   let playing = $state(true);
   let speedDisplay = $state("1.5");
 
@@ -29,56 +31,54 @@
   let playBtnEl: HTMLButtonElement | undefined = $state();
   let feedbackEl: HTMLDivElement | undefined = $state();
 
+  // ---
+
+  type CarouselLayout = { offsets: number[]; widths: number[]; stripWidth: number };
+
+  function buildLayout(images: ImageWithId[]): CarouselLayout {
+    const vh = window.innerHeight;
+
+    const offsets = [];
+    const widths = [];
+
+    let x = 0;
+    for (const img of images) {
+      const ratio = img.width > 0 && img.height > 0 ? img.width / img.height : 1;
+      const w = Math.round(vh * ratio);
+      offsets.push(x);
+      widths.push(w);
+      x += w;
+    }
+
+    const stripWidth = x;
+    return { offsets, widths, stripWidth };
+  }
+
+  // ---
+
   onMount(() => {
     const images: ImageWithId[] = data.images;
     if (!images.length || !carouselEl) return;
 
-    // ═══════════════════════════════════════════════════════════
-    //  Pure JS state — NO $state, NO proxy, NO reactivity
-    // ═══════════════════════════════════════════════════════════
+    let layout: CarouselLayout = { offsets: [], widths: [], stripWidth: 0 };
     let scrollX = 0;
-    let stripWidth = 0;
-    let offsets: number[] = [];
-    let widths: number[] = [];
     let isPlaying = true;
     let speed = 1.5;
     let lastTime = 0;
     let seeking = false;
     let rafId: number | null = null;
     let lastUpdateX = -Infinity;
-    let idleTimer: ReturnType<typeof setTimeout> | null = null;
-    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
-
-    // Virtualisation maps (closure-local, high-frequency mutation)
     const renderedMap = new Map<string, { el: HTMLImageElement; left: number }>();
-    const pool = new Map<number, HTMLImageElement>();
 
-    // ─── Layout ──────────────────────────────────────────────────────────
-
-    function buildLayout() {
-      const vh = window.innerHeight;
-      offsets = [];
-      widths = [];
-      let x = 0;
-      for (const img of images) {
-        const ratio = img.width > 0 && img.height > 0 ? img.width / img.height : 1;
-        const w = Math.round(vh * ratio);
-        offsets.push(x);
-        widths.push(w);
-        x += w;
-      }
-      stripWidth = x;
-
-      // Clear all rendered elements
+    function resetView() {
       carouselEl!.innerHTML = "";
       renderedMap.clear();
-      pool.clear();
       lastUpdateX = -Infinity;
     }
 
     // ─── Virtualisation ──────────────────────────────────────────────────
 
-    function updateVisibleImages() {
+    function updateVisibleImages({ offsets, widths, stripWidth }: CarouselLayout) {
       if (stripWidth <= 0 || images.length === 0 || !carouselEl) return;
 
       const vw = window.innerWidth;
@@ -99,16 +99,12 @@
         }
       }
 
-      // Pool unneeded elements for reuse (avoids re-decode on wrap)
-      const stale: string[] = [];
-      for (const [key] of renderedMap) {
-        if (!needed.has(key)) stale.push(key);
-      }
-      for (const key of stale) {
-        const entry = renderedMap.get(key)!;
-        const imgIdx = parseInt(key.split("_").pop()!, 10);
-        pool.set(imgIdx, entry.el);
-        renderedMap.delete(key);
+      // Remove unneeded elements
+      for (const [key, { el }] of renderedMap) {
+        if (!needed.has(key)) {
+          el.remove();
+          renderedMap.delete(key);
+        }
       }
 
       // Update existing / create new (reuse from pool when possible)
@@ -122,37 +118,26 @@
           continue;
         }
 
-        let el = pool.get(info.imgIdx);
-        if (el) {
-          pool.delete(info.imgIdx);
-        } else {
-          const img = images[info.imgIdx];
+        const img = images[info.imgIdx];
+        const el = document.createElement("img");
+        el.src = imgSrc(img.id);
+        el.alt = img.name || "";
+        el.draggable = false;
+        el.dataset.idx = String(info.imgIdx);
 
-          el = document.createElement("img");
-          el.src = imgSrc(img.id);
-          el.alt = img.name || "";
-          el.draggable = false;
-          el.dataset.idx = String(info.imgIdx);
+        el.style.cssText = blurhashStyle({
+          fit: "contain",
+          blurhash: img.blurhash,
+          width: img.width,
+          height: img.height,
+        });
 
-          el.style.cssText = blurhashStyle({
-            fit: "contain",
-            blurhash: img.blurhash,
-            width: img.width,
-            height: img.height,
-          });
-
-          el.style.width = widths[info.imgIdx] + "px";
-          carouselEl.appendChild(el);
-        }
+        el.style.width = widths[info.imgIdx] + "px";
         el.style.left = info.left + "px";
+
+        carouselEl.appendChild(el);
         renderedMap.set(key, { el, left: info.left });
       }
-
-      // Discard leftover pool elements
-      for (const [, el] of pool) {
-        el.remove();
-      }
-      pool.clear();
 
       lastUpdateX = scrollX;
     }
@@ -163,7 +148,7 @@
 
     // ─── Progress ────────────────────────────────────────────────────────
 
-    function updateProgress() {
+    function updateProgress({ offsets, widths, stripWidth }: CarouselLayout) {
       if (stripWidth <= 0 || images.length === 0) return;
 
       // Update slider (0-1000) — direct DOM write
@@ -193,22 +178,22 @@
       const dt = ts - lastTime;
       lastTime = ts;
 
-      if (isPlaying && stripWidth > 0 && !seeking) {
+      if (isPlaying && layout.stripWidth > 0 && !seeking) {
         scrollX += speed * (dt / 16.667);
 
         let wrapped = false;
-        if (scrollX >= stripWidth) {
-          scrollX -= stripWidth;
+        if (scrollX >= layout.stripWidth) {
+          scrollX -= layout.stripWidth;
           wrapped = true;
         }
 
         applyTransform();
 
         if (wrapped || Math.abs(scrollX - lastUpdateX) >= UPDATE_THRESHOLD) {
-          updateVisibleImages();
+          updateVisibleImages(layout);
         }
 
-        updateProgress();
+        updateProgress(layout);
       }
 
       rafId = requestAnimationFrame(tick);
@@ -238,10 +223,10 @@
     function handleProgressInput(e: Event) {
       seeking = true;
       const pct = parseInt((e.target as HTMLInputElement).value, 10) / 1000;
-      scrollX = pct * stripWidth;
+      scrollX = pct * layout.stripWidth;
       applyTransform();
-      updateVisibleImages();
-      updateProgress();
+      updateVisibleImages(layout);
+      updateProgress(layout);
     }
 
     function handleProgressChange() {
@@ -259,36 +244,12 @@
     }
 
     // ─── Click ───────────────────────────────────────────────────────────
-    // Only toggle play when the carousel itself already has focus.
-    // If focus was elsewhere (e.g. a dock input), the click simply
-    // transfers focus to the carousel — no play/pause change.
 
     function handleCarouselClick() {
-      if (document.activeElement !== carouselEl) return;
       togglePlay();
     }
 
     carouselEl.addEventListener("click", handleCarouselClick);
-
-    // ─── Dock Auto-Hide ──────────────────────────────────────────────────
-
-    function showDock() {
-      dockVisible = true;
-    }
-
-    function resetIdleTimer() {
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        dockVisible = false;
-      }, IDLE_TIMEOUT);
-    }
-
-    function handleMousemove() {
-      showDock();
-      resetIdleTimer();
-    }
-
-    document.addEventListener("mousemove", handleMousemove);
 
     // ─── Keyboard ────────────────────────────────────────────────────────
 
@@ -308,18 +269,18 @@
 
     // ─── Resize ──────────────────────────────────────────────────────────
 
-    function handleResize() {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (images.length === 0) return;
-        const pct = stripWidth > 0 ? scrollX / stripWidth : 0;
-        buildLayout();
-        scrollX = pct * stripWidth;
-        applyTransform();
-        updateVisibleImages();
-        updateProgress();
-      }, DEBOUNCE_RESIZE);
-    }
+    const handleResize = debounce(() => {
+      if (images.length === 0) return;
+      const pct = layout.stripWidth > 0 ? scrollX / layout.stripWidth : 0;
+
+      layout = buildLayout(images);
+      resetView();
+
+      scrollX = pct * layout.stripWidth;
+      applyTransform();
+      updateVisibleImages(layout);
+      updateProgress(layout);
+    }, DEBOUNCE_RESIZE);
 
     window.addEventListener("resize", handleResize);
 
@@ -338,23 +299,20 @@
 
     // ─── Start! ──────────────────────────────────────────────────────────
 
-    buildLayout();
+    layout = buildLayout(images);
+    resetView();
+
     applyTransform();
-    updateVisibleImages();
-    updateProgress();
-    resetIdleTimer();
-    carouselEl.focus();
+    updateVisibleImages(layout);
+    updateProgress(layout);
     rafId = requestAnimationFrame(tick);
 
     // ─── Cleanup ─────────────────────────────────────────────────────────
 
     return () => {
       if (rafId != null) cancelAnimationFrame(rafId);
-      if (idleTimer) clearTimeout(idleTimer);
-      if (resizeTimer) clearTimeout(resizeTimer);
 
       carouselEl?.removeEventListener("click", handleCarouselClick);
-      document.removeEventListener("mousemove", handleMousemove);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("resize", handleResize);
 
@@ -371,8 +329,6 @@
 
       for (const [, entry] of renderedMap) entry.el.remove();
       renderedMap.clear();
-      for (const [, el] of pool) el.remove();
-      pool.clear();
     };
   });
 </script>
@@ -383,12 +339,12 @@
 
 <div class="browse-player">
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="browse-carousel" bind:this={carouselEl} tabindex="0" role="application" aria-label="圖片播放區"></div>
+  <div class="browse-carousel" bind:this={carouselEl} aria-label="圖片播放區"></div>
 
   <!-- YouTube-style play/pause feedback -->
   <div class="browse-feedback" bind:this={feedbackEl}></div>
 
-  <div class="browse-dock" class:is-hidden={!dockVisible}>
+  <div class="browse-dock" class:is-hidden={!autoHide.show}>
     <!-- Play / Pause -->
     <button class="btn-icon" bind:this={playBtnEl}>
       {#if playing}

@@ -1,7 +1,4 @@
-/* ── Import ── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@200..900&family=Comfortaa:wght@300..700&family=JetBrains+Mono:wght@100..800&display=swap");
 @import "./app-basic.css";
 @import "./app-button.css";
 
@@ -42,9 +39,8 @@
   --color-success: #22c55e;
   --ring: #d4d4d8;
   --radius: 6px;
-  --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --z-dock: 15;
   --z-modal: 20;
   --z-popover: 25;
 }
@@ -83,10 +79,6 @@ button {
   background: none;
 }
 
-figure {
-  margin: 0;
-}
-
 /* ── Custom Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
@@ -122,15 +114,6 @@ figure {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -142,35 +125,8 @@ figure {
   }
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* ── Utility classes ── */
-.fade-in {
-  animation: fadeIn 0.2s ease-out both;
-}
 .slide-up {
   animation: slideUp 0.3s ease-out both;
-}
-.scale-in {
-  animation: scaleIn 0.2s ease-out both;
 }
 
 /* ── Deferred dimming utility ── */
