@@ -118,13 +118,6 @@
   </a>
 
   <h1 class="page-header-title">新增圖片</h1>
-
-  <div class="progress-container">
-    <div class="progress-bar">
-      <div class="progress-bar-fill" style="width:{progress.progressPct}%"></div>
-    </div>
-    <span class="progress-text">{progress.progressLabel}</span>
-  </div>
 </header>
 
 <main>
@@ -182,6 +175,13 @@
         </ul>
       {/if}
     </div>
+
+    <section aria-label="當前進度">
+      <div class="progress-bar">
+        <div style="width:{progress.progressPct}%"></div>
+      </div>
+      <span class="progress-text">{progress.progressLabel}</span>
+    </section>
 
     <footer>
       <label class="btn-outlined" class:pending={listActions.pending}>
@@ -282,39 +282,6 @@
 </main>
 
 <style>
-  .progress-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    max-width: 24rem;
-  }
-
-  .progress-bar {
-    width: 100%;
-    height: 4px;
-    background: var(--bg-active);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-
-  .progress-text {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    min-width: 3.5rem;
-    text-align: right;
-  }
-
-  /* --- */
-
   main {
     display: flex;
     flex: 1;
@@ -338,6 +305,7 @@
     width: 280px;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     border-right: 1px solid var(--border);
     background: var(--bg-card);
     overflow: hidden;
@@ -372,6 +340,38 @@
     & > label:has(:focus-visible) {
       outline: 2px solid hsl(from var(--ring) h s l / 0.2);
       outline-offset: -2px;
+    }
+  }
+
+  .left-panel > section[aria-label="當前進度"] {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    height: 2.5rem;
+    padding: 0px 0.75rem;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+
+    & > .progress-bar {
+      height: 4px;
+      background: var(--bg-active);
+      border-radius: 2px;
+      overflow: hidden;
+
+      & > div {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    & > .progress-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-align: right;
     }
   }
 
