@@ -52,7 +52,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px) brightness(0.75);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -61,7 +61,7 @@
 
   .modal {
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: calc(var(--radius) * 2);
     padding: 1.5rem;
     max-width: 28rem;
