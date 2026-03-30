@@ -80,10 +80,6 @@
     </a>
 
     <h1 class="page-header-title">瀏覽圖片</h1>
-
-    <div>
-      <Select bind:value={masonry.columns} options={columnOptions} />
-    </div>
   </header>
 
   <main class="slide-up">
@@ -120,27 +116,32 @@
     </div>
 
     <aside class="left-panel">
-      <div>
+      <div class="left-panel-viewport">
         <header>
-          <div>
-            <h2>搜尋與排序</h2>
-            <p>共 {data.total} 張</p>
-          </div>
-
-          <div>
-            <FilterFields
-              bind:search={form.search}
-              bind:includedTags={form.includedTags}
-              bind:excludedTags={form.excludedTags}
-              bind:rating={form.rating}
-              bind:ratingOp={form.ratingOp}
-              bind:sort={form.sort}
-              bind:order={form.order}
-              onchangeSearch={form.handleSearchChange}
-              onchange={form.handleChange}
-            />
-          </div>
+          <h2>探索與靈感</h2>
+          <p>共 {data.total} 張</p>
         </header>
+
+        <div>
+          <FilterFields
+            bind:search={form.search}
+            bind:includedTags={form.includedTags}
+            bind:excludedTags={form.excludedTags}
+            bind:rating={form.rating}
+            bind:ratingOp={form.ratingOp}
+            bind:sort={form.sort}
+            bind:order={form.order}
+            onchangeSearch={form.handleSearchChange}
+            onchange={form.handleChange}
+          />
+        </div>
+
+        <div>
+          <label class="field-row">
+            <span class="field-label">圖片牆欄位</span>
+            <Select stretch size="md" bind:value={masonry.columns} options={columnOptions} />
+          </label>
+        </div>
 
         <footer>
           <a class="btn-primary" href={`/browse/player${form.queryString}`}>
@@ -168,12 +169,6 @@
     height: 100vh;
     align-items: stretch;
     overflow: hidden;
-  }
-
-  /* --- */
-
-  header.page-header > h1 + div {
-    margin-left: auto;
   }
 
   main {
@@ -275,7 +270,7 @@
 
   /* --- */
 
-  aside.left-panel > div {
+  .left-panel-viewport {
     position: relative;
     overflow-y: auto;
     width: 100%;
@@ -283,41 +278,52 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: space-between;
   }
 
-  aside.left-panel > div > header {
+  .left-panel-viewport > header {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0px 0.75rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom-right-radius: 16px;
+    background: var(--bg);
 
-    & > div:has(h2) {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      padding: 0px 0.75rem;
-      height: 2.5rem;
-      border-bottom: 1px solid var(--border);
-
-      & > h2 {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--text-muted);
-      }
-
-      & > p {
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
-        color: var(--text-dim);
-      }
+    & > h2 {
+      font-size: 0.8125rem;
+      font-weight: normal;
     }
 
-    & > div:not(:has(h2)) {
-      padding: 0.75rem;
+    & > p {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
     }
   }
 
-  aside.left-panel > div > footer {
+  .left-panel-viewport > div {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+
+    & > .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    & > .field-row > .field-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+  }
+
+  .left-panel-viewport > footer {
+    margin-top: auto;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
