@@ -72,105 +72,95 @@
   <title>Browse — Image Manager</title>
 </svelte:head>
 
-<div class="page">
-  <header class="page-header">
-    <a href="/" class="btn-ghost btn-sm">
-      <IconArrowLeft size={16} />
-      <span>首頁</span>
-    </a>
+<header class="page-header">
+  <a href="/" class="btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    <span>首頁</span>
+  </a>
 
-    <h1 class="page-header-title">瀏覽圖片</h1>
-  </header>
+  <h1 class="page-header-title">瀏覽圖片</h1>
+</header>
 
-  <main class="slide-up">
-    <div class="left-panel-spacer"></div>
+<main class="slide-up">
+  <div class="left-panel-spacer"></div>
 
-    <div class="masonry-viewport" bind:this={masonry.viewportEl}>
-      {#if data.total === 0 && !navigating.to}
-        <p>找不到符合的圖片</p>
-      {/if}
+  <div class="masonry-viewport" bind:this={masonry.viewportEl}>
+    {#if data.total === 0 && !navigating.to}
+      <p>找不到符合的圖片</p>
+    {/if}
 
-      <div class="masonry" style:height="{masonry.masonryHeight}px">
-        {#each masonry.masonryItems as item (item.id)}
-          <div class="masonry-item" style={item.style}>
-            <img
-              src={imgSrc(item.id, "md")}
-              style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-              alt={item.name || item.id}
-              loading="lazy"
-            />
-          </div>
-        {/each}
-      </div>
-
-      {#if fab.show}
-        <button
-          class="fab bottom-right"
-          onclick={fab.handleFabClick}
-          aria-label="回到頂部"
-          transition:fly={{ y: 16, duration: 200, opacity: 0 }}
-        >
-          <IconArrowUp size={20} />
-        </button>
-      {/if}
-    </div>
-
-    <aside class="left-panel">
-      <div class="left-panel-viewport">
-        <header>
-          <h2>探索與靈感</h2>
-          <p>共 {data.total} 張</p>
-        </header>
-
-        <div>
-          <FilterFields
-            bind:search={form.search}
-            bind:includedTags={form.includedTags}
-            bind:excludedTags={form.excludedTags}
-            bind:rating={form.rating}
-            bind:ratingOp={form.ratingOp}
-            bind:sort={form.sort}
-            bind:order={form.order}
-            onchangeSearch={form.handleSearchChange}
-            onchange={form.handleChange}
+    <div class="masonry" style:height="{masonry.masonryHeight}px">
+      {#each masonry.masonryItems as item (item.id)}
+        <div class="masonry-item" style={item.style}>
+          <img
+            src={imgSrc(item.id, "md")}
+            style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
+            alt={item.name || item.id}
+            loading="lazy"
           />
         </div>
+      {/each}
+    </div>
 
-        <div>
-          <label class="field-row">
-            <span class="field-label">圖片牆欄位</span>
-            <Select stretch size="md" bind:value={masonry.columns} options={columnOptions} />
-          </label>
-        </div>
+    {#if fab.show}
+      <button
+        class="fab bottom-right"
+        onclick={fab.handleFabClick}
+        aria-label="回到頂部"
+        transition:fly={{ y: 16, duration: 200, opacity: 0 }}
+      >
+        <IconArrowUp size={20} />
+      </button>
+    {/if}
+  </div>
 
-        <footer>
-          <a class="btn-primary" href={`/browse/player${form.queryString}`}>
-            <IconPlayerPlayFilled size={16} />
-            <span>播放</span>
-          </a>
-          <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
-            <IconArrowsLeftRight size={16} />
-            <span>比較</span>
-          </a>
-        </footer>
+  <aside class="left-panel">
+    <div class="left-panel-viewport">
+      <header>
+        <h2>探索與靈感</h2>
+        <p>共 {data.total} 張</p>
+      </header>
+
+      <div>
+        <FilterFields
+          bind:search={form.search}
+          bind:includedTags={form.includedTags}
+          bind:excludedTags={form.excludedTags}
+          bind:rating={form.rating}
+          bind:ratingOp={form.ratingOp}
+          bind:sort={form.sort}
+          bind:order={form.order}
+          onchangeSearch={form.handleSearchChange}
+          onchange={form.handleChange}
+        />
       </div>
 
-      <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
-        <div class="inverse-border"></div>
-      </button>
-    </aside>
-  </main>
-</div>
+      <div>
+        <label class="field-row">
+          <span class="field-label">圖片牆欄位</span>
+          <Select stretch size="md" bind:value={masonry.columns} options={columnOptions} />
+        </label>
+      </div>
+
+      <footer>
+        <a class="btn-primary" href={`/browse/player${form.queryString}`}>
+          <IconPlayerPlayFilled size={16} />
+          <span>播放</span>
+        </a>
+        <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
+          <IconArrowsLeftRight size={16} />
+          <span>比較</span>
+        </a>
+      </footer>
+    </div>
+
+    <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
+      <div class="inverse-border"></div>
+    </button>
+  </aside>
+</main>
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    align-items: stretch;
-    overflow: hidden;
-  }
-
   main {
     position: relative;
     display: flex;

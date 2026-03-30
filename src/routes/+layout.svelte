@@ -11,6 +11,18 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<Toast />
-<ConfirmModal />
 {@render children()}
+
+<ConfirmModal />
+<Toast />
+
+<style>
+  :global(body) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: 100dvh;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+</style>

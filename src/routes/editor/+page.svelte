@@ -122,202 +122,200 @@
   onkeydown={form.handleWindowKeydown}
 />
 
-<div class="page">
-  <header class="page-header">
-    <a href="/" class="btn-ghost btn-sm">
-      <IconArrowLeft size={16} />
-      <span>首頁</span>
-    </a>
+<header class="page-header">
+  <a href="/" class="btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    <span>首頁</span>
+  </a>
 
-    <h1 class="page-header-title">管理圖片</h1>
-  </header>
+  <h1 class="page-header-title">管理圖片</h1>
+</header>
 
-  <main>
-    <aside class="left-panel">
-      <header>
-        <div>
-          <h2>圖片列表</h2>
-          {#if listSelect.countLabel}
-            <span class="badge">{listSelect.countLabel}</span>
-          {/if}
-          {#if listSelect.selectedLabel}
-            <span class="badge">{listSelect.selectedLabel}</span>
-          {/if}
-        </div>
-
-        <button
-          class="btn-icon"
-          class:pending={page.pending}
-          title="重新載入列表"
-          onclick={listActions.handleRefreshClick}
-          disabled={page.pending}
-        >
-          <IconRefresh size={14} />
-        </button>
-      </header>
-
-      <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
-        {#if data.committedFiles.length === 0}
-          <div class="empty">沒有符合條件的圖片</div>
-        {:else}
-          <ul
-            style="height:{listVirtual.listHeight}px"
-            tabindex="0"
-            role="listbox"
-            aria-label="圖片列表"
-            aria-activedescendant={data.currentRecord ? `img-${data.currentRecord.id}` : undefined}
-            onclick={listVirtual.handleListClick}
-            onkeydown={listSelect.handleListKeydown}
-          >
-            {#each listVirtual.visibleItems as item (item.id)}
-              {@const active = item.id === (data.currentRecord?.id ?? null)}
-              {@const selected = page.selectedFiles.has(item.id)}
-              <li
-                id="img-{item.id}"
-                style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
-                class:active
-                class:selected
-                role="option"
-                aria-selected={selected}
-              >
-                <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" />
-                <div class="list-item-info">
-                  <span class="ellipsis">{item.name}</span>
-                  <span class="ellipsis">{item.id}</span>
-                </div>
-              </li>
-            {/each}
-          </ul>
+<main>
+  <aside class="left-panel">
+    <header>
+      <div>
+        <h2>圖片列表</h2>
+        {#if listSelect.countLabel}
+          <span class="badge">{listSelect.countLabel}</span>
+        {/if}
+        {#if listSelect.selectedLabel}
+          <span class="badge">{listSelect.selectedLabel}</span>
         {/if}
       </div>
 
+      <button
+        class="btn-icon"
+        class:pending={page.pending}
+        title="重新載入列表"
+        onclick={listActions.handleRefreshClick}
+        disabled={page.pending}
+      >
+        <IconRefresh size={14} />
+      </button>
+    </header>
+
+    <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
+      {#if data.committedFiles.length === 0}
+        <div class="empty">沒有符合條件的圖片</div>
+      {:else}
+        <ul
+          style="height:{listVirtual.listHeight}px"
+          tabindex="0"
+          role="listbox"
+          aria-label="圖片列表"
+          aria-activedescendant={data.currentRecord ? `img-${data.currentRecord.id}` : undefined}
+          onclick={listVirtual.handleListClick}
+          onkeydown={listSelect.handleListKeydown}
+        >
+          {#each listVirtual.visibleItems as item (item.id)}
+            {@const active = item.id === (data.currentRecord?.id ?? null)}
+            {@const selected = page.selectedFiles.has(item.id)}
+            <li
+              id="img-{item.id}"
+              style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
+              class:active
+              class:selected
+              role="option"
+              aria-selected={selected}
+            >
+              <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" />
+              <div class="list-item-info">
+                <span class="ellipsis">{item.name}</span>
+                <span class="ellipsis">{item.id}</span>
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+
+    <footer>
+      <button class="btn-outlined" onclick={filter.handleOpenClick}>
+        <IconFilter size={14} />
+        <span>篩選</span>
+      </button>
+    </footer>
+  </aside>
+
+  <figure>
+    {#if data.currentRecord}
+      <div
+        class="preview-container"
+        class:dragging={zp.isDragging}
+        onwheel={zp.handleContainerWheel}
+        onmousedown={zp.handleContainerMousedown}
+        ondblclick={zp.handleContainerReset}
+        onkeydown={zp.handleContainerKeydown}
+        tabindex="0"
+        role="button"
+        aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
+      >
+        {#key data.currentRecord.id}
+          <img
+            src={preview.previewSrc}
+            alt={data.currentRecord.name}
+            draggable="false"
+            style={`transform:${zp.transform};${preview.previewStyle}`}
+          />
+        {/key}
+      </div>
+    {:else}
+      <div class="preview-container">
+        <div class="empty">使用篩選條件搜尋圖片或在側邊欄選擇圖片</div>
+      </div>
+    {/if}
+
+    <figcaption>
+      {data.currentRecord?.name || "未選取任何圖片"}
+    </figcaption>
+  </figure>
+
+  <aside class="right-panel">
+    <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+      <header>
+        <h2>編輯屬性</h2>
+        <button class="btn-icon" type="reset" title="重置所有欄位">
+          <IconArrowBackUp size={18} />
+        </button>
+      </header>
+
+      <div class="form-fields">
+        <div class="field-rating">
+          <Rating name="rating" bind:value={form.rating} size="1.5rem" onchange={form.handleFieldChange} />
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="field-name">
+          <label for="editor-name">名稱</label>
+          <input
+            id="editor-name"
+            class="text-input"
+            type="text"
+            placeholder="圖片名稱..."
+            bind:value={form.name}
+            disabled={form.nameDisabled}
+            oninput={form.handleFieldChange}
+          />
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="field-tags">
+          <Autocomplete
+            bind:tags={form.tags}
+            variant="top"
+            placeholder="輸入標籤..."
+            onchange={form.handleFieldChange}
+          />
+        </div>
+      </div>
+
       <footer>
-        <button class="btn-outlined" onclick={filter.handleOpenClick}>
-          <IconFilter size={14} />
-          <span>篩選</span>
+        <button
+          class="btn-primary"
+          type="submit"
+          name="intent"
+          value="save"
+          class:pending={page.pending}
+          disabled={form.saveDisabled}
+        >
+          <IconCheck size={16} />
+          <span>存檔<kbd>Ctrl + S</kbd></span>
+        </button>
+        <button
+          class="btn-destructive"
+          type="submit"
+          name="intent"
+          value="delete"
+          class:pending={page.pending}
+          disabled={form.deleteDisabled}
+        >
+          <IconTrash size={16} />
+          <span>刪除<kbd>Ctrl + D</kbd></span>
         </button>
       </footer>
-    </aside>
+    </form>
 
-    <figure>
-      {#if data.currentRecord}
-        <div
-          class="preview-container"
-          class:dragging={zp.isDragging}
-          onwheel={zp.handleContainerWheel}
-          onmousedown={zp.handleContainerMousedown}
-          ondblclick={zp.handleContainerReset}
-          onkeydown={zp.handleContainerKeydown}
-          tabindex="0"
-          role="button"
-          aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
-        >
-          {#key data.currentRecord.id}
-            <img
-              src={preview.previewSrc}
-              alt={data.currentRecord.name}
-              draggable="false"
-              style={`transform:${zp.transform};${preview.previewStyle}`}
-            />
-          {/key}
-        </div>
-      {:else}
-        <div class="preview-container">
-          <div class="empty">使用篩選條件搜尋圖片或在側邊欄選擇圖片</div>
-        </div>
-      {/if}
+    {#if data.currentRecord}
+      {@const committedAt = data.currentRecord.committedAt}
+      {@const fileSize = data.currentRecord.fileSize}
+      <dl>
+        <dt>提交時間</dt>
+        <dd class="ellipsis">{committedAt ? formatDate(committedAt) : "—"}</dd>
 
-      <figcaption>
-        {data.currentRecord?.name || "未選取任何圖片"}
-      </figcaption>
-    </figure>
+        <dt>檔案大小</dt>
+        <dd class="ellipsis">{fileSize ? formatSize(fileSize) : "—"}</dd>
 
-    <aside class="right-panel">
-      <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
-        <header>
-          <h2>編輯屬性</h2>
-          <button class="btn-icon" type="reset" title="重置所有欄位">
-            <IconArrowBackUp size={18} />
-          </button>
-        </header>
-
-        <div class="form-fields">
-          <div class="field-rating">
-            <Rating name="rating" bind:value={form.rating} size="1.5rem" onchange={form.handleFieldChange} />
-          </div>
-
-          <div class="separator"></div>
-
-          <div class="field-name">
-            <label for="editor-name">名稱</label>
-            <input
-              id="editor-name"
-              class="text-input"
-              type="text"
-              placeholder="圖片名稱..."
-              bind:value={form.name}
-              disabled={form.nameDisabled}
-              oninput={form.handleFieldChange}
-            />
-          </div>
-
-          <div class="separator"></div>
-
-          <div class="field-tags">
-            <Autocomplete
-              bind:tags={form.tags}
-              variant="top"
-              placeholder="輸入標籤..."
-              onchange={form.handleFieldChange}
-            />
-          </div>
-        </div>
-
-        <footer>
-          <button
-            class="btn-primary"
-            type="submit"
-            name="intent"
-            value="save"
-            class:pending={page.pending}
-            disabled={form.saveDisabled}
-          >
-            <IconCheck size={16} />
-            <span>存檔<kbd>Ctrl + S</kbd></span>
-          </button>
-          <button
-            class="btn-destructive"
-            type="submit"
-            name="intent"
-            value="delete"
-            class:pending={page.pending}
-            disabled={form.deleteDisabled}
-          >
-            <IconTrash size={16} />
-            <span>刪除<kbd>Ctrl + D</kbd></span>
-          </button>
-        </footer>
-      </form>
-
-      {#if data.currentRecord}
-        {@const committedAt = data.currentRecord.committedAt}
-        {@const fileSize = data.currentRecord.fileSize}
-        <dl>
-          <dt>提交時間</dt>
-          <dd class="ellipsis">{committedAt ? formatDate(committedAt) : "—"}</dd>
-
-          <dt>檔案大小</dt>
-          <dd class="ellipsis">{fileSize ? formatSize(fileSize) : "—"}</dd>
-
-          {#if data.currentRecord.width && data.currentRecord.height}
-            <dt>解析度</dt>
-            <dd class="ellipsis">{data.currentRecord.width} × {data.currentRecord.height}</dd>
-          {/if}
-        </dl>
-      {/if}
-    </aside>
-  </main>
-</div>
+        {#if data.currentRecord.width && data.currentRecord.height}
+          <dt>解析度</dt>
+          <dd class="ellipsis">{data.currentRecord.width} × {data.currentRecord.height}</dd>
+        {/if}
+      </dl>
+    {/if}
+  </aside>
+</main>
 
 <Modal bind:open={filter.open} onclose={filter.handleClose} label="篩選條件">
   <form onsubmit={filter.handleFilterSubmit} onreset={filter.handleFilterReset}>
@@ -348,20 +346,11 @@
 </Modal>
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    min-width: 860px;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* --- */
-
   main {
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 860px;
   }
 
   aside header {

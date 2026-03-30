@@ -111,226 +111,182 @@
   onkeydown={form.handleWindowKeydown}
 />
 
-<div class="page">
-  <header class="page-header">
-    <a href="/" class="btn-ghost btn-sm">
-      <IconArrowLeft size={16} />
-      <span>首頁</span>
-    </a>
+<header class="page-header">
+  <a href="/" class="btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    <span>首頁</span>
+  </a>
 
-    <h1 class="page-header-title">新增圖片</h1>
+  <h1 class="page-header-title">新增圖片</h1>
+</header>
 
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div class="progress-bar-fill" style="width:{progress.progressPct}%"></div>
-      </div>
-      <span class="progress-text">{progress.progressLabel}</span>
-    </div>
-  </header>
-
-  <main>
-    <aside class="left-panel">
-      <header>
-        <div>
-          <h2>待審查列表</h2>
-          {#if listSelect.countLabel}
-            <span class="badge">{listSelect.countLabel}</span>
-          {/if}
-          {#if listSelect.selectedLabel}
-            <span class="badge">{listSelect.selectedLabel}</span>
-          {/if}
-        </div>
-
-        <button
-          class="btn-icon"
-          class:pending={listActions.pending}
-          title="重新掃描待審查資料夾"
-          onclick={listActions.handleRefreshClick}
-          disabled={listActions.pending}
-        >
-          <IconRefresh size={14} />
-        </button>
-      </header>
-
-      <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
-        {#if data.stagedFiles.length === 0}
-          <div class="empty">沒有待審查的圖片</div>
-        {:else}
-          <ul
-            style="height:{listVirtual.listHeight}px"
-            tabindex="0"
-            role="listbox"
-            aria-label="待審查圖片列表"
-            aria-activedescendant={page.currentFile ? `staged-${page.currentFile}` : undefined}
-            onclick={listVirtual.handleListClick}
-            onkeydown={listSelect.handleListKeydown}
-          >
-            {#each listVirtual.visibleItems as item (item.filename)}
-              {@const active = item.filename === page.currentFile}
-              {@const selected = page.selectedFiles.has(item.filename)}
-              <li
-                id="staged-{item.filename}"
-                style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
-                class:active
-                class:selected
-                role="option"
-                aria-selected={selected}
-              >
-                <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
-                <span class="ellipsis">{item.filename}</span>
-              </li>
-            {/each}
-          </ul>
+<main>
+  <aside class="left-panel">
+    <header>
+      <div>
+        <h2>待審查列表</h2>
+        {#if listSelect.countLabel}
+          <span class="badge">{listSelect.countLabel}</span>
+        {/if}
+        {#if listSelect.selectedLabel}
+          <span class="badge">{listSelect.selectedLabel}</span>
         {/if}
       </div>
 
-      <footer>
-        <label class="btn-outlined" class:pending={listActions.pending}>
-          <IconUpload size={14} />
-          <span>加入圖片</span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            class="visually-hidden"
-            onchange={listActions.handleUploadChange}
-            disabled={listActions.pending}
-          />
-        </label>
-      </footer>
-    </aside>
+      <button
+        class="btn-icon"
+        class:pending={listActions.pending}
+        title="重新掃描待審查資料夾"
+        onclick={listActions.handleRefreshClick}
+        disabled={listActions.pending}
+      >
+        <IconRefresh size={14} />
+      </button>
+    </header>
 
-    <figure>
-      {#if page.currentFile}
-        <div
-          class="preview-container"
-          class:dragging={zp.isDragging}
-          class:loading={preview.imageLoading}
-          onwheel={zp.handleContainerWheel}
-          onmousedown={zp.handleContainerMousedown}
-          ondblclick={zp.handleContainerReset}
-          onkeydown={zp.handleContainerKeydown}
-          tabindex="0"
-          role="button"
-          aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
-        >
-          <img
-            src={preview.previewSrc}
-            alt={page.currentFile}
-            draggable="false"
-            style="transform:{zp.transform}"
-            onload={preview.handleImageLoad}
-          />
-        </div>
+    <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
+      {#if data.stagedFiles.length === 0}
+        <div class="empty">沒有待審查的圖片</div>
       {:else}
-        <div class="preview-container">
-          <div class="empty">上傳新圖片或在側邊欄選擇圖片</div>
-        </div>
+        <ul
+          style="height:{listVirtual.listHeight}px"
+          tabindex="0"
+          role="listbox"
+          aria-label="待審查圖片列表"
+          aria-activedescendant={page.currentFile ? `staged-${page.currentFile}` : undefined}
+          onclick={listVirtual.handleListClick}
+          onkeydown={listSelect.handleListKeydown}
+        >
+          {#each listVirtual.visibleItems as item (item.filename)}
+            {@const active = item.filename === page.currentFile}
+            {@const selected = page.selectedFiles.has(item.filename)}
+            <li
+              id="staged-{item.filename}"
+              style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
+              class:active
+              class:selected
+              role="option"
+              aria-selected={selected}
+            >
+              <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
+              <span class="ellipsis">{item.filename}</span>
+            </li>
+          {/each}
+        </ul>
       {/if}
+    </div>
 
-      <figcaption>
-        {page.currentFile || "未選取任何圖片"}
-      </figcaption>
-    </figure>
+    <section aria-label="當前進度">
+      <div class="progress-bar">
+        <div style="width:{progress.progressPct}%"></div>
+      </div>
+      <span class="progress-text">{progress.progressLabel}</span>
+    </section>
 
-    <aside class="right-panel">
-      <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
-        <header>
-          <h2>編輯屬性</h2>
-          <button class="btn-icon" type="reset" title="重置所有欄位">
-            <IconArrowBackUp size={18} />
-          </button>
-        </header>
+    <footer>
+      <label class="btn-outlined" class:pending={listActions.pending}>
+        <IconUpload size={14} />
+        <span>加入圖片</span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          class="visually-hidden"
+          onchange={listActions.handleUploadChange}
+          disabled={listActions.pending}
+        />
+      </label>
+    </footer>
+  </aside>
 
-        <div class="form-fields">
-          <div class="field-rating">
-            <Rating name="rating" bind:value={form.rating} size="1.5rem" />
-          </div>
+  <figure>
+    {#if page.currentFile}
+      <div
+        class="preview-container"
+        class:dragging={zp.isDragging}
+        class:loading={preview.imageLoading}
+        onwheel={zp.handleContainerWheel}
+        onmousedown={zp.handleContainerMousedown}
+        ondblclick={zp.handleContainerReset}
+        onkeydown={zp.handleContainerKeydown}
+        tabindex="0"
+        role="button"
+        aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
+      >
+        <img
+          src={preview.previewSrc}
+          alt={page.currentFile}
+          draggable="false"
+          style="transform:{zp.transform}"
+          onload={preview.handleImageLoad}
+        />
+      </div>
+    {:else}
+      <div class="preview-container">
+        <div class="empty">上傳新圖片或在側邊欄選擇圖片</div>
+      </div>
+    {/if}
 
-          <div class="separator"></div>
+    <figcaption>
+      {page.currentFile || "未選取任何圖片"}
+    </figcaption>
+  </figure>
 
-          <div class="field-tags">
-            <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
-          </div>
+  <aside class="right-panel">
+    <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+      <header>
+        <h2>編輯屬性</h2>
+        <button class="btn-icon" type="reset" title="重置所有欄位">
+          <IconArrowBackUp size={18} />
+        </button>
+      </header>
+
+      <div class="form-fields">
+        <div class="field-rating">
+          <Rating name="rating" bind:value={form.rating} size="1.5rem" />
         </div>
 
-        <footer>
-          <button
-            class="btn-primary"
-            type="submit"
-            name="intent"
-            value="commit"
-            class:pending={form.pending}
-            disabled={form.pending}
-          >
-            <IconCheck size={16} />
-            <span>提交<kbd>Ctrl + S</kbd></span>
-          </button>
-          <button
-            class="btn-destructive"
-            type="submit"
-            name="intent"
-            value="delete"
-            class:pending={form.pending}
-            disabled={form.pending}
-          >
-            <IconTrash size={16} />
-            <span>刪除<kbd>Ctrl + D</kbd></span>
-          </button>
-        </footer>
-      </form>
-    </aside>
-  </main>
-</div>
+        <div class="separator"></div>
+
+        <div class="field-tags">
+          <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+        </div>
+      </div>
+
+      <footer>
+        <button
+          class="btn-primary"
+          type="submit"
+          name="intent"
+          value="commit"
+          class:pending={form.pending}
+          disabled={form.pending}
+        >
+          <IconCheck size={16} />
+          <span>提交<kbd>Ctrl + S</kbd></span>
+        </button>
+        <button
+          class="btn-destructive"
+          type="submit"
+          name="intent"
+          value="delete"
+          class:pending={form.pending}
+          disabled={form.pending}
+        >
+          <IconTrash size={16} />
+          <span>刪除<kbd>Ctrl + D</kbd></span>
+        </button>
+      </footer>
+    </form>
+  </aside>
+</main>
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    min-width: 860px;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* --- */
-
-  .progress-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    max-width: 24rem;
-  }
-
-  .progress-bar {
-    width: 100%;
-    height: 4px;
-    background: var(--bg-active);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-
-  .progress-text {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    min-width: 3.5rem;
-    text-align: right;
-  }
-
-  /* --- */
-
   main {
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 860px;
   }
 
   aside header {
@@ -349,6 +305,7 @@
     width: 280px;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     border-right: 1px solid var(--border);
     background: var(--bg-card);
     overflow: hidden;
@@ -383,6 +340,38 @@
     & > label:has(:focus-visible) {
       outline: 2px solid hsl(from var(--ring) h s l / 0.2);
       outline-offset: -2px;
+    }
+  }
+
+  .left-panel > section[aria-label="當前進度"] {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    height: 2.5rem;
+    padding: 0px 0.75rem;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+
+    & > .progress-bar {
+      height: 4px;
+      background: var(--bg-active);
+      border-radius: 2px;
+      overflow: hidden;
+
+      & > div {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    & > .progress-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-align: right;
     }
   }
 

@@ -15,59 +15,51 @@
   <title>Settings — Image Manager</title>
 </svelte:head>
 
-<div class="page">
-  <header class="page-header">
-    <a href="/" class="btn-ghost btn-sm">
-      <IconArrowLeft size={16} />
-      <span>首頁</span>
-    </a>
-    <span class="page-header-title">設定</span>
-  </header>
+<header class="page-header">
+  <a href="/" class="btn-ghost btn-sm">
+    <IconArrowLeft size={16} />
+    <span>首頁</span>
+  </a>
+  <span class="page-header-title">設定</span>
+</header>
 
-  <div class="layout">
-    <SettingsNav collectionRoot={data.collectionRoot} />
+<div class="layout">
+  <SettingsNav collectionRoot={data.collectionRoot} />
 
-    <main id="settings-main">
-      <div class="slide-up">
-        <section id="section-collection">
-          <h2 class="title">圖片集路徑</h2>
-          <p class="desc">設定圖片集的根目錄。此路徑下會自動建立 <code>images/</code> 子目錄：</p>
-          <SettingsCollection collectionRoot={data.collectionRoot} />
+  <main id="settings-main">
+    <div class="slide-up">
+      <section id="section-collection">
+        <h2 class="title">圖片集路徑</h2>
+        <p class="desc">設定圖片集的根目錄。此路徑下會自動建立 <code>images/</code> 子目錄：</p>
+        <SettingsCollection collectionRoot={data.collectionRoot} />
+      </section>
+
+      {#if data.collectionRoot}
+        <section id="section-tags">
+          <h2 class="title">標籤管理</h2>
+          <p class="desc">
+            將某個標籤全域重命名為另一個名稱。若某張圖片已同時擁有新舊兩個標籤，重命名後舊標籤會直接移除，不會產生重複。
+          </p>
+          <SettingsTagRename />
         </section>
 
-        {#if data.collectionRoot}
-          <section id="section-tags">
-            <h2 class="title">標籤管理</h2>
-            <p class="desc">
-              將某個標籤全域重命名為另一個名稱。若某張圖片已同時擁有新舊兩個標籤，重命名後舊標籤會直接移除，不會產生重複。
-            </p>
-            <SettingsTagRename />
-          </section>
+        <section id="section-images">
+          <h2 class="title">圖片與快取</h2>
+          <p class="desc">管理圖片處理快取與檢查資料完整性。</p>
+          <SettingsImages cacheStats={data.cacheStats} />
+        </section>
 
-          <section id="section-images">
-            <h2 class="title">圖片與快取</h2>
-            <p class="desc">管理圖片處理快取與檢查資料完整性。</p>
-            <SettingsImages cacheStats={data.cacheStats} />
-          </section>
-
-          <section id="section-maintenance">
-            <h2 class="title">系統維護</h2>
-            <p class="desc">提供資料完整性檢查與維護工具，確保檔案系統與資料庫之間的一致性。</p>
-            <SettingsMaintenance />
-          </section>
-        {/if}
-      </div>
-    </main>
-  </div>
+        <section id="section-maintenance">
+          <h2 class="title">系統維護</h2>
+          <p class="desc">提供資料完整性檢查與維護工具，確保檔案系統與資料庫之間的一致性。</p>
+          <SettingsMaintenance />
+        </section>
+      {/if}
+    </div>
+  </main>
 </div>
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-
   .layout {
     display: flex;
     flex: 1;
