@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-  <title>{page.status} — Image Manager</title>
+  <title>{page.status} — Taggit</title>
 </svelte:head>
 
 <div class="error-container slide-up">

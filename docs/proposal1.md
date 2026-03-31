@@ -118,10 +118,6 @@ featureC.svelte.ts         ← 邏輯 class C（一個檔案可含多個 class�
   const form = new TaggerForm({ /* ... */ });
 </script>
 
-<svelte:head>
-  <title>Tagger — Image Manager</title>
-</svelte:head>
-
 <!-- 完整的頁面結構一覽無遺 -->
 <div class="page">
   <header class="page-header">

@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-  <title>Settings — Image Manager</title>
+  <title>設定 — Taggit</title>
 </svelte:head>
 
 <div class="layout">

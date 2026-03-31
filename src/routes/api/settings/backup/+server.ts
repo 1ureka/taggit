@@ -51,7 +51,7 @@ export const POST: RequestHandler = () => {
   // ---
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const zipPath = path.join(os.tmpdir(), `image-manager-backup-${timestamp}.zip`);
+  const zipPath = path.join(os.tmpdir(), `taggit-backup-${timestamp}.zip`);
 
   try {
     pack({ ...paths, zip: zipPath });

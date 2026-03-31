@@ -334,7 +334,7 @@
 </script>
 
 <svelte:head>
-  <title>Player — Image Manager</title>
+  <title>播放器 — Taggit</title>
 </svelte:head>
 
 <div class="browse-player">

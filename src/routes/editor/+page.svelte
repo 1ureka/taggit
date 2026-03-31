@@ -113,7 +113,7 @@
 </script>
 
 <svelte:head>
-  <title>Editor — Image Manager</title>
+  <title>管理圖片 — Taggit</title>
 </svelte:head>
 
 <svelte:window

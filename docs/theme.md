@@ -1,4 +1,4 @@
-# Theme System — Image Manager
+# Theme System
 
 > 本文件記錄當前主題系統的架構、設計決策與遷移方向，供未來 AI Agent 或開發者快速掌握。
 
