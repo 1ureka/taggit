@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { fade, scale } from "svelte/transition";
+  import { fade, fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { Modal } from "$lib/ui/modal.svelte.js";
 
@@ -13,9 +13,21 @@
     children: Snippet;
     /** Modal 標籤，用於輔助技術描述對話框內容 */
     label?: string;
+    /** Modal 樣式 */
+    style?: string;
+    /** Modal transition，用於自訂過渡效果 */
+    transition?: "scale" | "fly";
   };
 
-  let { open = $bindable(), onclose, children, label = "對話框" }: Props = $props();
+  let { open = $bindable(), onclose, children, label = "對話框", style, transition = "scale" }: Props = $props();
+
+  /** 用於避免重複寫 transition 的包裝 */
+  function dynamicTransition(node: HTMLElement, options: { type: "scale" | "fly" }) {
+    if (options.type === "scale") {
+      return scale(node, { duration: 200, start: 0.95, easing: cubicOut });
+    }
+    return fly(node, { duration: 200, y: -35, easing: cubicOut });
+  }
 
   const ui = new Modal({
     get open() {
@@ -41,7 +53,8 @@
       aria-modal="true"
       aria-label={label}
       bind:this={ui.dialogEl}
-      transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
+      transition:dynamicTransition={{ type: transition }}
+      {style}
     >
       {@render children()}
     </div>
@@ -53,9 +66,8 @@
     position: fixed;
     inset: 0;
     backdrop-filter: blur(3px) brightness(0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     z-index: var(--z-modal);
   }
 
