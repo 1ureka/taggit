@@ -161,28 +161,7 @@
   background: rgba(0, 0, 0, 0.45);
   border-radius: 50%;
   pointer-events: none;
-  opacity: 0;
-  scale: 0.6;
   z-index: 250;
-}
-
-.browse-feedback.is-animating {
-  animation: feedback-pop 0.55s ease-out forwards;
-}
-
-@keyframes feedback-pop {
-  0% {
-    opacity: 0.9;
-    scale: 0.6;
-  }
-  30% {
-    opacity: 0.9;
-    scale: 1;
-  }
-  100% {
-    opacity: 0;
-    scale: 1.35;
-  }
 }
 
 /* ─── Loading Overlay ──────────────────────────────────────────────────────── */
