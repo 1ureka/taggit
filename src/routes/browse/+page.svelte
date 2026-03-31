@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { navigating } from "$app/state";
-  import { IconArrowUp, IconArrowLeft, IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
+  import { IconArrowUp, IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import Select from "$lib/components/Select.svelte";
@@ -69,17 +69,8 @@
 </script>
 
 <svelte:head>
-  <title>Browse — Image Manager</title>
+  <title>Taggit</title>
 </svelte:head>
-
-<header class="page-header">
-  <a href="/" class="btn-ghost btn-sm">
-    <IconArrowLeft size={16} />
-    <span>首頁</span>
-  </a>
-
-  <h1 class="page-header-title">瀏覽圖片</h1>
-</header>
 
 <main class="slide-up">
   <div class="left-panel-spacer"></div>

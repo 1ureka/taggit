@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { IconArrowLeft } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import SettingsNav from "./SettingsNav.svelte";
@@ -14,14 +13,6 @@
 <svelte:head>
   <title>Settings — Image Manager</title>
 </svelte:head>
-
-<header class="page-header">
-  <a href="/" class="btn-ghost btn-sm">
-    <IconArrowLeft size={16} />
-    <span>首頁</span>
-  </a>
-  <span class="page-header-title">設定</span>
-</header>
 
 <div class="layout">
   <SettingsNav collectionRoot={data.collectionRoot} />

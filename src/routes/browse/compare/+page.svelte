@@ -1,20 +1,14 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import { IconArrowLeft, IconArrowsShuffle } from "@tabler/icons-svelte";
+  import { IconArrowsShuffle } from "@tabler/icons-svelte";
 
   import Rating from "$lib/components/Rating.svelte";
   import Tags from "$lib/components/Tags.svelte";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/client/api.js";
-
   import { CompareShuffle } from "./compareShuffle.svelte.js";
 
   let { data }: { data: PageData } = $props();
-
-  const handleBack = (e: MouseEvent) => {
-    e.preventDefault();
-    history.back();
-  };
 
   const shuffle = new CompareShuffle();
 </script>
@@ -24,17 +18,6 @@
 </svelte:head>
 
 <svelte:window onkeydown={shuffle.handleWindowKeydown} />
-
-<header class="page-header">
-  <button type="button" class="btn-ghost btn-sm" onclick={handleBack}>
-    <IconArrowLeft size={16} />
-    <span>上一頁</span>
-  </button>
-
-  <h1 class="page-header-title">比較圖片</h1>
-
-  <small>共 {data.total} 張</small>
-</header>
 
 <main class="defer-dim slide-up" class:pending={shuffle.pending}>
   {#if data.pairs.length < 2}
@@ -64,6 +47,8 @@
 </main>
 
 <footer>
+  <span></span>
+
   <button
     type="button"
     class="btn-primary"
@@ -74,19 +59,11 @@
     <IconArrowsShuffle size={18} />
     <span>換一組</span><span class="kbd">Space</span>
   </button>
+
+  <small>共 {data.total} 張</small>
 </footer>
 
 <style>
-  header > small {
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
-    color: var(--text-dim);
-    white-space: nowrap;
-    margin-left: auto;
-  }
-
-  /* --- */
-
   main {
     display: flex;
     gap: 1rem 0.5rem;
@@ -151,9 +128,19 @@
 
   footer {
     display: grid;
+    grid-template-columns: 1fr auto 1fr;
     place-items: center;
     height: 3rem;
     background: var(--bg-card);
     border-top: 1px solid var(--border);
+
+    & > small {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      white-space: nowrap;
+      margin-left: auto;
+      padding-right: 1.5rem;
+    }
   }
 </style>
