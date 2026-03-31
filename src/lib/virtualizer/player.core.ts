@@ -193,6 +193,9 @@ export class PlayerEngine<T extends ItemWithSize> {
     if (this.cameraX >= this.layout.stripWidth) {
       this.cameraX -= this.layout.stripWidth;
       this.cameraXLastComputed = -Infinity;
+    } else if (this.cameraX < 0) {
+      this.cameraX += this.layout.stripWidth;
+      this.cameraXLastComputed = -Infinity;
     }
 
     // 閾值交叉，標記是否需要重新計算可見項目

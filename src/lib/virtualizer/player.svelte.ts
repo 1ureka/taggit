@@ -110,9 +110,16 @@ export class Player<T extends ItemWithSize> {
 
   /** 速度滑桿 input 事件 */
   handleSpeedInput = (e: Event) => {
-    const v = parseFloat((e.currentTarget as HTMLInputElement).value) || 1.5;
-    this.speed = v;
-    this.#engine?.setSpeed(v);
+    const rawValue = (e.currentTarget as HTMLInputElement).value;
+    const v = parseFloat(rawValue);
+
+    if (!isNaN(v)) {
+      this.speed = v;
+      this.#engine?.setSpeed(v);
+    } else {
+      this.speed = 1.5;
+      this.#engine?.setSpeed(1.5);
+    }
   };
 
   /** 全域鍵盤事件 */

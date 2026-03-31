@@ -106,9 +106,9 @@
       <input
         id="speed-input"
         type="range"
-        min="0.2"
+        min="-6"
         max="6"
-        step="0.1"
+        step="0.5"
         value={player.speed}
         oninput={player.handleSpeedInput}
       />
