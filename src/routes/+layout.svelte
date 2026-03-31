@@ -17,7 +17,7 @@
   /** 導航項目 */
   const navItems = [
     {
-      href: "/browse",
+      href: "/",
       Icon: IconPhotoFilled,
       name: "瀏覽圖片",
       desc: "以瀑布流、播放器、隨機抽選等多種方式探索已提交的圖片",
@@ -57,7 +57,7 @@
     const path = page.url.pathname;
 
     // if (path === "#tags") return "探索標籤"; WIP
-    if (path === "/browse") return "正在 探索圖片";
+    if (path === "/") return "正在 探索圖片";
     if (path === "/browse/compare") return "正在 比較圖片";
     if (path === "/tagger") return "正在 審查圖片";
     if (path === "/settings") return "正在 調整設定";
@@ -79,7 +79,7 @@
     const path = page.url.pathname;
 
     // if (path === "#tags") return "#tags"; WIP
-    if (path === "/browse" || path === "/browse/compare" || path === "/browse/player") return "/browse";
+    if (path === "/" || path === "/browse/compare" || path === "/browse/player") return "/";
     if (path === "/tagger") return "/tagger";
     if (path === "/editor") return "/editor";
     if (path === "/settings") return "/settings";
@@ -168,8 +168,7 @@
     flex-direction: column;
     align-items: stretch;
     height: 100dvh;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
   }
 
   header:has(h1) {
