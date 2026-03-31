@@ -5,10 +5,10 @@
 
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
+  import ImageList from "$lib/components/ImageList.svelte";
   import { imgSrc } from "$lib/client/api.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
-  import { List } from "$lib/virtualizer/list.svelte";
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
   import { TaggerPreview } from "./taggerPreview.svelte.js";
@@ -16,6 +16,10 @@
   import { TaggerForm } from "./taggerForm.svelte.js";
 
   let { data }: { data: PageData } = $props();
+
+  const stagedFileList = $derived(
+    data.stagedFiles.map((filename) => ({ id: filename, name: filename, imgSrc: imgSrc(filename, "sm") })),
+  );
 
   // ---
 
@@ -57,19 +61,6 @@
     set selectedFiles(v) {
       page.selectedFiles = v;
     },
-  });
-
-  const listVirtual = new List({
-    get items() {
-      return data.stagedFiles.map((name) => ({ filename: name }));
-    },
-    get currentIndex() {
-      return page.currentIndex;
-    },
-    onClickItem: ({ filename }, mode) => {
-      listSelect.handleListClick(filename, mode);
-    },
-    itemHeight: 72,
   });
 
   const listActions = new TaggerListActions();
@@ -135,37 +126,15 @@
       </button>
     </header>
 
-    <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
-      {#if data.stagedFiles.length === 0}
-        <div class="empty">沒有待審查的圖片</div>
-      {:else}
-        <ul
-          style="height:{listVirtual.listHeight}px"
-          tabindex="0"
-          role="listbox"
-          aria-label="待審查圖片列表"
-          aria-activedescendant={page.currentFile ? `staged-${page.currentFile}` : undefined}
-          onclick={listVirtual.handleListClick}
-          onkeydown={listSelect.handleListKeydown}
-        >
-          {#each listVirtual.visibleItems as item (item.filename)}
-            {@const active = item.filename === page.currentFile}
-            {@const selected = page.selectedFiles.has(item.filename)}
-            <li
-              id="staged-{item.filename}"
-              style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
-              class:active
-              class:selected
-              role="option"
-              aria-selected={selected}
-            >
-              <img src={imgSrc(item.filename, "sm")} alt={item.filename} loading="lazy" />
-              <span class="ellipsis">{item.filename}</span>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </div>
+    <ImageList
+      items={stagedFileList}
+      currentIndex={page.currentIndex}
+      selectedIds={page.selectedFiles}
+      emptyLabel="沒有待審查的圖片"
+      listLabel="待審查圖片列表"
+      onKeydown={listSelect.handleListKeydown}
+      onClickItem={listSelect.handleListClick}
+    />
 
     <section aria-label="當前進度">
       <div class="progress-bar">
@@ -364,82 +333,6 @@
       color: var(--text-muted);
       white-space: nowrap;
       text-align: right;
-    }
-  }
-
-  .left-panel > .list-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    & > .empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-size: 0.875rem;
-      color: var(--text-dim);
-    }
-
-    &:has(:focus-visible) {
-      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
-      outline-offset: -2px;
-    }
-  }
-
-  .left-panel > .list-container > ul {
-    position: relative;
-
-    & > li {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-    }
-
-    &:focus-visible {
-      outline: none;
-    }
-  }
-
-  .left-panel > .list-container > ul > li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.5rem;
-    border-left: 3px solid transparent;
-    background: transparent;
-    user-select: none;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--bg-hover);
-    }
-
-    &.selected {
-      background: var(--bg-active);
-      border-left-color: var(--text-dim);
-    }
-
-    &.active {
-      background: var(--bg-active);
-      border-left-color: var(--accent);
-    }
-
-    & > img {
-      width: auto;
-      height: 60px;
-      max-width: 80px;
-      object-fit: cover;
-      border-radius: 4px;
-      background: var(--bg);
-      flex-shrink: 0;
-    }
-
-    & > span {
-      flex: 1;
-      font-size: 0.6875rem;
-      color: var(--text-muted);
     }
   }
 

@@ -87,7 +87,7 @@ export class TaggerListSelect {
   // ---
 
   /** 處理列表項目點擊事件，根據模式執行對應的選取行為 */
-  handleListClick = (filename: string, mode: "single" | "ctrl" | "shift") => {
+  handleListClick = ({ name: filename }: { name: string }, mode: "single" | "ctrl" | "shift") => {
     if (mode === "single") this.#selectSingle(filename);
     else if (mode === "ctrl") this.#selectCtrl(filename);
     else this.#selectShift(filename);
