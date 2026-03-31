@@ -108,6 +108,7 @@ export class Autocomplete {
 
   /** 處理 input 失焦事件：關閉下拉選單 */
   handleInputBlur = () => {
+    this.#addTag(this.inputValue); // 嘗試將輸入框內容作為標籤加入（如果有的話）
     this.#closeDropdown();
   };
 

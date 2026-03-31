@@ -7,11 +7,11 @@
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
+  import ImageList from "$lib/components/ImageList.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
   import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
-  import { List } from "$lib/virtualizer/list.svelte";
   import { EditorPage } from "./editorPage.svelte.js";
   import { EditorPreview } from "./editorPreview.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
@@ -20,13 +20,16 @@
 
   let { data }: { data: PageData } = $props();
 
+  const committedFileIds = $derived(data.committedFiles.map(({ id }) => id));
+  const committedFileList = $derived(data.committedFiles.map((item) => ({ ...item, imgSrc: imgSrc(item.id, "sm") })));
+
   // ---
 
   const zp = new ZoomPan();
 
   const page = new EditorPage({
     get imageIds() {
-      return data.committedFiles.map(({ id }) => id);
+      return committedFileIds;
     },
     get currentRecord() {
       return data.currentRecord;
@@ -37,7 +40,7 @@
 
   const listSelect = new EditorListSelect({
     get imageIds() {
-      return data.committedFiles.map(({ id }) => id);
+      return committedFileIds;
     },
     get currentIndex() {
       return page.currentIndex;
@@ -49,17 +52,6 @@
       page.selectedFiles = v;
     },
     navigateTo: page.navigateTo,
-  });
-
-  const listVirtual = new List({
-    get items() {
-      return data.committedFiles;
-    },
-    get currentIndex() {
-      return page.currentIndex;
-    },
-    onClickItem: listSelect.handleListClick,
-    itemHeight: 72,
   });
 
   const listActions = new EditorListActions({
@@ -113,7 +105,7 @@
 </script>
 
 <svelte:head>
-  <title>Editor — Image Manager</title>
+  <title>管理圖片 — Taggit</title>
 </svelte:head>
 
 <svelte:window
@@ -126,7 +118,7 @@
   <aside class="left-panel">
     <header>
       <div>
-        <h2>圖片列表</h2>
+        <h2>已提交圖片列表</h2>
         {#if listSelect.countLabel}
           <span class="badge">{listSelect.countLabel}</span>
         {/if}
@@ -146,40 +138,15 @@
       </button>
     </header>
 
-    <div class="list-container" bind:this={listVirtual.viewportEl} onscroll={listVirtual.handleListScroll}>
-      {#if data.committedFiles.length === 0}
-        <div class="empty">沒有符合條件的圖片</div>
-      {:else}
-        <ul
-          style="height:{listVirtual.listHeight}px"
-          tabindex="0"
-          role="listbox"
-          aria-label="圖片列表"
-          aria-activedescendant={data.currentRecord ? `img-${data.currentRecord.id}` : undefined}
-          onclick={listVirtual.handleListClick}
-          onkeydown={listSelect.handleListKeydown}
-        >
-          {#each listVirtual.visibleItems as item (item.id)}
-            {@const active = item.id === (data.currentRecord?.id ?? null)}
-            {@const selected = page.selectedFiles.has(item.id)}
-            <li
-              id="img-{item.id}"
-              style="height:{item.height}px; transform: translate3d(0, {item.top}px, 0)"
-              class:active
-              class:selected
-              role="option"
-              aria-selected={selected}
-            >
-              <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" />
-              <div class="list-item-info">
-                <span class="ellipsis">{item.name}</span>
-                <span class="ellipsis">{item.id}</span>
-              </div>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </div>
+    <ImageList
+      items={committedFileList}
+      currentIndex={page.currentIndex}
+      selectedIds={page.selectedFiles}
+      emptyLabel="沒有符合條件的圖片"
+      listLabel="已提交圖片列表"
+      onKeydown={listSelect.handleListKeydown}
+      onClickItem={listSelect.handleListClick}
+    />
 
     <footer>
       <button class="btn-outlined" onclick={filter.handleOpenClick}>
@@ -390,95 +357,6 @@
 
     & > button {
       width: 100%;
-    }
-  }
-
-  .left-panel > .list-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    & > .empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-size: 0.875rem;
-      color: var(--text-dim);
-    }
-
-    &:has(:focus-visible) {
-      outline: 2px solid hsl(from var(--ring) h s l / 0.2);
-      outline-offset: -2px;
-    }
-  }
-
-  .left-panel > .list-container > ul {
-    position: relative;
-
-    & > li {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-    }
-
-    &:focus-visible {
-      outline: none;
-    }
-  }
-
-  .left-panel > .list-container > ul > li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.5rem;
-    border-left: 3px solid transparent;
-    background: transparent;
-    user-select: none;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--bg-hover);
-    }
-
-    &.selected {
-      background: var(--bg-active);
-      border-left-color: var(--text-dim);
-    }
-
-    &.active {
-      background: var(--bg-active);
-      border-left-color: var(--accent);
-    }
-
-    & > img {
-      width: auto;
-      height: 60px;
-      max-width: 80px;
-      object-fit: cover;
-      border-radius: 4px;
-      background: var(--bg);
-      flex-shrink: 0;
-    }
-  }
-
-  .list-container > ul > li > .list-item-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    overflow: hidden;
-
-    & > span:nth-of-type(1) {
-      font-size: 0.6875rem;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    & > span:nth-of-type(2) {
-      font-size: 0.6875rem;
-      color: var(--text-muted);
     }
   }
 

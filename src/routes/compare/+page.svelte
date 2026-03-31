@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-  <title>Compare — Image Manager</title>
+  <title>比較圖片 — Taggit</title>
 </svelte:head>
 
 <svelte:window onkeydown={shuffle.handleWindowKeydown} />

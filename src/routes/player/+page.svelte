@@ -1,14 +1,17 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { IconPlayerPause, IconPlayerPlay } from "@tabler/icons-svelte";
+  import { onMount, tick } from "svelte";
+  import { scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
+
+  import { IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-svelte";
   import type { ImageWithId } from "$lib/types.js";
   import type { PageData } from "./$types.js";
 
   import { isInEditable } from "$lib/client/dom.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/client/api.js";
-  import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
   import { debounce } from "$lib/utils.js";
+  import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -22,6 +25,13 @@
   // ─── Only two pieces of Svelte reactive state: dock visibility & play icon ─
   let playing = $state(true);
   let speedDisplay = $state("1.5");
+  let showFeedback = $state(false);
+
+  $effect(() => {
+    playing;
+    showFeedback = true;
+    tick().then(() => (showFeedback = false));
+  });
 
   // ─── DOM refs ─────────────────────────────────────────────────────────
   let carouselEl: HTMLDivElement | undefined = $state();
@@ -29,7 +39,6 @@
   let textEl: HTMLSpanElement | undefined = $state();
   let speedSliderEl: HTMLInputElement | undefined = $state();
   let playBtnEl: HTMLButtonElement | undefined = $state();
-  let feedbackEl: HTMLDivElement | undefined = $state();
 
   // ---
 
@@ -62,7 +71,6 @@
 
     let layout: CarouselLayout = { offsets: [], widths: [], stripWidth: 0 };
     let scrollX = 0;
-    let isPlaying = true;
     let speed = 1.5;
     let lastTime = 0;
     let seeking = false;
@@ -178,7 +186,7 @@
       const dt = ts - lastTime;
       lastTime = ts;
 
-      if (isPlaying && layout.stripWidth > 0 && !seeking) {
+      if (playing && layout.stripWidth > 0 && !seeking) {
         scrollX += speed * (dt / 16.667);
 
         let wrapped = false;
@@ -201,23 +209,9 @@
 
     // ─── Playback Controls ───────────────────────────────────────────────
 
-    function showFeedback(icon: "play" | "pause") {
-      if (!feedbackEl) return;
-      // SVG paths for play / pause icons
-      const playSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M6 4l15 8-15 8z"/></svg>`;
-      const pauseSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>`;
-      feedbackEl.innerHTML = icon === "play" ? playSvg : pauseSvg;
-      // Restart animation: remove → reflow → add
-      feedbackEl.classList.remove("is-animating");
-      void feedbackEl.offsetWidth; // force reflow
-      feedbackEl.classList.add("is-animating");
-    }
-
     function togglePlay() {
-      isPlaying = !isPlaying;
-      playing = isPlaying; // sync Svelte state for icon
-      if (isPlaying) lastTime = 0;
-      showFeedback(isPlaying ? "play" : "pause");
+      playing = !playing;
+      if (playing) lastTime = 0;
     }
 
     function handleProgressInput(e: Event) {
@@ -239,10 +233,6 @@
       speedDisplay = speed.toFixed(1);
     }
 
-    function handleNavigateBack() {
-      history.back();
-    }
-
     // ─── Click ───────────────────────────────────────────────────────────
 
     function handleCarouselClick() {
@@ -261,7 +251,7 @@
         togglePlay();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        handleNavigateBack();
+        history.back();
       }
     }
 
@@ -334,7 +324,7 @@
 </script>
 
 <svelte:head>
-  <title>Player — Image Manager</title>
+  <title>播放器 — Taggit</title>
 </svelte:head>
 
 <div class="browse-player">
@@ -342,15 +332,23 @@
   <div class="browse-carousel" bind:this={carouselEl} aria-label="圖片播放區"></div>
 
   <!-- YouTube-style play/pause feedback -->
-  <div class="browse-feedback" bind:this={feedbackEl}></div>
+  {#if showFeedback}
+    <div class="browse-feedback" out:scale={{ start: 1.35, opacity: 0, duration: 550, easing: cubicOut }}>
+      {#if playing}
+        <IconPlayerPlayFilled size={64} />
+      {:else}
+        <IconPlayerPauseFilled size={64} />
+      {/if}
+    </div>
+  {/if}
 
   <div class="browse-dock" class:is-hidden={!autoHide.show}>
     <!-- Play / Pause -->
     <button class="btn-icon" bind:this={playBtnEl}>
       {#if playing}
-        <IconPlayerPause size={18} />
+        <IconPlayerPauseFilled size={18} />
       {:else}
-        <IconPlayerPlay size={18} />
+        <IconPlayerPlayFilled size={18} />
       {/if}
     </button>
 

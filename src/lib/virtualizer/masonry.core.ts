@@ -1,7 +1,4 @@
-/**
- * 帶有寬高屬性的基本物件介面
- */
-type ItemWithSize = { width: number; height: number };
+import type { ItemWithSize } from "$lib/types";
 
 /**
  * 單個項目在軌道中的垂直權重位置資訊
