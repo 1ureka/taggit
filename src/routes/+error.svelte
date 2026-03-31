@@ -24,7 +24,7 @@
     max-width: 480px;
     margin: 0 auto;
     padding: 4rem 1.5rem;
-    min-height: 100vh;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;

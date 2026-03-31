@@ -14,6 +14,7 @@
 
   let { children } = $props();
 
+  /** 導航項目 */
   const navItems = [
     {
       href: "/browse",
@@ -47,13 +48,20 @@
     },
   ];
 
+  // ---
+
+  /** 判斷當前狀態列要顯示的描述 */
   const currentDisplayValue = $derived.by(() => {
+    if (page.error) return page.error?.message ?? "發生未知錯誤";
+
     const path = page.url.pathname;
 
+    // if (path === "#tags") return "探索標籤"; WIP
     if (path === "/browse") return "正在 探索圖片";
     if (path === "/browse/compare") return "正在 比較圖片";
-    // if (path === "#tags") return "探索標籤"; WIP
     if (path === "/tagger") return "正在 審查圖片";
+    if (path === "/settings") return "正在 調整設定";
+
     if (path === "/editor") {
       const searchParams = page.url.searchParams;
       if (searchParams.has("currentId")) {
@@ -62,14 +70,15 @@
         return "正在 編輯已提交圖片";
       }
     }
-    if (path === "/settings") return "正在 調整設定";
 
     return path;
   });
 
+  /** 判斷當前活躍的導航項目 */
   const currentActiveItem = $derived.by(() => {
     const path = page.url.pathname;
 
+    // if (path === "#tags") return "#tags"; WIP
     if (path === "/browse" || path === "/browse/compare" || path === "/browse/player") return "/browse";
     if (path === "/tagger") return "/tagger";
     if (path === "/editor") return "/editor";
@@ -77,6 +86,11 @@
 
     return null;
   });
+
+  /** 該頁面是否是全螢幕模式 */
+  const fullscreen = $derived(page.url.pathname.includes("player"));
+
+  // ---
 
   let open = $state(false);
 
@@ -86,12 +100,12 @@
 
   const handleNavigateForward = () => {
     history.forward();
-    handleTogglePalette();
+    open = false;
   };
 
   const handleNavigateBack = () => {
     history.back();
-    handleTogglePalette();
+    open = false;
   };
 </script>
 
@@ -99,7 +113,7 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if !page.url.pathname.includes("player")}
+{#if !fullscreen}
   <header>
     <h1>
       <img src={favicon} alt="網站圖示" />
@@ -122,12 +136,7 @@
 
 {@render children()}
 
-<Modal
-  {open}
-  onclose={handleTogglePalette}
-  transition="fly"
-  style="padding: 0.5rem;max-width: 32rem;display: flex;flex-direction: column;gap: 0.5rem;"
->
+<Modal {open} onclose={handleTogglePalette} transition="fly" style="padding: 0.5rem;max-width: 32rem;">
   <header>
     <button type="button" class="btn-ghost btn-sm" onclick={handleNavigateBack} aria-label="上一頁">
       <IconArrowLeft size={16} />
@@ -170,6 +179,7 @@
     gap: 1rem;
     padding: 0 1rem;
     height: 3rem;
+    min-height: 3rem;
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);
 
@@ -189,6 +199,17 @@
       gap: 1rem;
       align-items: center;
       text-align: left;
+      transition:
+        scale 0.15s,
+        box-shadow 0.15s;
+
+      &:hover {
+        box-shadow: 0 0 0 0.25rem var(--bg-active);
+      }
+
+      &:active {
+        scale: 0.97;
+      }
     }
   }
 
@@ -200,6 +221,7 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
 
     & > span {
       font-family: var(--font-mono);
@@ -207,8 +229,6 @@
       color: var(--text-dim);
     }
   }
-
-  /* --- */
 
   nav {
     display: flex;
