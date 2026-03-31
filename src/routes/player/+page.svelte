@@ -71,7 +71,6 @@
 
     let layout: CarouselLayout = { offsets: [], widths: [], stripWidth: 0 };
     let scrollX = 0;
-    let isPlaying = true;
     let speed = 1.5;
     let lastTime = 0;
     let seeking = false;
@@ -187,7 +186,7 @@
       const dt = ts - lastTime;
       lastTime = ts;
 
-      if (isPlaying && layout.stripWidth > 0 && !seeking) {
+      if (playing && layout.stripWidth > 0 && !seeking) {
         scrollX += speed * (dt / 16.667);
 
         let wrapped = false;
@@ -211,9 +210,8 @@
     // ─── Playback Controls ───────────────────────────────────────────────
 
     function togglePlay() {
-      isPlaying = !isPlaying;
-      playing = isPlaying; // sync Svelte state for icon
-      if (isPlaying) lastTime = 0;
+      playing = !playing;
+      if (playing) lastTime = 0;
     }
 
     function handleProgressInput(e: Event) {
@@ -235,10 +233,6 @@
       speedDisplay = speed.toFixed(1);
     }
 
-    function handleNavigateBack() {
-      history.back();
-    }
-
     // ─── Click ───────────────────────────────────────────────────────────
 
     function handleCarouselClick() {
@@ -257,7 +251,7 @@
         togglePlay();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        handleNavigateBack();
+        history.back();
       }
     }
 
