@@ -554,6 +554,7 @@
   .right-panel > form > .form-fields {
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
     padding: 0.75rem;
 
     & .field-rating {
@@ -565,10 +566,6 @@
 
     & .field-tags {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow-y: auto;
     }
   }
 
