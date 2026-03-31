@@ -43,6 +43,7 @@
   --font-mono: "JetBrains Mono", monospace;
   --z-modal: 20;
   --z-popover: 25;
+  --z-toast: 30;
 }
 
 /* ── HTML / Body ── */

@@ -2,8 +2,8 @@
  * Player dock 自動隱藏或顯示的互動邏輯
  */
 export class PlayerAutoHide {
-  /** 是否顯示 dock */
-  show = $state(false);
+  /** 是否隱藏 dock */
+  hideDock = $state(false);
   /** 自動隱藏的閾值時間（毫秒） */
   readonly timeout = 2000;
 
@@ -13,12 +13,12 @@ export class PlayerAutoHide {
       let lastActivityTime = 0;
 
       const handleActivity = () => {
-        this.show = true;
+        this.hideDock = false;
         lastActivityTime = Date.now();
       };
 
       const loop = () => {
-        if (Date.now() - lastActivityTime > this.timeout) this.show = false;
+        if (Date.now() - lastActivityTime > this.timeout) this.hideDock = true;
         rafId = requestAnimationFrame(loop);
       };
 

@@ -14,7 +14,7 @@ type EditorFilterOptions = {
 };
 
 /**
- * EditorFilter 的互動邏輯——管理篩選 Modal 與 URL goto
+ * EditorFilter 的互動邏輯，管理篩選 Modal 與 URL goto
  */
 export class EditorFilter {
   /** Modal 是否開啟 */
