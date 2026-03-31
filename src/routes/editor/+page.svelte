@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconArrowBackUp, IconArrowLeft, IconCheck } from "@tabler/icons-svelte";
+  import { IconArrowBackUp, IconCheck } from "@tabler/icons-svelte";
   import { IconFilter, IconRefresh, IconTrash } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
@@ -121,15 +121,6 @@
   onmouseup={zp.handleWindowMouseup}
   onkeydown={form.handleWindowKeydown}
 />
-
-<header class="page-header">
-  <a href="/" class="btn-ghost btn-sm">
-    <IconArrowLeft size={16} />
-    <span>首頁</span>
-  </a>
-
-  <h1 class="page-header-title">管理圖片</h1>
-</header>
 
 <main>
   <aside class="left-panel">
