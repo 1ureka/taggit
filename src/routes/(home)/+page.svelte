@@ -1,194 +1,381 @@
 <script lang="ts">
+  import { fly } from "svelte/transition";
+  import { navigating } from "$app/state";
+  import { IconArrowUp, IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
-  import { IconAlbum, IconChevronRight, IconLibraryPhoto, IconTag, IconSettings } from "@tabler/icons-svelte";
+
+  import Select from "$lib/components/Select.svelte";
+  import FilterFields from "$lib/components/FilterFields.svelte";
+  import { imgSrc } from "$lib/client/api.js";
+  import { blurhashStyle } from "$lib/client/blurhash.js";
+
+  import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
+  import { BrowseFab } from "./browseFab.svelte.js";
+  import { BrowseForm } from "./browseForm.svelte.js";
+
+  const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
+
+  const breakpoints = [
+    { width: 1600, cols: 5 },
+    { width: 1200, cols: 4 },
+    { width: 900, cols: 3 },
+    { width: 600, cols: 2 },
+    { width: 0, cols: 2 },
+  ];
+
+  // ---
 
   let { data }: { data: PageData } = $props();
 
-  /** 處理 Window 滑鼠移動事件，更新背景光暈座標 */
-  const handleWindowMousemove = (e: MouseEvent) => {
-    document.documentElement.style.setProperty("--bg-x", e.clientX + "px");
-    document.documentElement.style.setProperty("--bg-y", e.clientY + "px");
+  const masonry = new Masonry({
+    get items() {
+      return data.items;
+    },
+    paddingX: 24,
+    paddingY: 24,
+    gap: 6,
+  });
+
+  $effect(() => {
+    masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
+  });
+
+  const fab = new BrowseFab({
+    get viewportEl() {
+      return masonry.viewportEl;
+    },
+  });
+
+  const form = new BrowseForm();
+
+  // ---
+
+  $effect(() => {
+    if (window.innerWidth < 600) {
+      document.documentElement.style.setProperty("--left-panel-width", "0px");
+    }
+  });
+
+  const handleToggleLeftPanel = () => {
+    const root = document.documentElement;
+    const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
+
+    if (!Boolean(property.trim())) {
+      root.style.setProperty("--left-panel-width", "0px");
+    } else {
+      root.style.removeProperty("--left-panel-width");
+    }
   };
 </script>
 
 <svelte:head>
-  <title>Image Manager</title>
+  <title>Taggit</title>
 </svelte:head>
 
-<svelte:window onmousemove={handleWindowMousemove} />
+<main class="slide-up">
+  <div class="left-panel-spacer"></div>
 
-<div class="page">
-  <main>
-    <h1>Image Manager</h1>
-    <h2>本地圖片標籤管理工具</h2>
+  <div class="masonry-viewport" bind:this={masonry.viewportEl}>
+    {#if data.total === 0 && !navigating.to}
+      <p>找不到符合的圖片</p>
+    {/if}
 
-    {#snippet card(href: string, Icon: typeof IconTag, name: string, desc: string)}
-      <a {href} class="card">
-        <Icon size={24} />
-        <div class="card-body">
-          <h3>{name}</h3>
-          <!-- 為了拖動時文字不要被連到一起 -->
-          {" "}
-          <p>{desc}</p>
+    <div class="masonry" style:height="{masonry.masonryHeight}px">
+      {#each masonry.masonryItems as item (item.id)}
+        <div class="masonry-item" style={item.style}>
+          <img
+            src={imgSrc(item.id, "md")}
+            style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
+            alt={item.name || item.id}
+            loading="lazy"
+          />
         </div>
-        <IconChevronRight size={20} color="var(--text-dim)" />
-      </a>
-    {/snippet}
+      {/each}
+    </div>
 
-    <nav>
-      {@render card("/tagger", IconTag, "新增圖片", "審查並標記暫存圖片")}
-      {@render card("/editor", IconAlbum, "管理圖片", "編輯已提交圖片")}
-      {@render card("/browse", IconLibraryPhoto, "瀏覽圖片", "以瀑布流、播放器、隨機抽選等多種方式")}
-      {@render card("#", IconTag, "瀏覽標籤", "敬請期待")}
-    </nav>
+    {#if fab.show}
+      <button
+        class="fab bottom-right"
+        onclick={fab.handleFabClick}
+        aria-label="回到頂部"
+        transition:fly={{ y: 16, duration: 200, opacity: 0 }}
+      >
+        <IconArrowUp size={20} />
+      </button>
+    {/if}
+  </div>
 
-    <small>
-      共 {data.stats.totalImages} 張圖片 · {data.stats.totalTags} 個標籤 · {data.stats.stagedCount} 張待審查
-    </small>
+  <aside class="left-panel">
+    <div class="left-panel-viewport">
+      <header>
+        <h2>探索與靈感</h2>
+        <p>共 {data.total} 張</p>
+      </header>
 
-    <footer>
-      <a href="/settings">
-        <IconSettings size={14} />
-        設定
-      </a>
-    </footer>
-  </main>
-</div>
+      <div>
+        <FilterFields
+          bind:search={form.search}
+          bind:includedTags={form.includedTags}
+          bind:excludedTags={form.excludedTags}
+          bind:rating={form.rating}
+          bind:ratingOp={form.ratingOp}
+          bind:sort={form.sort}
+          bind:order={form.order}
+          onchangeSearch={form.handleSearchChange}
+          onchange={form.handleChange}
+        />
+      </div>
+
+      <div>
+        <label class="field-row">
+          <span class="field-label">圖片牆欄位</span>
+          <Select stretch size="md" bind:value={masonry.columns} options={columnOptions} />
+        </label>
+      </div>
+
+      <footer>
+        <a class="btn-primary" href={`/browse/player${form.queryString}`}>
+          <IconPlayerPlayFilled size={16} />
+          <span>播放</span>
+        </a>
+        <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
+          <IconArrowsLeftRight size={16} />
+          <span>比較</span>
+        </a>
+      </footer>
+    </div>
+
+    <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
+      <div class="inverse-border"></div>
+    </button>
+  </aside>
+</main>
 
 <style>
-  /** slide-up 但不使用 transform，避免創建 containing block 導致 background-attachment: fixed 失效 */
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      margin-top: 8px;
-    }
-    to {
-      opacity: 1;
-      margin-top: 0;
-    }
-  }
-
-  .page {
-    height: 100vh;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-  }
-
   main {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 4rem 1.5rem;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    animation: slideUp 0.3s ease-out both;
-  }
-
-  /* --- */
-
-  h1 {
-    font-size: 2rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.25rem;
-  }
-
-  h2 {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-bottom: 2.5rem;
-  }
-
-  /* --- */
-
-  nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 3rem;
-  }
-
-  .card {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) * 1.5);
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+  }
 
-    transition: background-color 0.15s;
-    --light-ring: hsl(from var(--accent) h s l / 0.75);
-    --light-bloom: hsl(from var(--accent) h s l / 0.15);
-    --bg-ring: radial-gradient(circle at var(--bg-x, 0) var(--bg-y, 0), var(--light-ring), transparent 7.5rem);
-    --bg-bloom: radial-gradient(circle at var(--bg-x, 0) var(--bg-y, 0), var(--light-bloom), transparent 15rem);
+  /* --- */
+
+  .left-panel-spacer {
+    width: var(--left-panel-width, 280px);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: 0px;
+    }
+  }
+
+  aside.left-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    overflow: visible;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    width: 280px;
+    transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: calc(100% - 32px);
+      transform: translateX(calc(-100% + var(--left-panel-width, 100%)));
+    }
+  }
+
+  aside.left-panel > button {
+    position: absolute;
+    overflow: visible;
+    top: 0;
+    left: 100%;
+    width: 32px;
+    height: 100px;
+    background-color: var(--bg-card);
+    border-bottom-right-radius: 16px;
+    border: 1px solid var(--border);
+    border-top: 0px;
+    border-left: 0px;
+
+    & > .inverse-border {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 16px;
+      /* 註1: 16px 小於 masonry 的 paddingX: 24，因此背景覆蓋不會覆蓋到圖片 */
+      /* 註2: 16px 又剛好是極限，因為 borderRadius 要是 button 寬度的一半: 16px */
+      height: 16px;
+      background-color: var(--bg-card);
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: var(--bg);
+        border-top-left-radius: 16px;
+        border: 1px solid var(--border);
+        border-bottom: 0px;
+        border-right: 0px;
+      }
+    }
+
+    display: grid;
+    place-items: center;
 
     &::after {
       content: "";
-      position: absolute;
-      inset: -2px;
-      background-image: var(--bg-ring);
-      background-attachment: fixed;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: -1;
+      display: block;
+      width: 20%;
+      height: 60%;
+      background: var(--border);
+      border-radius: 999px;
+      transition:
+        background 0.15s,
+        transform 0.15s;
     }
 
-    &:hover {
-      background-color: var(--bg-hover);
-      background-image: var(--bg-bloom);
-      background-attachment: fixed;
+    &:hover::after {
+      background: var(--border-hover);
+      scale: 1.05;
     }
 
-    &:active {
-      background-color: var(--bg-active);
+    &:active::after {
+      scale: 0.95;
     }
   }
 
-  .card > .card-body {
-    flex: 1;
+  /* --- */
 
-    & > h3 {
+  .left-panel-viewport {
+    position: relative;
+    overflow-y: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .left-panel-viewport > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0px 0.75rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom-right-radius: 16px;
+    background: var(--bg);
+
+    & > h2 {
+      font-size: 0.8125rem;
       font-weight: normal;
-      font-size: 0.9375rem;
-      margin-bottom: 0.125rem;
     }
 
     & > p {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+  }
+
+  .left-panel-viewport > div {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+
+    & > .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    & > .field-row > .field-label {
       font-size: 0.8125rem;
+      font-weight: 500;
       color: var(--text-muted);
     }
   }
 
-  /* --- */
-
-  small {
-    color: var(--text-dim);
-    font-size: 0.8125rem;
-    text-align: center;
-  }
-
-  footer {
+  .left-panel-viewport > footer {
+    margin-top: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     gap: 0.5rem;
-    margin-top: 1rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
 
     & > a {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      color: var(--text-dim);
-      font-size: 0.8125rem;
-      transition: color 0.15s;
+      justify-content: space-between;
+    }
 
-      &:hover {
-        color: var(--text-muted);
-      }
+    & > a > span {
+      flex: 1;
+      text-align: center;
+    }
+  }
+
+  /* --- */
+
+  .masonry-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .masonry {
+    position: relative;
+  }
+
+  .masonry-item > img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .masonry-viewport > p {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    padding: 3rem 0px;
+  }
+
+  /* --- */
+
+  .fab {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: var(--bg);
+
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s;
+
+    &.bottom-right {
+      bottom: 1.5rem;
+      right: 1.5rem;
+    }
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
     }
   }
 </style>

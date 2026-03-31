@@ -341,7 +341,7 @@
     display: flex;
     flex: 1;
     min-height: 0;
-    min-width: 860px;
+    overflow-x: auto;
   }
 
   aside header {
@@ -358,6 +358,7 @@
 
   .left-panel {
     width: 280px;
+    min-width: 280px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
@@ -489,7 +490,7 @@
     flex-direction: column;
     overflow: hidden;
     background: var(--bg);
-    min-width: 0;
+    min-width: 280px;
   }
 
   .preview-container {
@@ -559,6 +560,7 @@
 
   .right-panel {
     width: 280px;
+    min-width: 280px;
     border-left: 1px solid var(--border);
     background: var(--bg-card);
     display: flex;
