@@ -1,7 +1,7 @@
 import type { ItemWithSize } from "$lib/types";
 
-/** 水平輪播的佈局結果 */
-interface CarouselLayout {
+/** 播放器引擎的佈局結果 */
+interface PlayerLayout {
   /** 每張圖片的 X 偏移（像素） */
   offsets: number[];
   /** 每張圖片的寬度（像素） */
@@ -10,8 +10,8 @@ interface CarouselLayout {
   stripWidth: number;
 }
 
-/** 帶有虛擬化樣式的輪播項目 */
-type CarouselItem<T extends ItemWithSize> = T & {
+/** 帶有虛擬化樣式的圖片帶項目 */
+type PlayerStripItem<T extends ItemWithSize> = T & {
   /** 用於 keyed 渲染的唯一鍵：`${copyIndex}_${id}` */
   key: string;
   /** 在圖片帶中的水平像素偏移 */
@@ -22,34 +22,44 @@ type CarouselItem<T extends ItemWithSize> = T & {
   style: string;
 };
 
-/** 引擎需要的參數 */
-interface CarouselEngineParams<T extends ItemWithSize> {
-  /** 輪播圖片資料 */
+/** 播放器進度資訊 */
+type PlayerProgress = {
+  /** 當前的攝影機水平位置 */
+  cameraX: number;
+  /** 當前的圖片帶的進度 (0–1000) */
+  progressValue: number;
+  /** 當前的圖片索引 */
+  currentIndex: number;
+};
+
+/** 播放器引擎需要的參數 */
+interface PlayerEngineParams<T extends ItemWithSize> {
+  /** 要播放的圖片資料 */
   images: T[];
   /** 可見項目更新回調 */
-  onVisibleItemsChange: (visibleItems: CarouselItem<T>[]) => void;
+  onVisibleItemsChange: (visibleItems: PlayerStripItem<T>[]) => void;
   /** 進度更新回調 */
-  onProgressChange: (params: { scrollX: number; progressValue: number; currentIndex: number }) => void;
+  onProgressChange: (progress: PlayerProgress) => void;
 }
 
-export type { CarouselLayout, CarouselItem, CarouselEngineParams };
+export type { PlayerStripItem, PlayerProgress };
 
 // ---
 
 /**
- * 非響應式的輪播引擎。
+ * 非響應式的播放器引擎。
  * 封裝 rAF 迴圈、佈局計算、虛擬化與進度追蹤。
  * 假設播放器的高度等同於視窗高度，圖片寬度按比例縮放以填滿高度。
  */
-export class CarouselEngine<T extends ItemWithSize> {
+export class PlayerEngine<T extends ItemWithSize> {
   /** 當前佈局 */
-  private layout: CarouselLayout = { offsets: [], widths: [], stripWidth: 0 };
-  /** 當前水平位置 */
-  private scrollX = 0;
-  /** 上一次計算可見項目的 scrollX，用於計算移動距離，決定是否需要重新計算 */
-  private scrollXLastComputed = -Infinity;
-  /** 上一幀的水平位置 */
-  private scrollXLastFrame = 0;
+  private layout: PlayerLayout = { offsets: [], widths: [], stripWidth: 0 };
+  /** 當前的攝影機水平位置 */
+  private cameraX = 0;
+  /** 上一次計算可見項目時的攝影機水平位置，用於計算移動距離，決定是否需要重新計算 */
+  private cameraXLastComputed = -Infinity;
+  /** 上一幀的攝影機水平位置 */
+  private cameraXLastFrame = 0;
 
   /** 當前速度 */
   private speed = 1.5;
@@ -57,7 +67,7 @@ export class CarouselEngine<T extends ItemWithSize> {
   private playing = true;
   /** 是否正在拖曳進度條 */
   private seeking = false;
-  /** 上一次 rAF 的時間戳，用於計算時間差來決定 scrollX 的增量 */
+  /** 上一次 rAF 的時間戳，用於計算時間差來決定攝影機水平位置的增量 */
   private lastTime = 0;
 
   /** rAF 的 ID，用於取消動畫 */
@@ -65,17 +75,17 @@ export class CarouselEngine<T extends ItemWithSize> {
 
   /** 緩衝區像素，用於提前渲染可見項目 */
   private readonly bufferPx = 2000;
-  /** 更新閾值，當 scrollX 與 lastUpdateX 的差值超過此值時重新計算可見項目 */
+  /** 更新閾值，當攝影機水平位置的差值超過此值時重新計算可見項目 */
   private readonly updateThreshold = 500;
 
-  constructor(private params: CarouselEngineParams<T>) {}
+  constructor(private params: PlayerEngineParams<T>) {}
 
   // ---
 
   /**
    * 根據圖片資料、螢幕高度計算佈局
    */
-  private buildLayout(): CarouselLayout {
+  private buildLayout(): PlayerLayout {
     const vh = window.innerHeight;
     const offsets: number[] = [];
     const widths: number[] = [];
@@ -99,8 +109,8 @@ export class CarouselEngine<T extends ItemWithSize> {
    */
   start(): void {
     this.layout = this.buildLayout();
-    this.scrollX = 0;
-    this.scrollXLastComputed = -Infinity;
+    this.cameraX = 0;
+    this.cameraXLastComputed = -Infinity;
     this.rafId = requestAnimationFrame(this.tick);
   }
 
@@ -132,23 +142,23 @@ export class CarouselEngine<T extends ItemWithSize> {
   }
 
   /**
-   * 開始拖曳進度條——暫停動畫推進
+   * 開始拖曳進度條，暫停動畫推進
    */
   seekStart(pct: number): void {
     this.seeking = true;
-    this.scrollX = pct * this.layout.stripWidth;
+    this.cameraX = pct * this.layout.stripWidth;
   }
 
   /**
-   * 拖曳中——更新位置
+   * 拖曳中，更新位置
    */
   seekMove(pct: number): void {
     this.seeking = true;
-    this.scrollX = pct * this.layout.stripWidth;
+    this.cameraX = pct * this.layout.stripWidth;
   }
 
   /**
-   * 結束拖曳——恢復動畫推進
+   * 結束拖曳，恢復動畫推進
    */
   seekEnd(): void {
     this.seeking = false;
@@ -156,13 +166,13 @@ export class CarouselEngine<T extends ItemWithSize> {
   }
 
   /**
-   * 視窗大小變更——重新佈局並按比例調整 scrollX
+   * 視窗大小變更，重新佈局並按比例調整 cameraX
    */
   resize(): void {
-    const pct = this.layout.stripWidth > 0 ? this.scrollX / this.layout.stripWidth : 0;
+    const pct = this.layout.stripWidth > 0 ? this.cameraX / this.layout.stripWidth : 0;
     this.layout = this.buildLayout();
-    this.scrollX = pct * this.layout.stripWidth;
-    this.scrollXLastComputed = -Infinity;
+    this.cameraX = pct * this.layout.stripWidth;
+    this.cameraXLastComputed = -Infinity;
   }
 
   // ---
@@ -171,33 +181,33 @@ export class CarouselEngine<T extends ItemWithSize> {
    * rAF 迴圈的回調函數
    */
   private tick = (ts: number): void => {
-    // 處理播放，推進 scrollX
+    // 處理播放，推進 cameraX
     if (this.playing && !this.seeking && this.layout.stripWidth > 0) {
       if (!this.lastTime) this.lastTime = ts;
       const dt = ts - this.lastTime;
       this.lastTime = ts;
-      this.scrollX += this.speed * (dt / 16.667);
+      this.cameraX += this.speed * (dt / 16.667);
     }
 
-    // 處理無限迴圈捲繞
-    if (this.scrollX >= this.layout.stripWidth) {
-      this.scrollX -= this.layout.stripWidth;
-      this.scrollXLastComputed = -Infinity; // 強制重新計算可見項目
+    // 處理無限迴圈捲繞，強制重新計算可見項目
+    if (this.cameraX >= this.layout.stripWidth) {
+      this.cameraX -= this.layout.stripWidth;
+      this.cameraXLastComputed = -Infinity;
     }
 
     // 閾值交叉，標記是否需要重新計算可見項目
-    if (Math.abs(this.scrollX - this.scrollXLastComputed) >= this.updateThreshold) {
+    if (Math.abs(this.cameraX - this.cameraXLastComputed) >= this.updateThreshold) {
       const visibleItems = this.computeVisibleItems();
       this.params.onVisibleItemsChange(visibleItems);
-      this.scrollXLastComputed = this.scrollX;
+      this.cameraXLastComputed = this.cameraX;
     }
 
-    // 推送需要及時反映的資訊，除非 scrollX 沒有變化
-    if (this.scrollX !== this.scrollXLastFrame) {
-      this.params.onProgressChange({ scrollX: this.scrollX, ...this.computeProgress() });
+    // 推送需要及時反映的資訊，除非 cameraX 沒有變化
+    if (this.cameraX !== this.cameraXLastFrame) {
+      this.params.onProgressChange({ cameraX: this.cameraX, ...this.computeProgress() });
     }
 
-    this.scrollXLastFrame = this.scrollX;
+    this.cameraXLastFrame = this.cameraX;
     this.rafId = requestAnimationFrame(this.tick);
   };
 
@@ -206,17 +216,17 @@ export class CarouselEngine<T extends ItemWithSize> {
   /**
    * 計算當前可見的圖片項目與無限迴圈複本
    */
-  private computeVisibleItems(): CarouselItem<T>[] {
+  private computeVisibleItems(): PlayerStripItem<T>[] {
     const { offsets, widths, stripWidth } = this.layout;
     if (stripWidth <= 0 || this.params.images.length === 0) return [];
 
     const vw = window.innerWidth;
-    const leftEdge = this.scrollX - this.bufferPx;
-    const rightEdge = this.scrollX + vw + this.bufferPx;
+    const leftEdge = this.cameraX - this.bufferPx;
+    const rightEdge = this.cameraX + vw + this.bufferPx;
     const startCopy = Math.floor(leftEdge / stripWidth);
     const endCopy = Math.floor(rightEdge / stripWidth);
 
-    const items: CarouselItem<T>[] = [];
+    const items: PlayerStripItem<T>[] = [];
 
     for (let c = startCopy; c <= endCopy; c++) {
       const copyOffset = c * stripWidth;
@@ -266,10 +276,10 @@ export class CarouselEngine<T extends ItemWithSize> {
       return { progressValue: 0, currentIndex: 0 };
     }
 
-    const progressValue = Math.round((this.scrollX / stripWidth) * 1000);
+    const progressValue = Math.round((this.cameraX / stripWidth) * 1000);
 
-    // 正規化 scrollX 到 [0, stripWidth) 範圍
-    const pos = ((this.scrollX % stripWidth) + stripWidth) % stripWidth;
+    // 正規化 cameraX 到 [0, stripWidth) 範圍
+    const pos = ((this.cameraX % stripWidth) + stripWidth) % stripWidth;
 
     // 二分搜尋：找到第一個右邊緣超過 pos 的圖片
     let lo = 0;
