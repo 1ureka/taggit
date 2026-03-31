@@ -58,7 +58,7 @@
 
     // if (path === "#tags") return "探索標籤"; WIP
     if (path === "/") return "正在 探索圖片";
-    if (path === "/browse/compare") return "正在 比較圖片";
+    if (path === "/compare") return "正在 比較圖片";
     if (path === "/tagger") return "正在 審查圖片";
     if (path === "/settings") return "正在 調整設定";
 
@@ -79,7 +79,7 @@
     const path = page.url.pathname;
 
     // if (path === "#tags") return "#tags"; WIP
-    if (path === "/" || path === "/browse/compare" || path === "/browse/player") return "/";
+    if (path === "/" || path === "/compare" || path === "/player") return "/";
     if (path === "/tagger") return "/tagger";
     if (path === "/editor") return "/editor";
     if (path === "/settings") return "/settings";

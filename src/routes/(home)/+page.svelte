@@ -134,11 +134,11 @@
       </div>
 
       <footer>
-        <a class="btn-primary" href={`/browse/player${form.queryString}`}>
+        <a class="btn-primary" href={`/player${form.queryString}`}>
           <IconPlayerPlayFilled size={16} />
           <span>播放</span>
         </a>
-        <a class="btn-outlined" href={`/browse/compare${form.queryString}`}>
+        <a class="btn-outlined" href={`/compare${form.queryString}`}>
           <IconArrowsLeftRight size={16} />
           <span>比較</span>
         </a>
