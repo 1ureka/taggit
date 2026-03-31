@@ -59,7 +59,7 @@
     top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 2000;
+    z-index: var(--z-toast);
     width: 22rem;
     pointer-events: none;
   }
