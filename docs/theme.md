@@ -12,12 +12,13 @@
 
 ### 1.2 檔案結構
 
-| 檔案                             | 職責                                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------------------- |
-| `src/lib/styles/app.css`         | 入口：引入字體 + `app-basic.css` + CSS reset + `:root` 變數 + 全域基礎樣式              |
-| `src/lib/styles/app-basic.css`   | 全域可複用的 UI 原子：`.chip`, `.text-input`, `.modal`, `.kbd`, `.separator` 等 |
-| `src/lib/styles/app-button.css`   | 全域按鈕樣式：`.btn-primary`, `.btn-ghost`, `.btn-outlined`, `.btn-destructive`, `.btn-icon`；修飾符 `.btn-sm`, `.pending` |
-| 各 `.svelte` 檔案 `<style>` 區塊 | 元件級 scoped 樣式（包含 Toast、Rating 等）                                             |
+| 檔案                             | 職責                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `src/lib/styles/app.css`         | 引入字體、其他 CSS 檔案 + `:root` 變數 + 全域覆蓋等                                         |
+| `src/lib/styles/app-basic.css`   | 全域可複用的 UI 原子 `.chip`, `.text-input`, `.kbd`, `.separator` 等                        |
+| `src/lib/styles/app-button.css`  | 全域按鈕樣式 `.btn-primary`, `.btn-ghost`, `.btn-outlined`, `.btn-destructive`, `.btn-icon` |
+| `src/lib/styles/app-button.css`  | 修飾符 `.btn-sm`, `.pending`                                                                |
+| 各 `.svelte` 檔案 `<style>` 區塊 | 元件級 scoped 樣式（包含 Toast、Rating 等）                                                 |
 
 ### 1.3 CSS 變數一覽
 
@@ -48,8 +49,10 @@
   /* 其他 */
   --ring: #d4d4d8; /* focus ring */
   --radius: 6px; /* 統一圓角 */
-  --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --z-modal: 20;
+  --z-popover: 25;
 }
 ```
 
@@ -191,14 +194,14 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 
 當語意 HTML 不足以區分角色時，使用描述**結構功能**的 class name，而非帶有業務語意的名稱：
 
-| ✓ 結構式                          | ✗ 業務式                                 |
-| --------------------------------- | ---------------------------------------- |
-| `.card`                           | `.compare-card`                          |
-| `.card-image`                     | `.compare-card-image`                    |
-| `.field-name`                     | `.editor-name-field`                     |
-| `.actions`                        | `.editor-buttons`                        |
-| `.tags`                           | `.image-tag-list`                        |
-| `.empty`                          | `.no-images-message`                     |
+| ✓ 結構式      | ✗ 業務式              |
+| ------------- | --------------------- |
+| `.card`       | `.compare-card`       |
+| `.card-image` | `.compare-card-image` |
+| `.field-name` | `.editor-name-field`  |
+| `.actions`    | `.editor-buttons`     |
+| `.tags`       | `.image-tag-list`     |
+| `.empty`      | `.no-images-message`  |
 
 因為 Svelte scope 已隔離命名空間，`.card` 在 `CompareCard.svelte` 和 `HomeCards.svelte` 中互不干擾，省去 BEM 式的前綴或命名空間。
 
@@ -291,20 +294,20 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
 
 ### 4.1 變體
 
-| Class              | 用途           | 外觀                                       |
-| ------------------ | -------------- | ------------------------------------------ |
-| `.btn-primary`     | 主要操作       | 白底深字，`var(--accent)` 背景             |
-| `.btn-outlined`    | 一般操作       | `var(--bg-card)` 背景 + `var(--border)` 邊框 |
-| `.btn-ghost`       | 輔助 / 返回    | 透明背景、無邊框                            |
-| `.btn-destructive` | 危險操作       | 紅色文字 + 紅色半透明背景                    |
-| `.btn-icon`        | 僅圖示         | 無邊框、等寬 padding                        |
+| Class              | 用途        | 外觀                                         |
+| ------------------ | ----------- | -------------------------------------------- |
+| `.btn-primary`     | 主要操作    | 白底深字，`var(--accent)` 背景               |
+| `.btn-outlined`    | 一般操作    | `var(--bg-card)` 背景 + `var(--border)` 邊框 |
+| `.btn-ghost`       | 輔助 / 返回 | 透明背景、無邊框                             |
+| `.btn-destructive` | 危險操作    | 紅色文字 + 紅色半透明背景                    |
+| `.btn-icon`        | 僅圖示      | 無邊框、等寬 padding                         |
 
 ### 4.2 修飾符
 
-| Class      | 說明                                     |
-| ---------- | ---------------------------------------- |
-| `.btn-sm`  | 小尺寸（`padding: 0.25rem 0.625rem`）    |
-| `.pending` | 載入中：降低透明度 + 旋轉圓圈動畫         |
+| Class      | 說明                                  |
+| ---------- | ------------------------------------- |
+| `.btn-sm`  | 小尺寸（`padding: 0.25rem 0.625rem`） |
+| `.pending` | 載入中：降低透明度 + 旋轉圓圈動畫     |
 
 ### 4.3 用法範例
 
