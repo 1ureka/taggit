@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { fly } from "svelte/transition";
   import { navigating } from "$app/state";
-  import { IconArrowUp, IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
+  import { IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import Select from "$lib/components/Select.svelte";
@@ -9,11 +8,11 @@
   import Modal from "$lib/components/Modal.svelte";
   import Rating from "$lib/components/Rating.svelte";
   import Tags from "$lib/components/Tags.svelte";
+  import ScrollButton from "$lib/components/ScrollButton.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
-  import { BrowseFab } from "./browseFab.svelte.js";
   import { BrowseForm } from "./browseForm.svelte.js";
   import { BrowseModal } from "./browseModal.svelte.js";
 
@@ -42,12 +41,6 @@
 
   $effect(() => {
     masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
-  });
-
-  const fab = new BrowseFab({
-    get viewportEl() {
-      return masonry.viewportEl;
-    },
   });
 
   const form = new BrowseForm();
@@ -118,17 +111,7 @@
       {/each}
     </ul>
 
-    {#if fab.show}
-      <button
-        type="button"
-        class="fab bottom-right"
-        onclick={fab.handleFabClick}
-        aria-label="回到頂部"
-        transition:fly={{ y: 16, duration: 200, opacity: 0 }}
-      >
-        <IconArrowUp size={20} />
-      </button>
-    {/if}
+    <ScrollButton viewportEl={masonry.viewportEl} />
   </section>
 
   <aside class="left-panel">
@@ -462,40 +445,5 @@
     color: var(--text-dim);
     font-size: 0.875rem;
     padding: 3rem 0px;
-  }
-
-  /* --- */
-
-  .fab {
-    position: absolute;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-
-    display: grid;
-    place-items: center;
-    background: var(--accent);
-    color: var(--bg);
-
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-    transition: transform 0.15s;
-
-    &.bottom-right {
-      bottom: 1.5rem;
-      right: 1.5rem;
-    }
-
-    &:hover {
-      transform: scale(1.1);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-
-    &:focus-visible {
-      outline: 2px solid hsl(from var(--bg) h s l / 0.5);
-      outline-offset: -3px;
-    }
   }
 </style>
