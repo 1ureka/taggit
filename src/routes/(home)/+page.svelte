@@ -87,7 +87,7 @@
 
   <section class="masonry-viewport" aria-label="篩選結果" bind:this={masonry.viewportEl}>
     {#if data.total === 0 && !navigating.to}
-      <p>找不到符合的圖片</p>
+      <p>找不到符合的圖片，請調整篩選條件，或在上方的導航選單中前往新增圖片</p>
     {/if}
 
     {#snippet card({ item }: { item: (typeof masonry.masonryItems)[number] })}
@@ -120,6 +120,7 @@
 
     {#if fab.show}
       <button
+        type="button"
         class="fab bottom-right"
         onclick={fab.handleFabClick}
         aria-label="回到頂部"
