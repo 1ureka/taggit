@@ -14,6 +14,8 @@ type ModalOptions = {
 export class Modal {
   /** Modal 對話框容器的引用 (DOM) */
   dialogEl = $state<HTMLDivElement>();
+  /** Overlay 容器的引用 (DOM)，用於無可聚焦子元素時 fallback focus */
+  overlayEl = $state<HTMLDivElement>();
 
   #previouslyFocused: HTMLElement | null = null;
   #FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -32,7 +34,9 @@ export class Modal {
   #saveFocusAndTrap() {
     this.#previouslyFocused = document.activeElement as HTMLElement | null;
     queueMicrotask(() => {
-      this.dialogEl?.querySelector<HTMLElement>(this.#FOCUSABLE_SELECTOR)?.focus();
+      const first = this.dialogEl?.querySelector<HTMLElement>(this.#FOCUSABLE_SELECTOR);
+      if (first) first.focus();
+      else this.overlayEl?.focus();
     });
   }
 
@@ -61,7 +65,11 @@ export class Modal {
     /** 當按下 Tab 鍵時，將焦點限制在 Modal 內部循環 */
     if (e.key === "Tab" && this.dialogEl) {
       const focusable = this.dialogEl.querySelectorAll<HTMLElement>(this.#FOCUSABLE_SELECTOR);
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
