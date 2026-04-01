@@ -36,7 +36,7 @@
     size = "16px",
     bg = "var(--bg)",
     surface = "var(--bg-card)",
-    border = "1px solid var(--border)",
+    border = "var(--border-style)",
   }: Props = $props();
 </script>
 

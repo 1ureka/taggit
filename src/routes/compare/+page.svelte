@@ -86,7 +86,7 @@
     display: flex;
     flex-direction: column;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-radius: calc(var(--radius) * 2);
     overflow: hidden;
 
@@ -121,7 +121,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
   }
 
   /* --- */
@@ -132,7 +132,7 @@
     place-items: center;
     height: 3rem;
     background: var(--bg-card);
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
 
     & > small {
       font-size: 0.75rem;

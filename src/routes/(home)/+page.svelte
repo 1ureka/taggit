@@ -195,7 +195,7 @@
     bottom: 0;
     overflow: visible;
     background: var(--bg-card);
-    border-right: 1px solid var(--border);
+    border-right: var(--border-style);
     width: 280px;
     transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -215,7 +215,7 @@
     height: 100px;
     background-color: var(--bg-card);
     border-bottom-right-radius: 16px;
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-top: 0px;
     border-left: 0px;
   }
@@ -266,8 +266,8 @@
     padding: 0px 0.75rem;
     height: 2.5rem;
     min-height: 2.5rem;
-    border-bottom: 1px solid var(--border);
-    border-right: 1px solid var(--border);
+    border-bottom: var(--border-style);
+    border-right: var(--border-style);
     border-bottom-right-radius: 16px;
     background: var(--bg);
 
@@ -285,7 +285,7 @@
 
   .left-panel-viewport > div {
     padding: 0.75rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-style);
 
     & > .field-row {
       display: flex;
@@ -306,7 +306,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
 
     & > a {
       justify-content: space-between;

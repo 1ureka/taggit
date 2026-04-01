@@ -75,7 +75,7 @@
 
   .modal {
     background: var(--bg-card);
-    border: 2px solid var(--border);
+    border: var(--border-style);
     border-radius: calc(var(--radius) * 2);
     padding: 1.5rem;
     max-width: 28rem;

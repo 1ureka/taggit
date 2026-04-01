@@ -318,7 +318,7 @@
     gap: 0.5rem;
     padding: 0px 0.75rem;
     height: 2.5rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-style);
   }
 
   /* --- */
@@ -328,7 +328,7 @@
     min-width: 280px;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border);
+    border-right: var(--border-style);
     background: var(--bg-card);
     overflow: hidden;
   }
@@ -353,7 +353,7 @@
 
   .left-panel > footer {
     padding: 0.625rem 0.75rem;
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
 
     & > button {
       width: 100%;
@@ -429,7 +429,7 @@
     padding: 0.375rem 0.75rem;
     font-size: 0.6875rem;
     color: var(--text-dim);
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
     background: var(--bg-card);
     min-height: 1.75rem;
   }
@@ -439,7 +439,7 @@
   .right-panel {
     width: 280px;
     min-width: 280px;
-    border-left: 1px solid var(--border);
+    border-left: var(--border-style);
     background: var(--bg-card);
     display: flex;
     flex-direction: column;
@@ -502,7 +502,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
     padding: 0.75rem;
 
     & > button {
@@ -538,7 +538,7 @@
     font-size: 0.75rem;
     margin: 0;
     padding: 0.75rem;
-    border-top: 1px solid var(--border);
+    border-top: var(--border-style);
 
     & > dt {
       color: var(--text-dim);

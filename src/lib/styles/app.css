@@ -39,6 +39,7 @@
   --color-success: #22c55e;
   --ring: #d4d4d8;
   --radius: 6px;
+  --border-style: 2px solid var(--border);
   --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --z-modal: 20;
