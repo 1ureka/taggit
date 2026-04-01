@@ -85,7 +85,7 @@
 <main class="slide-up">
   <div class="left-panel-spacer"></div>
 
-  <div class="masonry-viewport" bind:this={masonry.viewportEl}>
+  <section class="masonry-viewport" aria-label="篩選結果" bind:this={masonry.viewportEl}>
     {#if data.total === 0 && !navigating.to}
       <p>找不到符合的圖片</p>
     {/if}
@@ -110,7 +110,7 @@
       </a>
     {/snippet}
 
-    <ul class="masonry" style:height="{masonry.masonryHeight}px">
+    <ul class="masonry" aria-label="圖片牆" style:height="{masonry.masonryHeight}px">
       {#each masonry.masonryItems as item (item.id)}
         <li class="masonry-item" style={item.style}>
           {@render card({ item })}
@@ -128,7 +128,7 @@
         <IconArrowUp size={20} />
       </button>
     {/if}
-  </div>
+  </section>
 
   <aside class="left-panel">
     <div class="left-panel-viewport">
@@ -170,7 +170,7 @@
       </footer>
     </div>
 
-    <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
+    <button type="button" aria-label="開合探索面板" title="開合探索面板" onclick={handleToggleLeftPanel}>
       <div class="inverse-border"></div>
     </button>
   </aside>
@@ -352,13 +352,13 @@
 
   /* --- */
 
-  .masonry-viewport {
+  section.masonry-viewport {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
 
-    & > .masonry {
+    & > ul.masonry {
       position: relative;
     }
   }
@@ -456,7 +456,7 @@
     }
   }
 
-  .masonry-viewport > p {
+  section.masonry-viewport > p {
     text-align: center;
     color: var(--text-dim);
     font-size: 0.875rem;
