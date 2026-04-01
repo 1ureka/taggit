@@ -164,7 +164,7 @@
     gap: 0.75rem;
     padding: 0.625rem 1rem;
     background-color: hsl(from var(--bg) h s l / 0.85);
-    border-top: 1px solid var(--border-hover);
+    border-top: var(--border-style);
   }
 
   aside > .progress {
