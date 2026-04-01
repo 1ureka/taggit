@@ -23,6 +23,9 @@
   ul.nowrap {
     flex-wrap: nowrap;
     overflow: hidden;
-    min-width: max-content;
+
+    & > .chip {
+      flex-shrink: 0;
+    }
   }
 </style>
