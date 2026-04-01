@@ -43,6 +43,8 @@
   <div
     class="modal-overlay"
     role="presentation"
+    tabindex="-1"
+    bind:this={ui.overlayEl}
     onclick={ui.handleOverlayClick}
     onkeydown={ui.handleOverlayKeydown}
     transition:fade={{ duration: 150 }}

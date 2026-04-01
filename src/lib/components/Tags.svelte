@@ -1,8 +1,13 @@
 <script lang="ts">
-  let { tags }: { tags: string[] } = $props();
+  type Props = {
+    tags: string[];
+    nowrap?: boolean;
+  };
+
+  let { tags, nowrap = false }: Props = $props();
 </script>
 
-<ul>
+<ul class:nowrap>
   {#each tags as tag}
     <li class="chip">{tag}</li>
   {/each}
@@ -13,5 +18,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
+  }
+
+  ul.nowrap {
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    & > .chip {
+      flex-shrink: 0;
+    }
   }
 </style>

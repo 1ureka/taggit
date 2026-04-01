@@ -6,12 +6,16 @@
 
   import Select from "$lib/components/Select.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
+  import Modal from "$lib/components/Modal.svelte";
+  import Rating from "$lib/components/Rating.svelte";
+  import Tags from "$lib/components/Tags.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
   import { BrowseFab } from "./browseFab.svelte.js";
   import { BrowseForm } from "./browseForm.svelte.js";
+  import { BrowseModal } from "./browseModal.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
@@ -48,6 +52,12 @@
 
   const form = new BrowseForm();
 
+  const modal = new BrowseModal({
+    get modalRecord() {
+      return data.modalRecord;
+    },
+  });
+
   // ---
 
   $effect(() => {
@@ -75,26 +85,42 @@
 <main class="slide-up">
   <div class="left-panel-spacer"></div>
 
-  <div class="masonry-viewport" bind:this={masonry.viewportEl}>
+  <section class="masonry-viewport" aria-label="篩選結果" bind:this={masonry.viewportEl}>
     {#if data.total === 0 && !navigating.to}
-      <p>找不到符合的圖片</p>
+      <p>找不到符合的圖片，請調整篩選條件，或在上方的導航選單中前往新增圖片</p>
     {/if}
 
-    <div class="masonry" style:height="{masonry.masonryHeight}px">
-      {#each masonry.masonryItems as item (item.id)}
-        <div class="masonry-item" style={item.style}>
+    {#snippet card({ item }: { item: (typeof masonry.masonryItems)[number] })}
+      <a href={modal.getHref(item.id)} aria-label="查看 {item.name} 詳情" data-sveltekit-keepfocus="false">
+        <figure>
           <img
             src={imgSrc(item.id, "md")}
             style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-            alt={item.name || item.id}
+            alt={item.name}
             loading="lazy"
+            decoding="async"
           />
-        </div>
+
+          <figcaption>
+            <h3 class="ellipsis">{item.name}</h3>
+            <Rating value={item.rating} size="1rem" readonly />
+            <Tags tags={item.tags} nowrap />
+          </figcaption>
+        </figure>
+      </a>
+    {/snippet}
+
+    <ul class="masonry" aria-label="圖片牆" style:height="{masonry.masonryHeight}px">
+      {#each masonry.masonryItems as item (item.id)}
+        <li class="masonry-item" style={item.style}>
+          {@render card({ item })}
+        </li>
       {/each}
-    </div>
+    </ul>
 
     {#if fab.show}
       <button
+        type="button"
         class="fab bottom-right"
         onclick={fab.handleFabClick}
         aria-label="回到頂部"
@@ -103,7 +129,7 @@
         <IconArrowUp size={20} />
       </button>
     {/if}
-  </div>
+  </section>
 
   <aside class="left-panel">
     <div class="left-panel-viewport">
@@ -145,11 +171,15 @@
       </footer>
     </div>
 
-    <button type="button" aria-label="開合搜尋與排序面板" title="開合搜尋與排序面板" onclick={handleToggleLeftPanel}>
+    <button type="button" aria-label="開合探索面板" title="開合探索面板" onclick={handleToggleLeftPanel}>
       <div class="inverse-border"></div>
     </button>
   </aside>
 </main>
+
+<Modal open={modal.open} onclose={modal.handleClose} label="圖片詳細資訊">
+  <p>{modal.record.name || modal.record.id}</p>
+</Modal>
 
 <style>
   main {
@@ -323,26 +353,111 @@
 
   /* --- */
 
-  .masonry-viewport {
+  section.masonry-viewport {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
+
+    & > ul.masonry {
+      position: relative;
+    }
   }
 
-  .masonry {
+  li.masonry-item {
+    display: block;
+  }
+
+  li.masonry-item > a {
     position: relative;
-  }
-
-  .masonry-item > img {
+    display: grid;
+    place-items: stretch;
     width: 100%;
     height: 100%;
-    display: block;
-    object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius);
+    overflow: hidden;
+
+    transition: scale 0.15s;
+    &:active {
+      scale: 0.98;
+    }
   }
 
-  .masonry-viewport > p {
+  li.masonry-item > a > figure {
+    min-width: 0;
+
+    & > img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    & > figcaption {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      height: 100%;
+      padding: 0.5rem;
+      gap: 0.25rem;
+
+      & > h3 {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text);
+        opacity: 0.75;
+        text-align: left;
+        margin-bottom: auto;
+      }
+    }
+  }
+
+  li.masonry-item > a > figure {
+    & > img {
+      scale: 1.001;
+      transition: scale 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    & > figcaption {
+      opacity: 0;
+      background: linear-gradient(
+        to bottom,
+        hsl(from var(--bg-card) h s l / 0.8) 0%,
+        hsl(from var(--bg-card) h s l / 0.3) 35%,
+        hsl(from var(--bg-card) h s l / 0.3) 65%,
+        hsl(from var(--bg-card) h s l / 0.8) 100%
+      );
+      transition: opacity 0.2s;
+    }
+  }
+
+  li.masonry-item > a:hover > figure {
+    & > img {
+      scale: 1.05;
+    }
+
+    & > figcaption {
+      opacity: 1;
+    }
+  }
+
+  li.masonry-item > a:focus-visible {
+    outline: none;
+
+    & > figure > img {
+      scale: 1.05;
+    }
+
+    & > figure > figcaption {
+      opacity: 1;
+      outline: 4px solid hsl(from var(--ring) h s l / 0.5);
+      outline-offset: -4px;
+    }
+  }
+
+  section.masonry-viewport > p {
     text-align: center;
     color: var(--text-dim);
     font-size: 0.875rem;
@@ -376,6 +491,11 @@
 
     &:active {
       transform: scale(0.95);
+    }
+
+    &:focus-visible {
+      outline: 2px solid hsl(from var(--bg) h s l / 0.5);
+      outline-offset: -3px;
     }
   }
 </style>
