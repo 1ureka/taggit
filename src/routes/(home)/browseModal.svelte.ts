@@ -1,36 +1,37 @@
-import { goto } from "$app/navigation";
+import { pushState } from "$app/navigation";
 import { page } from "$app/state";
 import type { ImageWithId } from "$lib/types.js";
 
 type BrowseModalOptions = {
-  get modalRecord(): ImageWithId | null;
+  /** SSR 的圖片集合結果 */
+  get items(): ImageWithId[];
 };
 
 export class BrowseModal {
-  /** Modal 是否開啟 */
-  open: boolean;
-  /** 目前顯示的圖片紀錄 */
-  record: ImageWithId;
-  /** 根據 id 獲取其對應的 url */
-  getHref: (id: string) => string;
+  /** 目前顯示的圖片紀錄，若沒有選擇圖片或圖片不存在則為 null，代表不要開啟對話框 */
+  record: ImageWithId | null;
 
   constructor(options: BrowseModalOptions) {
-    this.open = $derived(options.modalRecord !== null);
-    this.record = $derived(options.modalRecord!); // 因為 open 已經確保了 modalRecord 不為 null
-    // 除非你不小心將其用在 modal 以外的地方
+    this.record = $derived.by(() => {
+      // 第一個取值是為了 SSR，第二個取值是為了 CSR (shallow routing)
+      const modal = page.url.searchParams.get("modal") || (page.state as { modal?: string }).modal;
+      if (!modal) return null;
 
-    this.getHref = $derived((id: string) => {
-      const params = new URLSearchParams(page.url.searchParams);
-      params.set("modal", id);
-      return `/?${params.toString()}`;
+      const record = options.items.find((item) => item.id === modal) || null;
+      return record;
     });
   }
 
-  /** 關閉 Modal：從 URL 移除 ?modal */
-  handleClose = () => {
+  /** 處理 Trigger 點擊事件 */
+  handleTriggerClick = (id: string) => {
     const params = new URLSearchParams(page.url.searchParams);
-    params.delete("modal");
-    const qs = params.toString();
-    goto(`/${qs ? `?${qs}` : ""}`, { noScroll: true });
+    params.set("modal", id);
+    pushState(`/?${params.toString()}`, { modal: id });
+  };
+
+  /** 關閉 Modal，從 URL 移除 ?modal，也就是回到上一個 URL 狀態 */
+  handleClose = () => {
+    // 確保真的有打開，才允許關閉（回到上一個 URL 狀態）
+    if (this.record) history.back();
   };
 }

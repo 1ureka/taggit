@@ -47,8 +47,8 @@
   const form = new BrowseForm();
 
   const modal = new BrowseModal({
-    get modalRecord() {
-      return data.modalRecord;
+    get items() {
+      return data.items;
     },
   });
 
@@ -85,7 +85,7 @@
     {/if}
 
     {#snippet card({ item }: { item: (typeof masonry.masonryItems)[number] })}
-      <a href={modal.getHref(item.id)} aria-label="查看 {item.name} 詳情" data-sveltekit-replacestate>
+      <button type="button" onclick={() => modal.handleTriggerClick(item.id)} aria-label="查看 {item.name} 詳情">
         <figure>
           <img
             src={imgSrc(item.id, "md")}
@@ -101,7 +101,7 @@
             <Tags tags={item.tags} nowrap />
           </figcaption>
         </figure>
-      </a>
+      </button>
     {/snippet}
 
     <ul class="masonry" aria-label="圖片牆" style:height="{masonry.masonryHeight}px">
@@ -163,8 +163,10 @@
   </aside>
 </main>
 
-<Modal open={modal.open} onclose={modal.handleClose} label="圖片詳細資訊">
-  <p>{modal.record.name || modal.record.id}</p>
+<Modal open={modal.record !== null} onclose={modal.handleClose} label="圖片詳細資訊">
+  <!-- 因為 open={modal.record !== null}，所以這裡可以安全地使用非空斷言 -->
+  {@const record = modal.record!}
+  <p>{record.name || record.id}</p>
 </Modal>
 
 <style>
@@ -333,7 +335,7 @@
     display: block;
   }
 
-  li.masonry-item > a {
+  li.masonry-item > button {
     position: relative;
     display: grid;
     place-items: stretch;
@@ -348,7 +350,7 @@
     }
   }
 
-  li.masonry-item > a > figure {
+  li.masonry-item > button > figure {
     min-width: 0;
 
     & > img {
@@ -380,7 +382,7 @@
     }
   }
 
-  li.masonry-item > a > figure {
+  li.masonry-item > button > figure {
     & > img {
       scale: 1.001;
       transition: scale 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -399,7 +401,7 @@
     }
   }
 
-  li.masonry-item > a:hover > figure {
+  li.masonry-item > button:hover > figure {
     & > img {
       scale: 1.05;
     }
@@ -409,7 +411,7 @@
     }
   }
 
-  li.masonry-item > a:focus-visible {
+  li.masonry-item > button:focus-visible {
     outline: none;
 
     & > figure > img {
