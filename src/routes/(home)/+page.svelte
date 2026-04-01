@@ -377,5 +377,10 @@
     &:active {
       transform: scale(0.95);
     }
+
+    &:focus-visible {
+      outline: 2px solid hsl(from var(--bg) h s l / 0.5);
+      outline-offset: -3px;
+    }
   }
 </style>
