@@ -393,6 +393,7 @@
         opacity: 0.75;
         text-align: left;
         margin-bottom: auto;
+        max-width: 100%;
       }
     }
   }
