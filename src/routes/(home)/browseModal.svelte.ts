@@ -1,4 +1,4 @@
-import { pushState } from "$app/navigation";
+import { replaceState } from "$app/navigation";
 import { page } from "$app/state";
 import type { ImageWithId } from "$lib/types.js";
 
@@ -13,8 +13,13 @@ export class BrowseModal {
 
   constructor(options: BrowseModalOptions) {
     this.record = $derived.by(() => {
+      const modalClose = (page.state as { modalClose?: boolean }).modalClose;
+      if (modalClose) return null;
+
       // 第一個取值是為了 SSR，第二個取值是為了 CSR (shallow routing)
-      const modal = page.url.searchParams.get("modal") || (page.state as { modal?: string }).modal;
+      const modalSSR = page.url.searchParams.get("modal");
+      const modalCSR = (page.state as { modal?: string }).modal;
+      const modal = modalSSR || modalCSR;
       if (!modal) return null;
 
       const record = options.items.find((item) => item.id === modal) || null;
@@ -26,12 +31,16 @@ export class BrowseModal {
   handleTriggerClick = (id: string) => {
     const params = new URLSearchParams(page.url.searchParams);
     params.set("modal", id);
-    pushState(`/?${params.toString()}`, { modal: id });
+    replaceState(`/?${params.toString()}`, { modal: id, modalClose: false });
   };
 
-  /** 關閉 Modal，從 URL 移除 ?modal，也就是回到上一個 URL 狀態 */
+  /** 關閉 Modal，從 URL 移除 ?modal */
   handleClose = () => {
     // 確保真的有打開，才允許關閉（回到上一個 URL 狀態）
-    if (this.record) history.back();
+    if (this.record) {
+      const params = new URLSearchParams(page.url.searchParams);
+      params.delete("modal");
+      replaceState(`/?${params.toString()}`, { modalClose: true });
+    }
   };
 }
