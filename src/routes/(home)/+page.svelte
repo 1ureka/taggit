@@ -12,6 +12,7 @@
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
   import { BrowseFab } from "./browseFab.svelte.js";
   import { BrowseForm } from "./browseForm.svelte.js";
+  import { BrowseModal } from "./browseModal.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
@@ -47,6 +48,12 @@
   });
 
   const form = new BrowseForm();
+
+  const modal = new BrowseModal({
+    get modalRecord() {
+      return data.modalRecord;
+    },
+  });
 
   // ---
 
@@ -150,6 +157,10 @@
     </button>
   </aside>
 </main>
+
+<Modal open={modal.open} onclose={modal.handleClose} label="圖片詳細資訊">
+  <p>{modal.record.name || modal.record.id}</p>
+</Modal>
 
 <style>
   main {
