@@ -9,6 +9,7 @@
   import Rating from "$lib/components/Rating.svelte";
   import Tags from "$lib/components/Tags.svelte";
   import ScrollButton from "$lib/components/ScrollButton.svelte";
+  import InverseRadius from "$lib/components/InverseRadius.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
@@ -84,7 +85,7 @@
     {/if}
 
     {#snippet card({ item }: { item: (typeof masonry.masonryItems)[number] })}
-      <a href={modal.getHref(item.id)} aria-label="查看 {item.name} 詳情" data-sveltekit-keepfocus="false">
+      <a href={modal.getHref(item.id)} aria-label="查看 {item.name} 詳情" data-sveltekit-replacestate>
         <figure>
           <img
             src={imgSrc(item.id, "md")}
@@ -155,7 +156,9 @@
     </div>
 
     <button type="button" aria-label="開合探索面板" title="開合探索面板" onclick={handleToggleLeftPanel}>
-      <div class="inverse-border"></div>
+      <InverseRadius corner="bottom-left" size="16px" />
+      <!-- 註1: 16px 小於 masonry 的 paddingX: 24，因此背景覆蓋不會覆蓋到圖片 -->
+      <!-- 註2: 16px 又剛好是極限，因為 borderRadius 要是 button 寬度的一半: 16px -->
     </button>
   </aside>
 </main>
@@ -213,30 +216,9 @@
     border: 1px solid var(--border);
     border-top: 0px;
     border-left: 0px;
+  }
 
-    & > .inverse-border {
-      content: "";
-      position: absolute;
-      top: 100%;
-      left: 0;
-      width: 16px;
-      /* 註1: 16px 小於 masonry 的 paddingX: 24，因此背景覆蓋不會覆蓋到圖片 */
-      /* 註2: 16px 又剛好是極限，因為 borderRadius 要是 button 寬度的一半: 16px */
-      height: 16px;
-      background-color: var(--bg-card);
-
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background-color: var(--bg);
-        border-top-left-radius: 16px;
-        border: 1px solid var(--border);
-        border-bottom: 0px;
-        border-right: 0px;
-      }
-    }
-
+  aside.left-panel > button {
     display: grid;
     place-items: center;
 
