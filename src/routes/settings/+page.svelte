@@ -289,7 +289,7 @@
     width: 200px;
     flex-shrink: 0;
     padding: 1.5rem 0.75rem;
-    border-right: 1px solid var(--border);
+    border-right: var(--border-style);
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
@@ -299,7 +299,7 @@
       flex-direction: row;
       padding: 0.5rem 0.75rem;
       border-right: none;
-      border-bottom: 1px solid var(--border);
+      border-bottom: var(--border-style);
       overflow-x: auto;
       gap: 0.25rem;
     }
@@ -351,7 +351,7 @@
   section {
     padding-bottom: 2.5rem;
     margin-bottom: 2.5rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-style);
 
     & > .title {
       font-size: 1.25rem;
@@ -445,7 +445,7 @@
   .tool-card {
     padding: 1.25rem;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-radius: calc(var(--radius) * 1.5);
     margin-bottom: 1rem;
 
