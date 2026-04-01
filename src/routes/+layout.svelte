@@ -180,7 +180,7 @@
     height: 3rem;
     min-height: 3rem;
     background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-style);
 
     & > h1 {
       display: flex;
@@ -219,7 +219,7 @@
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-style);
     margin-bottom: 0.5rem;
 
     & > span {

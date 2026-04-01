@@ -35,7 +35,7 @@
     gap: 0.625rem;
     padding: 0.75rem 1rem;
     border-radius: var(--radius);
-    border: 1px solid;
+    border: var(--border-style);
     font-size: 0.875rem;
     color: var(--text);
     line-height: 1.6;

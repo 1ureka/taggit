@@ -88,7 +88,7 @@
     line-height: 1.45;
     color: var(--text);
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-radius: var(--radius);
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.25),

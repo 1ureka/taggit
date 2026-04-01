@@ -223,7 +223,7 @@ Svelte 的 `<style>` 預設為 **scoped**——同一個 class name 出現在不
     display: flex;
     flex-direction: column;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-radius: calc(var(--radius) * 2);
     overflow: hidden;
 

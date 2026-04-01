@@ -83,7 +83,7 @@
     font-family: var(--font);
     color: var(--text);
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: var(--border-style);
     border-radius: var(--radius);
     cursor: pointer;
     user-select: none;
