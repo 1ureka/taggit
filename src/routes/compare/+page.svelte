@@ -38,7 +38,7 @@
         </div>
 
         <div class="card-info">
-          <Rating readonly value={image.rating ?? 0} size="0.875rem" />
+          <Rating readonly value={image.rating ?? 0} size="1rem" />
           <Tags tags={image.tags} />
         </div>
       </a>

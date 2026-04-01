@@ -102,7 +102,7 @@
   onkeydown={form.handleWindowKeydown}
 />
 
-<main>
+<main class="slide-up">
   <aside class="left-panel">
     <header>
       <div>
