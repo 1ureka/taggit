@@ -6,6 +6,9 @@
 
   import Select from "$lib/components/Select.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
+  import Modal from "$lib/components/Modal.svelte";
+  import Rating from "$lib/components/Rating.svelte";
+  import Tags from "$lib/components/Tags.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
@@ -87,18 +90,33 @@
       <p>找不到符合的圖片</p>
     {/if}
 
-    <div class="masonry" style:height="{masonry.masonryHeight}px">
-      {#each masonry.masonryItems as item (item.id)}
-        <div class="masonry-item" style={item.style}>
+    {#snippet card({ item }: { item: (typeof masonry.masonryItems)[number] })}
+      <a href={modal.getHref(item.id)} aria-label="查看 {item.name} 詳情" data-sveltekit-keepfocus="false">
+        <figure>
           <img
             src={imgSrc(item.id, "md")}
             style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-            alt={item.name || item.id}
+            alt={item.name}
             loading="lazy"
+            decoding="async"
           />
-        </div>
+
+          <figcaption>
+            <h3 class="ellipsis">{item.name}</h3>
+            <Rating value={item.rating} size="1rem" readonly />
+            <Tags tags={item.tags} nowrap />
+          </figcaption>
+        </figure>
+      </a>
+    {/snippet}
+
+    <ul class="masonry" style:height="{masonry.masonryHeight}px">
+      {#each masonry.masonryItems as item (item.id)}
+        <li class="masonry-item" style={item.style}>
+          {@render card({ item })}
+        </li>
       {/each}
-    </div>
+    </ul>
 
     {#if fab.show}
       <button
@@ -339,18 +357,103 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
+
+    & > .masonry {
+      position: relative;
+    }
   }
 
-  .masonry {
+  li.masonry-item {
+    display: block;
+  }
+
+  li.masonry-item > a {
     position: relative;
-  }
-
-  .masonry-item > img {
+    display: grid;
+    place-items: stretch;
     width: 100%;
     height: 100%;
-    display: block;
-    object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius);
+    overflow: hidden;
+
+    transition: scale 0.15s;
+    &:active {
+      scale: 0.98;
+    }
+  }
+
+  li.masonry-item > a > figure {
+    min-width: 0;
+
+    & > img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    & > figcaption {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      height: 100%;
+      padding: 0.5rem;
+      gap: 0.25rem;
+
+      & > h3 {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text);
+        opacity: 0.75;
+        text-align: left;
+        margin-bottom: auto;
+      }
+    }
+  }
+
+  li.masonry-item > a > figure {
+    & > img {
+      scale: 1.001;
+      transition: scale 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    & > figcaption {
+      opacity: 0;
+      background: linear-gradient(
+        to bottom,
+        hsl(from var(--bg-card) h s l / 0.8) 0%,
+        hsl(from var(--bg-card) h s l / 0.3) 35%,
+        hsl(from var(--bg-card) h s l / 0.3) 65%,
+        hsl(from var(--bg-card) h s l / 0.8) 100%
+      );
+      transition: opacity 0.2s;
+    }
+  }
+
+  li.masonry-item > a:hover > figure {
+    & > img {
+      scale: 1.05;
+    }
+
+    & > figcaption {
+      opacity: 1;
+    }
+  }
+
+  li.masonry-item > a:focus-visible {
+    outline: none;
+
+    & > figure > img {
+      scale: 1.05;
+    }
+
+    & > figure > figcaption {
+      opacity: 1;
+      outline: 4px solid hsl(from var(--ring) h s l / 0.5);
+      outline-offset: -4px;
+    }
   }
 
   .masonry-viewport > p {
