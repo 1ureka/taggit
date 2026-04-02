@@ -224,7 +224,7 @@
 
     & > span {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-dim);
     }
   }

@@ -329,7 +329,7 @@
     }
 
     & > .progress-text {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
       white-space: nowrap;
       text-align: right;

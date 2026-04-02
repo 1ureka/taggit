@@ -535,7 +535,7 @@
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 0.25rem 0.75rem;
-    font-size: 0.75rem;
+    font-size: var(--font-size-caption);
     margin: 0;
     padding: 0.75rem;
     border-top: var(--border-style);

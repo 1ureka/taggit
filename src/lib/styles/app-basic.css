@@ -70,7 +70,7 @@
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-caption);
   line-height: 1;
   cursor: pointer;
   opacity: 0.6;

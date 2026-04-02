@@ -387,7 +387,7 @@
       background: var(--bg-active);
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
     }
   }
 

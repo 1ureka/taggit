@@ -29,19 +29,25 @@
   --bg-active: #222222;
   --border: #222222;
   --border-hover: #333333;
+  --ring: #d4d4d8;
+
   --text: #fafafa;
   --text-muted: #a1a1aa;
   --text-dim: #71717a;
+
   --accent: #ffffff;
   --destructive: #ef4444;
   --color-info: #3b82f6;
   --color-warning: #eab308;
   --color-success: #22c55e;
-  --ring: #d4d4d8;
+
   --radius: 6px;
   --border-style: 2px solid var(--border);
+
   --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --font-size-caption: 0.75rem;
+
   --z-modal: 20;
   --z-popover: 25;
   --z-toast: 30;

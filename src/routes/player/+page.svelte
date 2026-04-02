@@ -175,7 +175,7 @@
     min-width: 0;
 
     & > span {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
       white-space: nowrap;
       min-width: 4rem;
@@ -189,13 +189,13 @@
     gap: 0.375rem;
 
     & > label {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-dim);
       white-space: nowrap;
     }
 
     & > span {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
       min-width: 2.5rem;
       text-align: center;
