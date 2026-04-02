@@ -115,7 +115,7 @@
     width: 100%;
     text-align: left;
     padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     color: var(--text);
     background-color: transparent;
 

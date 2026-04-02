@@ -12,7 +12,7 @@
     placeholder?: string;
     /** 當標籤變更時觸發 */
     onchange?: () => void;
-    /** 佈局變體（compact 請改用 TagAutocompleteCompact） */
+    /** 佈局變體 */
     variant?: "top" | "inline";
   };
 
@@ -35,9 +35,9 @@
   {/each}
 {/if}
 
-<div class="autocomplete" class:autocomplete--top={variant === "top"} class:autocomplete--inline={variant === "inline"}>
+<div class="autocomplete" class:top={variant === "top"} class:inline={variant === "inline"}>
   {#if tags.length > 0}
-    <div class="chip-list">
+    <div class="tags">
       {#each tags as tag}
         <button type="button" class="chip chip-removable" onclick={() => ui.handleChipClick(tag)}>
           {tag}<span class="chip-remove"><IconX size={12} /></span>
@@ -61,23 +61,22 @@
   <div class="popover" use:float={{ reference: ui.inputEl, open: ui.showDropdown && ui.dropdownTags.length > 0 }}>
     {#each ui.dropdownTags as tag, i}
       <div
-        class="autocomplete-item"
-        class:active={i === ui.activeIndex}
-        onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
-        onmouseenter={() => ui.handleDropdownMouseOver(i)}
         role="option"
         tabindex="-1"
+        class:active={i === ui.activeIndex}
         aria-selected={i === ui.activeIndex}
+        onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
+        onmouseenter={() => ui.handleDropdownMouseOver(i)}
       >
-        <span class="autocomplete-item-name">{tag.name}</span>
-        <span class="autocomplete-item-count">{tag.count}</span>
+        <span class="name">{tag.name}</span>
+        <span class="count">{tag.count}</span>
       </div>
     {/each}
   </div>
 </div>
 
 <style>
-  .chip-list {
+  .tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
@@ -85,58 +84,57 @@
     max-width: 100%;
   }
 
-  .autocomplete {
+  div.autocomplete {
     position: relative;
     display: flex;
     gap: 0.5rem;
-  }
 
-  .autocomplete--top {
-    flex-direction: column;
+    &.top {
+      flex-direction: column;
 
-    & .text-input {
-      width: 100%;
+      & > .text-input {
+        width: 100%;
+      }
+    }
+
+    &.inline {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+
+      & > .text-input {
+        flex: 1;
+        min-width: 7rem;
+      }
     }
   }
 
-  .autocomplete--inline {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-
-    & .text-input {
-      flex: 1;
-      min-width: 7rem;
-    }
-  }
-
-  .autocomplete-item {
+  div[role="option"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     cursor: pointer;
-    transition: background 0.08s;
+
+    &:hover,
+    &.active {
+      background: var(--bg-hover);
+    }
   }
 
-  .autocomplete-item:hover,
-  .autocomplete-item.active {
-    background: var(--bg-hover);
-  }
-
-  .autocomplete-item-name {
+  div[role="option"] > .name {
     color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .autocomplete-item-count {
+  div[role="option"] > .count {
     font-size: var(--font-size-caption);
     color: var(--text-dim);
     font-family: var(--font-mono);
-    margin-left: 0.5rem;
     flex-shrink: 0;
   }
 </style>

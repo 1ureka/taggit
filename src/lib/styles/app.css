@@ -47,6 +47,7 @@
   --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --font-size-body1: 0.875rem;
+  --font-size-body2: 0.8125rem;
   --font-size-caption: 0.75rem;
 
   --z-modal: 20;
