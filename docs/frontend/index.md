@@ -54,40 +54,14 @@ Template vs UI 的拆分在三個層面上運作：
 
 ### Snippets
 
-Svelte 的 `{#snippet}` 用於頁面內的重複 HTML 片段。Snippet 是 **template 層面的中間變數**——就像 JavaScript 中會把重複的運算抽成一個區域變數，snippet 把重複的 HTML 抽成一個具名片段，而不是一個組件。
+Svelte 5 的 `{#snippet}` 是 **template 層面的變數**——就像 JS 中會把複雜運算透過變數使其可讀，snippet 把重複或複雜的 HTML 抽成一個具名片段:
 
-Snippet 的特點：
+- **迴圈內的深層結構**: 從 `{#each}` 中抽出 item template，降低嵌套層級
+- **頁面章節組織**: 無參數 snippet 拆分長頁面的邏輯區塊，可直接使用該頁面的所有資料與互動邏輯 (class) 而不需傳入
+- **Snippet 作為參數傳遞**: 一個 snippet 接受 `Snippet` 型別參數，實現可注入內容的「元件化 snippet」
+- **注入共用組件**: 把 snippet 作為 children 傳入共用組件
 
-- **不是組件**：沒有自己的 scope、props 介面或生命週期，只是 markup 的集中定義
-- **單頁面共用**：在同一個 `.svelte` 檔案中定義並使用，不跨檔案
-- **降低 indent 層級**：將 `{#each}` 內部的大區塊抽出，讓主結構更清晰
-- **支援參數**：可以帶參數，像 function call 一樣使用
-
-```svelte
-{#snippet card(item: ImageWithId)}
-  <figure>
-    <img src={getSrc(item)} alt={item.name} />
-    <figcaption class="ellipsis">{item.name}</figcaption>
-  </figure>
-{/snippet}
-
-{#each masonry.columns as column}
-  {#each column as item}
-    {@render card(item)}
-  {/each}
-{/each}
-```
-
-判斷使用 snippet 還是組件：
-
-| 情境                           | 選擇      |
-| ------------------------------ | --------- |
-| 同一頁面內重複出現的 HTML 片段 | Snippet   |
-| 跨頁面復用的 UI 單元           | 共用組件  |
-| 需要自己的 scoped 樣式         | 共用組件  |
-| 純粹降低 indent / 提取可讀性   | Snippet   |
-
-Snippet 也可以注入到共用組件中（如 Modal 的內容區域），實現「機制由組件提供、策略由呼叫者決定」的分離。→ 詳見 [components.md](./components.md) 的「機制與策略」
+→ 詳見 [snippets.md](./snippets.md)（完整的用途分類、程式碼範例、snippet vs 組件的判斷依據）
 
 ### Components
 
