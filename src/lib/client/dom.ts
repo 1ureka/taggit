@@ -42,9 +42,9 @@ export function addToast(message: string, type: ToastType = "info", duration = 3
  * 顯示全域確認對話框並等待使用者回應。
  * 內部透過 CustomEvent 將請求派發至 ConfirmModal 的無頭 UI。
  */
-export function requestConfirm(message: string): Promise<boolean> {
+export function requestConfirm(message: string, options?: { title?: string; action?: string }): Promise<boolean> {
   return new Promise((resolve) => {
     const eventName: ConfirmEventName = "confirm:request";
-    window.dispatchEvent(new CustomEvent<ConfirmPayload>(eventName, { detail: { message, resolve } }));
+    window.dispatchEvent(new CustomEvent<ConfirmPayload>(eventName, { detail: { message, ...options, resolve } }));
   });
 }

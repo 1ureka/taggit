@@ -38,7 +38,8 @@ export class SettingsMaintenance {
 
   /** 處理「刪除缺失記錄」按鈕點擊事件，刪除所有缺失記錄 */
   handleMissingDeleteClick = async () => {
-    if (!(await requestConfirm(`確定要刪除 ${this.missingList.length} 個缺失記錄？此操作無法復原。`))) return;
+    const msg = `確定要刪除 ${this.missingList.length} 個缺失記錄？此操作無法復原。`;
+    if (!(await requestConfirm(msg, { title: "刪除記錄", action: "刪除" }))) return;
 
     this.missingBusy = true;
     const res = await api.del<{ deleted: number }>("/api/settings/missing");

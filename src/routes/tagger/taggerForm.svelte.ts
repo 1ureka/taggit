@@ -78,7 +78,7 @@ export class TaggerForm {
 
     const n = this.options.selectedFiles.size;
     const msg = `確定要永久刪除選取的 ${n} 張圖片？此操作無法復原。`;
-    if (!(await requestConfirm(msg))) return;
+    if (!(await requestConfirm(msg, { title: "永久刪除", action: "永久刪除" }))) return;
 
     const names = [...this.options.selectedFiles];
     this.pending = true;

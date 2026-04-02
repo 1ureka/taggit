@@ -8,15 +8,21 @@ export class ConfirmModal {
   open = $state(false);
   /** 確認訊息內容 */
   message = $state("");
+  /** 對話框標題 */
+  title = $state("確認");
+  /** 確認按鈕文字 */
+  action = $state("確認");
 
   #resolveRef: ((v: boolean) => void) | null = null;
 
   constructor() {
     $effect(() => {
       const onConfirmRequest = (e: Event) => {
-        const { message: msg, resolve } = (e as CustomEvent<ConfirmPayload>).detail;
+        const { message: msg, title, action, resolve } = (e as CustomEvent<ConfirmPayload>).detail;
         this.#resolveRef?.(false);
         this.message = msg;
+        this.title = title ?? "確認";
+        this.action = action ?? "確認";
         this.#resolveRef = resolve;
         this.open = true;
       };

@@ -142,7 +142,7 @@ export class EditorForm {
     const msg =
       n === 1 ? `確定要取消提交 ${[...this.options.selectedFiles][0]}？` : `確定要取消提交選取的 ${n} 張圖片？`;
     const desc = "此操作會將圖片包括名稱的所有屬性刪除，圖片本身則回到暫存區";
-    if (!(await requestConfirm(`${msg}（${desc}）`))) return;
+    if (!(await requestConfirm(`${msg}（${desc}）`, { title: "取消提交", action: "取消提交" }))) return;
 
     const ids = [...this.options.selectedFiles];
     this.options.pending = true;

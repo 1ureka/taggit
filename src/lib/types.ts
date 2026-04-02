@@ -168,6 +168,8 @@ export type ConfirmEventName = "confirm:request";
  */
 export interface ConfirmPayload {
   message: string;
+  title?: string;
+  action?: string;
   resolve: (value: boolean) => void;
 }
 
