@@ -186,7 +186,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 1.5rem;
+      font-size: var(--font-size-brand);
       font-weight: normal;
       text-box: trim-both cap alphabetic;
       letter-spacing: 0.1rem;
@@ -279,7 +279,7 @@
 
     & > h2 {
       color: var(--text);
-      font-size: 1rem;
+      font-size: var(--font-size-title2);
       font-weight: 500;
       text-align: left;
     }

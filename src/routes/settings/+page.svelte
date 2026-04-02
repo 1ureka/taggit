@@ -347,8 +347,7 @@
 
     & > h2 {
       font-size: var(--font-size-title1);
-      font-weight: 500;
-      letter-spacing: -0.01em;
+      font-weight: normal;
       margin-bottom: 0.5rem;
     }
 
@@ -375,10 +374,10 @@
     padding-left: 1.25rem;
 
     & > li > code {
-      font-family: var(--font-mono);
       background: var(--bg-active);
       padding: 0.125rem 0.375rem;
-      border-radius: 4px;
+      border-radius: calc(2 * var(--radius) / 3);
+      font-family: var(--font-mono);
       font-size: var(--font-size-caption);
     }
   }
@@ -394,7 +393,6 @@
 
     & > label {
       font-size: var(--font-size-body1);
-      font-weight: 500;
       color: var(--text);
     }
 
@@ -417,15 +415,14 @@
   section#section-tags > .field > .label {
     display: block;
     font-size: var(--font-size-body1);
-    font-weight: 500;
     color: var(--text);
     margin-bottom: 0.375rem;
   }
 
   section#section-tags > .result {
-    margin-top: 0.75rem;
     font-size: var(--font-size-body2);
     color: var(--color-success);
+    margin-top: 0.75rem;
 
     &.error {
       color: var(--destructive);
@@ -454,8 +451,8 @@
     color: var(--text);
 
     & > h3 {
-      font-size: 0.9375rem;
-      font-weight: 500;
+      font-size: var(--font-size-title2);
+      font-weight: normal;
     }
   }
 

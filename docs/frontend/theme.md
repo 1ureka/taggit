@@ -26,6 +26,8 @@
 
 ```css
 :root {
+  color-scheme: only dark;
+
   /* 背景層級 */
   --bg: #0a0a0a;           /* 最底層背景 */
   --bg-card: #111111;       /* 卡片 / 面板 */
@@ -35,7 +37,7 @@
   /* 邊框 */
   --border: #222222;
   --border-hover: #333333;
-  --border-style: 2px solid var(--border);  /* 複合 shorthand */
+  --ring: #d4d4d8;           /* focus ring */
 
   /* 文字 */
   --text: #fafafa;           /* 主要文字 */
@@ -49,12 +51,24 @@
   --color-warning: #eab308;  /* 警告 */
   --color-success: #22c55e;  /* 成功 */
 
-  /* 其他 */
-  --ring: #d4d4d8;           /* focus ring */
+  /* 佈局 */
   --radius: 6px;             /* 統一圓角 */
+  --border-style: 2px solid var(--border);  /* 複合 shorthand */
+
+  /* 字體 */
   --font: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --font-size-caption: 0.75rem;  /* 12px，小型標註文字 */
+
+  /* 字級 */
+  --font-size-display: 3rem;    /* 48px，大型展示標題，只會被用在特定情境 */
+  --font-size-brand: 1.5rem;    /* 24px，品牌 / 站名，只會被用在特定情境 */
+  --font-size-title1: 1.25rem;  /* 20px，頁面區塊標題，通常只用在富文本頁面 */
+  --font-size-title2: 1rem;     /* 16px，大部分的標題 */
+  --font-size-body1: 0.875rem;  /* 14px，主要內文 */
+  --font-size-body2: 0.8125rem; /* 13px，次要內文 */
+  --font-size-caption: 0.75rem; /* 12px，小型標註文字 */
+
+  /* z-index 階層 */
   --z-modal: 20;
   --z-popover: 25;
   --z-toast: 30;
@@ -66,6 +80,7 @@
 - `--bg-*`：背景由淺→深（從使用者角度的「層級」概念）
 - `--text` / `--text-muted` / `--text-dim`：文字亮度遞減
 - `--color-*`：語意功能色
+- `--font-size-*`：字級由大到小（display > brand > title1 > title2 > body1 > body2 > caption）
 - `--z-*`：z-index 階層（modal < popover < toast）
 
 ### 1.5 反轉配色慣例（Inverted Token）

@@ -554,7 +554,7 @@
   /* --- */
 
   .modal-title {
-    font-size: 1rem;
+    font-size: var(--font-size-title2);
     font-weight: 600;
     margin-bottom: 1rem;
   }
