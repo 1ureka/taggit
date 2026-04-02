@@ -279,7 +279,7 @@
 
     & > h2 {
       color: var(--text);
-      font-size: 1rem;
+      font-size: var(--font-size-title2);
       font-weight: 500;
       text-align: left;
     }

@@ -18,7 +18,7 @@
 
 <style>
   h2 {
-    font-size: 1rem;
+    font-size: var(--font-size-title2);
     font-weight: 600;
     margin-bottom: 0.75rem;
   }

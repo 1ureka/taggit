@@ -506,7 +506,7 @@
     }
 
     & > h2 {
-      font-size: 1rem;
+      font-size: var(--font-size-title2);
       font-weight: normal;
       opacity: 0.75;
     }

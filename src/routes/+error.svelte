@@ -7,20 +7,22 @@
   <title>{page.status} — Taggit</title>
 </svelte:head>
 
-<div class="error-container slide-up">
+<main class="slide-up">
   <div class="error-icon">
     <IconAlertTriangle size={48} />
   </div>
-  <h1 class="error-status">{page.status}</h1>
-  <p class="error-message">{page.error?.message ?? "發生未知錯誤"}</p>
-  <a href="/" class="btn-ghost">
+
+  <h2>{page.status}</h2>
+  <p>{page.error?.message ?? "發生未知錯誤"}</p>
+
+  <a href="/" class="btn-outlined">
     <IconArrowLeft size={16} />
     <span>返回首頁</span>
   </a>
-</div>
+</main>
 
 <style>
-  .error-container {
+  main {
     max-width: 480px;
     margin: 0 auto;
     padding: 4rem 1.5rem;
@@ -38,16 +40,16 @@
     margin-bottom: 0.5rem;
   }
 
-  .error-status {
-    font-size: 3rem;
-    font-weight: 600;
+  h2 {
+    font-size: var(--font-size-display);
+    font-weight: normal;
     letter-spacing: -0.03em;
     line-height: 1;
     color: var(--text);
   }
 
-  .error-message {
-    font-size: 0.9375rem;
+  p {
+    font-size: var(--font-size-body1);
     color: var(--text-muted);
     max-width: 320px;
     line-height: 1.5;
