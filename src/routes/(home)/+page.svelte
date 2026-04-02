@@ -309,7 +309,7 @@
     background: var(--bg);
 
     & > h2 {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body1);
       font-weight: normal;
     }
 
@@ -331,7 +331,7 @@
     }
 
     & > .field-row > .field-label {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       font-weight: 500;
       color: var(--text-muted);
     }

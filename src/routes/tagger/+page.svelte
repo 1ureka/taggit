@@ -280,7 +280,7 @@
     }
 
     & > div:has(h2) > h2 {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       font-weight: 600;
       color: var(--text-muted);
     }
@@ -434,7 +434,7 @@
 
   .right-panel > form > header {
     & > h2 {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       font-weight: 600;
       color: var(--text-muted);
     }

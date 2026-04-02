@@ -307,7 +307,7 @@
 
   nav > button {
     padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     color: var(--text-muted);
     text-align: left;
     border-radius: var(--radius);
@@ -377,7 +377,7 @@
 
   .dir-list {
     color: var(--text-muted);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     line-height: 1.8;
     margin-bottom: 1.5rem;
     padding-left: 1.25rem;
@@ -407,7 +407,7 @@
     }
 
     & > .form-message {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       color: var(--color-success);
 
       &.error {
@@ -432,7 +432,7 @@
 
   .result {
     margin-top: 0.75rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     color: var(--color-success);
 
     &.error {
@@ -469,7 +469,7 @@
 
   .tool-desc {
     color: var(--text-muted);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     line-height: 1.7;
     margin-bottom: 1rem;
   }
@@ -482,7 +482,7 @@
 
   .tool-result {
     margin-top: 0.75rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     color: var(--text-muted);
   }
 
@@ -503,7 +503,7 @@
   .file-list {
     margin-top: 0.5rem;
     padding-left: 1.25rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     color: var(--text-dim);
     line-height: 1.6;
     max-height: 12rem;
