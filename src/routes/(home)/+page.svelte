@@ -1,6 +1,6 @@
 <script lang="ts">
   import { navigating } from "$app/state";
-  import { IconPlayerPlayFilled, IconArrowsLeftRight } from "@tabler/icons-svelte";
+  import { IconPlayerPlayFilled, IconArrowsLeftRight, IconXFilled, IconEditFilled } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
   import Select from "$lib/components/Select.svelte";
@@ -91,7 +91,6 @@
             src={imgSrc(item.id, "md")}
             style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
             alt={item.name}
-            loading="lazy"
             decoding="async"
           />
 
@@ -163,10 +162,48 @@
   </aside>
 </main>
 
-<Modal open={modal.record !== null} onclose={modal.handleClose} label="圖片詳細資訊">
+{#snippet modelContent(record: NonNullable<typeof modal.record>)}
+  <article class="modal-content">
+    <header>
+      <button class="btn-icon" type="button" aria-label="關閉圖片詳細資訊" onclick={modal.handleClose}>
+        <IconXFilled size={16} />
+      </button>
+
+      <h2 class="ellipsis">{record.name}</h2>
+
+      <a class="btn-primary btn-sm" href={`/editor?currentId=${record.id}`}>
+        <IconEditFilled size={16} />
+        <span>編輯</span>
+      </a>
+    </header>
+
+    <div class="image-wrapper">
+      <img
+        src={imgSrc(record.id, "xl")}
+        style={blurhashStyle({ fit: "cover", blurhash: record.blurhash, width: record.width, height: record.height })}
+        alt={record.name}
+        decoding="async"
+      />
+
+      <img class="blur-spread" aria-hidden="true" src={imgSrc(record.id, "md")} alt={record.name} decoding="async" />
+    </div>
+
+    <footer>
+      <Rating value={record.rating} size="1.5rem" readonly />
+      <Tags tags={record.tags} nowrap />
+    </footer>
+  </article>
+{/snippet}
+
+<Modal
+  fullscreen
+  label="圖片詳細資訊"
+  open={modal.record !== null}
+  onclose={modal.handleClose}
+  overlayStyle="backdrop-filter: blur(8px); background: hsl(from var(--bg) h s l / 0.8);"
+>
   <!-- 因為 open={modal.record !== null}，所以這裡可以安全地使用非空斷言 -->
-  {@const record = modal.record!}
-  <p>{record.name || record.id}</p>
+  {@render modelContent(modal.record!)}
 </Modal>
 
 <style>
@@ -430,5 +467,76 @@
     color: var(--text-dim);
     font-size: 0.875rem;
     padding: 3rem 0px;
+  }
+
+  /* --- */
+
+  article.modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+
+    & > header,
+    & > footer {
+      padding: 0.75rem 1.5rem;
+      @media (max-width: 600px) {
+        padding: 0.75rem;
+      }
+    }
+  }
+
+  article.modal-content > header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+
+    & > * {
+      pointer-events: all;
+    }
+
+    & > button {
+      justify-self: start;
+    }
+
+    & > a {
+      justify-self: end;
+    }
+
+    & > h2 {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.75;
+    }
+  }
+
+  article.modal-content > .image-wrapper {
+    padding: 0px 0.75rem;
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    position: relative;
+
+    & > img {
+      max-width: 100%;
+      max-height: 100%;
+      min-width: 0;
+      min-height: 0;
+      border-radius: var(--radius);
+      pointer-events: all;
+    }
+
+    & > img:not(.blur-spread) {
+      box-shadow: 0 0 10px var(--bg);
+    }
+
+    & > .blur-spread {
+      position: absolute;
+      filter: blur(30px);
+      z-index: -1;
+    }
   }
 </style>

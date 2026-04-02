@@ -13,13 +13,26 @@
     children: Snippet;
     /** Modal 標籤，用於輔助技術描述對話框內容 */
     label?: string;
+    /** Modal 是否是全螢幕 */
+    fullscreen?: boolean;
     /** Modal 樣式 */
     style?: string;
+    /** Overlay 樣式 */
+    overlayStyle?: string;
     /** Modal transition，用於自訂過渡效果 */
     transition?: "scale" | "fly";
   };
 
-  let { open = $bindable(), onclose, children, label = "對話框", style, transition = "scale" }: Props = $props();
+  let {
+    open = $bindable(),
+    onclose,
+    children,
+    label = "對話框",
+    fullscreen = false,
+    style,
+    overlayStyle,
+    transition = "scale",
+  }: Props = $props();
 
   /** 用於避免重複寫 transition 的包裝 */
   function dynamicTransition(node: HTMLElement, options: { type: "scale" | "fly" }) {
@@ -48,9 +61,11 @@
     onclick={ui.handleOverlayClick}
     onkeydown={ui.handleOverlayKeydown}
     transition:fade={{ duration: 150 }}
+    style={overlayStyle}
   >
     <div
-      class="modal"
+      class:modal={!fullscreen}
+      class:modal-full={fullscreen}
       role="dialog"
       aria-modal="true"
       aria-label={label}
@@ -82,5 +97,18 @@
     width: 90%;
     max-height: 80vh;
     overflow: auto;
+  }
+
+  .modal-full {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 </style>

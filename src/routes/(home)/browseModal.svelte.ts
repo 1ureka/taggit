@@ -7,6 +7,9 @@ type BrowseModalOptions = {
   get items(): ImageWithId[];
 };
 
+/**
+ * 圖片對話框的互動邏輯
+ */
 export class BrowseModal {
   /** 目前顯示的圖片紀錄，若沒有選擇圖片或圖片不存在則為 null，代表不要開啟對話框 */
   record: ImageWithId | null;
@@ -19,7 +22,7 @@ export class BrowseModal {
       // 第一個取值是為了 SSR，第二個取值是為了 CSR (shallow routing)
       const modalSSR = page.url.searchParams.get("modal");
       const modalCSR = (page.state as { modal?: string }).modal;
-      const modal = modalSSR || modalCSR;
+      const modal = modalCSR || modalSSR;
       if (!modal) return null;
 
       const record = options.items.find((item) => item.id === modal) || null;
