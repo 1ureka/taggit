@@ -138,7 +138,7 @@
       <div>
         <label class="field-row">
           <span class="field-label">圖片牆欄位</span>
-          <Select stretch size="md" bind:value={masonry.columns} options={columnOptions} />
+          <Select bind:value={masonry.columns} options={columnOptions} stretch />
         </label>
       </div>
 
@@ -408,7 +408,7 @@
       gap: 0.25rem;
 
       & > h3 {
-        font-size: 0.875rem;
+        font-size: var(--font-size-body1);
         font-weight: 500;
         color: var(--text);
         opacity: 0.75;
@@ -465,7 +465,7 @@
   section.masonry-viewport > p {
     text-align: center;
     color: var(--text-dim);
-    font-size: 0.875rem;
+    font-size: var(--font-size-body1);
     padding: 3rem 0px;
   }
 

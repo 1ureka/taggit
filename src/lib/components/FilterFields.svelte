@@ -91,16 +91,16 @@
   <div class="field-row">
     <span class="field-label">評等</span>
     <div class="field-inline">
-      <Select bind:value={ratingOp} options={ratingOpOptions} size="md" stretch {onchange} />
-      <Select bind:value={rating} options={ratingOptions} size="md" stretch {onchange} />
+      <Select bind:value={ratingOp} options={ratingOpOptions} stretch {onchange} />
+      <Select bind:value={rating} options={ratingOptions} stretch {onchange} />
     </div>
   </div>
 
   <div class="field-row">
     <span class="field-label">排序</span>
     <div class="field-inline">
-      <Select bind:value={sort} options={sortOptions} size="md" stretch {onchange} />
-      <Select bind:value={order} options={orderOptions} size="md" stretch {onchange} />
+      <Select bind:value={sort} options={sortOptions} stretch {onchange} />
+      <Select bind:value={order} options={orderOptions} stretch {onchange} />
     </div>
   </div>
 </div>
