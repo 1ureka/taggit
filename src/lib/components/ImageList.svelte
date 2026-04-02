@@ -94,7 +94,7 @@
       align-items: center;
       justify-content: center;
       height: 100%;
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       color: var(--text-dim);
     }
   }
@@ -163,7 +163,7 @@
 
     & > span {
       flex: 1;
-      font-size: 0.6875rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
     }
 

@@ -224,7 +224,7 @@
 
     & > span {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-dim);
     }
   }
@@ -287,7 +287,7 @@
     & > p {
       grid-column: 2;
       color: var(--text-muted);
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       text-align: left;
     }
   }

@@ -66,9 +66,9 @@
   ];
 </script>
 
-<div class="filter-fields">
-  <label class="field-row">
-    <span class="field-label">名稱</span>
+<div class="fields">
+  <label class="field">
+    <span>名稱</span>
     <input
       class="text-input"
       type="text"
@@ -78,55 +78,55 @@
     />
   </label>
 
-  <div class="field-row">
-    <span class="field-label">包含的標籤</span>
+  <div class="field">
+    <span>包含的標籤</span>
     <Autocomplete bind:tags={includedTags} variant="inline" placeholder="包含標籤..." {onchange} />
   </div>
 
-  <div class="field-row">
-    <span class="field-label">排除的標籤</span>
+  <div class="field">
+    <span>排除的標籤</span>
     <Autocomplete bind:tags={excludedTags} variant="inline" placeholder="排除標籤..." {onchange} />
   </div>
 
-  <div class="field-row">
-    <span class="field-label">評等</span>
-    <div class="field-inline">
-      <Select bind:value={ratingOp} options={ratingOpOptions} size="md" stretch {onchange} />
-      <Select bind:value={rating} options={ratingOptions} size="md" stretch {onchange} />
+  <div class="field">
+    <span>評等</span>
+    <div>
+      <Select bind:value={ratingOp} options={ratingOpOptions} stretch {onchange} />
+      <Select bind:value={rating} options={ratingOptions} stretch {onchange} />
     </div>
   </div>
 
-  <div class="field-row">
-    <span class="field-label">排序</span>
-    <div class="field-inline">
-      <Select bind:value={sort} options={sortOptions} size="md" stretch {onchange} />
-      <Select bind:value={order} options={orderOptions} size="md" stretch {onchange} />
+  <div class="field">
+    <span>排序</span>
+    <div>
+      <Select bind:value={sort} options={sortOptions} stretch {onchange} />
+      <Select bind:value={order} options={orderOptions} stretch {onchange} />
     </div>
   </div>
 </div>
 
 <style>
-  .filter-fields {
+  div.fields {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  .field-row {
+  div.fields > .field {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-  }
 
-  .field-label {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
+    & > span {
+      font-size: var(--font-size-body2);
+      font-weight: 500;
+      color: var(--text-muted);
+    }
 
-  .field-inline {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    & > div {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
   }
 </style>

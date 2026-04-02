@@ -84,7 +84,7 @@
     align-items: flex-start;
     gap: 0.625rem;
     padding: 0.75rem 0.75rem 0.75rem 0.875rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
     line-height: 1.45;
     color: var(--text);
     background: var(--bg-card);

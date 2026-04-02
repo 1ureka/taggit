@@ -12,7 +12,7 @@
   padding: 0.5rem 1rem;
 
   font-family: var(--font);
-  font-size: 0.875rem;
+  font-size: var(--font-size-body1);
   font-weight: 500;
   line-height: 1;
 
@@ -39,7 +39,7 @@
 
   &.btn-sm {
     padding: 0.25rem 0.625rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body2);
   }
 
   &.pending {

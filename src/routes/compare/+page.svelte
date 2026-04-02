@@ -77,7 +77,7 @@
       align-items: center;
       justify-content: center;
       color: var(--text-dim);
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
     }
   }
 
@@ -131,7 +131,7 @@
     border-top: var(--border-style);
 
     & > small {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       font-family: var(--font-mono);
       color: var(--text-dim);
       white-space: nowrap;

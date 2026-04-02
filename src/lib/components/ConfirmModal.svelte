@@ -7,9 +7,9 @@
 
 <Modal bind:open={ui.open} onclose={ui.handleModalClose} label="確認對話框">
   {#snippet children()}
-    <div class="modal-title">確認</div>
-    <div class="modal-body">{ui.message}</div>
-    <div class="modal-actions">
+    <h2>確認</h2>
+    <p>{ui.message}</p>
+    <div class="actions">
       <button class="btn-outlined" onclick={ui.handleCancelClick}><span>取消</span></button>
       <button class="btn-primary" onclick={ui.handleConfirmClick}><span>確認</span></button>
     </div>
@@ -17,20 +17,20 @@
 </Modal>
 
 <style>
-  .modal-title {
+  h2 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
   }
 
-  .modal-body {
-    font-size: 0.875rem;
+  p {
+    font-size: var(--font-size-body1);
     color: var(--text-muted);
     margin-bottom: 1.25rem;
     line-height: 1.6;
   }
 
-  .modal-actions {
+  .actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;

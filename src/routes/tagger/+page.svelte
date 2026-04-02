@@ -280,7 +280,7 @@
     }
 
     & > div:has(h2) > h2 {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       font-weight: 600;
       color: var(--text-muted);
     }
@@ -329,7 +329,7 @@
     }
 
     & > .progress-text {
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
       white-space: nowrap;
       text-align: right;
@@ -376,7 +376,7 @@
       align-items: center;
       justify-content: center;
       height: 100%;
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       color: var(--text-dim);
     }
   }
@@ -410,7 +410,7 @@
     align-items: center;
     justify-content: center;
     padding: 0.375rem 0.75rem;
-    font-size: 0.6875rem;
+    font-size: var(--font-size-caption);
     color: var(--text-dim);
     border-top: var(--border-style);
     background: var(--bg-card);
@@ -434,7 +434,7 @@
 
   .right-panel > form > header {
     & > h2 {
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body2);
       font-weight: 600;
       color: var(--text-muted);
     }
