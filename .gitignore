@@ -25,3 +25,4 @@ vite.config.ts.timestamp-*
 # App specific
 server.json
 tmp.md
+docs/report*.md
