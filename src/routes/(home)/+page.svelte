@@ -40,9 +40,9 @@
     gap: 6,
   });
 
-  $effect(() => {
+  if (typeof window !== "undefined") {
     masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
-  });
+  }
 
   const form = new BrowseForm();
 
