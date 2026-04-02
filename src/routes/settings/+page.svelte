@@ -362,7 +362,7 @@
 
     & > .desc {
       color: var(--text-muted);
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       line-height: 1.7;
       margin-bottom: 1rem;
     }
@@ -401,7 +401,7 @@
     gap: 0.5rem;
 
     & > label {
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       font-weight: 500;
       color: var(--text);
     }
@@ -424,7 +424,7 @@
 
   .label {
     display: block;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body1);
     font-weight: 500;
     color: var(--text);
     margin-bottom: 0.375rem;
@@ -491,7 +491,7 @@
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body1);
     font-weight: 500;
     color: var(--text);
 

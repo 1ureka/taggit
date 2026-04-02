@@ -14,7 +14,7 @@
   height: 2rem;
   min-height: 2rem;
   font-family: var(--font);
-  font-size: 0.875rem;
+  font-size: var(--font-size-body1);
   color: var(--text);
   background: var(--bg);
   border: var(--border-style);

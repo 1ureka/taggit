@@ -287,7 +287,7 @@
     & > p {
       grid-column: 2;
       color: var(--text-muted);
-      font-size: 0.875rem;
+      font-size: var(--font-size-body1);
       text-align: left;
     }
   }
