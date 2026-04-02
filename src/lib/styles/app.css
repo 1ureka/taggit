@@ -23,6 +23,8 @@
 
 /* ── CSS Variables (Theme) ── */
 :root {
+  color-scheme: only dark;
+
   --bg: #0a0a0a;
   --bg-card: #111111;
   --bg-hover: #1a1a1a;
