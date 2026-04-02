@@ -410,7 +410,7 @@
     align-items: center;
     justify-content: center;
     padding: 0.375rem 0.75rem;
-    font-size: 0.6875rem;
+    font-size: var(--font-size-caption);
     color: var(--text-dim);
     border-top: var(--border-style);
     background: var(--bg-card);

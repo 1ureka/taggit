@@ -133,7 +133,7 @@
   }
 
   .autocomplete-item-count {
-    font-size: 0.6875rem;
+    font-size: var(--font-size-caption);
     color: var(--text-dim);
     font-family: var(--font-mono);
     margin-left: 0.5rem;

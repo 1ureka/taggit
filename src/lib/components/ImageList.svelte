@@ -163,7 +163,7 @@
 
     & > span {
       flex: 1;
-      font-size: 0.6875rem;
+      font-size: var(--font-size-caption);
       color: var(--text-muted);
     }
 
