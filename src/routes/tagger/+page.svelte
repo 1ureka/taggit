@@ -189,7 +189,7 @@
       </div>
     {/if}
 
-    <figcaption>
+    <figcaption class="ellipsis" title={page.currentFile || "未選取任何圖片"}>
       {page.currentFile || "未選取任何圖片"}
     </figcaption>
   </figure>
@@ -408,9 +408,8 @@
   }
 
   figcaption {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    text-align: center;
     padding: 0.375rem 0.75rem;
     font-size: var(--font-size-caption);
     color: var(--text-dim);
