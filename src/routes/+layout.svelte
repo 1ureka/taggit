@@ -122,6 +122,7 @@
 
     {#if !open}
       <button
+        type="button"
         class="text-input"
         onclick={handleTogglePalette}
         transition:fly={{ duration: 200, y: 35, easing: cubicOut }}

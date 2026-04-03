@@ -10,8 +10,8 @@
     <h2>{ui.title}</h2>
     <p>{ui.message}</p>
     <div class="actions">
-      <button class="btn-outlined" onclick={ui.handleCancelClick}><span>取消</span></button>
-      <button class="btn-primary" onclick={ui.handleConfirmClick}><span>{ui.action}</span></button>
+      <button type="button" class="btn-outlined" onclick={ui.handleCancelClick}><span>取消</span></button>
+      <button type="button" class="btn-primary" onclick={ui.handleConfirmClick}><span>{ui.action}</span></button>
     </div>
   {/snippet}
 </Modal>

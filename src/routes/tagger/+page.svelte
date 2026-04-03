@@ -116,6 +116,7 @@
       </div>
 
       <button
+        type="button"
         class="btn-icon"
         class:pending={listActions.pending}
         title="重新載入列表"

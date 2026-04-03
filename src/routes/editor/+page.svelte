@@ -128,6 +128,7 @@
       </div>
 
       <button
+        type="button"
         class="btn-icon"
         class:pending={page.pending}
         title="重新載入列表"
@@ -150,7 +151,7 @@
     />
 
     <footer>
-      <button class="btn-outlined" onclick={filter.handleOpenClick}>
+      <button type="button" class="btn-outlined" onclick={filter.handleOpenClick}>
         <IconFilter size={14} />
         <span>篩選</span>
       </button>

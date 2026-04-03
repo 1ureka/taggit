@@ -113,6 +113,7 @@
     </div>
 
     <button
+      type="button"
       class="btn-primary"
       class:pending={tagRename.busy}
       onclick={tagRename.handleRenameClick}
@@ -160,7 +161,7 @@
     <footer>
       {#each props.actions as { label, onclick, pending, hide }}
         {#if !hide}
-          <button class="btn-outlined btn-sm" class:pending disabled={pending} {onclick}>
+          <button type="button" class="btn-outlined btn-sm" class:pending disabled={pending} {onclick}>
             <span>{label}</span>
           </button>
         {/if}
@@ -248,7 +249,7 @@
 <div class="layout">
   <nav>
     {#each nav.sections as section}
-      <button class:active={section.id === nav.activeId} onclick={() => nav.handleNavClick(section.id)}>
+      <button type="button" class:active={section.id === nav.activeId} onclick={() => nav.handleNavClick(section.id)}>
         {section.label}
       </button>
     {/each}

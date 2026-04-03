@@ -83,7 +83,7 @@
 
 {#if !autoHide.hideDock}
   <aside aria-label="圖片播放器控制區" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
-    <button class="btn-icon" aria-label="播放/暫停" onclick={player.handlePlayButtonClick}>
+    <button type="button" class="btn-icon" aria-label="播放/暫停" onclick={player.handlePlayButtonClick}>
       {@render playIcon(18, true)}
     </button>
 
