@@ -116,9 +116,11 @@
       </div>
 
       <button
+        type="button"
         class="btn-icon"
         class:pending={listActions.pending}
-        title="重新掃描待審查資料夾"
+        title="重新載入列表"
+        aria-label="重新載入列表"
         onclick={listActions.handleRefreshClick}
         disabled={listActions.pending}
       >
@@ -187,7 +189,7 @@
       </div>
     {/if}
 
-    <figcaption>
+    <figcaption class="ellipsis" title={page.currentFile || "未選取任何圖片"}>
       {page.currentFile || "未選取任何圖片"}
     </figcaption>
   </figure>
@@ -196,7 +198,7 @@
     <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
       <header>
         <h2>編輯屬性</h2>
-        <button class="btn-icon" type="reset" title="重置所有欄位">
+        <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
           <IconArrowBackUp size={18} />
         </button>
       </header>
@@ -406,9 +408,8 @@
   }
 
   figcaption {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    text-align: center;
     padding: 0.375rem 0.75rem;
     font-size: var(--font-size-caption);
     color: var(--text-dim);

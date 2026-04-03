@@ -46,7 +46,7 @@
         {/if}
       </span>
       <span class="toast-msg">{toast.message}</span>
-      <button class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
+      <button type="button" class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
         <IconX size={14} stroke={2} />
       </button>
     </div>
