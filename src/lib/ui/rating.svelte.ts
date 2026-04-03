@@ -93,12 +93,14 @@ export class Rating {
     switch (e.key) {
       case "ArrowRight":
       case "ArrowUp":
+      case "+":
         e.preventDefault();
         this.#commit(Math.min(this.options.value + 1, 5));
         break;
 
       case "ArrowLeft":
       case "ArrowDown":
+      case "-":
         e.preventDefault();
         this.#commit(Math.max(this.options.value - 1, 0));
         break;

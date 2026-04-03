@@ -17,9 +17,6 @@
 
   let { name, value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
 
-  // Convert CSS rem string → px for tabler icon size prop (assumes 16px root)
-  const iconPx = $derived(Math.round(parseFloat(size) * 16));
-
   const rating = new Rating({
     get value() {
       return value;
@@ -40,21 +37,20 @@
   <input type="hidden" {name} {value} />
 {/if}
 
-<!--
-  唯讀模式：role="img" 純展示，不可聚焦。
-  互動模式：role="spinbutton"，單一聚焦點，星星全部 aria-hidden。
-  鍵盤：←/→ ±1，Home = 0，End = 5（spinbutton 慣例）。
--->
+{#snippet icon(filled: boolean)}
+  {#if filled}
+    <IconStarFilled {size} />
+  {:else}
+    <IconStar {size} />
+  {/if}
+{/snippet}
+
 {#if readonly}
-  <div class="rating rating--readonly" role="img" aria-label="評分 {value}/5">
+  <div class="rating readonly" role="img" aria-label="評分 {value}/5">
     {#each [1, 2, 3, 4, 5] as i}
       {@const state = rating.getStarState(i)}
       <span class="rating-star" class:bright={state.bright} aria-hidden="true">
-        {#if state.filled}
-          <IconStarFilled size={iconPx} />
-        {:else}
-          <IconStar size={iconPx} />
-        {/if}
+        {@render icon(state.filled)}
       </span>
     {/each}
   </div>
@@ -80,11 +76,7 @@
         onmouseenter={() => rating.handleStarMouseEnter(i)}
         onclick={() => rating.handleStarClick(i)}
       >
-        {#if state.filled}
-          <IconStarFilled size={iconPx} />
-        {:else}
-          <IconStar size={iconPx} />
-        {/if}
+        {@render icon(state.filled)}
       </span>
     {/each}
   </div>
@@ -98,29 +90,28 @@
     border-radius: 2px;
   }
 
-  .rating-star {
+  .rating > .rating-star {
     display: inline-flex;
     cursor: pointer;
     color: var(--rating-color, var(--text-dim));
     transition:
       color 0.1s,
       transform 0.1s;
+
+    &:hover {
+      transform: scale(1.15);
+    }
+
+    &.bright {
+      color: var(--rating-color-active, var(--text));
+    }
   }
 
-  .rating-star:hover {
-    transform: scale(1.15);
-  }
-
-  .rating-star.bright {
-    color: var(--rating-color-active, var(--text));
-  }
-
-  /* ─── Readonly mode ─────────────────────────────────────── */
-  .rating--readonly .rating-star {
+  .rating.readonly > .rating-star {
     cursor: default;
-  }
 
-  .rating--readonly .rating-star:hover {
-    transform: none;
+    &:hover {
+      transform: none;
+    }
   }
 </style>
