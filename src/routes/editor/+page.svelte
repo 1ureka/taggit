@@ -131,6 +131,7 @@
         class="btn-icon"
         class:pending={page.pending}
         title="重新載入列表"
+        aria-label="重新載入列表"
         onclick={listActions.handleRefreshClick}
         disabled={page.pending}
       >
@@ -193,7 +194,7 @@
     <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
       <header>
         <h2>編輯屬性</h2>
-        <button class="btn-icon" type="reset" title="重置所有欄位">
+        <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
           <IconArrowBackUp size={18} />
         </button>
       </header>
