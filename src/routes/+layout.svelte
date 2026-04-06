@@ -6,7 +6,7 @@
   import { cubicOut } from "svelte/easing";
 
   import { IconAlbum, IconCaretDownFilled, IconCompassFilled } from "@tabler/icons-svelte";
-  import { IconPhotoFilled, IconSettings2, IconTagFilled, IconTagsFilled } from "@tabler/icons-svelte";
+  import { IconPhotoFilled, IconSettings2, IconTagFilled } from "@tabler/icons-svelte";
   import { IconArrowLeft, IconArrowRight } from "@tabler/icons-svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
@@ -21,12 +21,6 @@
       Icon: IconPhotoFilled,
       name: "瀏覽圖片",
       desc: "以瀑布流、播放器、隨機抽選等多種方式探索已提交的圖片",
-    },
-    {
-      href: "#tags",
-      Icon: IconTagsFilled,
-      name: "瀏覽標籤",
-      desc: "敬請期待",
     },
     {
       href: "/tagger",
@@ -51,12 +45,11 @@
   // ---
 
   /** 判斷當前狀態列要顯示的描述 */
-  const currentDisplayValue = $derived.by(() => {
+  const currentStatus = $derived.by(() => {
     if (page.error) return page.error?.message ?? "發生未知錯誤";
 
     const path = page.url.pathname;
 
-    // if (path === "#tags") return "探索標籤"; WIP
     if (path === "/") return "正在 探索圖片";
     if (path === "/compare") return "正在 比較圖片";
     if (path === "/tagger") return "正在 審查圖片";
@@ -78,7 +71,6 @@
   const currentActiveItem = $derived.by(() => {
     const path = page.url.pathname;
 
-    // if (path === "#tags") return "#tags"; WIP
     if (path === "/" || path === "/compare" || path === "/player") return "/";
     if (path === "/tagger") return "/tagger";
     if (path === "/editor") return "/editor";
@@ -128,7 +120,7 @@
         transition:fly={{ duration: 200, y: 35, easing: cubicOut }}
       >
         <IconCompassFilled size={20} />
-        <span class="ellipsis">{currentDisplayValue}</span>
+        <span class="ellipsis">{currentStatus}</span>
         <IconCaretDownFilled size={20} color="var(--text-muted)" />
       </button>
     {/if}
