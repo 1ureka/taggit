@@ -1,6 +1,6 @@
 # Taggit
 
-私人本地圖片管理工具，為本機圖片集提供標籤、評分、瀏覽與播放功能，在設計之初即導入雲端同步友好的架構，確保與 OneDrive 等共用目錄完美兼容
+個人本地圖片管理工具，為本機圖片集提供標籤、評分、瀏覽與播放功能，在設計之初即導入雲端同步友好的架構，確保與 OneDrive 等共用目錄完美兼容
 
 ## 特色
 
@@ -26,30 +26,22 @@
 
 ## 使用流程
 
-1. **放入圖片**：在 Tagger 頁面上傳，或直接將檔案丟進 `images/` 資料夾
-2. **整理圖片**：在 Tagger 為每張圖片加上標籤與評分，然後提交
-3. **瀏覽與使用**：提交後的圖片可以在 Browse 搜尋瀏覽、在 Player 播放、在 Compare 比較
-4. **持續編輯**：在 Editor 隨時修改標籤與評分；「刪除」只是刪除紀錄從而被程式視作退回暫存區，不會動到圖片本身
-
-> 支援的圖片格式：JPG、JPEG、PNG、WebP、GIF、BMP、AVIF
+1. **放入圖片**: 在 Tagger 上傳，或直接把檔案丟進收藏目錄的 `images/` 資料夾
+2. **整理**: 在 Tagger 為每張圖片加標籤、給評分，然後提交
+3. **瀏覽與使用**: 提交後即可在 Browse 搜尋瀏覽、在 Player 播放、在 Compare 比較
+4. **隨時修改**: 在 Editor 調整標籤與評分或者退回至暫存區重新整理
 
 ## 安裝與執行
 
-> 需要 Node.js（建議最新 LTS 版本）
+需要 [Node.js](https://nodejs.org/)（建議最新 LTS 版本）。
 
 ```bash
-# 安裝依賴
-npm install
-
-# 開發模式
-npm run dev
-
-# 正式建置與執行
-npm run build
-node build
+npm install           # 安裝依賴
+npm run build         # 建置
+node build            # 啟動，之後可隨時使用 Ctrl + C 停止，停止前會自動保存資料
 ```
 
-首次啟動後，前往任意頁面，網站將會自動帶你到設定頁面設定圖片收藏目錄路徑。
+首次啟動後開啟網頁，會自動引導你設定圖片收藏目錄。
 
 ## 收藏目錄結構
 
@@ -57,21 +49,9 @@ node build
 
 ```
 <收藏目錄>/
-├── images/      # 所有圖片檔案（暫存 + 已提交共用）
-└── db.json      # 圖片 metadata 資料庫（唯一會被異動的檔案）
+├── images/      # 所有圖片（放入即凍結）
+└── db.json      # 紀錄檔（唯一會被程式寫入的檔案）
 ```
-
-## 技術架構
-
-| 層級     | 技術                                                                                                          |
-| -------- | ------------------------------------------------------------------------------------------------------------- |
-| 框架     | [SvelteKit](https://kit.svelte.dev/) (Svelte 5) + [Vite](https://vitejs.dev/)                                 |
-| 運行     | Node.js（`@sveltejs/adapter-node`）                                                                           |
-| 資料庫   | 自製 JSON 檔案資料庫（`db.json`），記憶體內操作 + 倒排索引（tag → images）+ 500ms 防抖原子寫回磁碟            |
-| 圖片處理 | [Sharp](https://sharp.pixelplumbing.com/)（縮圖 / 尺寸讀取）+ [BlurHash](https://blurhash.com/)（佔位圖編碼） |
-| UI 元件  | 全自製設計系統（深色主題）、[Tabler Icons](https://tabler.io/icons)、[Floating UI](https://floating-ui.com/)  |
-| 虛擬化   | 自製 Masonry / List / Player 虛擬化引擎                                                                       |
-| 無障礙   | 語意 HTML、ARIA landmarks、focus trap、鍵盤導航路徑、`role="listbox"` / `role="spinbutton"` 等完整語意        |
 
 ## API 概覽
 
@@ -87,7 +67,7 @@ node build
 
 ## 進一步了解
 
-本專案在前端架構深受 go 語言的 「清晰大於聰明」理念影響，做了不少與主流框架慣例相反的選擇，不走「一切皆組件」的路線，而是將 HTML 結構與互動邏輯拆成兩個正交的維度。
+本專案在前端架構做了不少與主流框架慣例相反的選擇，不走「一切皆組件」的路線，而是將 HTML 結構與互動邏輯拆成兩個正交的維度。
 
 每個頁面只有一個 `.svelte` 檔案保持完整的 DOM 結構，所有互動邏輯收進獨立的 `.svelte.ts` class。這讓語意標記、無障礙屬性、CSS 能在一處通盤審視，同時互動邏輯沿職責邊界自由拆分，不被組件邊界綁架。
 
