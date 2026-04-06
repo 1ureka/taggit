@@ -11,6 +11,7 @@
 
 import type { JSONDatabase } from "./db.js";
 import type { ImageRecord, ImageWithId } from "$lib/types.js";
+import { sortCollator } from "$lib/utils.js";
 
 // ---
 
@@ -22,8 +23,11 @@ import type { ImageRecord, ImageWithId } from "$lib/types.js";
  * @param record - 要儲存的圖片元資料。
  */
 export function addRecord(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
-  jsonDB.data.images[id] = record;
-  jsonDB.indexAdd(id, record);
+  const sortedTags = record.tags.toSorted(sortCollator.compare);
+  const newRecord = { ...record, tags: sortedTags };
+
+  jsonDB.data.images[id] = newRecord;
+  jsonDB.indexAdd(id, newRecord);
   jsonDB.markDirty();
 }
 
@@ -74,28 +78,30 @@ interface UpdatePatch {
  * @throws {Error & { status: 409 }} 發生併發衝突時。
  */
 export function updateRecord(jsonDB: JSONDatabase, id: string, patch: UpdatePatch): ImageWithId {
-  const rec = jsonDB.data.images[id];
+  const record = jsonDB.data.images[id];
 
-  if (!rec) {
+  if (!record) {
     throw Object.assign(new Error("找不到圖片"), { status: 404 });
   }
 
-  if (rec.updatedAt !== patch.expectedUpdatedAt) {
+  if (record.updatedAt !== patch.expectedUpdatedAt) {
     throw Object.assign(new Error("併發衝突"), { status: 409 });
   }
 
-  jsonDB.indexRemove(id, rec);
+  jsonDB.indexRemove(id, record);
 
-  if (patch.tags !== undefined) rec.tags = patch.tags;
-  if (patch.rating !== undefined) rec.rating = patch.rating;
-  if (patch.name !== undefined) rec.name = patch.name;
+  const newRecord = { ...record };
+  if (patch.tags !== undefined) newRecord.tags = patch.tags.toSorted(sortCollator.compare);
+  if (patch.rating !== undefined) newRecord.rating = patch.rating;
+  if (patch.name !== undefined) newRecord.name = patch.name;
 
-  rec.updatedAt = Date.now();
+  newRecord.updatedAt = Date.now();
 
-  jsonDB.indexAdd(id, rec);
+  jsonDB.data.images[id] = newRecord;
+  jsonDB.indexAdd(id, newRecord);
   jsonDB.markDirty();
 
-  return { id, ...rec };
+  return { id, ...newRecord };
 }
 
 // ---
@@ -120,14 +126,14 @@ export function renameTag(jsonDB: JSONDatabase, oldName: string, newName: string
   let affected = 0;
 
   for (const id of ids) {
-    const rec = jsonDB.data.images[id];
-    if (!rec) continue;
+    const record = jsonDB.data.images[id];
+    if (!record) continue;
 
-    if (rec.tags.includes(newName)) {
-      rec.tags = rec.tags.filter((t) => t !== oldName);
+    if (record.tags.includes(newName)) {
+      jsonDB.data.images[id] = { ...record, tags: record.tags.filter((t) => t !== oldName) };
     } else {
-      const idx = rec.tags.indexOf(oldName);
-      if (idx !== -1) rec.tags[idx] = newName;
+      const newTags = record.tags.map((t) => (t === oldName ? newName : t)).toSorted(sortCollator.compare);
+      jsonDB.data.images[id] = { ...record, tags: newTags };
     }
 
     affected++;
