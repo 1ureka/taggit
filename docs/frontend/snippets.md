@@ -78,9 +78,9 @@ Snippet 參數可以有預設值，讓同一段 markup 在不同語境下改變�
 {#snippet playIcon(size: number, asAction = false)}
   {@const showPlay = asAction ? !player.playing : player.playing}
   {#if showPlay}
-    <IconPlayerPlayFilled {size} />
+    <IconPlayerPlay {size} />
   {:else}
-    <IconPlayerPauseFilled {size} />
+    <IconPlayerPause {size} />
   {/if}
 {/snippet}
 

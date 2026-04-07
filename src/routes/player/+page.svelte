@@ -3,10 +3,10 @@
   import { fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
 
-  import { IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
-
   import type { ImageWithId } from "$lib/types.js";
+
+  import { IconPlayerPause, IconPlayerPlay } from "$lib/icons";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/client/api.js";
   import { Player } from "$lib/virtualizer/player.svelte.js";
@@ -54,9 +54,9 @@
 {#snippet playIcon(size: number, asAction = false)}
   {@const showPlay = asAction ? !player.playing : player.playing}
   {#if showPlay}
-    <IconPlayerPlayFilled {size} />
+    <IconPlayerPlay {size} />
   {:else}
-    <IconPlayerPauseFilled {size} />
+    <IconPlayerPause {size} />
   {/if}
 {/snippet}
 

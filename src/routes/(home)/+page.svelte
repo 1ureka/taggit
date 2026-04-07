@@ -1,8 +1,8 @@
 <script lang="ts">
   import { navigating } from "$app/state";
-  import { IconPlayerPlayFilled, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
+  import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
   import Select from "$lib/components/Select.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
   import Modal from "$lib/components/Modal.svelte";
@@ -144,7 +144,7 @@
 
       <footer>
         <a class="btn-primary" href={`/player${form.queryString}`}>
-          <IconPlayerPlayFilled size={16} />
+          <IconPlayerPlay size={16} />
           <span>播放</span>
         </a>
         <a class="btn-outlined" href={`/compare${form.queryString}`}>
