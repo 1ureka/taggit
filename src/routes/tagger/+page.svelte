@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconArrowBackUpDouble, IconCheck } from "$lib/icons";
-  import { IconRefresh, IconTrash, IconUpload } from "@tabler/icons-svelte";
+  import { IconReload, IconX, IconUpload } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
   import Rating from "$lib/components/Rating.svelte";
@@ -124,7 +124,7 @@
         onclick={listActions.handleRefreshClick}
         disabled={listActions.pending}
       >
-        <IconRefresh size={14} />
+        <IconReload size={14} />
       </button>
     </header>
 
@@ -235,7 +235,7 @@
           class:pending={form.pending}
           disabled={form.pending}
         >
-          <IconTrash size={16} />
+          <IconX size={16} />
           <span>刪除<kbd>Ctrl + D</kbd></span>
         </button>
       </footer>

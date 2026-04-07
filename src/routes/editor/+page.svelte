@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconArrowBackUpDouble, IconArrowLeft, IconCheck } from "$lib/icons";
-  import { IconFilter, IconRefresh } from "@tabler/icons-svelte";
+  import { IconFilter, IconReload } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
   import Rating from "$lib/components/Rating.svelte";
@@ -136,7 +136,7 @@
         onclick={listActions.handleRefreshClick}
         disabled={page.pending}
       >
-        <IconRefresh size={14} />
+        <IconReload size={14} />
       </button>
     </header>
 
