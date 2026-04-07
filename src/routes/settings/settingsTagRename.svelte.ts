@@ -1,5 +1,14 @@
 import { api } from "$lib/client/api.js";
 import { tagCache } from "$lib/client/cache.js";
+import { requestConfirm } from "$lib/client/dom.js";
+
+/**
+ * 標籤操作結果
+ */
+type TagActionResult =
+  | { type: "success"; message: string }
+  | { type: "error"; message: string }
+  | { type: "conflict"; tagName: string };
 
 /**
  * SettingsTagRename 的互動邏輯
@@ -13,10 +22,8 @@ export class SettingsTagRename {
   newInputEl = $state<HTMLInputElement>();
   /** 是否正在處理 */
   busy = $state(false);
-  /** 操作結果訊息 */
-  result = $state("");
-  /** 結果是否為錯誤 */
-  resultIsError = $state(false);
+  /** 操作結果 */
+  result = $state<TagActionResult | null>(null);
 
   /** 舊標籤名稱 */
   oldName: string;
@@ -25,42 +32,62 @@ export class SettingsTagRename {
 
   constructor() {
     this.oldName = $derived(this.selectedTags[0] ?? "");
-    this.canSubmit = $derived(
-      !!this.oldName.trim() &&
-        !!this.newName.trim() &&
-        this.oldName.trim().toLowerCase() !== this.newName.trim().toLowerCase() &&
-        !this.busy,
-    );
+    this.canSubmit = $derived.by(() => {
+      if (!this.oldName.trim() || this.busy) return false;
+      const trimNew = this.newName.trim();
+      if (trimNew && trimNew.toLowerCase() === this.oldName.trim().toLowerCase()) return false;
+      return true;
+    });
   }
 
   // ---
 
   async #doRename() {
-    if (!this.canSubmit) return;
-
     const trimOld = this.oldName.trim().toLowerCase();
     const trimNew = this.newName.trim().toLowerCase();
     if (!trimOld || !trimNew || trimOld === trimNew) return;
 
     this.busy = true;
-    this.result = "";
-    this.resultIsError = false;
+    this.result = null;
 
-    const res = await api.post<{ affected: number }>("/api/tags", {
-      oldName: trimOld,
-      newName: trimNew,
-    });
+    const res = await api.post<{ affected: number }>("/api/tags", { oldName: trimOld, newName: trimNew });
 
     if (res.ok && res.data) {
-      this.result = `已將「${trimOld}」重命名為「${trimNew}」，影響 ${res.data.affected} 張圖片`;
-      this.resultIsError = false;
+      const message = `已將「${trimOld}」重命名為「${trimNew}」，影響 ${res.data.affected} 張圖片`;
+      this.result = { type: "success", message };
       tagCache.invalidate();
       this.selectedTags = [];
       this.newName = "";
     } else {
-      this.result = "錯誤: " + (res.error || "未知");
-      this.resultIsError = true;
+      this.result = { type: "error", message: res.error || "未知錯誤" };
     }
+
+    this.busy = false;
+  }
+
+  async #doDelete() {
+    const trimOld = this.oldName.trim().toLowerCase();
+    if (!trimOld) return;
+
+    const message = `確定要刪除標籤「${trimOld}」嗎？此操作無法復原。`;
+    const confirmed = await requestConfirm(message, { title: "刪除標籤", action: "刪除" });
+    if (!confirmed) return;
+
+    this.busy = true;
+    this.result = null;
+
+    const res = await api.del<{ affected: number }>("/api/tags", { name: trimOld });
+
+    if (res.ok) {
+      this.result = { type: "success", message: `已刪除標籤「${trimOld}」` };
+      tagCache.invalidate();
+      this.selectedTags = [];
+    } else if (res.status === 409) {
+      this.result = { type: "conflict", tagName: trimOld };
+    } else {
+      this.result = { type: "error", message: res.error || "未知錯誤" };
+    }
+
     this.busy = false;
   }
 
@@ -72,14 +99,18 @@ export class SettingsTagRename {
     if (this.oldName) requestAnimationFrame(() => this.newInputEl?.focus());
   };
 
-  /** 處理重命名按鈕點擊事件 */
+  /** 處理重命名按鈕點擊事件，新名稱留空時視作刪除 */
   handleRenameClick = () => {
-    this.#doRename();
+    if (this.newName.trim()) {
+      this.#doRename();
+    } else {
+      this.#doDelete();
+    }
   };
 
   // ---
 
-  /** 處理新名稱輸入框 keydown 事件，Enter 提交 */
+  /** 處理新名稱輸入框 keydown 事件，Enter 提交重命名 */
   handleNewNameKeydown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();

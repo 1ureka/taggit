@@ -87,14 +87,17 @@
 {#snippet tagsSettings()}
   <section id="section-tags">
     <h2>標籤管理</h2>
-    <p>將某個標籤全域重命名為另一個名稱。若某張圖片已同時擁有新舊兩個標籤，重命名後舊標籤會直接移除，不會產生重複。</p>
+    <ul>
+      <li><b>重命名</b> — 選擇並填寫新名稱。若某張圖片同時擁有新舊標籤，只會移除舊標籤，不會產生重複。</li>
+      <li><b>刪除</b> — 選擇但不填寫新名稱。若有圖片只剩下該標籤，將會需要透過提供的連結手動先行解決。</li>
+    </ul>
 
     <div class="field">
-      <span class="label">舊標籤名稱</span>
+      <span class="label">標籤名稱</span>
       <Autocomplete
         bind:tags={tagRename.selectedTags}
         variant="inline"
-        placeholder="選擇要重命名的標籤..."
+        placeholder="選擇標籤..."
         onchange={tagRename.handleSelectChange}
       />
     </div>
@@ -106,7 +109,7 @@
         bind:value={tagRename.newName}
         id="rename-new"
         class="text-input"
-        placeholder="輸入新的標籤名稱..."
+        placeholder="留空則為刪除標籤..."
         autocomplete="off"
         onkeydown={tagRename.handleNewNameKeydown}
       />
@@ -123,9 +126,17 @@
     </button>
 
     {#if tagRename.result}
-      <p class="result" class:error={tagRename.resultIsError}>
-        {tagRename.result}
-      </p>
+      {#if tagRename.result.type === "conflict"}
+        <p class="result error">
+          刪除會導致有圖片沒有標籤，請<a href="/editor?includedTags={encodeURIComponent(tagRename.result.tagName)}"
+            >前往編輯器</a
+          >解決後再試一次。
+        </p>
+      {:else}
+        <p class="result" class:error={tagRename.result.type === "error"}>
+          {tagRename.result.message}
+        </p>
+      {/if}
     {/if}
   </section>
 {/snippet}
@@ -409,6 +420,19 @@
 
   /* --- */
 
+  section#section-tags > ul {
+    color: var(--text-muted);
+    font-size: var(--font-size-body1);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    padding-left: 1.25rem;
+
+    & > li > b {
+      font-weight: normal;
+      color: var(--text);
+    }
+  }
+
   section#section-tags > .field {
     margin-bottom: 0.75rem;
   }
@@ -427,6 +451,15 @@
 
     &.error {
       color: var(--destructive);
+    }
+
+    & > a {
+      color: var(--text);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 
