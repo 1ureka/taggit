@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { IconArrowLeft, IconAlertTriangle } from "@tabler/icons-svelte";
+  import { IconArrowLeft, IconAlertTriangleFilled } from "$lib/icons";
 </script>
 
 <svelte:head>
@@ -9,7 +9,7 @@
 
 <main class="slide-up">
   <div class="error-icon">
-    <IconAlertTriangle size={48} />
+    <IconAlertTriangleFilled size={48} />
   </div>
 
   <h2>{page.status}</h2>

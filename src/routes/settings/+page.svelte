@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { page } from "$app/state";
-  import { IconPhoto, IconFileSearch, IconFileAlert, IconDatabase } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
+  import { IconPhotoFilled, IconFilter, IconAlertCircleFilled, IconDatabase } from "$lib/icons";
   import Alert from "$lib/components/Alert.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
 
@@ -132,7 +132,7 @@
 
 {#snippet toolCard(props: {
   /** 該工具的圖示 */
-  Icon: typeof IconPhoto;
+  Icon: typeof IconPhotoFilled;
   /** 工具標題 */
   title: string;
   /** 工具說明文字 */
@@ -188,7 +188,7 @@
     {/snippet}
 
     {@render toolCard({
-      Icon: IconPhoto,
+      Icon: IconPhotoFilled,
       title: "圖片快取",
       description: "系統會將處理過的縮圖與 WebP 轉換結果暫存於記憶體中，加速後續存取。快取會在伺服器重啟時自動清空。",
       content: cacheStats,
@@ -197,7 +197,7 @@
     })}
 
     {@render toolCard({
-      Icon: IconFileSearch,
+      Icon: IconFilter,
       title: "元資料完整性",
       description: "檢查資料庫是否有已提交圖片缺少寬高或 BlurHash 等元資料，檢查後可選擇批次補算。",
       actions: [
@@ -220,7 +220,7 @@
     <p>提供資料完整性檢查與維護工具，確保檔案系統與資料庫之間的一致性。</p>
 
     {@render toolCard({
-      Icon: IconFileAlert,
+      Icon: IconAlertCircleFilled,
       title: "缺失檔案檢查",
       description:
         "找出資料庫有記錄但對應檔案已不存在的項目，通常因曾手動刪除檔案而產生，檢查後可選擇移除這些失效的記錄。",

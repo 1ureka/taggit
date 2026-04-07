@@ -227,25 +227,30 @@ background: color-mix(in srgb, var(--accent) 80%, black);
 
 ---
 
-## 5. Icon System — Svelte5 + Tabler Icons
+## 5. Icon System — 本地 SVG 組件
 
-> 本專案使用 [`@tabler/icons-svelte`](https://github.com/tabler/tabler-icons) 作為圖示庫。
+> 本專案將使用到的 [Tabler Icons](https://tabler.io/icons) SVG 手動複製至 `src/lib/icons/`，包裝為獨立的 Svelte 組件。不依賴 `@tabler/icons-svelte` 套件。
 
-### 5.1 基本用法
+### 5.1 為什麼不用 `@tabler/icons-svelte`？
 
-每個圖示為獨立的 Svelte 元件，按需 import 即可，不會打包未使用的圖示。
+`@tabler/icons-svelte` 包含 5000+ 圖示組件。即使 tree-shake 只用到少數，Vite 在 dev 模式的 dependency pre-bundling（optimizeDeps）與 transform 仍需掃描整個套件，嚴重拖慢冷啟動與 HMR。手動複製所需的 SVG 後，Vite 只需處理實際使用的檔案。
+
+### 5.2 基本用法
+
+所有圖示透過 barrel file（`$lib/icons/index.ts`）以具名匯入，語法與原本 `@tabler/icons-svelte` 幾乎相同：
 
 ```svelte
 <script lang="ts">
-  import { IconHeart, IconArrowLeft, IconPlayerPlay } from '@tabler/icons-svelte';
+  import { IconArrowLeft, IconRefresh } from "$lib/icons";
 </script>
 
-<IconHeart />
 <IconArrowLeft />
-<IconPlayerPlay />
+<IconRefresh />
 ```
 
-### 5.2 Props
+Barrel file 不影響 dev 效能——`$lib/icons/index.ts` 是專案原始碼，Vite 不做 pre-bundling，只 on-demand transform 實際用到的圖示。Production build 時 Rollup tree-shaking 正常運作。
+
+### 5.3 Props
 
 | 屬性     | 型別     | 預設值         | 說明                       |
 | -------- | -------- | -------------- | -------------------------- |
@@ -255,9 +260,24 @@ background: color-mix(in srgb, var(--accent) 80%, black);
 | `class`  | `string` | —              | 自訂 CSS class             |
 
 ```svelte
-<IconHeart size={48} stroke={1} color="red" />
+<IconArrowLeft size={48} stroke={1} color="red" />
 ```
 
-### 5.3 尋找圖示
+### 5.4 新增圖示
 
-前往 [tabler.io/icons](https://tabler.io/icons) 搜尋所需圖示名稱，再轉換為 PascalCase 即為 import 名稱。
+1. 前往 [tabler.io/icons](https://tabler.io/icons) 搜尋所需圖示
+2. 複製 SVG 原始碼
+3. 在 `src/lib/icons/` 中建立 `Icon{PascalName}.svelte`，包裝為接受 `size`、`color`、`stroke`、`class` props 的 Svelte 組件
+4. 在 `src/lib/icons/index.ts` 中新增 re-export：`export { default as Icon{PascalName} } from "./Icon{PascalName}.svelte";`
+
+### 5.5 檔案位置
+
+```
+src/lib/icons/
+  index.ts                      ← barrel file（具名 re-export）
+  IconArrowLeft.svelte
+  IconRefresh.svelte
+  ...
+```
+
+所有圖示檔案命名為 `Icon{PascalName}.svelte`，與原本 `@tabler/icons-svelte` 的組件名稱一致，降低遷移成本。

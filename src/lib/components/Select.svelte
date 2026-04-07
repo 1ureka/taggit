@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-  import { IconChevronDown } from "@tabler/icons-svelte";
+  import { IconChevronDown } from "$lib/icons";
   import { float } from "$lib/client/float.js";
   import { Select, type SelectItem } from "$lib/ui/select.svelte.js";
 

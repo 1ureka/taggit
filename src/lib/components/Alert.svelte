@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconInfoCircle, IconAlertCircle, IconAlertTriangle } from "@tabler/icons-svelte";
+  import { IconInfoCircleFilled, IconAlertCircleFilled, IconAlertTriangleFilled } from "$lib/icons";
 
   type Props = {
     /** 警示類型，會影響顏色與圖示 */
@@ -20,11 +20,11 @@
 >
   <span class="icon">
     {#if type === "info"}
-      <IconInfoCircle size={16} stroke={1.5} color="var(--color-info)" />
+      <IconInfoCircleFilled size={16} color="var(--color-info)" />
     {:else if type === "error"}
-      <IconAlertCircle size={16} stroke={1.5} color="var(--destructive)" />
+      <IconAlertCircleFilled size={16} color="var(--destructive)" />
     {:else}
-      <IconAlertTriangle size={16} stroke={1.5} color="var(--color-warning)" />
+      <IconAlertTriangleFilled size={16} color="var(--color-warning)" />
     {/if}
   </span>
   <span class="message">{message}</span>

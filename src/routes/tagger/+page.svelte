@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { IconArrowBackUp, IconCheck } from "@tabler/icons-svelte";
-  import { IconRefresh, IconTrash, IconUpload } from "@tabler/icons-svelte";
+  import { IconArrowBackUpDouble, IconCheck } from "$lib/icons";
+  import { IconReload, IconX, IconUpload } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
   import Rating from "$lib/components/Rating.svelte";
@@ -124,7 +124,7 @@
         onclick={listActions.handleRefreshClick}
         disabled={listActions.pending}
       >
-        <IconRefresh size={14} />
+        <IconReload size={14} />
       </button>
     </header>
 
@@ -199,7 +199,7 @@
       <header>
         <h2>編輯屬性</h2>
         <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
-          <IconArrowBackUp size={18} />
+          <IconArrowBackUpDouble size={18} />
         </button>
       </header>
 
@@ -235,7 +235,7 @@
           class:pending={form.pending}
           disabled={form.pending}
         >
-          <IconTrash size={16} />
+          <IconX size={16} />
           <span>刪除<kbd>Ctrl + D</kbd></span>
         </button>
       </footer>

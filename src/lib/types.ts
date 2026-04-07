@@ -179,3 +179,15 @@ export interface ConfirmPayload {
  * 帶有寬高屬性的基本物件介面
  */
 export type ItemWithSize = { id: string; width: number; height: number };
+
+// ---
+
+/**
+ * 一個圖示組件的 props
+ */
+export type IconProps = {
+  /** 圖示大小 (CSS 單位) */
+  size?: number | string;
+  /** 圖示顏色 (CSS 顏色值) */
+  color?: string;
+};
