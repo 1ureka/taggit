@@ -220,7 +220,7 @@ export class JSONDatabase {
         const parsed = JSON.parse(fs.readFileSync(dbPath, "utf8"));
         this.data.version = typeof parsed.version === "number" ? parsed.version : 1;
         this.data.images = this.parseImages(parsed.images);
-        log({ level: "info", module: "db", message: `已載入 ${Object.keys(this.data.images).length} 張圖片` });
+        log({ level: "info", module: "db", message: `已載入 ${Object.keys(this.data.images).length} 張已提交圖片紀錄` });
       } catch (e) {
         log({ level: "error", module: "db", message: `載入資料庫失敗，將以全新狀態開始: ${formatError(e)}` });
         this.data = { version: 1, images: {} };
