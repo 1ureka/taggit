@@ -63,7 +63,7 @@ node build            # 啟動，之後可隨時使用 Ctrl + C 停止，停止�
 | `/api/staged`               | GET / POST           | 列出暫存檔案 / 上傳圖片                       |
 | `/api/staged/[filename]`    | POST / DELETE        | 提交至資料庫 / 永久刪除                       |
 | `/api/images/[filename]`    | GET                  | 取得圖片（支援 `?size=sm\|md\|xl`）           |
-| `/api/tags`                 | GET / POST           | 列出所有標籤 / 全域重新命名                   |
+| `/api/tags`                 | GET / POST / DELETE  | 列出所有標籤 / 全域重新命名 / 全域刪除標籤    |
 | `/api/settings/*`           | 多種                 | 備份、快取、metadata 修復、孤立記錄、目錄設定 |
 
 ## 進一步了解
