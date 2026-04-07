@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
-  import { IconArrowsShuffle } from "@tabler/icons-svelte";
+  import { IconArrowsShuffle } from "$lib/icons";
 
   import Rating from "$lib/components/Rating.svelte";
   import Tags from "$lib/components/Tags.svelte";

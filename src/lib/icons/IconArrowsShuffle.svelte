@@ -13,7 +13,6 @@
   stroke-width="2"
   stroke-linecap="round"
   stroke-linejoin="round"
-  class="icon icon-tabler icons-tabler-outline icon-tabler-arrows-shuffle-2"
 >
   <path stroke="none" d="M0 0h24v24H0z" fill="none" />
   <path d="M18 4l3 3l-3 3" />

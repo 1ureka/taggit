@@ -11,4 +11,6 @@ export { default as IconCompassFilled } from "./IconCompassFilled.svelte";
 export { default as IconEditFilled } from "./IconEditFilled.svelte";
 export { default as IconInfoCircleFilled } from "./IconInfoCircleFilled.svelte";
 export { default as IconPhotoFilled } from "./IconPhotoFilled.svelte";
+export { default as IconSettings } from "./IconSettings.svelte";
+export { default as IconTagFilled } from "./IconTagFilled.svelte";
 export { default as IconX } from "./IconX.svelte";

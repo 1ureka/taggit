@@ -3,14 +3,7 @@
   let { color = "currentColor", size = 24 }: IconProps = $props();
 </script>
 
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  width={size}
-  height={size}
-  viewBox="0 0 24 24"
-  fill={color}
-  class="icon icon-tabler icons-tabler-filled icon-tabler-edit"
->
+<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={color}>
   <path stroke="none" d="M0 0h24v24H0z" fill="none" />
   <path
     d="M8 7a1 1 0 0 1 -1 1h-1a1 1 0 0 0 -1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1 -1v-1a1 1 0 0 1 2 0v1a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3h1a1 1 0 0 1 1 1"

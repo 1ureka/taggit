@@ -5,10 +5,8 @@
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
 
-  import { IconEditFilled, IconPhotoFilled } from "$lib/icons";
-  import { IconCaretDownFilled, IconCompassFilled } from "@tabler/icons-svelte";
-  import { IconSettings2, IconTagFilled } from "@tabler/icons-svelte";
-  import { IconArrowLeft, IconArrowRight } from "@tabler/icons-svelte";
+  import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/icons";
+  import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/icons";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
@@ -37,7 +35,7 @@
     },
     {
       href: "/settings",
-      Icon: IconSettings2,
+      Icon: IconSettings,
       name: "設定",
       desc: "調整應用的行為、修復圖片資料或是製作備份",
     },
@@ -122,7 +120,7 @@
       >
         <IconCompassFilled size={20} />
         <span class="ellipsis">{currentStatus}</span>
-        <IconCaretDownFilled size={20} color="var(--text-muted)" />
+        <IconChevronDown size={20} color="var(--text-muted)" />
       </button>
     {/if}
   </header>
