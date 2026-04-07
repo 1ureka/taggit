@@ -77,6 +77,15 @@ export const DELETE: RequestHandler = async ({ request }) => {
   }
 
   const name = body.name.trim();
+
+  const ids = loaded.db.tagIndex.get(name) ?? new Set();
+  for (const id of ids) {
+    const record = loaded.db.data.images[id];
+    if (record && record.tags.length === 1) {
+      return json({ ok: false, error: "conflict" }, { status: 409 });
+    }
+  }
+
   const affected = deleteTag(loaded.db, name);
   log({ level: "info", module: "tags", message: `刪除標籤: "${name}"`, data: { affected } });
   return json({ ok: true, data: { affected } });
