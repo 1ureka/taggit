@@ -1,6 +1,6 @@
 <script lang="ts">
   import { navigating } from "$app/state";
-  import { IconPlayerPlayFilled, IconArrowsLeftRight, IconXFilled, IconEditFilled } from "@tabler/icons-svelte";
+  import { IconPlayerPlayFilled, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
   import Select from "$lib/components/Select.svelte";
@@ -148,7 +148,7 @@
           <span>播放</span>
         </a>
         <a class="btn-outlined" href={`/compare${form.queryString}`}>
-          <IconArrowsLeftRight size={16} />
+          <IconArrowsShuffle size={16} />
           <span>比較</span>
         </a>
       </footer>
@@ -166,7 +166,7 @@
   <article class="modal-content">
     <header>
       <button class="btn-icon" type="button" aria-label="關閉圖片詳細資訊" onclick={modal.handleClose}>
-        <IconXFilled size={16} />
+        <IconX size={16} />
       </button>
 
       <h2 class="ellipsis">{record.name}</h2>

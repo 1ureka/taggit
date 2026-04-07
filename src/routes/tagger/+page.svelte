@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconArrowBackUp, IconCheck } from "@tabler/icons-svelte";
+  import { IconArrowBackUpDouble, IconCheck } from "$lib/icons";
   import { IconRefresh, IconTrash, IconUpload } from "@tabler/icons-svelte";
   import type { PageData } from "./$types.js";
 
@@ -199,7 +199,7 @@
       <header>
         <h2>編輯屬性</h2>
         <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
-          <IconArrowBackUp size={18} />
+          <IconArrowBackUpDouble size={18} />
         </button>
       </header>
 
