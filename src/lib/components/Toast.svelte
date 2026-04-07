@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconX, IconCircleCheck, IconAlertCircle, IconInfoCircle } from "@tabler/icons-svelte";
+  import { IconX, IconCheckFilled, IconAlertCircleFilled, IconInfoCircleFilled } from "$lib/icons";
   import { Toast } from "$lib/ui/toast.svelte.js";
 
   const ui = new Toast({
@@ -38,16 +38,16 @@
     >
       <span class="toast-icon toast-icon-{toast.type}">
         {#if toast.type === "success"}
-          <IconCircleCheck size={16} stroke={1.5} />
+          <IconCheckFilled size={16} />
         {:else if toast.type === "error"}
-          <IconAlertCircle size={16} stroke={1.5} />
+          <IconAlertCircleFilled size={16} />
         {:else}
-          <IconInfoCircle size={16} stroke={1.5} />
+          <IconInfoCircleFilled size={16} />
         {/if}
       </span>
       <span class="toast-msg">{toast.message}</span>
       <button type="button" class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
-        <IconX size={14} stroke={2} />
+        <IconX size={14} />
       </button>
     </div>
   {/each}

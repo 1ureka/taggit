@@ -13,8 +13,10 @@
   stroke-width="2"
   stroke-linecap="round"
   stroke-linejoin="round"
+  class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-up"
 >
   <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-  <path d="M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12" />
-  <path d="M12 4v7l2 -2l2 2v-7" />
+  <path d="M12 5l0 14" />
+  <path d="M18 11l-6 -6" />
+  <path d="M6 11l6 -6" />
 </svg>

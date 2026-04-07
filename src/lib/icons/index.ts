@@ -1,2 +1,14 @@
-export { default as IconAlbum } from "./IconAlbum.svelte";
+export { default as IconAlertCircleFilled } from "./IconAlertCircleFilled.svelte";
+export { default as IconAlertTriangleFilled } from "./IconAlertTriangleFilled.svelte";
+export { default as IconArrowBackUpDouble } from "./IconArrowBackUpDouble.svelte";
+export { default as IconArrowLeft } from "./IconArrowLeft.svelte";
+export { default as IconArrowRight } from "./IconArrowRight.svelte";
+export { default as IconArrowsShuffle } from "./IconArrowsShuffle.svelte";
+export { default as IconArrowUp } from "./IconArrowUp.svelte";
+export { default as IconCheckFilled } from "./IconCheckFilled.svelte";
+export { default as IconChevronDown } from "./IconChevronDown.svelte";
+export { default as IconCompassFilled } from "./IconCompassFilled.svelte";
+export { default as IconEditFilled } from "./IconEditFilled.svelte";
+export { default as IconInfoCircleFilled } from "./IconInfoCircleFilled.svelte";
 export { default as IconPhotoFilled } from "./IconPhotoFilled.svelte";
+export { default as IconX } from "./IconX.svelte";

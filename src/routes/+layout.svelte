@@ -5,8 +5,9 @@
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
 
-  import { IconAlbum, IconCaretDownFilled, IconCompassFilled } from "@tabler/icons-svelte";
-  import { IconPhotoFilled, IconSettings2, IconTagFilled } from "@tabler/icons-svelte";
+  import { IconEditFilled, IconPhotoFilled } from "$lib/icons";
+  import { IconCaretDownFilled, IconCompassFilled } from "@tabler/icons-svelte";
+  import { IconSettings2, IconTagFilled } from "@tabler/icons-svelte";
   import { IconArrowLeft, IconArrowRight } from "@tabler/icons-svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
@@ -30,7 +31,7 @@
     },
     {
       href: "/editor",
-      Icon: IconAlbum,
+      Icon: IconEditFilled,
       name: "管理圖片",
       desc: "編輯已提交圖片的名稱、標籤或評分",
     },
