@@ -20,28 +20,53 @@
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
 
   const breakpoints = [
-    { width: 1600, cols: 5 },
-    { width: 1200, cols: 4 },
-    { width: 900, cols: 3 },
-    { width: 600, cols: 2 },
-    { width: 0, cols: 2 },
+    { width: 1600, cols: 5, p: 24, g: 6 },
+    { width: 1200, cols: 4, p: 24, g: 6 },
+    { width: 900, cols: 3, p: 24, g: 6 },
+    { width: 600, cols: 2, p: 12, g: 6 },
+    { width: 0, cols: 2, p: 6, g: 4 },
   ];
 
   // ---
 
   let { data }: { data: PageData } = $props();
 
+  let paddingX = $state(24);
+  let paddingY = $state(24);
+  let gap = $state(6);
+
   const masonry = new Masonry({
     get items() {
       return data.items;
     },
-    paddingX: 24,
-    paddingY: 24,
-    gap: 6,
+    get paddingX() {
+      return paddingX;
+    },
+    get paddingY() {
+      return paddingY;
+    },
+    get gap() {
+      return gap;
+    },
+  });
+
+  const handleResize = () => {
+    const breakpoint = breakpoints.find((b) => window.innerWidth >= b.width)!;
+    masonry.columns = breakpoint.cols;
+    paddingX = breakpoint.p;
+    paddingY = breakpoint.p;
+    gap = breakpoint.g;
+  };
+
+  $effect(() => {
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   });
 
   if (typeof window !== "undefined") {
-    masonry.columns = breakpoints.find((b) => window.innerWidth >= b.width)?.cols ?? 3;
+    handleResize();
   }
 
   const form = new BrowseForm();
@@ -384,6 +409,10 @@
     transition: scale 0.15s;
     &:active {
       scale: 0.98;
+    }
+
+    @media (max-width: 600px) {
+      border-radius: calc(var(--radius) * 0.5);
     }
   }
 
