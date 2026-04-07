@@ -143,3 +143,29 @@ export function renameTag(jsonDB: JSONDatabase, oldName: string, newName: string
   jsonDB.markDirty();
   return affected;
 }
+
+/**
+ * 從所有使用該標籤的圖片記錄中移除指定標籤。
+ *
+ * @param jsonDB - 要異動的資料庫實例。
+ * @param tagName - 要刪除的標籤名稱。
+ * @returns 受影響的圖片記錄數量。
+ */
+export function deleteTag(jsonDB: JSONDatabase, tagName: string): number {
+  const ids = jsonDB.tagIndex.get(tagName);
+  if (!ids || ids.size === 0) return 0;
+
+  let affected = 0;
+
+  for (const id of ids) {
+    const record = jsonDB.data.images[id];
+    if (!record) continue;
+
+    jsonDB.data.images[id] = { ...record, tags: record.tags.filter((t) => t !== tagName) };
+    affected++;
+  }
+
+  jsonDB.buildIndexes();
+  jsonDB.markDirty();
+  return affected;
+}
