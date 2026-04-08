@@ -56,7 +56,7 @@ export function parseQueryParams(url: URL): QueryOptions {
     excludedTags: parseTags(p.get("excludedTags")),
     rating: safeInt(p.get("rating")),
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
-    sort: (p.get("sort") as SortField) ?? "committedAt",
+    sort: (p.get("sort") as SortField) ?? "rating",
     order: (p.get("order") as "asc" | "desc") ?? "desc",
     page: safeInt(p.get("page")),
     limit: safeInt(p.get("limit")),
@@ -74,7 +74,7 @@ export function buildQueryString(opts: QueryOptions, params?: URLSearchParams): 
   if (opts.excludedTags && opts.excludedTags.length > 0) params.set("excludedTags", opts.excludedTags.join(","));
   if (opts.rating !== undefined) params.set("rating", String(opts.rating));
   if (opts.ratingOp && opts.ratingOp !== "gte") params.set("ratingOp", opts.ratingOp);
-  if (opts.sort && opts.sort !== "committedAt") params.set("sort", opts.sort);
+  if (opts.sort && opts.sort !== "rating") params.set("sort", opts.sort);
   if (opts.order && opts.order !== "desc") params.set("order", opts.order);
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   if (opts.limit && opts.limit > 0) params.set("limit", String(opts.limit));

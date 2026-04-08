@@ -19,7 +19,7 @@ export class FilterFields {
   /** 評等比較運算子 */
   ratingOp = $state<"gte" | "lte" | "eq">("gte");
   /** 排序欄位 */
-  sort = $state<SortField>("committedAt");
+  sort = $state<SortField>("rating");
   /** 排序方向 */
   order = $state<"asc" | "desc">("desc");
 
@@ -40,7 +40,7 @@ export class FilterFields {
     this.excludedTags = opts.excludedTags ?? [];
     this.rating = opts.rating;
     this.ratingOp = opts.ratingOp ?? "gte";
-    this.sort = opts.sort ?? "committedAt";
+    this.sort = opts.sort ?? "rating";
     this.order = opts.order ?? "desc";
   }
 
