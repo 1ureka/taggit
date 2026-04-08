@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { navigating } from "$app/state";
+  import { navigating, page } from "$app/state";
   import type { PageData } from "./$types.js";
 
   import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
@@ -14,7 +14,6 @@
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
-  import { BrowseForm } from "./browseForm.svelte.js";
   import { BrowseModal } from "./browseModal.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));
@@ -68,8 +67,6 @@
   if (typeof window !== "undefined") {
     handleResize();
   }
-
-  const form = new BrowseForm();
 
   const modal = new BrowseModal({
     get items() {
@@ -147,17 +144,7 @@
       </header>
 
       <div>
-        <FilterFields
-          bind:search={form.search}
-          bind:includedTags={form.includedTags}
-          bind:excludedTags={form.excludedTags}
-          bind:rating={form.rating}
-          bind:ratingOp={form.ratingOp}
-          bind:sort={form.sort}
-          bind:order={form.order}
-          onchangeSearch={form.handleSearchChange}
-          onchange={form.handleChange}
-        />
+        <FilterFields />
       </div>
 
       <div>
@@ -168,11 +155,11 @@
       </div>
 
       <footer>
-        <a class="btn-primary" href={`/player${form.queryString}`}>
+        <a class="btn-primary" href={`/player${page.url.search}`}>
           <IconPlayerPlay size={16} />
           <span>播放</span>
         </a>
-        <a class="btn-outlined" href={`/compare${form.queryString}`}>
+        <a class="btn-outlined" href={`/compare${page.url.search}`}>
           <IconArrowsShuffle size={16} />
           <span>比較</span>
         </a>

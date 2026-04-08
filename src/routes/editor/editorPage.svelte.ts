@@ -1,5 +1,6 @@
 import type { ImageWithId } from "$lib/types.js";
 import { goto } from "$app/navigation";
+import { page } from "$app/state";
 import { untrack } from "svelte";
 
 /**
@@ -22,6 +23,8 @@ export class EditorPage {
   selectedFiles = $state<Set<string>>(new Set());
   /** 所有編輯頁面的操作的共用鎖 */
   pending = $state(false);
+  /** 篩選對話框是否開啟 */
+  filterModal = $state(false);
 
   constructor(options: EditorPageOptions) {
     // 初始化
@@ -66,5 +69,23 @@ export class EditorPage {
     const url = new URL(window.location.href);
     url.searchParams.set("currentId", id);
     goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+  };
+
+  // ---
+
+  /** 打開篩選對話框 */
+  handleOpenFilter = () => {
+    this.filterModal = true;
+  };
+
+  /** 關閉篩選對話框 */
+  handleCloseFilter = () => {
+    this.filterModal = false;
+  };
+
+  /** 處理篩選表單重置 */
+  handleFilterReset = (e: Event) => {
+    e.preventDefault();
+    goto(page.url.pathname, { replaceState: true, noScroll: true, keepFocus: true });
   };
 }

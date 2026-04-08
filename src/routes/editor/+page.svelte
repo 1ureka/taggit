@@ -16,7 +16,6 @@
   import { EditorPreview } from "./editorPreview.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
-  import { EditorFilter } from "./editorFilter.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -91,17 +90,6 @@
       return page.selectedFiles;
     },
   });
-
-  // ---
-
-  const filter = new EditorFilter({
-    get pending() {
-      return page.pending;
-    },
-    set pending(v) {
-      page.pending = v;
-    },
-  });
 </script>
 
 <svelte:head>
@@ -151,7 +139,7 @@
     />
 
     <footer>
-      <button type="button" class="btn-outlined" onclick={filter.handleOpenClick}>
+      <button type="button" class="btn-outlined" onclick={page.handleOpenFilter}>
         <IconFilter size={14} />
         <span>篩選</span>
       </button>
@@ -277,32 +265,18 @@
   </aside>
 </main>
 
-<Modal bind:open={filter.open} onclose={filter.handleClose} label="篩選條件">
-  <form onsubmit={filter.handleFilterSubmit} onreset={filter.handleFilterReset}>
-    <h3 class="modal-title">篩選條件</h3>
+<Modal bind:open={page.filterModal} onclose={page.handleCloseFilter} label="篩選條件">
+  <h3 class="modal-title">篩選條件</h3>
 
-    <div class="modal-body">
-      <FilterFields
-        bind:search={filter.search}
-        bind:includedTags={filter.includedTags}
-        bind:excludedTags={filter.excludedTags}
-        bind:rating={filter.rating}
-        bind:ratingOp={filter.ratingOp}
-        bind:sort={filter.sort}
-        bind:order={filter.order}
-        allowRandomSort={false}
-      />
-    </div>
+  <div class="modal-body">
+    <FilterFields allowRandomSort={false} />
+  </div>
 
-    <div class="modal-actions">
-      <button class="btn-ghost" type="reset">
-        <span>重置</span>
-      </button>
-      <button class="btn-primary" type="submit" class:pending={page.pending} disabled={page.pending}>
-        <span>篩選</span>
-      </button>
-    </div>
-  </form>
+  <div class="modal-actions">
+    <button type="button" class="btn-primary" onclick={page.handleFilterReset}>
+      <span>重置</span>
+    </button>
+  </div>
 </Modal>
 
 <style>

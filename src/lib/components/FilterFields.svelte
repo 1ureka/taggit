@@ -1,35 +1,16 @@
 <script lang="ts">
+  import { FilterFields } from "$lib/ui/filterFields.svelte";
   import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
 
   type Props = {
-    search?: string;
-    includedTags?: string[];
-    excludedTags?: string[];
-    rating?: number | undefined;
-    ratingOp?: "gte" | "lte" | "eq";
-    sort?: string;
-    order?: string;
     /** 是否允許隨機排序 */
     allowRandomSort?: boolean;
-    /** 搜尋文字變化事件 */
-    onchangeSearch?: (value: string) => void;
-    /** 任一欄位變化事件，排除搜尋欄位 */
-    onchange?: () => void;
   };
 
-  let {
-    search = $bindable(""),
-    includedTags = $bindable([]),
-    excludedTags = $bindable([]),
-    rating = $bindable(undefined),
-    ratingOp = $bindable("gte"),
-    sort = $bindable("committedAt"),
-    order = $bindable("desc"),
-    allowRandomSort = true,
-    onchangeSearch,
-    onchange,
-  }: Props = $props();
+  let { allowRandomSort = true }: Props = $props();
+
+  const ui = new FilterFields();
 
   const ratingOpOptions = [
     { value: "gte", label: "≥" },
@@ -73,34 +54,34 @@
       class="text-input"
       type="text"
       placeholder="搜尋名稱..."
-      bind:value={search}
-      oninput={() => onchangeSearch?.(search)}
+      bind:value={ui.search}
+      oninput={ui.handleSearchChange}
     />
   </label>
 
   <div class="field">
     <span>包含的標籤</span>
-    <Autocomplete bind:tags={includedTags} variant="inline" placeholder="包含標籤..." {onchange} />
+    <Autocomplete bind:tags={ui.includedTags} variant="inline" placeholder="包含標籤..." onchange={ui.handleChange} />
   </div>
 
   <div class="field">
     <span>排除的標籤</span>
-    <Autocomplete bind:tags={excludedTags} variant="inline" placeholder="排除標籤..." {onchange} />
+    <Autocomplete bind:tags={ui.excludedTags} variant="inline" placeholder="排除標籤..." onchange={ui.handleChange} />
   </div>
 
   <div class="field">
     <span>評等</span>
     <div>
-      <Select bind:value={ratingOp} options={ratingOpOptions} stretch {onchange} />
-      <Select bind:value={rating} options={ratingOptions} stretch {onchange} />
+      <Select bind:value={ui.ratingOp} options={ratingOpOptions} stretch onchange={ui.handleChange} />
+      <Select bind:value={ui.rating} options={ratingOptions} stretch onchange={ui.handleChange} />
     </div>
   </div>
 
   <div class="field">
     <span>排序</span>
     <div>
-      <Select bind:value={sort} options={sortOptions} stretch {onchange} />
-      <Select bind:value={order} options={orderOptions} stretch {onchange} />
+      <Select bind:value={ui.sort} options={sortOptions} stretch onchange={ui.handleChange} />
+      <Select bind:value={ui.order} options={orderOptions} stretch onchange={ui.handleChange} />
     </div>
   </div>
 </div>
