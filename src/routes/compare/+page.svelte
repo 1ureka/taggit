@@ -39,7 +39,7 @@
 
         <div class="card-info">
           <Rating readonly value={image.rating ?? 0} size="1rem" />
-          <Tags tags={image.tags} />
+          <Tags tags={image.tags} nowrap />
         </div>
       </a>
     {/each}
