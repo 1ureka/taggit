@@ -23,6 +23,7 @@
   ul.nowrap {
     flex-wrap: nowrap;
     overflow: hidden;
+    mask-image: linear-gradient(to right, black calc(100% - 7rem), transparent);
 
     & > .chip {
       flex-shrink: 0;
