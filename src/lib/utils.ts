@@ -6,7 +6,7 @@
  * 請放置於 `client/` 或 `server/` 對應目錄。
  */
 
-import type { QueryOptions } from "$lib/types.js";
+import type { QueryOptions, SortField } from "$lib/types.js";
 
 /**
  * 解析以逗號分隔的標籤字串。
@@ -56,7 +56,7 @@ export function parseQueryParams(url: URL): QueryOptions {
     excludedTags: parseTags(p.get("excludedTags")),
     rating: safeInt(p.get("rating")),
     ratingOp: (p.get("ratingOp") as "gte" | "lte" | "eq") ?? "gte",
-    sort: (p.get("sort") as "committedAt" | "rating" | "name" | "random") ?? "committedAt",
+    sort: (p.get("sort") as SortField) ?? "committedAt",
     order: (p.get("order") as "asc" | "desc") ?? "desc",
     page: safeInt(p.get("page")),
     limit: safeInt(p.get("limit")),

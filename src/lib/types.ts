@@ -124,6 +124,11 @@ export interface QueryResult {
   pages: number;
 }
 
+/**
+ * 排序的可用選項
+ */
+export type SortField = Required<QueryOptions>["sort"];
+
 // ---
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import type { JSONDatabase } from "./db.js";
-import type { ImageWithId, QueryOptions, QueryResult, TagInfo } from "$lib/types.js";
+import type { ImageWithId, QueryOptions, QueryResult, SortField, TagInfo } from "$lib/types.js";
 import { isNonEmpty, sortCollator } from "$lib/utils.js";
 
 // ---
@@ -160,7 +160,7 @@ function filterIds(jsonDB: JSONDatabase, f: FilterParams): Set<string> {
 /**
  * 從圖片取出用於排序的值。
  */
-function sortKey(img: ImageWithId, sort: "committedAt" | "rating" | "name"): string {
+function sortKey(img: ImageWithId, sort: Omit<SortField, "random">): string {
   if (sort === "rating") return String(img.rating ?? 0);
   if (sort === "name") return (img.name ?? "").toLowerCase();
   return String(img.committedAt ?? 0);
@@ -174,6 +174,31 @@ function shuffle<T>(arr: T[]): void {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+}
+
+/**
+ * 根據指定的 sort 欄位和 order 方向對圖片陣列排序。
+ */
+function sortImages(items: ImageWithId[], sort: SortField, order: "asc" | "desc"): ImageWithId[] {
+  const newItems = [...items];
+
+  if (sort === "random") {
+    shuffle(newItems);
+    return newItems;
+  }
+
+  const dir = order === "asc" ? 1 : -1;
+
+  newItems.sort((a, b) => {
+    if (sort !== "name") {
+      const primaryResult = dir * sortCollator.compare(sortKey(a, sort), sortKey(b, sort));
+      if (primaryResult !== 0) return primaryResult;
+    }
+
+    return dir * sortCollator.compare(sortKey(a, "name"), sortKey(b, "name"));
+  });
+
+  return newItems;
 }
 
 // ---
@@ -193,19 +218,11 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
   const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
   const page = Math.max(1, opts.page ?? 1);
 
-  // 1. 篩選
   const ids = filterIds(jsonDB, { search, includedTags, excludedTags, rating, ratingOp });
   let items: ImageWithId[] = [...ids].map((id) => ({ id, ...jsonDB.data.images[id] }));
 
-  // 2. 排序
-  if (sort === "random") {
-    shuffle(items);
-  } else {
-    const dir = order === "asc" ? 1 : -1;
-    items.sort((a, b) => dir * sortCollator.compare(sortKey(a, sort), sortKey(b, sort)));
-  }
+  items = sortImages(items, sort, order);
 
-  // 3. 分頁
   const total = items.length;
 
   if (limit > 0) {
