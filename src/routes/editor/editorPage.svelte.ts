@@ -2,6 +2,7 @@ import type { ImageWithId } from "$lib/types.js";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { untrack } from "svelte";
+import { buildQueryString } from "$lib/utils";
 
 /**
  * EditorPage 的配置選項
@@ -86,6 +87,8 @@ export class EditorPage {
   /** 處理篩選表單重置 */
   handleFilterReset = (e: Event) => {
     e.preventDefault();
-    goto(page.url.pathname, { replaceState: true, noScroll: true, keepFocus: true });
+    const qs = new URLSearchParams(page.url.search);
+    const search = buildQueryString({}, qs);
+    goto(`${page.url.pathname}${search}`, { replaceState: true, noScroll: true, keepFocus: true });
   };
 }
