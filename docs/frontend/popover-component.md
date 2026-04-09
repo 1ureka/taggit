@@ -159,7 +159,7 @@ export class Popover {
 
   constructor(private options: PopoverOptions) {
     // 監聽選項變化，當關閉時重新計算確保離場動畫在正確的位置，當開啟時啟用 autoUpdate 以持續更新位置
-    // #compute 利用參數接受參照，確保只使用該次 effect 的引用，不會因為 this.options 的變化而改變參照
+    // #compute 利用參數接收參照，確保只使用該次 effect 的參照，不會因為 this.options 的變化而改變參照
     $effect(() => {
       const { reference, open, placement = "bottom-start" } = this.options;
       const node = this.popoverEl;

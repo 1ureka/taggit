@@ -254,7 +254,7 @@ function apply(o: FloatOptions) {
 }
 ```
 
-`recompute(reference, placement)` 接收明確參數而非整個 options 物件，確保在非同步的 `computePosition.then()` 中使用的是呼叫時的引用。
+`recompute(reference, placement)` 接收明確參數而非整個 options 物件，確保在非同步的 `computePosition.then()` 中使用的是呼叫時的參照。
 
 ### 4.4 select.svelte.ts 改動示意
 
