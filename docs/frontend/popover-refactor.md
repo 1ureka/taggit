@@ -153,17 +153,24 @@ CSS Anchor Positioning（`anchor-name` + `position-area`）是原生替代方案
 | `use:float` action         | ⚠️ 需重構——移除 portal 邏輯，保留定位邏輯，加入 `showPopover()` / `hidePopover()` 呼叫           |
 | `data-open` 屬性           | ❌ 不再需要——顯示/隱藏改由原生 popover 狀態 + `{#if}` 控制                                      |
 
-### 3.5 潛在風險與注意事項
+### 3.5 快速開關與 transition 生命週期
 
-1. **`onoutroend` 的可靠性**——需確認 Svelte 5 在 `{#if}` 區塊中的 `onoutroend` 行為穩定。若 transition 被中斷（如快速開關），需確保不會漏掉 `hidePopover()` 呼叫
+Svelte 的 transition 生命週期天然處理快速開關，不存在 race condition：
 
-2. **快速開關（race condition）**——使用者在 outro 進行中再次開啟選單時，需要正確處理：取消正在進行的 outro、保持 popover 可見、重新渲染內容
+| 情境                           | Svelte 行為                                   | `hidePopover()` 狀態       |
+| ------------------------------ | --------------------------------------------- | -------------------------- |
+| Outro 中斷（關閉後立即重新開啟） | 取消 outro → 開始 intro，`outroend` **不觸發** | 不呼叫（正確：popover 應保持可見） |
+| Intro 中斷（開啟後立即關閉）    | 取消 intro → 開始 outro，`outroend` **最終觸發** | 呼叫（正確：popover 應隱藏）       |
 
-3. **Top layer 與 z-index**——原生 top layer 的堆疊順序由進入順序決定，不受 `z-index` 影響。若同時有 Modal 與 Popover 開啟，需確認堆疊順序正確
+因此 `onoutroend` 回呼不會漏掉也不會多餘觸發——中斷的 outro 不觸發 end 事件，而中斷的 intro 會自然轉入 outro 流程。
 
-4. **Accessibility**——原生 `popover` 自帶部分 ARIA 語意，但 `manual` 模式不會自動管理 focus。現有的 `role="listbox"` / `role="option"` 仍需保留
+### 3.6 其他注意事項
 
-5. **`::backdrop`**——原生 popover 的 `::backdrop` 預設透明，不影響視覺，但需確保沒有全域 CSS 意外為其加上樣式
+1. **Top layer 與 z-index**——原生 top layer 的堆疊順序由進入順序決定，不受 `z-index` 影響。若同時有 Modal 與 Popover 開啟，需確認堆疊順序正確
+
+2. **Accessibility**——原生 `popover` 自帶部分 ARIA 語意，但 `manual` 模式不會自動管理 focus。現有的 `role="listbox"` / `role="option"` 仍需保留
+
+3. **`::backdrop`**——原生 popover 的 `::backdrop` 預設透明，不影響視覺，但需確保沒有全域 CSS 意外為其加上樣式
 
 ---
 
