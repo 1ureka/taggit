@@ -238,18 +238,23 @@ function apply(o: FloatOptions) {
   cleanup?.();
   cleanup = undefined;
 
-  if (o.open) {
-    // 開啟：立即顯示 popover，啟動自動定位
-    if (!node.matches(":popover-open")) node.showPopover();
-    if (!o.reference) return;
-    cleanup = autoUpdate(o.reference, node, () => recompute(o));
-  } else {
+  const { reference, open, placement = "bottom-start" } = o;
+  if (!reference) return;
+
+  if (!open) {
     // 關閉：定位一次（讓 outro 在正確位置播放）
     // 注意：不在此處 hidePopover()——由 onoutroend 觸發
-    if (o.reference) recompute(o);
+    recompute(reference, placement);
+    return;
   }
+
+  // 開啟：立即顯示 popover，啟動自動定位
+  if (!node.matches(":popover-open")) node.showPopover();
+  cleanup = autoUpdate(reference, node, () => recompute(reference, placement));
 }
 ```
+
+`recompute(reference, placement)` 接收明確參數而非整個 options 物件，確保在非同步的 `computePosition.then()` 中使用的是呼叫時的引用。
 
 ### 4.4 select.svelte.ts 改動示意
 

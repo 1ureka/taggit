@@ -128,85 +128,78 @@ type Props = {
 };
 ```
 
-### 3.2 `popover.svelte.ts` UI Class
+### 3.2 `popover.svelte.ts`
 
 ```typescript
 import { computePosition, autoUpdate, flip, offset, shift, size } from "@floating-ui/dom";
 import type { Placement, Middleware, ElementRects } from "@floating-ui/dom";
 
+/**
+ * Popover 互動邏輯的參數型別
+ */
 type PopoverOptions = {
+  /** 開關狀態 */
   open: boolean;
+  /** 參照元素（定位錨點） */
   reference: HTMLElement | undefined;
-  placement: Placement;
-  matchWidth: boolean;
+  /** 偏好位置，預設 'bottom-start' */
+  placement?: Placement;
+  /** 是否匹配參照元素寬度，預設 true */
+  matchWidth?: boolean;
 };
 
-export class PopoverUI {
+/**
+ * Popover 的互動邏輯
+ */
+export class Popover {
   /** popover 容器的 DOM 引用 */
   popoverEl = $state<HTMLDivElement>();
-
-  /** autoUpdate 清除函式 */
-  #cleanup: (() => void) | undefined;
+  /** popover 的座標與尺寸 */
+  coords = $state({ x: 0, y: 0, width: 0 });
 
   constructor(private options: PopoverOptions) {
+    // 監聽選項變化，當關閉時重新計算確保離場動畫在正確的位置，當開啟時啟用 autoUpdate 以持續更新位置
+    // #compute 利用參數接受參照，確保只使用該次 effect 的引用，不會因為 this.options 的變化而改變參照
     $effect(() => {
-      this.#apply();
-      return () => {
-        this.#cleanup?.();
-        this.#cleanup = undefined;
-      };
+      const { reference, open, placement = "bottom-start" } = this.options;
+      const node = this.popoverEl;
+      if (!reference || !node) return;
+
+      if (!open) {
+        this.#compute(node, reference, placement);
+        return;
+      }
+
+      if (!node.matches(":popover-open")) node.showPopover();
+      return autoUpdate(reference, node, () => this.#compute(node, reference, placement));
     });
   }
 
   // ---
 
+  /** 建立 Floating UI 的 middleware */
   #buildMiddleware(): Middleware[] {
-    const node = this.popoverEl;
     const middleware: Middleware[] = [offset(4), flip({ padding: 8 }), shift({ padding: 8 })];
 
-    if (this.options.matchWidth && node) {
-      const apply = ({ rects }: { rects: ElementRects }) => {
-        Object.assign(node.style, { width: `${rects.reference.width}px` });
-      };
-      middleware.push(size({ apply, padding: 8 }));
-    }
+    if (!this.options.matchWidth) return middleware;
 
+    const apply = ({ rects }: { rects: ElementRects }) => {
+      this.coords.width = rects.reference.width;
+    };
+
+    middleware.push(size({ apply, padding: 8 }));
     return middleware;
   }
 
-  #recompute() {
-    const { reference, placement } = this.options;
-    const node = this.popoverEl;
-    if (!reference || !node) return;
+  /** 建立 middleware 並計算 popover 位置 */
+  #compute(node: HTMLElement, reference: HTMLElement, placement: Placement) {
+    const middleware = this.#buildMiddleware();
+    const config = { strategy: "fixed", placement, middleware } as const;
 
-    computePosition(reference, node, {
-      strategy: "fixed",
-      placement,
-      middleware: this.#buildMiddleware(),
-    }).then(({ x, y }) => {
-      Object.assign(node.style, { left: `${x}px`, top: `${y}px` });
+    computePosition(reference, node, config).then(({ x, y }) => {
+      this.coords.x = x;
+      this.coords.y = y;
     });
-  }
-
-  #apply() {
-    this.#cleanup?.();
-    this.#cleanup = undefined;
-
-    const node = this.popoverEl;
-    if (!node) return;
-
-    if (this.options.open) {
-      if (!node.matches(":popover-open")) node.showPopover();
-
-      const { reference } = this.options;
-      if (reference) {
-        this.#cleanup = autoUpdate(reference, node, () => this.#recompute());
-      }
-    } else {
-      // 關閉時做一次定位——讓 outro 在正確位置播放
-      this.#recompute();
-      // 不在此處 hidePopover()——由 onoutroend 觸發
-    }
   }
 
   // ---
@@ -220,6 +213,12 @@ export class PopoverUI {
 }
 ```
 
+**設計要點：**
+
+- **Reactive 座標**——`coords` 以 `$state` 管理定位值，template 透過 `style:` 指令綁定。class 不直接操作 DOM style，符合 Template vs UI 分離原則
+- **精簡的 `$effect`**——在 effect 頂部解構 `this.options` 與 `this.popoverEl`，Svelte 自動追蹤響應式依賴。`autoUpdate` 的清除函式直接以 `return` 交給 `$effect` 管理，無需手動維護 `#cleanup` 欄位
+- **參數捕獲**——`#compute(node, reference, placement)` 接收明確參數，確保非同步的 `computePosition.then()` 中使用的是該次 effect 的引用，不會因 `this.options` 變化而讀到過期值
+
 ### 3.3 `Popover.svelte` Template
 
 ```svelte
@@ -227,7 +226,7 @@ export class PopoverUI {
   import type { Snippet } from "svelte";
   import type { Placement } from "@floating-ui/dom";
   import { slide } from "svelte/transition";
-  import { PopoverUI } from "$lib/ui/popover.svelte.js";
+  import { Popover } from "$lib/ui/popover.svelte.js";
 
   type Props = {
     open: boolean;
@@ -239,7 +238,7 @@ export class PopoverUI {
 
   let { open, reference, children, placement = "bottom-start", matchWidth = true }: Props = $props();
 
-  const ui = new PopoverUI({
+  const ui = new Popover({
     get open() { return open; },
     get reference() { return reference; },
     get placement() { return placement; },
@@ -251,6 +250,9 @@ export class PopoverUI {
   bind:this={ui.popoverEl}
   class="popover"
   popover="manual"
+  style:left="{ui.coords.x}px"
+  style:top="{ui.coords.y}px"
+  style:width={matchWidth ? `${ui.coords.width}px` : undefined}
 >
   {#if open}
     <div
@@ -283,7 +285,7 @@ export class PopoverUI {
 </style>
 ```
 
-樣式完全 scoped 在元件內，不依賴任何全域 class。
+樣式完全 scoped 在元件內，不依賴任何全域 class。定位透過 `style:` 指令綁定 `ui.coords`，由 UI class 的 `$state` 驅動——class 提供資料，template 決定如何套用至 DOM。
 
 ---
 
@@ -423,10 +425,10 @@ UI class **完全不需要修改**。`open`、`showDropdown`、`activeIndex`、�
 
 ### 6.2 遵循 Options Pattern
 
-`PopoverUI` 的 constructor 接收 options 物件，消費端以 getter 傳入：
+`Popover` 的 constructor 接收 options 物件，消費端以 getter 傳入：
 
 ```typescript
-const ui = new PopoverUI({
+const ui = new Popover({
   get open() { return open; },
   get reference() { return reference; },
   // ...
