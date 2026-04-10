@@ -42,10 +42,10 @@
   style:left="{ui.coords.x}px"
   style:top="{ui.coords.y}px"
   style:width={matchWidth ? `${ui.coords.width}px` : undefined}
-  {...rest}
+  role="presentation"
 >
   {#if open}
-    <div transition:fly={{ duration: 120, opacity: 0, y: -8 }} onoutroend={ui.handleOutroEnd}>
+    <div transition:fly={{ duration: 120, opacity: 0, y: -8 }} onoutroend={ui.handleOutroEnd} {...rest}>
       {@render children()}
     </div>
   {/if}

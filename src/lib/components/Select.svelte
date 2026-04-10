@@ -41,6 +41,8 @@
   onclick={ui.handleTriggerClick}
   onkeydown={ui.handleTriggerKeydown}
   onblur={ui.handleTriggerBlur}
+  aria-expanded={ui.open}
+  aria-haspopup="listbox"
 >
   <span class="ellipsis">{ui.selectedLabel}</span>
   <span class="chevron" class:open={ui.open}>

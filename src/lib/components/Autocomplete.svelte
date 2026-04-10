@@ -58,7 +58,7 @@
     autocomplete="off"
   />
 
-  <Popover open={ui.showDropdown && ui.dropdownTags.length > 0} reference={ui.inputEl} matchWidth>
+  <Popover role="listbox" open={ui.showDropdown && ui.dropdownTags.length > 0} reference={ui.inputEl} matchWidth>
     {#each ui.dropdownTags as tag, i}
       <div
         role="option"
