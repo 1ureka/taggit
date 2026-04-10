@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { float } from "$lib/client/float.js";
   import { IconX } from "$lib/icons";
   import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import Popover from "$lib/components/Popover.svelte";
 
   type Props = {
     /** 欄位名稱，用於表單提交。每個標籤會生成一個同名 hidden input。 */
@@ -58,7 +58,7 @@
     autocomplete="off"
   />
 
-  <div class="popover" use:float={{ reference: ui.inputEl, open: ui.showDropdown && ui.dropdownTags.length > 0 }}>
+  <Popover open={ui.showDropdown && ui.dropdownTags.length > 0} reference={ui.inputEl} matchWidth>
     {#each ui.dropdownTags as tag, i}
       <div
         role="option"
@@ -72,7 +72,7 @@
         <span class="count">{tag.count}</span>
       </div>
     {/each}
-  </div>
+  </Popover>
 </div>
 
 <style>

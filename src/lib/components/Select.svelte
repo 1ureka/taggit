@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   import { IconChevronDown } from "$lib/icons";
-  import { float } from "$lib/client/float.js";
   import { Select, type SelectItem } from "$lib/ui/select.svelte.js";
+  import Popover from "$lib/components/Popover.svelte";
 
   type Props = {
     /** 雙向綁定：目前選中的值 */
@@ -48,7 +48,7 @@
   </span>
 </button>
 
-<div class="popover" role="listbox" use:float={{ reference: ui.triggerEl, open: ui.open, placement: "bottom-start" }}>
+<Popover role="listbox" open={ui.open} reference={ui.triggerEl} placement="bottom-start" matchWidth>
   {#each options as opt, i}
     <button
       type="button"
@@ -63,7 +63,7 @@
       {opt.label}
     </button>
   {/each}
-</div>
+</Popover>
 
 <style>
   button.trigger {
