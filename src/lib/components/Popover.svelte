@@ -16,9 +16,19 @@
     placement?: Placement;
     /** 是否匹配參照元素寬度，預設 true */
     matchWidth?: boolean;
+    /** 直接包裹內容物的容器引用 */
+    el?: HTMLElement;
   }
 
-  let { open, reference, children, placement = "bottom-start", matchWidth = true, ...rest }: Props = $props();
+  let {
+    open,
+    reference,
+    children,
+    placement = "bottom-start",
+    matchWidth = true,
+    el = $bindable(),
+    ...rest
+  }: Props = $props();
 
   const ui = new Popover({
     get open() {
@@ -45,7 +55,7 @@
   role="presentation"
 >
   {#if open}
-    <div transition:fly={{ duration: 120, opacity: 0, y: -8 }} onoutroend={ui.handleOutroEnd} {...rest}>
+    <div bind:this={el} transition:fly={{ duration: 120, opacity: 0, y: -8 }} onoutroend={ui.handleOutroEnd} {...rest}>
       {@render children()}
     </div>
   {/if}

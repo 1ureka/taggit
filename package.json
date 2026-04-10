@@ -1,7 +1,7 @@
 {
 	"name": "taggit",
 	"private": true,
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -16,7 +16,7 @@
 		"@sveltejs/kit": "^2.57.1",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^25.6.0",
-		"svelte": "^5.55.2",
+		"svelte": "^5.55.3",
 		"svelte-check": "^4.4.6",
 		"typescript": "^5.9.3",
 		"vite": "^8.0.8"
