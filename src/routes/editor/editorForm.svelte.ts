@@ -25,13 +25,13 @@ type EditorFormOptions = {
  */
 export class EditorForm {
   /** 是否編輯過 */
-  dirty = $state(false);
+  dirty: boolean;
   /** 名稱 */
-  name = $state("");
+  name: string;
   /** 標籤列表 */
-  tags = $state<string[]>([]);
+  tags: string[];
   /** 評等 0–5 */
-  rating = $state(0);
+  rating: number;
   /** 多選時名稱欄位是否 disabled */
   nameDisabled: boolean;
   /** 提交按鈕是否 disabled */
@@ -40,6 +40,17 @@ export class EditorForm {
   deleteDisabled: boolean;
 
   constructor(private options: EditorFormOptions) {
+    this.name = $derived(options.currentRecord?.name ?? "");
+    this.tags = $derived([...(options.currentRecord?.tags ?? [])]);
+    this.rating = $derived(options.currentRecord?.rating ?? 0);
+
+    // dirty：來源永遠是 false，但可以被 handleFieldChange 寫入 true
+    // 當 currentRecord 變動時 $derived 重算，dirty 回到 false
+    this.dirty = $derived.by(() => {
+      options.currentRecord; // 追蹤 currentRecord 變動
+      return false;
+    });
+
     this.nameDisabled = $derived(options.selectedFiles.size > 1);
 
     this.saveDisabled = $derived.by(() => {
@@ -57,14 +68,6 @@ export class EditorForm {
       if (this.options.selectedFiles.size === 0) return true;
       return false;
     });
-
-    // 初始化表單
-    this.#resetForm();
-
-    // currentRecord 變動時同步表單
-    $effect(() => {
-      this.#resetForm();
-    });
   }
 
   // ---
@@ -72,17 +75,9 @@ export class EditorForm {
   /** 重置表單為 currentRecord 的值 */
   #resetForm() {
     const rec = this.options.currentRecord;
-
-    if (rec) {
-      this.name = rec.name;
-      this.tags = [...rec.tags];
-      this.rating = rec.rating;
-    } else {
-      this.name = "";
-      this.tags = [];
-      this.rating = 0;
-    }
-
+    this.name = rec?.name ?? "";
+    this.tags = [...(rec?.tags ?? [])];
+    this.rating = rec?.rating ?? 0;
     this.dirty = false;
   }
 
