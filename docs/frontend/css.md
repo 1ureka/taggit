@@ -202,7 +202,6 @@ Svelte 的 `class:` 指令用於狀態驅動的 CSS class 切換，由 class ins
 | `.kbd`             | `app-basic.css`  | 鍵盤快捷鍵提示             |
 | `.badge`           | `app-basic.css`  | 數字徽章                   |
 | `.separator`       | `app-basic.css`  | 水平分隔線                 |
-| `.popover`         | `app-basic.css`  | 浮動面板（配合 `use:float`）|
 | `.ellipsis`        | `app-basic.css`  | 文字截斷                   |
 | `.visually-hidden` | `app.css`        | 螢幕閱讀器專用             |
 | `.slide-up`        | `app.css`        | 滑入動畫                   |
@@ -247,22 +246,6 @@ Svelte 的 `class:` 指令用於狀態驅動的 CSS class 切換，由 class ins
 ```
 
 一般頁面與組件中**不使用 `:global()`**。全域樣式放在 `app*.css` 中，scoped 樣式只管自己的作用域。
-
-### `[data-*]` 屬性選擇器
-
-Popover 的顯示/隱藏使用 `[data-open]` 屬性而非 class toggle，由 `use:float` action 控制：
-
-```css
-.popover {
-  opacity: 0;
-  pointer-events: none;
-
-  &[data-open="true"] {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-```
 
 ---
 
