@@ -118,34 +118,3 @@
   background: var(--border);
   margin: 0.75rem 0;
 }
-
-/**
- * 套用於所有 use:float 指令的容器元素。
- * float action 會將元素 portal 至 body 並設置 data-open 屬性。
- */
-.popover {
-  position: fixed;
-  z-index: var(--z-popover);
-  background: var(--bg-card);
-  border: var(--border-style);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  max-height: 14rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0.25rem 0;
-
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
-
-  &[data-open="true"] {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
-  transition:
-    opacity 0.12s ease-out,
-    transform 0.12s ease-out;
-}

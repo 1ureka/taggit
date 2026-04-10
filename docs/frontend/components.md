@@ -168,13 +168,12 @@ src/lib/ui/rating.svelte.ts            ← 互動邏輯（export class Rating）
 
 ### 全域 Class 的使用
 
-組件的 template 中可以直接使用全域原子 class（`.chip`、`.text-input`、`.popover`、`.btn-*` 等），組件的 scoped `<style>` 只負責佈局與組合：
+組件的 template 中可以直接使用全域原子 class（`.chip`、`.text-input`、`.btn-*` 等），組件的 scoped `<style>` 只負責佈局與組合：
 
 ```svelte
 <!-- Autocomplete.svelte -->
 <input class="text-input" ... />
 <button class="chip chip-removable">...</button>
-<div class="popover" use:float>...</div>
 
 <style>
   /* scoped style 只管佈局，不重造基礎外觀 */

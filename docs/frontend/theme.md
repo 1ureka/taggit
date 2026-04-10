@@ -70,7 +70,6 @@
 
   /* z-index 階層 */
   --z-modal: 20;
-  --z-popover: 25;
   --z-toast: 30;
 }
 ```
