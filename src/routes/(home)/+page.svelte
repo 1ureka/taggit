@@ -1,5 +1,6 @@
 <script lang="ts">
   import { navigating, page } from "$app/state";
+  import { innerWidth } from "svelte/reactivity/window";
   import type { PageData } from "./$types.js";
 
   import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
@@ -30,43 +31,30 @@
 
   let { data }: { data: PageData } = $props();
 
-  let paddingX = $state(24);
-  let paddingY = $state(24);
-  let gap = $state(6);
+  const layoutConfig = $derived.by(() => {
+    const width = innerWidth.current ?? 1000;
+    return breakpoints.find((b) => width >= b.width)!;
+  });
+
+  let columns = $derived(layoutConfig.cols);
 
   const masonry = new Masonry({
     get items() {
       return data.items;
     },
+    get columns() {
+      return columns;
+    },
     get paddingX() {
-      return paddingX;
+      return layoutConfig.p;
     },
     get paddingY() {
-      return paddingY;
+      return layoutConfig.p;
     },
     get gap() {
-      return gap;
+      return layoutConfig.g;
     },
   });
-
-  const handleResize = () => {
-    const breakpoint = breakpoints.find((b) => window.innerWidth >= b.width)!;
-    masonry.columns = breakpoint.cols;
-    paddingX = breakpoint.p;
-    paddingY = breakpoint.p;
-    gap = breakpoint.g;
-  };
-
-  $effect(() => {
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  });
-
-  if (typeof window !== "undefined") {
-    handleResize();
-  }
 
   const modal = new BrowseModal({
     get items() {
@@ -86,7 +74,7 @@
     const root = document.documentElement;
     const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
 
-    if (!Boolean(property.trim())) {
+    if (!property.trim()) {
       root.style.setProperty("--left-panel-width", "0px");
     } else {
       root.style.removeProperty("--left-panel-width");
@@ -150,7 +138,7 @@
       <div>
         <label class="field-row">
           <span class="field-label">圖片牆欄位</span>
-          <Select bind:value={masonry.columns} options={columnOptions} stretch />
+          <Select bind:value={columns} options={columnOptions} stretch />
         </label>
       </div>
 

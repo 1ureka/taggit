@@ -1,7 +1,6 @@
 # 前端架構總覽
 
-> 本文件群描述專案的前端 pattern 與 best practice，而非嚴格的規格。
-> 目標是保持一致性的同時，給予實作足夠的彈性。
+> 本文件群描述專案的前端 pattern 與 best practice。
 
 ---
 
@@ -24,7 +23,7 @@
 傳統前端框架鼓勵「一切皆組件」——每段 UI 都拆成獨立的 `.svelte` 檔案。但在多數網站的規模下，過度組件化帶來幾個問題：
 
 1. **結構碎片化**：要理解一個頁面的完整 DOM 結構，得在 6-7 個檔案間反覆跳轉。語意標籤、ARIA 屬性、元素層級分散在各處，難以一眼掌握
-2. **Prop 嫁接鏈**：共享狀態必須從 `+page.svelte` → 子組件 `.svelte`（`$bindable` + getter/setter）→ 無頭 UI class，每層都只是搬運，不是邏輯
+2. **Prop 嫁接鏈**：共享狀態必須從 `+page.svelte` → 子組件 `.svelte`（`$bindable` + getter/setter），每層都只是搬運，不是邏輯
 3. **視覺自由受限**：HTML 結構被綁在組件邊界上。如果設計需要將兩個不同邏輯單元的元素放在同一個視覺區塊，就面臨結構與邏輯的兩難
 4. **樣式追蹤困難**：同一個頁面的 CSS 散落在多個 scoped `<style>` 中，難以統一審視
 
@@ -65,7 +64,7 @@ Svelte 5 的 `{#snippet}` 是 **template 層面的變數**——就像 JS 中會
 
 ### Components
 
-共用組件位於 `src/lib/components/`，有明確的跨頁面復用場景（如 Rating、Autocomplete、Modal）。判定原則：**如果一段 UI 只在一個頁面出現，它就不是共用組件——它的 HTML 歸 `+page.svelte`、邏輯歸 `*.svelte.ts`。**
+共用組件位於 `src/lib/components/`，有明確的跨頁面復用場景（如 Rating、Autocomplete、Modal）。判定原則：**如果一段 UI 只在一個頁面出現，它就不是共用組件。**
 
 → 詳見 [components.md](./components.md)
 

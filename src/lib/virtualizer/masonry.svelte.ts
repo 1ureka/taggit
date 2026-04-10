@@ -7,6 +7,8 @@ import { createMasonryContent, createMasonryLayout } from "$lib/virtualizer/maso
 type MasonryOptions<T extends ItemWithSize> = {
   /** 原始的項目列表 */
   get items(): T[];
+  /** 布局欄位數量 */
+  get columns(): number;
   /** 水平內邊距，用於在兩側留白 */
   get paddingX(): number | undefined;
   /** 垂直內邊距，用於在上下留白 */
@@ -24,8 +26,6 @@ type MasonryOptions<T extends ItemWithSize> = {
 export class Masonry<T extends ItemWithSize> {
   /** 滾動容器的 DOM 元素，必須包含 masonryEl 作為直接子元素 */
   viewportEl = $state<HTMLElement | null>(null);
-  /** 布局欄位數量 */
-  columns = $state(3);
   /** 當需要重新計算內容時的 `make(chan struct{})` */
   #dirtyCh = $state([]);
   /** 以權重為基礎的瀑布流佈局結果 */
@@ -40,7 +40,7 @@ export class Masonry<T extends ItemWithSize> {
   // ---
 
   constructor(options: MasonryOptions<T>) {
-    this.#layout = $derived(createMasonryLayout({ items: options.items, columns: this.columns }));
+    this.#layout = $derived(createMasonryLayout({ items: options.items, columns: options.columns }));
 
     this.#content = $derived.by(() => {
       if (!this.viewportEl) return { visibleItems: [], masonryHeight: 0 };
