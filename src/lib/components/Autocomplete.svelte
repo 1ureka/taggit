@@ -76,7 +76,7 @@
         aria-selected={i === ui.activeIndex}
         onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
         onmouseenter={() => ui.handleDropdownMouseOver(i)}
-        style="height: {itemHeight}px; min-height: {itemHeight}px;"
+        style="height: {itemHeight}px; min-height: {itemHeight}px; contain-intrinsic-size: auto {itemHeight}px;"
       >
         <span class="name">{tag.name}</span>
         <span class="count">{tag.count}</span>
@@ -127,6 +127,7 @@
     padding: 0 0.625rem;
     font-size: var(--font-size-body2);
     cursor: pointer;
+    content-visibility: auto;
 
     &:hover,
     &.active {
