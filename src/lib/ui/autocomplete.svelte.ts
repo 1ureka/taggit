@@ -1,14 +1,18 @@
 import type { TagInfo } from "$lib/types.js";
 import { tagCache } from "$lib/client/cache.js";
+import { scrollToActive } from "$lib/client/dom";
 
 /**
  * 自動補全組件的配置選項
  */
 type AutocompleteOptions = {
   /** 雙向綁定：目前選中的標籤列表 */
-  selectedTags: string[];
+  get selectedTags(): string[];
+  set selectedTags(value: string[]);
   /** 當標籤變更時觸發 */
   onchange?: () => void;
+  /** 選項元素的高度 */
+  get itemHeight(): number;
 };
 
 /**
@@ -17,6 +21,8 @@ type AutocompleteOptions = {
 export class Autocomplete {
   /** 輸入框實例的引用 (DOM) */
   inputEl = $state<HTMLInputElement>();
+  /** 選項的滾動容器的引用 (DOM) */
+  scrollContainer = $state<HTMLElement>();
   /** 下拉選單是否顯示的狀態 */
   showDropdown = $state(false);
 
@@ -42,6 +48,15 @@ export class Autocomplete {
 
   // ---
 
+  /** 切換目前高亮選項的索引 */
+  #setActiveIndex(index: number) {
+    if (index < -1 || index >= this.dropdownTags.length) return;
+    this.activeIndex = index;
+
+    if (index < 0 || !this.scrollContainer) return;
+    scrollToActive(this.scrollContainer, index, this.options.itemHeight);
+  }
+
   /** 將標籤加入已選列表（支援以逗號分隔的多個標籤） */
   #addTag(name: string) {
     const normalized = name.trim().toLowerCase();
@@ -61,7 +76,7 @@ export class Autocomplete {
     this.options.onchange?.();
 
     this.inputValue = "";
-    this.activeIndex = -1;
+    this.#setActiveIndex(-1);
     this.inputEl?.focus();
   }
 
@@ -84,13 +99,13 @@ export class Autocomplete {
   async #openDropdown() {
     this.tags = await tagCache.get(); // 這會自己請求去重、使用快取、並在後台更新等
     this.showDropdown = true;
-    this.activeIndex = -1;
+    this.#setActiveIndex(-1);
   }
 
   /** 關閉下拉選單並重置高亮索引 */
   #closeDropdown() {
     this.showDropdown = false;
-    this.activeIndex = -1;
+    this.#setActiveIndex(-1);
   }
 
   // ---
@@ -98,7 +113,7 @@ export class Autocomplete {
   /** 處理 input 輸入事件：若選單未顯示則開啟，並重置高亮索引 */
   handleInput = () => {
     if (!this.showDropdown) this.#openDropdown();
-    this.activeIndex = -1;
+    this.#setActiveIndex(-1);
   };
 
   /** 處理 input 聚焦事件：若選單未顯示則開啟 */
@@ -127,14 +142,6 @@ export class Autocomplete {
       return;
     }
 
-    /** 當按下 Tab 鍵且下拉選單顯示時，選中當前高亮的標籤 (觸發時阻止瀏覽器將焦點移動到下一個可聚焦元素) */
-    if (e.key === "Tab" && this.showDropdown && this.dropdownTags.length > 0) {
-      e.preventDefault();
-      const idx = this.activeIndex >= 0 ? this.activeIndex : 0;
-      this.#addTag(this.dropdownTags[idx].name);
-      return;
-    }
-
     /** 當按下 ArrowDown 鍵時，若下拉選單未顯示則打開下拉選單；若下拉選單已顯示則將高亮移動到下一個標籤 (阻止瀏覽器滾動頁面) */
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -142,14 +149,14 @@ export class Autocomplete {
         this.#openDropdown();
         return;
       }
-      this.activeIndex = Math.min(this.activeIndex + 1, this.dropdownTags.length - 1);
+      this.#setActiveIndex(Math.min(this.activeIndex + 1, this.dropdownTags.length - 1));
       return;
     }
 
     /** 當按下 ArrowUp 鍵時，若下拉選單未顯示則打開下拉選單；若下拉選單已顯示則將高亮移動到上一個標籤 (阻止瀏覽器滾動頁面) */
     if (e.key === "ArrowUp" && this.showDropdown) {
       e.preventDefault();
-      this.activeIndex = Math.max(this.activeIndex - 1, 0);
+      this.#setActiveIndex(Math.max(this.activeIndex - 1, 0));
       return;
     }
 
@@ -182,6 +189,6 @@ export class Autocomplete {
 
   /** 處理 dropdown 鼠標移入事件：更新高亮索引 */
   handleDropdownMouseOver = (index: number) => {
-    this.activeIndex = index;
+    this.#setActiveIndex(index);
   };
 }
