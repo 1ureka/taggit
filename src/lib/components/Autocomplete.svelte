@@ -18,14 +18,17 @@
 
   let { name, tags = $bindable([]), placeholder = "輸入標籤...", onchange, variant = "top" }: Props = $props();
 
+  const itemHeight = 32;
+
   const ui = new Autocomplete({
-    onchange: () => onchange?.(),
     get selectedTags() {
       return tags;
     },
     set selectedTags(v) {
       tags = v;
     },
+    onchange: () => onchange?.(),
+    itemHeight,
   });
 </script>
 
@@ -58,7 +61,13 @@
     autocomplete="off"
   />
 
-  <Popover role="listbox" open={ui.showDropdown && ui.dropdownTags.length > 0} reference={ui.inputEl} matchWidth>
+  <Popover
+    bind:el={ui.scrollContainer}
+    role="listbox"
+    open={ui.showDropdown && ui.dropdownTags.length > 0}
+    reference={ui.inputEl}
+    matchWidth
+  >
     {#each ui.dropdownTags as tag, i}
       <div
         role="option"
@@ -67,6 +76,7 @@
         aria-selected={i === ui.activeIndex}
         onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
         onmouseenter={() => ui.handleDropdownMouseOver(i)}
+        style="height: {itemHeight}px; min-height: {itemHeight}px; contain-intrinsic-size: auto {itemHeight}px;"
       >
         <span class="name">{tag.name}</span>
         <span class="count">{tag.count}</span>
@@ -114,9 +124,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.375rem 0.625rem;
+    padding: 0 0.625rem;
     font-size: var(--font-size-body2);
     cursor: pointer;
+    content-visibility: auto;
 
     &:hover,
     &.active {

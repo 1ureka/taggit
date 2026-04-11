@@ -8,12 +8,11 @@
   import Modal from "$lib/components/Modal.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
   import ImageList from "$lib/components/ImageList.svelte";
+  import ImageCanvas from "$lib/components/ImageCanvas.svelte";
   import { imgSrc } from "$lib/client/api.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
-  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { EditorPage } from "./editorPage.svelte.js";
-  import { EditorPreview } from "./editorPreview.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
 
@@ -22,9 +21,18 @@
   const committedFileIds = $derived(data.committedFiles.map(({ id }) => id));
   const committedFileList = $derived(data.committedFiles.map((item) => ({ ...item, imgSrc: imgSrc(item.id, "sm") })));
 
-  // ---
+  const currentImage = $derived.by(() => {
+    const record = data.currentRecord;
+    if (!record) return undefined;
 
-  const zp = new ZoomPan();
+    return {
+      src: imgSrc(record.id),
+      alt: record.name,
+      preview: { blurhash: record.blurhash, width: record.width, height: record.height },
+    };
+  });
+
+  // ---
 
   const page = new EditorPage({
     get imageIds() {
@@ -64,15 +72,6 @@
 
   // ---
 
-  const preview = new EditorPreview({
-    get currentRecord() {
-      return data.currentRecord;
-    },
-    onChangeImage: zp.handleContainerReset,
-  });
-
-  // ---
-
   const form = new EditorForm({
     get committedFiles() {
       return data.committedFiles;
@@ -96,11 +95,7 @@
   <title>管理圖片 — Taggit</title>
 </svelte:head>
 
-<svelte:window
-  onmousemove={zp.handleWindowMousemove}
-  onmouseup={zp.handleWindowMouseup}
-  onkeydown={form.handleWindowKeydown}
-/>
+<svelte:window onkeydown={form.handleWindowKeydown} />
 
 <main class="slide-up">
   <aside class="left-panel">
@@ -147,32 +142,7 @@
   </aside>
 
   <figure>
-    {#if data.currentRecord}
-      <div
-        class="preview-container"
-        class:dragging={zp.isDragging}
-        onwheel={zp.handleContainerWheel}
-        onmousedown={zp.handleContainerMousedown}
-        ondblclick={zp.handleContainerReset}
-        onkeydown={zp.handleContainerKeydown}
-        tabindex="0"
-        role="button"
-        aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
-      >
-        {#key data.currentRecord.id}
-          <img
-            src={preview.previewSrc}
-            alt={data.currentRecord.name}
-            draggable="false"
-            style={`transform:${zp.transform};${preview.previewStyle}`}
-          />
-        {/key}
-      </div>
-    {:else}
-      <div class="preview-container">
-        <div class="empty">使用篩選條件搜尋圖片或在側邊欄選擇圖片</div>
-      </div>
-    {/if}
+    <ImageCanvas image={currentImage} emptyLabel="使用篩選條件搜尋圖片或在側邊欄選擇圖片" />
 
     <figcaption class="ellipsis" title={data.currentRecord?.name || "未選取任何圖片"}>
       {data.currentRecord?.name || "未選取任何圖片"}
@@ -338,64 +308,13 @@
 
   /* --- */
 
-  figure:has(.preview-container) {
+  figure {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: var(--bg);
     min-width: 280px;
-  }
-
-  .preview-container {
-    position: relative;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    & > img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      transform-origin: center center;
-      user-select: none;
-      pointer-events: none;
-    }
-
-    & > .empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-size: var(--font-size-body1);
-      color: var(--text-dim);
-    }
-  }
-
-  .preview-container {
-    & > img {
-      transition: transform 0.1s ease-out;
-    }
-
-    &.dragging > img {
-      transition: none;
-    }
-  }
-
-  .preview-container {
-    cursor: grab;
-    user-select: none;
-
-    &.dragging {
-      cursor: grabbing;
-    }
-
-    &:has(.empty) {
-      cursor: auto;
-      user-select: auto;
-    }
   }
 
   figcaption {

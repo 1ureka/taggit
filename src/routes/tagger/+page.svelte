@@ -6,12 +6,11 @@
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import ImageList from "$lib/components/ImageList.svelte";
+  import ImageCanvas from "$lib/components/ImageCanvas.svelte";
   import { imgSrc } from "$lib/client/api.js";
 
-  import { ZoomPan } from "$lib/ui/zoom-pan.svelte.js";
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
-  import { TaggerPreview } from "./taggerPreview.svelte.js";
   import { TaggerListSelect, TaggerListActions } from "./taggerList.svelte.js";
   import { TaggerForm } from "./taggerForm.svelte.js";
 
@@ -23,12 +22,17 @@
 
   // ---
 
-  const zp = new ZoomPan();
-
   const page = new TaggerPage({
     get stagedFiles() {
       return data.stagedFiles;
     },
+  });
+
+  const currentImage = $derived.by(() => {
+    const filename = page.currentFile;
+    if (!filename) return undefined;
+
+    return { src: imgSrc(filename), alt: filename };
   });
 
   const progress = new TaggerProgress({
@@ -67,15 +71,6 @@
 
   // ---
 
-  const preview = new TaggerPreview({
-    get currentFile() {
-      return page.currentFile;
-    },
-    onChangeImage: zp.handleContainerReset,
-  });
-
-  // ---
-
   const form = new TaggerForm({
     get selectedFiles() {
       return page.selectedFiles;
@@ -96,11 +91,7 @@
   <title>新增圖片 — Taggit</title>
 </svelte:head>
 
-<svelte:window
-  onmousemove={zp.handleWindowMousemove}
-  onmouseup={zp.handleWindowMouseup}
-  onkeydown={form.handleWindowKeydown}
-/>
+<svelte:window onkeydown={form.handleWindowKeydown} />
 
 <main class="slide-up">
   <aside class="left-panel">
@@ -162,32 +153,7 @@
   </aside>
 
   <figure>
-    {#if page.currentFile}
-      <div
-        class="preview-container"
-        class:dragging={zp.isDragging}
-        class:loading={preview.imageLoading}
-        onwheel={zp.handleContainerWheel}
-        onmousedown={zp.handleContainerMousedown}
-        ondblclick={zp.handleContainerReset}
-        onkeydown={zp.handleContainerKeydown}
-        tabindex="0"
-        role="button"
-        aria-label="圖片預覽區域：支援縮放 (Z/+/Scroll)、平移 (Arrows/Drag) 及重置 (Enter/Esc/Space)"
-      >
-        <img
-          src={preview.previewSrc}
-          alt={page.currentFile}
-          draggable="false"
-          style="transform:{zp.transform}"
-          onload={preview.handleImageLoad}
-        />
-      </div>
-    {:else}
-      <div class="preview-container">
-        <div class="empty">上傳新圖片或在側邊欄選擇圖片</div>
-      </div>
-    {/if}
+    <ImageCanvas image={currentImage} emptyLabel="上傳新圖片或在側邊欄選擇圖片" />
 
     <figcaption class="ellipsis" title={page.currentFile || "未選取任何圖片"}>
       {page.currentFile || "未選取任何圖片"}
@@ -340,71 +306,13 @@
 
   /* --- */
 
-  figure:has(.preview-container) {
+  figure {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: var(--bg);
     min-width: 280px;
-  }
-
-  .preview-container {
-    position: relative;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    transition: opacity 0s step-start;
-
-    &.loading {
-      opacity: 0.4;
-      transition: opacity 0.2s step-end;
-    }
-
-    & > img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      transform-origin: center center;
-      user-select: none;
-      pointer-events: none;
-    }
-
-    & > .empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-size: var(--font-size-body1);
-      color: var(--text-dim);
-    }
-  }
-
-  .preview-container {
-    & > img {
-      transition: transform 0.1s ease-out;
-    }
-
-    &.dragging > img {
-      transition: none;
-    }
-  }
-
-  .preview-container {
-    cursor: grab;
-    user-select: none;
-
-    &.dragging {
-      cursor: grabbing;
-    }
-
-    &:has(.empty) {
-      cursor: auto;
-      user-select: auto;
-    }
   }
 
   figcaption {
