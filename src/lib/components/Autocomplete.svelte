@@ -4,6 +4,8 @@
   import Popover from "$lib/components/Popover.svelte";
 
   type Props = {
+    /** 欄位 id，用於 label 的 for 屬性 */
+    id?: string;
     /** 欄位名稱，用於表單提交。每個標籤會生成一個同名 hidden input。 */
     name?: string;
     /** 雙向綁定：目前選中的標籤列表 */
@@ -16,7 +18,7 @@
     variant?: "top" | "inline";
   };
 
-  let { name, tags = $bindable([]), placeholder = "輸入標籤...", onchange, variant = "top" }: Props = $props();
+  let { id, name, tags = $bindable([]), placeholder = "輸入標籤...", onchange, variant = "top" }: Props = $props();
 
   const itemHeight = 32;
 
@@ -50,6 +52,7 @@
   {/if}
 
   <input
+    {id}
     bind:this={ui.inputEl}
     bind:value={ui.inputValue}
     class="text-input"
