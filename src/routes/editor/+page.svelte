@@ -3,6 +3,7 @@
   import { IconFilter, IconReload } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
+  import type { ImageWithId } from "$lib/types.js";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import Modal from "$lib/components/Modal.svelte";
@@ -149,6 +150,49 @@
     </figcaption>
   </figure>
 
+  {#snippet imageDetails(currentRecord: ImageWithId)}
+    <dl>
+      <dt>提交時間</dt>
+      <dd class="ellipsis">{currentRecord.committedAt ? formatDate(currentRecord.committedAt) : "—"}</dd>
+
+      <dt>檔案大小</dt>
+      <dd class="ellipsis">{currentRecord.fileSize ? formatSize(currentRecord.fileSize) : "—"}</dd>
+
+      {#if currentRecord.width && currentRecord.height}
+        <dt>解析度</dt>
+        <dd class="ellipsis">{currentRecord.width} x {currentRecord.height}</dd>
+      {/if}
+    </dl>
+  {/snippet}
+
+  {#snippet fieldsForSingle()}
+    <div class="form-fields">
+      <div class="field-rating">
+        <Rating name="rating" bind:value={form.rating} size="1.5rem" />
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="field-name">
+        <label for="editor-name">名稱</label>
+        <input
+          id="editor-name"
+          class="text-input"
+          type="text"
+          placeholder="圖片名稱..."
+          bind:value={form.name}
+          disabled={form.nameDisabled}
+        />
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="field-tags">
+        <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+      </div>
+    </div>
+  {/snippet}
+
   <aside class="right-panel">
     <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
       <header>
@@ -158,37 +202,7 @@
         </button>
       </header>
 
-      <div class="form-fields">
-        <div class="field-rating">
-          <Rating name="rating" bind:value={form.rating} size="1.5rem" onchange={form.handleFieldChange} />
-        </div>
-
-        <div class="separator"></div>
-
-        <div class="field-name">
-          <label for="editor-name">名稱</label>
-          <input
-            id="editor-name"
-            class="text-input"
-            type="text"
-            placeholder="圖片名稱..."
-            bind:value={form.name}
-            disabled={form.nameDisabled}
-            oninput={form.handleFieldChange}
-          />
-        </div>
-
-        <div class="separator"></div>
-
-        <div class="field-tags">
-          <Autocomplete
-            bind:tags={form.tags}
-            variant="top"
-            placeholder="輸入標籤..."
-            onchange={form.handleFieldChange}
-          />
-        </div>
-      </div>
+      {@render fieldsForSingle()}
 
       <footer>
         <button
@@ -217,20 +231,7 @@
     </form>
 
     {#if data.currentRecord}
-      {@const committedAt = data.currentRecord.committedAt}
-      {@const fileSize = data.currentRecord.fileSize}
-      <dl>
-        <dt>提交時間</dt>
-        <dd class="ellipsis">{committedAt ? formatDate(committedAt) : "—"}</dd>
-
-        <dt>檔案大小</dt>
-        <dd class="ellipsis">{fileSize ? formatSize(fileSize) : "—"}</dd>
-
-        {#if data.currentRecord.width && data.currentRecord.height}
-          <dt>解析度</dt>
-          <dd class="ellipsis">{data.currentRecord.width} × {data.currentRecord.height}</dd>
-        {/if}
-      </dl>
+      {@render imageDetails(data.currentRecord)}
     {/if}
   </aside>
 </main>

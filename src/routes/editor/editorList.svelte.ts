@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { addToast } from "$lib/client/dom.js";
-import type { ImageHeader } from "$lib/types.js";
+import type { ImageWithId } from "$lib/types.js";
 
 /**
  * EditorListSelect 的配置選項
@@ -86,7 +86,7 @@ export class EditorListSelect {
   // ---
 
   /** 處理列表項目點擊事件 */
-  handleListClick = (item: ImageHeader, mode: "single" | "ctrl" | "shift") => {
+  handleListClick = (item: ImageWithId, mode: "single" | "ctrl" | "shift") => {
     if (mode === "single") this.#selectSingle(item.id);
     else if (mode === "ctrl") this.#selectCtrl(item.id);
     else this.#selectShift(item.id);
