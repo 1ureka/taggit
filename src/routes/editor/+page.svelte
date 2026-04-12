@@ -13,16 +13,28 @@
   import { imgSrc } from "$lib/client/api.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
-  import { EditorFilterModal, EditorPage } from "./editorPage.svelte.js";
+  import { EditorFilterModal } from "./editorFilter.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
   import { EditorFormActions } from "./editorFormActions.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
+  /** 已提交的圖片 ID 列表 */
   const committedFileIds = $derived(data.committedFiles.map(({ id }) => id));
+  /** 已提交的圖片列表（包含縮圖） */
   const committedFileList = $derived(data.committedFiles.map((item) => ({ ...item, imgSrc: imgSrc(item.id, "sm") })));
 
+  /** 當前啟用的圖片索引 */
+  const currentIndex = $derived.by(() => {
+    const id = data.currentRecord?.id ?? null;
+    if (!id) return null;
+
+    const idx = committedFileIds.indexOf(id);
+    return idx >= 0 ? idx : null;
+  });
+
+  /** 當前啟用的圖片資料 */
   const currentImage = $derived.by(() => {
     const record = data.currentRecord;
     if (!record) return undefined;
@@ -34,16 +46,10 @@
     };
   });
 
-  // ---
+  /** 編輯頁面的所有操作的共用鎖 */
+  let pending = $state(false);
 
-  const page = new EditorPage({
-    get imageIds() {
-      return committedFileIds;
-    },
-    get currentRecord() {
-      return data.currentRecord;
-    },
-  });
+  // ---
 
   const modal = new EditorFilterModal();
 
@@ -53,24 +59,20 @@
     get imageIds() {
       return committedFileIds;
     },
+    get currentRecord() {
+      return data.currentRecord;
+    },
     get currentIndex() {
-      return page.currentIndex;
+      return currentIndex;
     },
-    get selectedFiles() {
-      return page.selectedFiles;
-    },
-    set selectedFiles(v) {
-      page.selectedFiles = v;
-    },
-    navigateTo: page.navigateTo,
   });
 
   const listActions = new EditorListActions({
     get pending() {
-      return page.pending;
+      return pending;
     },
     set pending(v) {
-      page.pending = v;
+      pending = v;
     },
   });
 
@@ -93,13 +95,13 @@
       return data.currentRecord;
     },
     get selectedFiles() {
-      return page.selectedFiles;
+      return listSelect.selectedIds;
     },
     get pending() {
-      return page.pending;
+      return pending;
     },
     set pending(v) {
-      page.pending = v;
+      pending = v;
     },
   });
 </script>
@@ -124,13 +126,12 @@
       </div>
 
       <button
+        class={{ "btn-icon": true, pending }}
         type="button"
-        class="btn-icon"
-        class:pending={page.pending}
         title="重新載入列表"
         aria-label="重新載入列表"
         onclick={listActions.handleRefreshClick}
-        disabled={page.pending}
+        disabled={pending}
       >
         <IconReload size={14} />
       </button>
@@ -138,8 +139,8 @@
 
     <ImageList
       items={committedFileList}
-      currentIndex={page.currentIndex}
-      selectedIds={page.selectedFiles}
+      {currentIndex}
+      selectedIds={listSelect.selectedIds}
       emptyLabel="沒有符合條件的圖片"
       listLabel="已提交圖片列表"
       onKeydown={listSelect.handleListKeydown}
@@ -218,22 +219,20 @@
 
       <footer>
         <button
-          class="btn-primary"
+          class={{ "btn-primary": true, pending }}
           type="submit"
           name="intent"
           value="save"
-          class:pending={page.pending}
           disabled={formActions.saveDisabled}
         >
           <IconCheck size={16} />
           <span>存檔<kbd>Ctrl + S</kbd></span>
         </button>
         <button
-          class="btn-destructive"
+          class={{ "btn-destructive": true, pending }}
           type="submit"
           name="intent"
           value="delete"
-          class:pending={page.pending}
           disabled={formActions.deleteDisabled}
         >
           <IconArrowLeft size={16} />

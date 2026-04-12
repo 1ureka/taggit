@@ -1,4 +1,5 @@
-import { invalidateAll } from "$app/navigation";
+import { untrack } from "svelte";
+import { goto, invalidateAll } from "$app/navigation";
 import { addToast } from "$lib/client/dom.js";
 import type { ImageWithId } from "$lib/types.js";
 
@@ -6,27 +7,31 @@ import type { ImageWithId } from "$lib/types.js";
  * EditorListSelect 的配置選項
  */
 type EditorListSelectOptions = {
-  /** SSR 回傳的 id 列表 */
+  /** 唯讀，SSR 回傳的 id 列表 */
   get imageIds(): string[];
-  /** 目前的圖片索引 */
+  /** 唯讀，SSR 回傳的當前圖片記錄 */
+  get currentRecord(): ImageWithId | null;
+  /** 唯讀，目前的圖片索引 */
   get currentIndex(): number | null;
-  /** 雙向綁定：已選取的檔名集合 */
-  get selectedFiles(): Set<string>;
-  set selectedFiles(v: Set<string>);
-  /** 導航到指定檔案 */
-  get navigateTo(): (id: string) => void;
 };
 
 /**
  * EditorList 的選取與切換啟用的互動邏輯
  */
 export class EditorListSelect {
+  /** 已選取的圖片 ID 集合 */
+  selectedIds = $state<Set<string>>(new Set());
   /** count badge 顯示文字 */
   countLabel: string | null;
   /** 選取的檔案數量顯示文字 */
   selectedLabel: string | null;
 
   constructor(private options: EditorListSelectOptions) {
+    this.#computeSelectedIds();
+    $effect(() => {
+      this.#computeSelectedIds(untrack(() => this.selectedIds));
+    });
+
     this.countLabel = $derived.by(() => {
       const total = options.imageIds.length;
       if (total <= 0) return null;
@@ -38,25 +43,53 @@ export class EditorListSelect {
     });
 
     this.selectedLabel = $derived.by(() => {
-      const count = options.selectedFiles.size;
+      const count = this.selectedIds.size;
       return count > 1 ? `${count} 已選取` : null;
     });
   }
 
   // ---
 
+  /** 計算與驗證選取狀態 */
+  #computeSelectedIds = (prev: Set<string> = new Set()) => {
+    const ids = this.options.imageIds;
+    const currentId = this.options.currentRecord?.id ?? null;
+
+    if (!currentId || ids.length <= 0) {
+      this.selectedIds = new Set();
+      return;
+    }
+
+    const next = new Set([...prev].filter((f) => ids.includes(f)));
+
+    if (next.size === 0) {
+      this.selectedIds = new Set([currentId]);
+    } else if (next.size !== prev.size) {
+      this.selectedIds = next;
+    }
+  };
+
+  // ---
+
+  /** 導航到指定檔案（更新 URL 的 currentId 參數） */
+  #navigateTo = (id: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("currentId", id);
+    goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+  };
+
   /** 以單選模式選取指定檔案 */
   #selectSingle(id: string) {
-    this.options.selectedFiles = new Set([id]);
-    this.options.navigateTo(id);
+    this.selectedIds = new Set([id]);
+    this.#navigateTo(id);
   }
 
   /** 以 Ctrl 模式將指定檔案加入選取集合 */
   #selectCtrl(id: string) {
-    const next = new Set(this.options.selectedFiles);
+    const next = new Set(this.selectedIds);
     next.add(id);
-    this.options.selectedFiles = next;
-    this.options.navigateTo(id);
+    this.selectedIds = next;
+    this.#navigateTo(id);
   }
 
   /** 以 Shift 模式選取 currentIndex 到指定檔案的範圍 */
@@ -68,8 +101,8 @@ export class EditorListSelect {
     const hi = Math.max(anchorIdx, targetIdx);
     const next = new Set<string>();
     for (let i = lo; i <= hi; i++) next.add(list[i]);
-    this.options.selectedFiles = next;
-    this.options.navigateTo(id);
+    this.selectedIds = next;
+    this.#navigateTo(id);
   }
 
   /** 移動游標至指定偏移量 */
@@ -79,8 +112,8 @@ export class EditorListSelect {
     const next = idx + delta;
     if (next < 0 || next >= this.options.imageIds.length) return;
     const nextFile = this.options.imageIds[next];
-    this.options.selectedFiles = new Set([nextFile]);
-    this.options.navigateTo(nextFile);
+    this.selectedIds = new Set([nextFile]);
+    this.#navigateTo(nextFile);
   }
 
   // ---
