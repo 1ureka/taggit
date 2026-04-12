@@ -168,7 +168,7 @@
   {#snippet fieldsForSingle()}
     <div class="form-fields">
       <div class="field-rating">
-        <Rating name="rating" bind:value={form.rating} size="1.5rem" onchange={form.handleFieldChange} />
+        <Rating name="rating" bind:value={form.rating} size="1.5rem" />
       </div>
 
       <div class="separator"></div>
@@ -182,14 +182,13 @@
           placeholder="圖片名稱..."
           bind:value={form.name}
           disabled={form.nameDisabled}
-          oninput={form.handleFieldChange}
         />
       </div>
 
       <div class="separator"></div>
 
       <div class="field-tags">
-        <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." onchange={form.handleFieldChange} />
+        <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
       </div>
     </div>
   {/snippet}
