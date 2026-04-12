@@ -3,6 +3,8 @@
   import { Rating } from "$lib/ui/rating.svelte.js";
 
   type Props = {
+    /** 欄位 id，用於 label 的 for 屬性 */
+    id?: string;
     /** 欄位名稱，用於表單提交 */
     name?: string;
     /** 雙向綁定：目前分數（0–5），0 = 未評分 */
@@ -15,7 +17,7 @@
     onchange?: (v: number) => void;
   };
 
-  let { name, value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
+  let { id, name, value = $bindable(0), size = "1.25rem", readonly = false, onchange }: Props = $props();
 
   const rating = new Rating({
     get value() {
@@ -56,6 +58,7 @@
   </div>
 {:else}
   <div
+    {id}
     class="rating"
     role="spinbutton"
     aria-label="評分"

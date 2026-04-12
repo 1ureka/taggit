@@ -1,6 +1,7 @@
 import { invalidateAll } from "$app/navigation";
 import type { ImageWithId } from "$lib/types.js";
 import type { EditorForm } from "./editorForm.svelte.js";
+import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 
 import { api } from "$lib/client/api.js";
 import { batchRun } from "$lib/utils.js";
@@ -13,6 +14,8 @@ import { tagCache } from "$lib/client/cache.js";
 type EditorFormActionsOptions = {
   /** 唯讀，編輯表單狀態實例 */
   get form(): EditorForm;
+  /** 唯讀，批次編輯表單狀態實例 */
+  get batchForm(): EditorBatchForm;
   /** 唯讀，SSR 回傳的已提交檔案列表 */
   get committedFiles(): ImageWithId[];
   /** 唯讀，SSR 回傳的當前圖片記錄 */
@@ -28,32 +31,38 @@ type EditorFormActionsOptions = {
  * 編輯操作的互動邏輯
  */
 export class EditorFormActions {
-  nameDisabled: boolean;
+  /** 是否為批次編輯模式 */
+  isBatch: boolean;
   /** 是否可以儲存 */
   saveDisabled: boolean;
   /** 是否可以刪除 */
   deleteDisabled: boolean;
 
   constructor(private options: EditorFormActionsOptions) {
-    this.nameDisabled = $derived(options.selectedFiles.size > 1);
+    this.isBatch = $derived(options.selectedFiles.size > 1);
 
     this.saveDisabled = $derived.by(() => {
-      const { form, currentRecord, pending, selectedFiles } = this.options;
+      const { form, batchForm, currentRecord, pending, selectedFiles } = this.options;
 
-      if (!form.dirty) return true;
-      if (currentRecord === null) return true;
       if (pending) return true;
       if (selectedFiles.size === 0) return true;
-      if (form.tags.length === 0) return true;
-      return false;
+
+      if (this.isBatch) {
+        return !batchForm.dirty;
+      } else {
+        if (!form.dirty) return true;
+        if (currentRecord === null) return true;
+        if (form.tags.length === 0) return true;
+        return false;
+      }
     });
 
     this.deleteDisabled = $derived.by(() => {
       const { currentRecord, pending, selectedFiles } = this.options;
 
-      if (currentRecord === null) return true;
       if (pending) return true;
       if (selectedFiles.size === 0) return true;
+      if (currentRecord === null) return true;
       return false;
     });
   }
@@ -64,51 +73,85 @@ export class EditorFormActions {
   async #doSave() {
     if (this.saveDisabled) return;
 
-    const { form, committedFiles, selectedFiles } = this.options;
-    const isMulti = selectedFiles.size > 1;
-
-    if (isMulti) {
-      const n = selectedFiles.size;
-      if (!(await requestConfirm(`確定要將當前設定覆蓋到選取的 ${n} 張圖片？（名稱不會被覆蓋）`))) return;
-    }
-
     this.options.pending = true;
-    const records: ImageWithId[] = [];
-    const fileMap = new Map(committedFiles.map((rec) => [rec.id, rec]));
-
-    for (const id of selectedFiles) {
-      const rec = fileMap.get(id);
-      if (rec) {
-        records.push(rec);
-      } else {
-        return addToast(`未找到圖片 ${id} 的紀錄`, "error");
-      }
-    }
 
     try {
-      const [ok, fail] = await batchRun(records, 5, async (record) => {
-        const patch: Record<string, unknown> = {
-          tags: form.tags,
-          rating: form.rating,
-          expectedUpdatedAt: record.updatedAt,
-        };
-
-        if (!isMulti) {
-          patch.name = form.name;
-        }
-
-        return api.patch(`/api/committed/${encodeURIComponent(record.id)}`, patch);
-      });
-
-      if (ok) addToast(ok === 1 ? `已存檔: ${records[0].id}` : `已存檔 ${ok} 張圖片`, "success");
-      if (fail) addToast(`${fail} 張存檔失敗`, "error");
-
-      tagCache.invalidate();
-      await invalidateAll();
+      if (this.isBatch) {
+        await this.#doSaveBatch();
+      } else {
+        await this.#doSaveSingle();
+      }
     } finally {
       this.options.pending = false;
     }
   }
+
+  /** 存檔單張圖片 */
+  async #doSaveSingle() {
+    const { form, currentRecord } = this.options;
+    const record = currentRecord!;
+
+    const res = await api.patch(`/api/committed/${encodeURIComponent(record.id)}`, {
+      name: form.name,
+      tags: form.tags,
+      rating: form.rating,
+      expectedUpdatedAt: record.updatedAt,
+    });
+
+    if (!res.ok) {
+      const message = res.error ? `存檔失敗: ${res.error}` : "存檔失敗";
+      addToast(message, "error");
+    } else {
+      addToast(`已存檔: ${record.id}`, "success");
+    }
+
+    tagCache.invalidate();
+    await invalidateAll();
+  }
+
+  /** 批次存檔多張圖片 */
+  async #doSaveBatch() {
+    const { batchForm, committedFiles, selectedFiles } = this.options;
+    const n = selectedFiles.size;
+    if (!(await requestConfirm(`確定要批次更新選取的 ${n} 張圖片？`))) return;
+
+    const fileMap = new Map(committedFiles.map((f) => [f.id, f]));
+
+    const patches: { id: string; tags: string[]; updatedAt: number }[] = [];
+    let skipped = 0;
+
+    for (const id of selectedFiles) {
+      const file = fileMap.get(id);
+      if (!file) continue;
+
+      const tagSet = new Set(file.tags);
+      for (const t of batchForm.addTags) tagSet.add(t);
+      for (const t of batchForm.removeTags) tagSet.delete(t);
+
+      if (tagSet.size === 0) {
+        skipped++;
+      } else {
+        patches.push({ id, tags: [...tagSet], updatedAt: file.updatedAt });
+      }
+    }
+
+    if (skipped > 0) addToast(`由於會沒有標籤，已跳過 ${skipped} 張圖片`, "error");
+    if (patches.length === 0) return;
+
+    const [ok, fail] = await batchRun(patches, 5, async ({ id, tags, updatedAt }) => {
+      const patch: Record<string, unknown> = { tags, expectedUpdatedAt: updatedAt };
+      if (batchForm.ratingTouched) patch.rating = batchForm.rating;
+      return api.patch(`/api/committed/${encodeURIComponent(id)}`, patch);
+    });
+
+    if (ok) addToast(`已更新 ${ok} 張圖片`, "success");
+    if (fail) addToast(`${fail} 張更新失敗`, "error");
+
+    tagCache.invalidate();
+    await invalidateAll();
+  }
+
+  // ---
 
   /** 退回已選取的圖片 */
   async #doDelete() {
@@ -175,6 +218,10 @@ export class EditorFormActions {
   /** 處理表單重置事件 */
   handleFormReset = (e: Event) => {
     e.preventDefault();
-    this.options.form.reset();
+    if (this.isBatch) {
+      this.options.batchForm.reset();
+    } else {
+      this.options.form.reset();
+    }
   };
 }
