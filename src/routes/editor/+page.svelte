@@ -16,6 +16,7 @@
   import { EditorFilterModal, EditorPage } from "./editorPage.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
+  import { EditorFormActions } from "./editorFormActions.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -76,20 +77,29 @@
   // ---
 
   const form = new EditorForm({
+    get currentRecord() {
+      return data.currentRecord;
+    },
+  });
+
+  const formActions = new EditorFormActions({
+    get form() {
+      return form;
+    },
     get committedFiles() {
       return data.committedFiles;
-    },
-    get pending() {
-      return page.pending;
-    },
-    set pending(v) {
-      page.pending = v;
     },
     get currentRecord() {
       return data.currentRecord;
     },
     get selectedFiles() {
       return page.selectedFiles;
+    },
+    get pending() {
+      return page.pending;
+    },
+    set pending(v) {
+      page.pending = v;
     },
   });
 </script>
@@ -98,7 +108,7 @@
   <title>管理圖片 — Taggit</title>
 </svelte:head>
 
-<svelte:window onkeydown={form.handleWindowKeydown} />
+<svelte:window onkeydown={formActions.handleWindowKeydown} />
 
 <main class="slide-up">
   <aside class="left-panel">
@@ -167,7 +177,7 @@
     </dl>
   {/snippet}
 
-  {#snippet fieldsForSingle()}
+  {#snippet editFields()}
     <div class="form-fields">
       <div class="field-rating">
         <Rating name="rating" bind:value={form.rating} size="1.5rem" />
@@ -183,7 +193,7 @@
           type="text"
           placeholder="圖片名稱..."
           bind:value={form.name}
-          disabled={form.nameDisabled}
+          disabled={formActions.nameDisabled}
         />
       </div>
 
@@ -196,7 +206,7 @@
   {/snippet}
 
   <aside class="right-panel">
-    <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+    <form onsubmit={formActions.handleFormSubmit} onreset={formActions.handleFormReset}>
       <header>
         <h2>編輯屬性</h2>
         <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
@@ -204,7 +214,7 @@
         </button>
       </header>
 
-      {@render fieldsForSingle()}
+      {@render editFields()}
 
       <footer>
         <button
@@ -213,7 +223,7 @@
           name="intent"
           value="save"
           class:pending={page.pending}
-          disabled={form.saveDisabled}
+          disabled={formActions.saveDisabled}
         >
           <IconCheck size={16} />
           <span>存檔<kbd>Ctrl + S</kbd></span>
@@ -224,7 +234,7 @@
           name="intent"
           value="delete"
           class:pending={page.pending}
-          disabled={form.deleteDisabled}
+          disabled={formActions.deleteDisabled}
         >
           <IconArrowLeft size={16} />
           <span>退回<kbd>Ctrl + D</kbd></span>
