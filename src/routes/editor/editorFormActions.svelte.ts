@@ -111,7 +111,44 @@ export class EditorFormActions {
 
   /** 批次存檔多張圖片 */
   async #doSaveBatch() {
-    // TODO: 實作批次存檔邏輯
+    const { batchForm, committedFiles, selectedFiles } = this.options;
+    const n = selectedFiles.size;
+    if (!(await requestConfirm(`確定要批次更新選取的 ${n} 張圖片？`))) return;
+
+    const fileMap = new Map(committedFiles.map((f) => [f.id, f]));
+
+    const patches: { id: string; tags: string[]; updatedAt: number }[] = [];
+    let skipped = 0;
+
+    for (const id of selectedFiles) {
+      const file = fileMap.get(id);
+      if (!file) continue;
+
+      const tagSet = new Set(file.tags);
+      for (const t of batchForm.addTags) tagSet.add(t);
+      for (const t of batchForm.removeTags) tagSet.delete(t);
+
+      if (tagSet.size === 0) {
+        skipped++;
+      } else {
+        patches.push({ id, tags: [...tagSet], updatedAt: file.updatedAt });
+      }
+    }
+
+    if (skipped > 0) addToast(`由於會沒有標籤，已跳過 ${skipped} 張圖片`, "error");
+    if (patches.length === 0) return;
+
+    const [ok, fail] = await batchRun(patches, 5, async ({ id, tags, updatedAt }) => {
+      const patch: Record<string, unknown> = { tags, expectedUpdatedAt: updatedAt };
+      if (batchForm.ratingTouched) patch.rating = batchForm.rating;
+      return api.patch(`/api/committed/${encodeURIComponent(id)}`, patch);
+    });
+
+    if (ok) addToast(`已更新 ${ok} 張圖片`, "success");
+    if (fail) addToast(`${fail} 張更新失敗`, "error");
+
+    tagCache.invalidate();
+    await invalidateAll();
   }
 
   // ---
