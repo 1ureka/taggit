@@ -13,7 +13,7 @@
   import { imgSrc } from "$lib/client/api.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
-  import { EditorPage } from "./editorPage.svelte.js";
+  import { EditorFilterModal, EditorPage } from "./editorPage.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
 
@@ -43,6 +43,8 @@
       return data.currentRecord;
     },
   });
+
+  const modal = new EditorFilterModal();
 
   // ---
 
@@ -135,7 +137,7 @@
     />
 
     <footer>
-      <button type="button" class="btn-outlined" onclick={page.handleOpenFilter}>
+      <button type="button" class="btn-outlined" onclick={modal.handleOpenFilter}>
         <IconFilter size={14} />
         <span>篩選</span>
       </button>
@@ -236,7 +238,7 @@
   </aside>
 </main>
 
-<Modal bind:open={page.filterModal} onclose={page.handleCloseFilter} label="篩選條件">
+<Modal bind:open={modal.open} onclose={modal.handleCloseFilter} label="篩選條件">
   <h3 class="modal-title">篩選條件</h3>
 
   <div class="modal-body">
@@ -244,7 +246,7 @@
   </div>
 
   <div class="modal-actions">
-    <button type="button" class="btn-primary" onclick={page.handleFilterReset}>
+    <button type="button" class="btn-primary" onclick={modal.handleFilterReset}>
       <span>重置</span>
     </button>
   </div>

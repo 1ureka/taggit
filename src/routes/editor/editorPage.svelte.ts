@@ -24,8 +24,6 @@ export class EditorPage {
   selectedFiles = $state<Set<string>>(new Set());
   /** 所有編輯頁面的操作的共用鎖 */
   pending = $state(false);
-  /** 篩選對話框是否開啟 */
-  filterModal = $state(false);
 
   constructor(options: EditorPageOptions) {
     // 初始化
@@ -71,17 +69,23 @@ export class EditorPage {
     url.searchParams.set("currentId", id);
     goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
   };
+}
 
-  // ---
+/**
+ * 篩選對話框的互動邏輯
+ */
+export class EditorFilterModal {
+  /** 篩選對話框是否開啟 */
+  open = $state(false);
 
   /** 打開篩選對話框 */
   handleOpenFilter = () => {
-    this.filterModal = true;
+    this.open = true;
   };
 
   /** 關閉篩選對話框 */
   handleCloseFilter = () => {
-    this.filterModal = false;
+    this.open = false;
   };
 
   /** 處理篩選表單重置 */
