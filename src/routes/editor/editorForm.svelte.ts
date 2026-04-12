@@ -3,14 +3,14 @@ import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
 import { tagCache } from "$lib/client/cache.js";
-import type { ImageHeader, ImageWithId } from "$lib/types.js";
+import type { ImageWithId } from "$lib/types.js";
 
 /**
  * EditorForm 的配置選項
  */
 type EditorFormOptions = {
   /** 唯讀：SSR 回傳的已提交檔案列表 */
-  get committedFiles(): ImageHeader[];
+  get committedFiles(): ImageWithId[];
   /** 唯讀：SSR 回傳的當前圖片記錄 */
   get currentRecord(): ImageWithId | null;
   /** 唯讀：已選取的檔案 id 集合 */
@@ -92,7 +92,7 @@ export class EditorForm {
     }
 
     this.options.pending = true;
-    const records: ImageHeader[] = [];
+    const records: ImageWithId[] = [];
     const fileMap = new Map(this.options.committedFiles.map((rec) => [rec.id, rec]));
 
     for (const id of this.options.selectedFiles) {
