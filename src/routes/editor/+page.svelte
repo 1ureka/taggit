@@ -118,7 +118,7 @@
 
 <svelte:window onkeydown={formActions.handleWindowKeydown} />
 
-<main class="slide-up">
+{#snippet leftPanel()}
   <aside class="left-panel">
     <header>
       <div>
@@ -160,75 +160,77 @@
       </button>
     </footer>
   </aside>
+{/snippet}
 
+{#snippet figure()}
+  {@const caption = data.currentRecord?.name || "未選取任何圖片"}
   <figure>
     <ImageCanvas image={currentImage} emptyLabel="使用篩選條件搜尋圖片或在側邊欄選擇圖片" />
-
-    <figcaption class="ellipsis" title={data.currentRecord?.name || "未選取任何圖片"}>
-      {data.currentRecord?.name || "未選取任何圖片"}
-    </figcaption>
+    <figcaption class="ellipsis" title={caption}>{caption}</figcaption>
   </figure>
+{/snippet}
 
-  {#snippet imageDetails(currentRecord: ImageWithId)}
-    <dl>
-      <dt>提交時間</dt>
-      <dd class="ellipsis">{currentRecord.committedAt ? formatDate(currentRecord.committedAt) : "—"}</dd>
+{#snippet imageDetails(currentRecord: ImageWithId)}
+  <dl>
+    <dt>提交時間</dt>
+    <dd class="ellipsis">{currentRecord.committedAt ? formatDate(currentRecord.committedAt) : "—"}</dd>
 
-      <dt>檔案大小</dt>
-      <dd class="ellipsis">{currentRecord.fileSize ? formatSize(currentRecord.fileSize) : "—"}</dd>
+    <dt>檔案大小</dt>
+    <dd class="ellipsis">{currentRecord.fileSize ? formatSize(currentRecord.fileSize) : "—"}</dd>
 
-      {#if currentRecord.width && currentRecord.height}
-        <dt>解析度</dt>
-        <dd class="ellipsis">{currentRecord.width} x {currentRecord.height}</dd>
-      {/if}
-    </dl>
-  {/snippet}
+    {#if currentRecord.width && currentRecord.height}
+      <dt>解析度</dt>
+      <dd class="ellipsis">{currentRecord.width} x {currentRecord.height}</dd>
+    {/if}
+  </dl>
+{/snippet}
 
-  {#snippet editFields()}
-    <div class="form-fields">
-      <div class="field-rating">
-        <Rating name="rating" bind:value={form.rating} size="1.5rem" />
-      </div>
-
-      <div class="separator"></div>
-
-      <div class="field-name">
-        <label for="editor-name">名稱</label>
-        <input id="editor-name" class="text-input" type="text" placeholder="圖片名稱..." bind:value={form.name} />
-      </div>
-
-      <div class="separator"></div>
-
-      <div class="field-tags">
-        <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
-      </div>
+{#snippet editFields()}
+  <div class="form-fields">
+    <div class="field-rating">
+      <Rating name="rating" bind:value={form.rating} size="1.5rem" />
     </div>
-  {/snippet}
 
-  {#snippet batchFields()}
-    {@const form = batchForm}
-    <div class="form-fields">
-      <div class="field-rating">
-        <label for="batch-rating">覆蓋評等{form.ratingTouched ? "*" : ""}</label>
-        <Rating id="batch-rating" bind:value={form.rating} size="1.5rem" onchange={form.handleRatingChange} />
-      </div>
+    <div class="separator"></div>
 
-      <div class="separator"></div>
-
-      <div class="field-tags">
-        <label for="batch-add-tags">新增標籤</label>
-        <Autocomplete id="batch-add-tags" bind:tags={form.addTags} variant="top" placeholder="輸入要新增的標籤..." />
-      </div>
-
-      <div class="separator"></div>
-
-      <div class="field-tags">
-        <label for="batch-rm-tags">刪除標籤</label>
-        <Autocomplete id="batch-rm-tags" bind:tags={form.removeTags} variant="top" placeholder="輸入要刪除的標籤..." />
-      </div>
+    <div class="field-name">
+      <label for="editor-name">名稱</label>
+      <input id="editor-name" class="text-input" type="text" placeholder="圖片名稱..." bind:value={form.name} />
     </div>
-  {/snippet}
 
+    <div class="separator"></div>
+
+    <div class="field-tags">
+      <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+    </div>
+  </div>
+{/snippet}
+
+{#snippet batchFields()}
+  {@const form = batchForm}
+  <div class="form-fields">
+    <div class="field-rating">
+      <label for="batch-rating">覆蓋評等{form.ratingTouched ? "*" : ""}</label>
+      <Rating id="batch-rating" bind:value={form.rating} size="1.5rem" onchange={form.handleRatingChange} />
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="field-tags">
+      <label for="batch-add-tags">新增標籤</label>
+      <Autocomplete id="batch-add-tags" bind:tags={form.addTags} variant="top" placeholder="輸入要新增的標籤..." />
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="field-tags">
+      <label for="batch-rm-tags">刪除標籤</label>
+      <Autocomplete id="batch-rm-tags" bind:tags={form.removeTags} variant="top" placeholder="輸入要刪除的標籤..." />
+    </div>
+  </div>
+{/snippet}
+
+{#snippet rightPanel()}
   <aside class="right-panel">
     <form onsubmit={formActions.handleFormSubmit} onreset={formActions.handleFormReset}>
       <header>
@@ -272,6 +274,12 @@
       {@render imageDetails(data.currentRecord)}
     {/if}
   </aside>
+{/snippet}
+
+<main class="slide-up">
+  {@render leftPanel()}
+  {@render figure()}
+  {@render rightPanel()}
 </main>
 
 <Modal bind:open={modal.open} onclose={modal.handleCloseFilter} label="篩選條件">
