@@ -13,15 +13,28 @@
   import { imgSrc } from "$lib/client/api.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
-  import { EditorPage } from "./editorPage.svelte.js";
+  import { EditorFilterModal } from "./editorFilter.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";
   import { EditorForm } from "./editorForm.svelte.js";
+  import { EditorFormActions } from "./editorFormActions.svelte.js";
 
   let { data }: { data: PageData } = $props();
 
+  /** 已提交的圖片 ID 列表 */
   const committedFileIds = $derived(data.committedFiles.map(({ id }) => id));
+  /** 已提交的圖片列表（包含縮圖） */
   const committedFileList = $derived(data.committedFiles.map((item) => ({ ...item, imgSrc: imgSrc(item.id, "sm") })));
 
+  /** 當前啟用的圖片索引 */
+  const currentIndex = $derived.by(() => {
+    const id = data.currentRecord?.id ?? null;
+    if (!id) return null;
+
+    const idx = committedFileIds.indexOf(id);
+    return idx >= 0 ? idx : null;
+  });
+
+  /** 當前啟用的圖片資料 */
   const currentImage = $derived.by(() => {
     const record = data.currentRecord;
     if (!record) return undefined;
@@ -33,16 +46,12 @@
     };
   });
 
+  /** 編輯頁面的所有操作的共用鎖 */
+  let pending = $state(false);
+
   // ---
 
-  const page = new EditorPage({
-    get imageIds() {
-      return committedFileIds;
-    },
-    get currentRecord() {
-      return data.currentRecord;
-    },
-  });
+  const modal = new EditorFilterModal();
 
   // ---
 
@@ -50,44 +59,49 @@
     get imageIds() {
       return committedFileIds;
     },
+    get currentRecord() {
+      return data.currentRecord;
+    },
     get currentIndex() {
-      return page.currentIndex;
+      return currentIndex;
     },
-    get selectedFiles() {
-      return page.selectedFiles;
-    },
-    set selectedFiles(v) {
-      page.selectedFiles = v;
-    },
-    navigateTo: page.navigateTo,
   });
 
   const listActions = new EditorListActions({
     get pending() {
-      return page.pending;
+      return pending;
     },
     set pending(v) {
-      page.pending = v;
+      pending = v;
     },
   });
 
   // ---
 
   const form = new EditorForm({
+    get currentRecord() {
+      return data.currentRecord;
+    },
+  });
+
+  const formActions = new EditorFormActions({
+    get form() {
+      return form;
+    },
     get committedFiles() {
       return data.committedFiles;
-    },
-    get pending() {
-      return page.pending;
-    },
-    set pending(v) {
-      page.pending = v;
     },
     get currentRecord() {
       return data.currentRecord;
     },
     get selectedFiles() {
-      return page.selectedFiles;
+      return listSelect.selectedIds;
+    },
+    get pending() {
+      return pending;
+    },
+    set pending(v) {
+      pending = v;
     },
   });
 </script>
@@ -96,7 +110,7 @@
   <title>管理圖片 — Taggit</title>
 </svelte:head>
 
-<svelte:window onkeydown={form.handleWindowKeydown} />
+<svelte:window onkeydown={formActions.handleWindowKeydown} />
 
 <main class="slide-up">
   <aside class="left-panel">
@@ -112,13 +126,12 @@
       </div>
 
       <button
+        class={{ "btn-icon": true, pending }}
         type="button"
-        class="btn-icon"
-        class:pending={page.pending}
         title="重新載入列表"
         aria-label="重新載入列表"
         onclick={listActions.handleRefreshClick}
-        disabled={page.pending}
+        disabled={pending}
       >
         <IconReload size={14} />
       </button>
@@ -126,8 +139,8 @@
 
     <ImageList
       items={committedFileList}
-      currentIndex={page.currentIndex}
-      selectedIds={page.selectedFiles}
+      {currentIndex}
+      selectedIds={listSelect.selectedIds}
       emptyLabel="沒有符合條件的圖片"
       listLabel="已提交圖片列表"
       onKeydown={listSelect.handleListKeydown}
@@ -135,7 +148,7 @@
     />
 
     <footer>
-      <button type="button" class="btn-outlined" onclick={page.handleOpenFilter}>
+      <button type="button" class="btn-outlined" onclick={modal.handleOpenFilter}>
         <IconFilter size={14} />
         <span>篩選</span>
       </button>
@@ -165,7 +178,7 @@
     </dl>
   {/snippet}
 
-  {#snippet fieldsForSingle()}
+  {#snippet editFields()}
     <div class="form-fields">
       <div class="field-rating">
         <Rating name="rating" bind:value={form.rating} size="1.5rem" />
@@ -181,7 +194,7 @@
           type="text"
           placeholder="圖片名稱..."
           bind:value={form.name}
-          disabled={form.nameDisabled}
+          disabled={formActions.nameDisabled}
         />
       </div>
 
@@ -194,7 +207,7 @@
   {/snippet}
 
   <aside class="right-panel">
-    <form onsubmit={form.handleFormSubmit} onreset={form.handleFormReset}>
+    <form onsubmit={formActions.handleFormSubmit} onreset={formActions.handleFormReset}>
       <header>
         <h2>編輯屬性</h2>
         <button class="btn-icon" type="reset" title="重置所有欄位" aria-label="重置所有欄位">
@@ -202,27 +215,25 @@
         </button>
       </header>
 
-      {@render fieldsForSingle()}
+      {@render editFields()}
 
       <footer>
         <button
-          class="btn-primary"
+          class={{ "btn-primary": true, pending }}
           type="submit"
           name="intent"
           value="save"
-          class:pending={page.pending}
-          disabled={form.saveDisabled}
+          disabled={formActions.saveDisabled}
         >
           <IconCheck size={16} />
           <span>存檔<kbd>Ctrl + S</kbd></span>
         </button>
         <button
-          class="btn-destructive"
+          class={{ "btn-destructive": true, pending }}
           type="submit"
           name="intent"
           value="delete"
-          class:pending={page.pending}
-          disabled={form.deleteDisabled}
+          disabled={formActions.deleteDisabled}
         >
           <IconArrowLeft size={16} />
           <span>退回<kbd>Ctrl + D</kbd></span>
@@ -236,7 +247,7 @@
   </aside>
 </main>
 
-<Modal bind:open={page.filterModal} onclose={page.handleCloseFilter} label="篩選條件">
+<Modal bind:open={modal.open} onclose={modal.handleCloseFilter} label="篩選條件">
   <h3 class="modal-title">篩選條件</h3>
 
   <div class="modal-body">
@@ -244,7 +255,7 @@
   </div>
 
   <div class="modal-actions">
-    <button type="button" class="btn-primary" onclick={page.handleFilterReset}>
+    <button type="button" class="btn-primary" onclick={modal.handleFilterReset}>
       <span>重置</span>
     </button>
   </div>
