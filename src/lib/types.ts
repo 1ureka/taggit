@@ -34,6 +34,18 @@ export interface ImageWithId extends ImageRecord {
 }
 
 /**
+ * 匯入圖片紀錄時，每筆項目所需的使用者可控欄位。
+ */
+export interface ImportEntry {
+  /** 圖片名稱 */
+  name: string;
+  /** 標籤列表 */
+  tags: string[];
+  /** 使用者評分；省略時預設為 0 */
+  rating?: number;
+}
+
+/**
  * 圖片尺寸預設。
  * - `"sm"`：小型縮圖（最大 512×512 像素）
  * - `"md"`：中型縮圖（最大 1024×1024 像素）

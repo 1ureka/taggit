@@ -194,7 +194,7 @@ export class TaggerListActions {
     this.pending = true;
     try {
       await withProgressToast(`匯入中 0/${count}`, async (update) => {
-        const res = await fetch("/api/committed/import", {
+        const res = await fetch("/api/committed", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
