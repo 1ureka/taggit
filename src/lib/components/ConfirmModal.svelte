@@ -28,6 +28,7 @@
     color: var(--text-muted);
     margin-bottom: 1.25rem;
     line-height: 1.6;
+    white-space: pre-line;
   }
 
   .actions {
