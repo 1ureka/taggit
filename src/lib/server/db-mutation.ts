@@ -18,11 +18,38 @@ import { sortCollator } from "$lib/utils.js";
 /**
  * 將新的已提交圖片記錄寫入資料庫。
  *
+ * @deprecated 此函式在覆寫已存在的記錄時不會清理舊的標籤索引，
+ * 可能導致 tagIndex 殘留。請改用 {@link upsertRecord}。
+ *
  * @param jsonDB - 要異動的資料庫實例。
  * @param id - 新圖片的唯一識別碼。
  * @param record - 要儲存的圖片元資料。
  */
 export function addRecord(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
+  const sortedTags = record.tags.toSorted(sortCollator.compare);
+  const newRecord = { ...record, tags: sortedTags };
+
+  jsonDB.data.images[id] = newRecord;
+  jsonDB.indexAdd(id, newRecord);
+  jsonDB.markDirty();
+}
+
+/**
+ * 新增或覆寫圖片記錄，安全處理索引。
+ *
+ * 若 `id` 已存在，會先移除舊記錄的標籤索引再寫入新記錄，
+ * 確保 {@link JSONDatabase.tagIndex} 不會殘留過時的對映。
+ *
+ * @param jsonDB - 要異動的資料庫實例。
+ * @param id - 圖片的唯一識別碼。
+ * @param record - 要儲存的圖片元資料。
+ */
+export function upsertRecord(jsonDB: JSONDatabase, id: string, record: ImageRecord): void {
+  const existing = jsonDB.data.images[id];
+  if (existing) {
+    jsonDB.indexRemove(id, existing);
+  }
+
   const sortedTags = record.tags.toSorted(sortCollator.compare);
   const newRecord = { ...record, tags: sortedTags };
 

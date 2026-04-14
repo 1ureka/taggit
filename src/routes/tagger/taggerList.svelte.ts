@@ -1,6 +1,8 @@
 import { api } from "$lib/client/api.js";
 import { invalidateAll } from "$app/navigation";
-import { addToast } from "$lib/client/dom.js";
+import { addToast, requestConfirm, withProgressToast } from "$lib/client/dom.js";
+import { tagCache } from "$lib/client/cache.js";
+import { isRecord } from "$lib/utils.js";
 
 /**
  * TaggerList 的配置選項
@@ -155,6 +157,98 @@ export class TaggerListActions {
     } finally {
       this.pending = false;
       input.value = "";
+    }
+  };
+
+  /** 處理匯入紀錄 input change 事件 */
+  handleImportChange = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    if (!input.files?.length || this.pending) return;
+
+    const file = input.files[0];
+
+    let data: Record<string, unknown>;
+    try {
+      const text = await file.text();
+      const parsed: unknown = JSON.parse(text);
+      if (!isRecord(parsed) || Object.keys(parsed).length === 0) {
+        addToast("JSON 必須是非空的物件", "error");
+        return;
+      }
+      data = parsed;
+    } catch {
+      addToast("無法解析 JSON 檔案", "error");
+      return;
+    } finally {
+      input.value = "";
+    }
+
+    const count = Object.keys(data).length;
+    const confirmed = await requestConfirm(
+      `即將匯入 ${count} 筆紀錄。\n\n匯入規則：\n• 紀錄的 key 必須對應 images/ 資料夾中的實際檔名\n• 不存在的圖片將被跳過\n• 已存在的紀錄將被覆寫\n• 系統會自動計算圖片的寬高與 BlurHash`,
+      { title: "匯入紀錄", action: "開始匯入" },
+    );
+
+    if (!confirmed) return;
+
+    this.pending = true;
+    try {
+      await withProgressToast(`匯入中 0/${count}`, async (update) => {
+        const res = await fetch("/api/committed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok || !res.body) {
+          const err = await res.json().catch(() => null);
+          const msg = (err && typeof err === "object" && "error" in err ? String(err.error) : null) ?? "匯入失敗";
+          throw new Error(msg);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let result: { imported?: number; skipped?: number; errors?: string[] } = {};
+
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop()!;
+
+          for (const line of lines) {
+            const match = line.match(/^data: (.+)$/m);
+            if (!match) continue;
+
+            const event: Record<string, unknown> = JSON.parse(match[1]);
+
+            if (event.event === "progress") {
+              const current = event.current as number;
+              const total = event.total as number;
+              update({ message: `匯入中 ${current}/${total}`, progress: current / total });
+            } else if (event.event === "done") {
+              result = event as typeof result;
+            }
+          }
+        }
+
+        const imported = result.imported ?? 0;
+        const skipped = result.skipped ?? 0;
+        const parts: string[] = [];
+        if (imported > 0) parts.push(`成功 ${imported} 筆`);
+        if (skipped > 0) parts.push(`跳過 ${skipped} 筆`);
+        return { message: `匯入完成：${parts.join("，") || "無紀錄"}` };
+      });
+
+      tagCache.invalidate();
+      await invalidateAll();
+    } catch {
+      // withProgressToast 已處理 error toast
+    } finally {
+      this.pending = false;
     }
   };
 }

@@ -4,6 +4,9 @@
  */
 
 import type { ConfirmEventName, ConfirmPayload, ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
+import type { ToastProgressStartEventName, ToastProgressStartPayload } from "$lib/types.js";
+import type { ToastProgressUpdateEventName, ToastProgressUpdatePayload } from "$lib/types.js";
+import type { ToastProgressDoneEventName, ToastProgressDonePayload } from "$lib/types.js";
 
 /**
  * 判斷指定元素是否為可編輯的輸入元素（input、textarea 或 contentEditable）。
@@ -47,4 +50,65 @@ export function requestConfirm(message: string, options?: { title?: string; acti
     const eventName: ConfirmEventName = "confirm:request";
     window.dispatchEvent(new CustomEvent<ConfirmPayload>(eventName, { detail: { message, ...options, resolve } }));
   });
+}
+
+/**
+ * 進度 Toast 的 update 回呼參數
+ */
+interface ProgressUpdate {
+  message: string;
+  progress: number;
+}
+
+/**
+ * 以進度 Toast 包裝一段非同步作業。
+ *
+ * 建立一個常駐的進度 toast，在 `fn` 執行期間透過 `update` 回呼即時更新訊息與進度條。
+ * - `fn` 正常完成 → 自動替換為 success toast。
+ * - `fn` 拋出異常 → 自動替換為 error toast。
+ *
+ * @param label - 初始顯示的 toast 訊息。
+ * @param fn - 非同步作業，接收 `update` 回呼。回傳值若包含 `message` 屬性，會作為 success toast 的訊息。
+ */
+export async function withProgressToast<T>(
+  label: string,
+  fn: (update: (payload: ProgressUpdate) => void) => Promise<T>,
+): Promise<T> {
+  const toastId = await new Promise<number>((resolve) => {
+    const eventName: ToastProgressStartEventName = "toast:progress:start";
+    window.dispatchEvent(
+      new CustomEvent<ToastProgressStartPayload>(eventName, { detail: { label, resolveId: resolve } }),
+    );
+  });
+
+  const update = (payload: ProgressUpdate) => {
+    const eventName: ToastProgressUpdateEventName = "toast:progress:update";
+    window.dispatchEvent(
+      new CustomEvent<ToastProgressUpdatePayload>(eventName, { detail: { id: toastId, ...payload } }),
+    );
+  };
+
+  try {
+    const result = await fn(update);
+    const message =
+      result && typeof result === "object" && "message" in result && typeof result.message === "string"
+        ? result.message
+        : "完成";
+    const eventName: ToastProgressDoneEventName = "toast:progress:done";
+    window.dispatchEvent(
+      new CustomEvent<ToastProgressDonePayload>(eventName, {
+        detail: { id: toastId, type: "success", message, duration: 4000 },
+      }),
+    );
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "未知的錯誤";
+    const eventName: ToastProgressDoneEventName = "toast:progress:done";
+    window.dispatchEvent(
+      new CustomEvent<ToastProgressDonePayload>(eventName, {
+        detail: { id: toastId, type: "error", message, duration: 5000 },
+      }),
+    );
+    throw e;
+  }
 }

@@ -1,5 +1,8 @@
 import { tick } from "svelte";
 import type { ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
+import type { ToastProgressStartEventName, ToastProgressStartPayload } from "$lib/types.js";
+import type { ToastProgressUpdateEventName, ToastProgressUpdatePayload } from "$lib/types.js";
+import type { ToastProgressDoneEventName, ToastProgressDonePayload } from "$lib/types.js";
 
 /**
  * Toast 項目資料結構
@@ -19,6 +22,8 @@ interface ToastItem {
   createdAt: number;
   /** 剩餘顯示時間 (ms) */
   remaining: number;
+  /** 進度值 (0~1)；`undefined` 表示非進度類型 */
+  progress?: number;
 }
 
 /**
@@ -96,6 +101,29 @@ export class Toast {
       window.addEventListener(eventName, onToastAdd);
       return () => window.removeEventListener(eventName, onToastAdd);
     });
+
+    $effect(() => {
+      const onStart = (e: Event) => {
+        this.#addProgressItem((e as CustomEvent<ToastProgressStartPayload>).detail);
+      };
+      const onUpdate = (e: Event) => {
+        this.#updateProgressItem((e as CustomEvent<ToastProgressUpdatePayload>).detail);
+      };
+      const onDone = (e: Event) => {
+        this.#doneProgressItem((e as CustomEvent<ToastProgressDonePayload>).detail);
+      };
+      const startName: ToastProgressStartEventName = "toast:progress:start";
+      const updateName: ToastProgressUpdateEventName = "toast:progress:update";
+      const doneName: ToastProgressDoneEventName = "toast:progress:done";
+      window.addEventListener(startName, onStart);
+      window.addEventListener(updateName, onUpdate);
+      window.addEventListener(doneName, onDone);
+      return () => {
+        window.removeEventListener(startName, onStart);
+        window.removeEventListener(updateName, onUpdate);
+        window.removeEventListener(doneName, onDone);
+      };
+    });
   }
 
   // ---
@@ -142,6 +170,56 @@ export class Toast {
         this.#entering = new Set();
       });
     });
+  }
+
+  #addProgressItem(payload: ToastProgressStartPayload) {
+    const id = this.#nextId++;
+    const now = Date.now();
+    const item: ToastItem = {
+      id,
+      message: payload.label,
+      type: "info",
+      duration: 0,
+      removing: false,
+      createdAt: now,
+      remaining: 0,
+      progress: 0,
+    };
+
+    this.items = [item, ...this.items];
+    this.#entering = new Set([...this.#entering, id]);
+    tick().then(() => {
+      requestAnimationFrame(() => {
+        this.#entering = new Set();
+      });
+    });
+
+    payload.resolveId(id);
+  }
+
+  #updateProgressItem(payload: ToastProgressUpdatePayload) {
+    this.items = this.items.map((t) =>
+      t.id === payload.id ? { ...t, message: payload.message, progress: payload.progress } : t,
+    );
+  }
+
+  #doneProgressItem(payload: ToastProgressDonePayload) {
+    this.items = this.items.map((t) =>
+      t.id === payload.id
+        ? {
+            ...t,
+            message: payload.message,
+            type: payload.type,
+            progress: undefined,
+            duration: payload.duration,
+            createdAt: Date.now(),
+            remaining: payload.duration,
+          }
+        : t,
+    );
+    if (payload.duration > 0) {
+      this.#scheduleRemoval(payload.id, payload.duration);
+    }
   }
 
   #dismiss(id: number) {
