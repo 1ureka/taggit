@@ -33,9 +33,11 @@ export class SettingsTagRename {
   constructor() {
     this.oldName = $derived(this.selectedTags[0] ?? "");
     this.canSubmit = $derived.by(() => {
-      if (!this.oldName.trim() || this.busy) return false;
+      const trimOld = this.oldName.trim();
       const trimNew = this.newName.trim();
-      if (trimNew && trimNew.toLowerCase() === this.oldName.trim().toLowerCase()) return false;
+
+      if (!trimOld || !trimNew || this.busy) return false;
+      if (trimNew === trimOld) return false;
       return true;
     });
   }
@@ -43,8 +45,8 @@ export class SettingsTagRename {
   // ---
 
   async #doRename() {
-    const trimOld = this.oldName.trim().toLowerCase();
-    const trimNew = this.newName.trim().toLowerCase();
+    const trimOld = this.oldName.trim();
+    const trimNew = this.newName.trim();
     if (!trimOld || !trimNew || trimOld === trimNew) return;
 
     this.busy = true;
@@ -66,7 +68,7 @@ export class SettingsTagRename {
   }
 
   async #doDelete() {
-    const trimOld = this.oldName.trim().toLowerCase();
+    const trimOld = this.oldName.trim();
     if (!trimOld) return;
 
     const message = `確定要刪除標籤「${trimOld}」嗎？此操作無法復原。`;

@@ -39,8 +39,8 @@ export class Autocomplete {
   constructor(private options: AutocompleteOptions) {
     this.dropdownTags = $derived.by(() => {
       const query = this.inputValue.trim().toLowerCase();
-      const excluded = new Set(this.options.selectedTags.map((t) => t.toLowerCase()));
-      const available = this.tags.filter((t) => !excluded.has(t.name.toLowerCase()));
+      const excluded = new Set(this.options.selectedTags);
+      const available = this.tags.filter((t) => !excluded.has(t.name));
       if (!query) return available;
       return available.filter((t) => t.name.toLowerCase().includes(query));
     });
@@ -59,7 +59,7 @@ export class Autocomplete {
 
   /** 將標籤加入已選列表（支援以逗號分隔的多個標籤） */
   #addTag(name: string) {
-    const normalized = name.trim().toLowerCase();
+    const normalized = name.trim();
     if (!normalized) return;
 
     const inputTags = normalized
