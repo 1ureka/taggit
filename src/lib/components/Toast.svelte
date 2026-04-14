@@ -45,10 +45,19 @@
           <IconInfoCircleFilled size={16} />
         {/if}
       </span>
-      <span class="toast-msg">{toast.message}</span>
-      <button type="button" class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
-        <IconX size={14} />
-      </button>
+      <div class="toast-body">
+        <span class="toast-msg">{toast.message}</span>
+        {#if toast.progress !== undefined}
+          <div class="toast-progress-track">
+            <div class="toast-progress-fill" style="width:{toast.progress * 100}%"></div>
+          </div>
+        {/if}
+      </div>
+      {#if toast.progress === undefined}
+        <button type="button" class="toast-close" aria-label="關閉" onclick={() => ui.handleCloseClick(toast.id)}>
+          <IconX size={14} />
+        </button>
+      {/if}
     </div>
   {/each}
 </div>
@@ -124,10 +133,30 @@
   }
 
   /* ─── Message ──────────────────────────────────────────────────── */
-  .toast-msg {
+  .toast-body {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .toast-msg {
     word-break: break-word;
+  }
+
+  .toast-progress-track {
+    height: 3px;
+    background: var(--bg-active);
+    border-radius: 1.5px;
+    overflow: hidden;
+  }
+
+  .toast-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1.5px;
+    transition: width 200ms ease;
   }
 
   /* ─── Close button ─────────────────────────────────────────────── */
