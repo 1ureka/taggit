@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconArrowBackUpDouble, IconCheck } from "$lib/icons";
-  import { IconReload, IconX, IconUpload } from "$lib/icons";
+  import { IconReload, IconX, IconUpload, IconDatabase } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
   import Rating from "$lib/components/Rating.svelte";
@@ -149,6 +149,17 @@
           disabled={listActions.pending}
         />
       </label>
+      <label class="btn-outlined" class:pending={listActions.pending}>
+        <IconDatabase size={14} />
+        <span>匯入紀錄</span>
+        <input
+          type="file"
+          accept=".json"
+          class="visually-hidden"
+          onchange={listActions.handleImportChange}
+          disabled={listActions.pending}
+        />
+      </label>
     </footer>
   </aside>
 
@@ -259,6 +270,9 @@
   }
 
   .left-panel > footer {
+    display: flex;
+    flex-direction: row;
+    gap: 0.375rem;
     padding: 0.625rem 0.75rem;
     border-top: var(--border-style);
 
