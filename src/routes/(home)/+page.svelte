@@ -107,7 +107,7 @@
           <figcaption>
             <h3 class="ellipsis">{item.name}</h3>
             <Rating value={item.rating} size="1rem" readonly />
-            <Tags tags={item.tags} nowrap />
+            <Tags tags={item.tags} nowrap readonly />
           </figcaption>
         </figure>
       </button>
