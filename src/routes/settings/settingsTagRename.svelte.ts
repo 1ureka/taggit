@@ -36,7 +36,7 @@ export class SettingsTagRename {
       const trimOld = this.oldName.trim();
       const trimNew = this.newName.trim();
 
-      if (!trimOld || !trimNew || this.busy) return false;
+      if (!trimOld || this.busy) return false;
       if (trimNew === trimOld) return false;
       return true;
     });
