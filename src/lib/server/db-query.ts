@@ -7,7 +7,9 @@
  */
 
 import type { JSONDatabase } from "./db.js";
-import type { ImageWithId, QueryOptions, QueryResult, SortField, TagInfo } from "$lib/types.js";
+import type { ImageWithId, QueryOptions, QueryResult, SortField } from "$lib/types.js";
+import type { TagImageSample, TagInfo, TagQueryOptions, TagQueryResult } from "$lib/types.js";
+import type { TagSampleMode, TagSortField, TagWithSamples } from "$lib/types.js";
 import { isNonEmpty, sortCollator } from "$lib/utils.js";
 
 // ---
@@ -32,28 +34,6 @@ export function getImageCount(jsonDB: JSONDatabase): number {
  */
 export function hasImage(jsonDB: JSONDatabase, id: string): boolean {
   return id in jsonDB.data.images;
-}
-
-// ---
-
-/**
- * 回傳所有標籤，依圖片數量降序排列。
- */
-export function getAllTags(jsonDB: JSONDatabase): TagInfo[] {
-  const result: TagInfo[] = [];
-
-  for (const [name, ids] of jsonDB.tagIndex) {
-    result.push({ name, count: ids.size });
-  }
-
-  return result.sort((a, b) => b.count - a.count);
-}
-
-/**
- * 目前使用中的不重複標籤數。
- */
-export function getTagCount(jsonDB: JSONDatabase): number {
-  return jsonDB.tagIndex.size;
 }
 
 // ---
@@ -176,6 +156,104 @@ function shuffle<T>(arr: T[]): void {
   }
 }
 
+// ---
+
+interface TagSummary extends TagInfo {
+  lastUsedAt: number;
+  ids: string[];
+}
+
+/**
+ * 產生穩定的 32-bit hash，用於讓標籤樣本看起來像抽樣但不隨 request 跳動。
+ */
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function tagSortKey(tag: TagSummary, sort: Omit<TagSortField, "random">): string {
+  if (sort === "count") return String(tag.count);
+  if (sort === "recent") return String(tag.lastUsedAt);
+  return tag.name.toLowerCase();
+}
+
+function sortTags(items: TagSummary[], sort: TagSortField, order: "asc" | "desc"): TagSummary[] {
+  const newItems = [...items];
+
+  if (sort === "random") {
+    shuffle(newItems);
+    return newItems;
+  }
+
+  const dir = order === "asc" ? 1 : -1;
+
+  newItems.sort((a, b) => {
+    if (sort !== "name") {
+      const primaryResult = dir * sortCollator.compare(tagSortKey(a, sort), tagSortKey(b, sort));
+      if (primaryResult !== 0) return primaryResult;
+    }
+
+    return dir * sortCollator.compare(tagSortKey(a, "name"), tagSortKey(b, "name"));
+  });
+
+  return newItems;
+}
+
+function toSample(jsonDB: JSONDatabase, id: string): TagImageSample | null {
+  const record = jsonDB.data.images[id];
+  if (!record) return null;
+
+  return { id, name: record.name, width: record.width, height: record.height, blurhash: record.blurhash };
+}
+
+function sampleImageIds(
+  jsonDB: JSONDatabase,
+  tagName: string,
+  ids: string[],
+  limit: number,
+  mode: TagSampleMode,
+): string[] {
+  if (limit <= 0 || ids.length === 0) return [];
+
+  const newIds = ids.filter((id) => id in jsonDB.data.images);
+
+  if (mode === "random") {
+    shuffle(newIds);
+  } else if (mode === "recent") {
+    newIds.sort((a, b) => {
+      const result = sortCollator.compare(
+        String(jsonDB.data.images[b].committedAt),
+        String(jsonDB.data.images[a].committedAt),
+      );
+      return result || sortCollator.compare(a, b);
+    });
+  } else {
+    newIds.sort((a, b) => {
+      const result = stableHash(`${tagName}\0${a}`) - stableHash(`${tagName}\0${b}`);
+      return result || sortCollator.compare(a, b);
+    });
+  }
+
+  return newIds.slice(0, limit);
+}
+
+function withSamples(
+  jsonDB: JSONDatabase,
+  tag: TagSummary,
+  sampleLimit: number,
+  sampleMode: TagSampleMode,
+): TagWithSamples {
+  const samples = sampleImageIds(jsonDB, tag.name, tag.ids, sampleLimit, sampleMode)
+    .map((id) => toSample(jsonDB, id))
+    .filter((sample): sample is TagImageSample => sample !== null);
+
+  return { name: tag.name, count: tag.count, lastUsedAt: tag.lastUsedAt, samples };
+}
+
 /**
  * 根據指定的 sort 欄位和 order 方向對圖片陣列排序。
  */
@@ -233,5 +311,62 @@ export function queryImages(jsonDB: JSONDatabase, opts: QueryOptions = {}): Quer
     return { items, total, page: clampedPage, pages };
   }
 
+  return { items, total, page: 1, pages: 1 };
+}
+
+// ---
+
+/**
+ * 統一標籤查詢：篩選 + 排序 + 分頁 + 樣本圖片。
+ * `limit > 0` 時分頁；`limit` 為 0 或省略時回傳全部。
+ */
+export function queryTags(jsonDB: JSONDatabase, opts: TagQueryOptions = {}): TagQueryResult {
+  const search = opts.search?.trim().toLowerCase() ?? "";
+  const minCount = opts.minCount !== undefined ? Math.max(0, opts.minCount) : undefined;
+  const maxCount = opts.maxCount !== undefined ? Math.max(0, opts.maxCount) : undefined;
+  const sort = opts.sort ?? "count";
+  const order = opts.order ?? "desc";
+  const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
+  const page = Math.max(1, opts.page ?? 1);
+  const sampleLimit = Math.min(12, Math.max(0, opts.sampleLimit ?? 0));
+  const sampleMode = opts.sampleMode ?? "stable";
+
+  if (minCount !== undefined && maxCount !== undefined && minCount > maxCount) {
+    return { items: [], total: 0, page: 1, pages: 1 };
+  }
+
+  let summaries: TagSummary[] = [];
+
+  for (const [name, idSet] of jsonDB.tagIndex) {
+    if (search && !name.toLowerCase().includes(search)) continue;
+
+    const ids = [...idSet];
+    const count = ids.length;
+
+    if (minCount !== undefined && count < minCount) continue;
+    if (maxCount !== undefined && count > maxCount) continue;
+
+    let lastUsedAt = 0;
+    for (const id of ids) {
+      const committedAt = jsonDB.data.images[id]?.committedAt ?? 0;
+      if (committedAt > lastUsedAt) lastUsedAt = committedAt;
+    }
+
+    summaries.push({ name, count, lastUsedAt, ids });
+  }
+
+  summaries = sortTags(summaries, sort, order);
+
+  const total = summaries.length;
+
+  if (limit > 0) {
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const clampedPage = Math.min(page, pages);
+    const start = (clampedPage - 1) * limit;
+    const items = summaries.slice(start, start + limit).map((tag) => withSamples(jsonDB, tag, sampleLimit, sampleMode));
+    return { items, total, page: clampedPage, pages };
+  }
+
+  const items = summaries.map((tag) => withSamples(jsonDB, tag, sampleLimit, sampleMode));
   return { items, total, page: 1, pages: 1 };
 }

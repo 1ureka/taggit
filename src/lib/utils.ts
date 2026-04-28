@@ -6,7 +6,7 @@
  * 請放置於 `client/` 或 `server/` 對應目錄。
  */
 
-import type { QueryOptions, SortField } from "$lib/types.js";
+import type { QueryOptions, SortField, TagQueryOptions, TagSampleMode, TagSortField } from "$lib/types.js";
 
 /**
  * 解析以逗號分隔的標籤字串。
@@ -78,6 +78,76 @@ export function buildQueryString(opts: QueryOptions, params?: URLSearchParams): 
   if (opts.order && opts.order !== "desc") params.set("order", opts.order);
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   if (opts.limit && opts.limit > 0) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+// ---
+
+/**
+ * TagQueryOptions 的鍵列表
+ */
+const tagQueryOptionsKeys: (keyof TagQueryOptions)[] = [
+  "limit",
+  "maxCount",
+  "minCount",
+  "order",
+  "page",
+  "sampleLimit",
+  "sampleMode",
+  "search",
+  "sort",
+] as const;
+
+const tagSortFields = new Set<TagSortField>(["count", "name", "recent", "random"]);
+const tagSampleModes = new Set<TagSampleMode>(["stable", "recent", "random"]);
+
+function safeOrder(raw: string | null): "asc" | "desc" {
+  return raw === "asc" || raw === "desc" ? raw : "desc";
+}
+
+function safeTagSort(raw: string | null): TagSortField {
+  return raw && tagSortFields.has(raw as TagSortField) ? (raw as TagSortField) : "count";
+}
+
+function safeTagSampleMode(raw: string | null): TagSampleMode {
+  return raw && tagSampleModes.has(raw as TagSampleMode) ? (raw as TagSampleMode) : "stable";
+}
+
+/**
+ * 從 URL 的 searchParams 中提取 {@link TagQueryOptions}。
+ * 處理 search、minCount、maxCount、sort、order、page、limit、sampleLimit、sampleMode。
+ */
+export function parseTagQueryParams(url: URL): TagQueryOptions {
+  const p = url.searchParams;
+  return {
+    search: p.get("search") ?? undefined,
+    minCount: safeInt(p.get("minCount")),
+    maxCount: safeInt(p.get("maxCount")),
+    sort: safeTagSort(p.get("sort")),
+    order: safeOrder(p.get("order")),
+    page: safeInt(p.get("page")),
+    limit: safeInt(p.get("limit")),
+    sampleLimit: safeInt(p.get("sampleLimit")),
+    sampleMode: safeTagSampleMode(p.get("sampleMode")),
+  };
+}
+
+/**
+ * 將標籤查詢條件構建為 query string（預設值省略）。為 {@link parseTagQueryParams} 的反向操作。
+ */
+export function buildTagQueryString(opts: TagQueryOptions, params?: URLSearchParams): string {
+  params = params ?? new URLSearchParams();
+  tagQueryOptionsKeys.forEach((key) => params.delete(key));
+  if (opts.search?.trim()) params.set("search", opts.search.trim());
+  if (opts.minCount !== undefined) params.set("minCount", String(opts.minCount));
+  if (opts.maxCount !== undefined) params.set("maxCount", String(opts.maxCount));
+  if (opts.sort && opts.sort !== "count") params.set("sort", opts.sort);
+  if (opts.order && opts.order !== "desc") params.set("order", opts.order);
+  if (opts.page && opts.page > 1) params.set("page", String(opts.page));
+  if (opts.limit && opts.limit > 0) params.set("limit", String(opts.limit));
+  if (opts.sampleLimit && opts.sampleLimit > 0) params.set("sampleLimit", String(opts.sampleLimit));
+  if (opts.sampleMode && opts.sampleMode !== "stable") params.set("sampleMode", opts.sampleMode);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }

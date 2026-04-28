@@ -4,7 +4,7 @@
  */
 
 import { addToast } from "$lib/client/dom.js";
-import type { TagInfo } from "$lib/types.js";
+import type { TagInfo, TagQueryResult } from "$lib/types.js";
 import { api } from "./api.js";
 
 /** A function that returns a promise of type `T`. */
@@ -64,8 +64,9 @@ function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
  * Fetches the list of tags from the server.
  */
 const fetchTags = async () => {
-  const res = await api.get<{ tags: TagInfo[] }>("/api/tags");
-  return res.ok && res.data ? res.data.tags : [];
+  const res = await api.get<TagQueryResult & { tags?: TagInfo[] }>("/api/tags?sampleLimit=0");
+  if (!res.ok || !res.data) return [];
+  return res.data.tags ?? res.data.items.map(({ name, count }) => ({ name, count }));
 };
 
 /**

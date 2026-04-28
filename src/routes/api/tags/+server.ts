@@ -1,24 +1,28 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { requireDatabase } from "$lib/server/db-instance.js";
-import { getAllTags } from "$lib/server/db-query.js";
+import { queryTags } from "$lib/server/db-query.js";
 import { renameTag, deleteTag } from "$lib/server/db-mutation.js";
 
 import { parseBody, log } from "$lib/server/helpers.js";
 import { isValidTags } from "$lib/server/validation.js";
+import { parseTagQueryParams } from "$lib/utils.js";
 
 /**
  * `GET /api/tags`
  *
- * 列出所有標籤及其使用次數，依次數降序排列。
+ * 查詢標籤，支援搜尋、使用次數篩選、排序、分頁與樣本圖片。
  */
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = ({ url }) => {
   const loaded = requireDatabase();
   if (!loaded) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  return json({ ok: true, data: { tags: getAllTags(loaded.db) } });
+  const result = queryTags(loaded.db, parseTagQueryParams(url));
+  const tags = result.items.map(({ name, count }) => ({ name, count }));
+
+  return json({ ok: true, data: { ...result, tags } });
 };
 
 // ---

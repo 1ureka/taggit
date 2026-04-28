@@ -149,6 +149,80 @@ export interface TagInfo {
   count: number;
 }
 
+/**
+ * 標籤列表的排序欄位。
+ */
+export type TagSortField = "count" | "name" | "recent" | "random";
+
+/**
+ * 標籤卡片樣本圖片的挑選策略。
+ */
+export type TagSampleMode = "stable" | "recent" | "random";
+
+/**
+ * 標籤列表的統一查詢選項。
+ */
+export interface TagQueryOptions {
+  /** 標籤名稱的子字串搜尋（不區分大小寫） */
+  search?: string;
+  /** 使用次數下限 */
+  minCount?: number;
+  /** 使用次數上限 */
+  maxCount?: number;
+  /** 排序欄位 */
+  sort?: TagSortField;
+  /** 排序方向 */
+  order?: "asc" | "desc";
+  /** 頁碼（從 1 開始） */
+  page?: number;
+  /** 每頁筆數；0 或未指定表示不分頁，回傳全部結果 */
+  limit?: number;
+  /** 每個標籤回傳的樣本圖片數；0 表示不回傳樣本 */
+  sampleLimit?: number;
+  /** 樣本圖片挑選策略 */
+  sampleMode?: TagSampleMode;
+}
+
+/**
+ * 標籤卡片顯示用的圖片樣本。
+ */
+export interface TagImageSample {
+  /** 圖片的唯一識別碼（= 檔名） */
+  id: string;
+  /** 圖片名稱 */
+  name: string;
+  /** 圖片寬度（像素）；0 表示無法取得 */
+  width: number;
+  /** 圖片高度（像素）；0 表示無法取得 */
+  height: number;
+  /** BlurHash 編碼字串 */
+  blurhash: string;
+}
+
+/**
+ * 帶有卡片樣本的標籤查詢項目。
+ */
+export interface TagWithSamples extends TagInfo {
+  /** 使用該標籤的圖片中最新的提交時間 */
+  lastUsedAt: number;
+  /** 給標籤卡片顯示的圖片樣本 */
+  samples: TagImageSample[];
+}
+
+/**
+ * 標籤查詢的回傳結果。
+ */
+export interface TagQueryResult {
+  /** 當前頁的標籤清單 */
+  items: TagWithSamples[];
+  /** 符合篩選條件的總筆數 */
+  total: number;
+  /** 當前頁碼 */
+  page: number;
+  /** 總頁數 */
+  pages: number;
+}
+
 // ---
 
 /**
