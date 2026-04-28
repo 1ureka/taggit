@@ -64,7 +64,7 @@ function createSWR<T>(fn: AsyncFn<T>, ttl: number, errMsg: string) {
  * Fetches the list of tags from the server.
  */
 const fetchTags = async () => {
-  const res = await api.get<TagQueryResult & { tags?: TagInfo[] }>("/api/tags?sampleLimit=0");
+  const res = await api.get<TagQueryResult & { tags?: TagInfo[] }>("/api/tags?sampleLimit=0&limit=1000");
   if (!res.ok || !res.data) return [];
   return res.data.tags ?? res.data.items.map(({ name, count }) => ({ name, count }));
 };
