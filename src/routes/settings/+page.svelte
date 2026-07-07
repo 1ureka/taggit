@@ -69,7 +69,16 @@
         class="text-input"
         bind:value={collection.inputValue}
         placeholder="例如 C:/Users/you/Pictures/tagged"
+        onkeydown={collection.handleInputKeydown}
+        oninput={collection.handleInput}
       />
+
+      <div class="history-hint">
+        <span>{collection.historyHint}</span>
+        {#if collection.history.length > 0}
+          <button type="button" class="link-btn" onclick={collection.handleClearHistoryClick}>清空</button>
+        {/if}
+      </div>
 
       {#if collection.message}
         <p class:error={collection.isError}>
@@ -414,6 +423,27 @@
 
       &.error {
         color: var(--destructive);
+      }
+    }
+  }
+
+  section#section-collection > form > .history-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--font-size-caption);
+    line-height: 2;
+    color: var(--text-dim);
+
+    & > button.link-btn {
+      font-size: inherit;
+      line-height: inherit;
+      color: var(--text-muted);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+
+      &:hover {
+        color: var(--text);
       }
     }
   }
