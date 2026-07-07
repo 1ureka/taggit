@@ -19,7 +19,7 @@
     data.images.map((img) => ({
       ...img,
       blurhashStyle: blurhashStyle({ fit: "contain", blurhash: img.blurhash, width: img.width, height: img.height }),
-      src: imgSrc(img.id, "md"),
+      src: imgSrc(img.id, "md", true),
     })),
   );
 

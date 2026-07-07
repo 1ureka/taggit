@@ -61,7 +61,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
     } else {
       headers["Content-Type"] = "image/webp";
 
-      const buffer = await getImageBuffer(filename, filePath, sizeParam);
+      const animated = url.searchParams.get("animated") === "1";
+      const buffer = await getImageBuffer(filename, filePath, sizeParam, animated);
       return new Response(new Uint8Array(buffer), { headers });
     }
   } catch (e) {

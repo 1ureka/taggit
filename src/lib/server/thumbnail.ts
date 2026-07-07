@@ -114,9 +114,14 @@ function thumbnailSize(w: number, h: number, maxPixels: number): { width: number
 
 /**
  * 將來源圖片依指定尺寸預設值縮放並轉為 WebP，透過任務池限制併發。
+ *
+ * 當 `animated` 為 true 且來源為多幀圖片（如 GIF）時，會保留所有影格輸出為
+ * 動畫 WebP；否則僅取首格輸出靜態 WebP。`metadata()` 回傳的寬高為單幀尺寸，
+ * 故 {@link thumbnailSize} 的計算對動畫與靜態皆適用。
  */
-async function processImage(sourcePath: string, size: ProcessableSize): Promise<Buffer> {
+async function processImage(sourcePath: string, size: ProcessableSize, animated: boolean): Promise<Buffer> {
   const preset = SIZE_PRESETS[size];
+  const input = () => sharp(sourcePath, animated ? { animated: true } : {});
 
   return pool.enqueue(async () => {
     const meta = await sharp(sourcePath).metadata();
@@ -124,16 +129,16 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
     const origH = meta.height ?? 0;
 
     if (origW === 0 || origH === 0) {
-      return sharp(sourcePath).webp({ quality: preset.quality }).toBuffer();
+      return input().webp({ quality: preset.quality }).toBuffer();
     }
 
     const { width, height } = thumbnailSize(origW, origH, preset.maxPixels);
 
     if (width === origW && height === origH) {
-      return sharp(sourcePath).webp({ quality: preset.quality }).toBuffer();
+      return input().webp({ quality: preset.quality }).toBuffer();
     }
 
-    return sharp(sourcePath).resize(width, height, { fit: "fill" }).webp({ quality: preset.quality }).toBuffer();
+    return input().resize(width, height, { fit: "fill" }).webp({ quality: preset.quality }).toBuffer();
   });
 }
 
@@ -142,16 +147,23 @@ async function processImage(sourcePath: string, size: ProcessableSize): Promise<
 /**
  * 取得指定圖片的縮圖 Buffer（含 LRU 快取與 in-flight 去重）。
  * 若快取命中直接回傳；否則排程產生縮圖後寫入快取。
+ *
+ * `animated` 版本（動畫 WebP）與靜態版本使用各自獨立的快取鍵，互不覆蓋。
  */
-export async function getImageBuffer(file: string, sourcePath: string, size: ProcessableSize): Promise<Buffer> {
-  const cacheKey = `${size}:${file}`;
+export async function getImageBuffer(
+  file: string,
+  sourcePath: string,
+  size: ProcessableSize,
+  animated = false,
+): Promise<Buffer> {
+  const cacheKey = `${size}:${animated ? "a" : "s"}:${file}`;
 
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   if (inflight.has(cacheKey)) return inflight.get(cacheKey)!;
 
-  const promise = processImage(sourcePath, size)
+  const promise = processImage(sourcePath, size, animated)
     .then((buffer) => {
       cache.set(cacheKey, buffer);
       return buffer;
