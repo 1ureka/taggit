@@ -15,11 +15,10 @@
   let { data }: { data: PageData } = $props();
 
   /** 預先計算好 blurhash 樣式的圖片列表 */
-  const imagesWithBlurhash: (ImageWithId & { blurhashStyle: string; src: string })[] = $derived(
+  const imagesWithBlurhash: (ImageWithId & { blurhashStyle: string })[] = $derived(
     data.images.map((img) => ({
       ...img,
       blurhashStyle: blurhashStyle({ fit: "contain", blurhash: img.blurhash, width: img.width, height: img.height }),
-      src: imgSrc(img.id, "md", true),
     })),
   );
 
@@ -43,6 +42,39 @@
     feedback = true;
     tick().then(() => (feedback = false));
   });
+
+  // ---
+
+  function findClosestToMiddle<T>(arr: T[], testFn: (item: T) => boolean) {
+    const n = arr.length;
+    if (n === 0) return -1; // 空陣列
+
+    const mid = Math.floor(n / 2);
+    let L = mid;
+    let R = mid;
+
+    // 當左指標或右指標還在陣列範圍內時，持續擴散
+    while (L >= 0 || R < n) {
+      // 優先檢查靠近中間的（如果 L 還在範圍內）
+      if (L >= 0 && testFn(arr[L])) {
+        return L; // 回傳找到的索引
+      }
+      // 再檢查右邊（如果 R 還在範圍內）
+      if (R < n && testFn(arr[R])) {
+        return R; // 回傳找到的索引
+      }
+
+      // 兩邊同時向外跨一步
+      L--;
+      R++;
+    }
+
+    return -1; // 找不到任何滿足 true 的元素
+  }
+
+  const isAnimate = (item: ImageWithId) => item.id.toLowerCase().endsWith(".gif");
+
+  const animatedIndex = $derived(findClosestToMiddle(player.visibleItems, isAnimate));
 </script>
 
 <svelte:head>
@@ -62,9 +94,10 @@
 
 <main aria-label="圖片播放器">
   <div class="player" role="presentation" style:transform={player.stripTransform} onclick={player.handlePlayerClick}>
-    {#each player.visibleItems as item (item.key)}
+    <!-- 只讓陣列中間帶動畫（≈畫面中央），其餘用靜態縮圖以維持流暢 -->
+    {#each player.visibleItems as item, i (item.key)}
       <img
-        src={item.src}
+        src={imgSrc(item.id, "md", i === animatedIndex)}
         alt={item.name}
         style="{item.style}{item.blurhashStyle}"
         draggable="false"
