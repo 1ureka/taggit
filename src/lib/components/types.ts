@@ -78,3 +78,15 @@ export interface ConfirmPayload {
   action?: string;
   resolve: (value: boolean) => void;
 }
+
+// ---
+
+/**
+ * 一個圖示組件的 props
+ */
+export type IconProps = {
+  /** 圖示大小 (CSS 單位) */
+  size?: number | string;
+  /** 圖示顏色 (CSS 顏色值) */
+  color?: string;
+};

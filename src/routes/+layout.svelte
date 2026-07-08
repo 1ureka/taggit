@@ -1,6 +1,6 @@
 <script lang="ts">
   import "$lib/styles/app.css";
-  import favicon from "$lib/assets/favicon.svg";
+  import favicon from "$lib/favicon.svg";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
