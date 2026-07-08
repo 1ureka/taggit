@@ -1,20 +1,23 @@
 /**
  * @file query.ts
- * 圖片與標籤的唯讀查詢 —— 以位元圖為基礎的 faceted 查詢管線。
+ * 圖片與標籤的唯讀查詢 —— 以位元圖為基礎的兩大查詢引擎。
  *
  * 每個函式都接受 {@link Database} 作為第一個參數，
  * 不依賴模組層級的 singleton，方便測試與替換。
  *
+ * 兩大引擎共用私有原語 {@link resolveScope}：把「圖片篩選條件」解析為位元圖 scope。
+ * - {@link queryImages}：materialize 成圖片紀錄。
+ * - {@link queryTags}：以相同 scope 逐一計數標籤並附上 meta。
+ * 兩者以「相同條件」各自取用，而非互相傳遞結果 —— facet 查詢＝呼叫端同時呼叫兩者。
+ *
  * hidden 語義：設 H = hidden 標籤集合、Q = 查詢的 includedTags，
  * 圖片被遮蔽 ⇔ 存在 h ∈ H 使圖片擁有 h 且 h ∉ Q。
- * 被遮蔽的圖片不出現在任何輸出中（items、total、facets、標籤計數與樣本）。
  */
 
 import { BitSet } from "./bitmap.js";
 import type { Database } from "./store.js";
-import type { ImageWithId, QueryOptions, QueryResult, SortField, TagFacet } from "./types.js";
-import type { TagImageSample, TagQueryOptions, TagQueryResult } from "./types.js";
-import type { TagSampleMode, TagSortField, TagWithSamples } from "./types.js";
+import type { ImageWithId, QueryOptions, QueryResult, SortField, Tag, TagMeta, TagQueryOptions } from "./types.js";
+import { DEFAULT_TAG_META } from "./schema.js";
 import { isNonEmpty, sortCollator } from "$lib/utils/shared.js";
 
 // ---
@@ -72,7 +75,7 @@ function hiddenMask(db: Database, exclude: ReadonlySet<string>): BitSet | null {
 }
 
 /**
- * 篩選圖片的正規化參數。
+ * 篩選圖片的正規化參數（scope 述詞）。
  */
 interface FilterParams {
   /** 不區分大小寫的名稱子字串搜尋 */
@@ -88,7 +91,7 @@ interface FilterParams {
 }
 
 /**
- * 執行管線的第 1–3 步（含 rating 與 search，不含 hidden 遮罩）：
+ * 執行管線的第 1–4 步（含 rating 與 search，不含 hidden 遮罩）：
  * live ∩ includes ∖ excludes ∩ rating，再以名稱子字串後置過濾。
  * 回傳的位元圖為新配置，呼叫端可安全改動。
  */
@@ -135,37 +138,28 @@ function filterBitmapBeforeHidden(db: Database, f: FilterParams): BitSet {
 }
 
 /**
- * 對「篩選後、遮蔽前」的集合計算全部標籤的 facet 計數。
- *
- * 一般標籤：count = |visible ∩ tagBits[t]|。
- * hidden 且 ∉ Q 的標籤 t：把 t 加入篩選會同時把 t 從遮罩中移除，
- * 因此以「遮罩排除 t 自身」的集合重算。
+ * 兩大引擎共用的私有原語：把篩選條件解析為位元圖 scope。
+ * 回傳遮蔽前（`preHidden`）與遮蔽後（`visible`）兩個集合，以及正規化後的 includedTags 集合。
  */
-function computeFacets(db: Database, preHidden: BitSet, visible: BitSet, included: ReadonlySet<string>): TagFacet[] {
-  const hiddenSet = new Set(db.hiddenTagNames());
-  const facets: TagFacet[] = [];
+function resolveScope(db: Database, f: FilterParams): { preHidden: BitSet; visible: BitSet; included: Set<string> } {
+  const included = new Set(f.includedTags);
+  const preHidden = filterBitmapBeforeHidden(db, f);
+  const mask = hiddenMask(db, included);
+  const visible = mask ? preHidden.clone().andNotInPlace(mask) : preHidden;
+  return { preHidden, visible, included };
+}
 
-  for (const [name, bits] of db.facets.tagBits) {
-    const isHidden = hiddenSet.has(name);
-    let count: number;
-
-    if (isHidden && !included.has(name)) {
-      const excludeSelf = new Set(included);
-      excludeSelf.add(name);
-      const mask = hiddenMask(db, excludeSelf);
-      const base = mask ? preHidden.clone().andNotInPlace(mask) : preHidden;
-      count = base.andSize(bits);
-    } else {
-      count = visible.andSize(bits);
-    }
-
-    if (count > 0) {
-      facets.push({ name, count, hidden: isHidden });
-    }
-  }
-
-  facets.sort((a, b) => b.count - a.count || sortCollator.compare(a.name, b.name));
-  return facets;
+/**
+ * 由查詢選項萃取出 scope 述詞（忽略 sort / 分頁等圖片呈現用欄位）。
+ */
+function toFilterParams(opts: QueryOptions): FilterParams {
+  return {
+    search: opts.search?.trim().toLowerCase() ?? "",
+    includedTags: opts.includedTags ?? [],
+    excludedTags: opts.excludedTags ?? [],
+    rating: opts.rating,
+    ratingOp: opts.ratingOp ?? "gte",
+  };
 }
 
 // ---
@@ -230,27 +224,16 @@ function materialize(db: Database, bits: BitSet): ImageWithId[] {
 // ---
 
 /**
- * 統一圖片查詢：篩選 + hidden 遮蔽 + 排序 + 分頁 + facet 計數。
+ * 圖片查詢引擎：篩選 + hidden 遮蔽 + 排序 + 分頁。
  * `limit > 0` 時分頁；`limit` 為 0 或省略時回傳全部。
  */
 export function queryImages(db: Database, opts: QueryOptions = {}): QueryResult {
-  const search = opts.search?.trim().toLowerCase() ?? "";
-  const includedTags = opts.includedTags ?? [];
-  const excludedTags = opts.excludedTags ?? [];
-  const rating = opts.rating;
-  const ratingOp = opts.ratingOp ?? "gte";
   const sort = opts.sort ?? "rating";
   const order = opts.order ?? "desc";
   const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
   const page = Math.max(1, opts.page ?? 1);
 
-  const included = new Set(includedTags);
-  const preHidden = filterBitmapBeforeHidden(db, { search, includedTags, excludedTags, rating, ratingOp });
-
-  const mask = hiddenMask(db, included);
-  const visible = mask ? preHidden.clone().andNotInPlace(mask) : preHidden;
-
-  const facets = computeFacets(db, preHidden, visible, included);
+  const { visible } = resolveScope(db, toFilterParams(opts));
 
   let items = sortImages(materialize(db, visible), sort, order);
   const total = items.length;
@@ -260,185 +243,61 @@ export function queryImages(db: Database, opts: QueryOptions = {}): QueryResult 
     const clampedPage = Math.min(page, pages);
     const start = (clampedPage - 1) * limit;
     items = items.slice(start, start + limit);
-    return { items, total, page: clampedPage, pages, facets };
+    return { items, total, page: clampedPage, pages };
   }
 
-  return { items, total, page: 1, pages: 1, facets };
+  return { items, total, page: 1, pages: 1 };
 }
 
 // ---
 
-interface TagSummary {
-  name: string;
-  count: number;
-  hidden: boolean;
-  lastUsedAt: number;
-  ids: string[];
+/** 讀取標籤元資料，補齊預設值後回傳。 */
+function tagMetaOf(db: Database, name: string): TagMeta {
+  return { ...DEFAULT_TAG_META, ...db.data.tags[name] };
 }
 
 /**
- * 產生穩定的 32-bit hash，用於讓標籤樣本看起來像抽樣但不隨 request 跳動。
+ * 標籤查詢引擎：以「與 {@link queryImages} 相同的圖片篩選條件」界定 scope，
+ * 逐一計數標籤並附上 meta，回傳 {@link Tag}[]（依 count 降冪、name 升冪）。
+ *
+ * count 與遮蔽語義見 {@link TagQueryOptions}。
  */
-function stableHash(value: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
+export function queryTags(db: Database, conditions: QueryOptions = {}, opts: TagQueryOptions = {}): Tag[] {
+  const hiddenMode = opts.hidden ?? "mask";
+  const universe = opts.universe ?? "used";
 
-function tagSortKey(tag: TagSummary, sort: Omit<TagSortField, "random">): string {
-  if (sort === "count") return String(tag.count);
-  if (sort === "recent") return String(tag.lastUsedAt);
-  return tag.name.toLowerCase();
-}
-
-function sortTags(items: TagSummary[], sort: TagSortField, order: "asc" | "desc"): TagSummary[] {
-  const newItems = [...items];
-
-  if (sort === "random") {
-    shuffle(newItems);
-    return newItems;
-  }
-
-  const dir = order === "asc" ? 1 : -1;
-
-  newItems.sort((a, b) => {
-    if (sort !== "name") {
-      const primaryResult = dir * sortCollator.compare(tagSortKey(a, sort), tagSortKey(b, sort));
-      if (primaryResult !== 0) return primaryResult;
-    }
-
-    return dir * sortCollator.compare(tagSortKey(a, "name"), tagSortKey(b, "name"));
-  });
-
-  return newItems;
-}
-
-function toSample(db: Database, id: string): TagImageSample | null {
-  const record = db.data.images[id];
-  if (!record) return null;
-
-  return { id, name: record.name, width: record.width, height: record.height, blurhash: record.blurhash };
-}
-
-function sampleImageIds(db: Database, tagName: string, ids: string[], limit: number, mode: TagSampleMode): string[] {
-  if (limit <= 0 || ids.length === 0) return [];
-
-  const newIds = ids.filter((id) => id in db.data.images);
-
-  if (mode === "random") {
-    shuffle(newIds);
-  } else if (mode === "recent") {
-    newIds.sort((a, b) => {
-      const result = sortCollator.compare(String(db.data.images[b].committedAt), String(db.data.images[a].committedAt));
-      return result || sortCollator.compare(a, b);
-    });
-  } else {
-    newIds.sort((a, b) => {
-      const result = stableHash(`${tagName}\0${a}`) - stableHash(`${tagName}\0${b}`);
-      return result || sortCollator.compare(a, b);
-    });
-  }
-
-  return newIds.slice(0, limit);
-}
-
-function withSamples(db: Database, tag: TagSummary, sampleLimit: number, sampleMode: TagSampleMode): TagWithSamples {
-  const samples = sampleImageIds(db, tag.name, tag.ids, sampleLimit, sampleMode)
-    .map((id) => toSample(db, id))
-    .filter((sample): sample is TagImageSample => sample !== null);
-
-  return { name: tag.name, count: tag.count, hidden: tag.hidden, lastUsedAt: tag.lastUsedAt, samples };
-}
-
-/**
- * 計算單一標籤的可見圖片集合：tagBits[t] ∩ live ∖ hidden遮罩(排除 t 自身)。
- * 保證「標籤卡片上的數字 = 帶該標籤查詢後的張數」。
- */
-function visibleIdsOfTag(db: Database, name: string): string[] {
-  const bits = db.facets.getTagBits(name);
-  if (!bits) return [];
-
-  const visible = bits.clone().andInPlace(db.ordinals.live);
-  const mask = hiddenMask(db, new Set([name]));
-  if (mask) visible.andNotInPlace(mask);
-
-  const ids: string[] = [];
-  for (const ordinal of visible.values()) {
-    const id = db.ordinals.idOf(ordinal);
-    if (id !== null) ids.push(id);
-  }
-  return ids;
-}
-
-/**
- * 統一標籤查詢：篩選 + 排序 + 分頁 + 樣本圖片。
- * `limit > 0` 時分頁；`limit` 為 0 或省略時回傳全部。
- */
-export function queryTags(db: Database, opts: TagQueryOptions = {}): TagQueryResult {
-  const search = opts.search?.trim().toLowerCase() ?? "";
-  const minCount = opts.minCount !== undefined ? Math.max(0, opts.minCount) : undefined;
-  const maxCount = opts.maxCount !== undefined ? Math.max(0, opts.maxCount) : undefined;
-  const sort = opts.sort ?? "count";
-  const order = opts.order ?? "desc";
-  const limit = opts.limit && opts.limit > 0 ? opts.limit : 0;
-  const page = Math.max(1, opts.page ?? 1);
-  const sampleLimit = Math.min(12, Math.max(0, opts.sampleLimit ?? 0));
-  const sampleMode = opts.sampleMode ?? "stable";
-
-  if (minCount !== undefined && maxCount !== undefined && minCount > maxCount) {
-    return { items: [], total: 0, page: 1, pages: 1 };
-  }
-
+  const { preHidden, visible, included } = resolveScope(db, toFilterParams(conditions));
   const hiddenSet = new Set(db.hiddenTagNames());
-  let summaries: TagSummary[] = [];
+  const tags: Tag[] = [];
 
-  for (const name of db.facets.tagBits.keys()) {
-    if (search && !name.toLowerCase().includes(search)) continue;
+  for (const [name, bits] of db.facets.tagBits) {
+    const isHidden = hiddenSet.has(name);
+    let count: number;
 
-    const ids = visibleIdsOfTag(db, name);
-    const count = ids.length;
-    if (count === 0) continue;
-
-    if (minCount !== undefined && count < minCount) continue;
-    if (maxCount !== undefined && count > maxCount) continue;
-
-    let lastUsedAt = 0;
-    for (const id of ids) {
-      const committedAt = db.data.images[id]?.committedAt ?? 0;
-      if (committedAt > lastUsedAt) lastUsedAt = committedAt;
+    if (hiddenMode === "mask" && isHidden && !included.has(name)) {
+      // 把該 hidden 標籤加入篩選後的可見數（篩選 UI 點擊後的預期結果數）
+      const excludeSelf = new Set(included);
+      excludeSelf.add(name);
+      const mask = hiddenMask(db, excludeSelf);
+      const base = mask ? preHidden.clone().andNotInPlace(mask) : preHidden;
+      count = base.andSize(bits);
+    } else if (hiddenMode === "mask") {
+      count = visible.andSize(bits);
+    } else {
+      count = preHidden.andSize(bits);
     }
 
-    summaries.push({ name, count, hidden: hiddenSet.has(name), lastUsedAt, ids });
+    if (count > 0) tags.push({ name, count, meta: tagMetaOf(db, name) });
   }
 
-  summaries = sortTags(summaries, sort, order);
-
-  const total = summaries.length;
-
-  if (limit > 0) {
-    const pages = Math.max(1, Math.ceil(total / limit));
-    const clampedPage = Math.min(page, pages);
-    const start = (clampedPage - 1) * limit;
-    const items = summaries.slice(start, start + limit).map((tag) => withSamples(db, tag, sampleLimit, sampleMode));
-    return { items, total, page: clampedPage, pages };
+  // universe="all"：併入僅有元資料、未被任何圖片使用的標籤（count 0）
+  if (universe === "all") {
+    for (const name of Object.keys(db.data.tags)) {
+      if (db.facets.getTagBits(name)) continue;
+      tags.push({ name, count: 0, meta: tagMetaOf(db, name) });
+    }
   }
 
-  const items = summaries.map((tag) => withSamples(db, tag, sampleLimit, sampleMode));
-  return { items, total, page: 1, pages: 1 };
-}
-
-/**
- * 全庫（不帶任何篩選）的標籤 facet 計數。
- * 供無查詢語境的頁面（tagger、settings）的自動完成使用。
- */
-export function getAllTagFacets(db: Database): TagFacet[] {
-  const live = db.ordinals.live;
-  const empty = new Set<string>();
-  const mask = hiddenMask(db, empty);
-  const visible = mask ? live.clone().andNotInPlace(mask) : live;
-
-  return computeFacets(db, live, visible, empty);
+  tags.sort((a, b) => b.count - a.count || sortCollator.compare(a.name, b.name));
+  return tags;
 }

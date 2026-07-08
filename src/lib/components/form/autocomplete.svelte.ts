@@ -1,4 +1,4 @@
-import type { TagFacet } from "$lib/database/client.js";
+import type { Tag } from "$lib/database/client.js";
 import { scrollToActive } from "$lib/components/dom";
 
 /**
@@ -9,7 +9,7 @@ type AutocompleteOptions = {
   get selectedTags(): string[];
   set selectedTags(value: string[]);
   /** 候選標籤來源（通常為 page data 的 facets，由 SSR 提供） */
-  get candidates(): TagFacet[];
+  get candidates(): Tag[];
   /** 當標籤變更時觸發 */
   onchange?: () => void;
   /** 選項元素的高度 */
@@ -34,7 +34,7 @@ export class Autocomplete {
   activeIndex = $state(-1);
 
   /** 顯示在下拉選單中的標籤列表 */
-  dropdownTags: TagFacet[];
+  dropdownTags: Tag[];
   /** 同時顯示的標籤數量 */
   maxVisibleTags = 100;
 
@@ -183,7 +183,7 @@ export class Autocomplete {
   // ---
 
   /** 處理 dropdown 鼠標按下事件：選中對應標籤並阻止 input 失去焦點 */
-  handleDropdownMouseDown = (e: MouseEvent, tag: TagFacet) => {
+  handleDropdownMouseDown = (e: MouseEvent, tag: Tag) => {
     e.preventDefault(); // 阻止 input 失去焦點，從而保持 dropdown 打開
     this.#addTag(tag.name);
   };

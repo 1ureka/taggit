@@ -8,12 +8,12 @@
 | 7 | 顯示當前 collection 名稱 | [7-current-collection-name.md](./7-current-collection-name.md) | layout |
 | 8 | 導航 dialog 顯示 committed / staged 數量 | [8-nav-dialog-counts.md](./8-nav-dialog-counts.md) | layout + 新 API |
 
-## 架構議題（跨項目，非 draft 單一項目）
+## 架構重寫（跨項目）
 
-項目 0（隱藏標籤）上線後浮現的結構性問題：標籤的「篩選」與「編寫／管理」兩種角色共用同一條遮蔽資料通道。分兩份：
+項目 0（隱藏標籤）上線後浮現的結構性問題：標籤的「篩選」與「編寫／管理」兩種角色共用同一條遮蔽資料通道。收斂為「兩實體、兩引擎」的 database 重寫：
 
-- [0_hidden-tag-authoring-conflict.md](./0_hidden-tag-authoring-conflict.md) — 問題診斷、四個症狀、「架構是否已死」的評估（結論：沒死，是讀取層的增量改動）。
-- [1_hidden-tag-solution-and-tradeoffs.md](./1_hidden-tag-solution-and-tradeoffs.md) — 拍板方案：抽象化 Autocomplete + 新增雙模式 TagAutocomplete + page.data facets 改名為雙通道；含效能／重複性取捨。「列出 hidden」與「以標籤為主的 CRUD」列為 open question。
+- [0_database-rewrite.md](./0_database-rewrite.md) — **已完成**：`Tag` 實體 + `queryImages`/`queryTags` 兩引擎 + 共用 `resolveScope`；刪除 `TagFacet`/`getAllTagFacets` 等冗餘型別與介面。刻意維持舊行為（不修 bug）。
+- [1_bugfixes-and-frontend-refactor.md](./1_bugfixes-and-frontend-refactor.md) — **待辦**：以新 `queryTags` 組合修四個 hidden bug + 抽象化 Autocomplete／新增雙模式 TagAutocomplete／page.data 雙通道。「列出 hidden」與 tag CRUD 為 open question。
 
 ## 共通慣例（撰寫計畫時已對照現有程式）
 

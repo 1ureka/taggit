@@ -1,13 +1,13 @@
 import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/utils/client.js";
-import type { TagFacet } from "$lib/database/client.js";
+import type { Tag } from "$lib/database/client.js";
 
 /**
  * SettingsHiddenTags 的配置選項
  */
 type SettingsHiddenTagsOptions = {
   /** 全庫標籤 facets（含 hidden 標記），由 page data 提供 */
-  facets: TagFacet[];
+  facets: Tag[];
 };
 
 /**
@@ -36,9 +36,9 @@ export class SettingsHiddenTags {
   canSubmit: boolean;
 
   constructor(private options: SettingsHiddenTagsOptions) {
-    this.hiddenTags = $derived(this.options.facets.filter((f) => f.hidden).map((f) => f.name));
+    this.hiddenTags = $derived(this.options.facets.filter((f) => f.meta.hidden).map((f) => f.name));
     this.selectedName = $derived(this.selectedTags[0] ?? "");
-    this.selectedHidden = $derived(this.options.facets.find((f) => f.name === this.selectedName)?.hidden ?? false);
+    this.selectedHidden = $derived(this.options.facets.find((f) => f.name === this.selectedName)?.meta.hidden ?? false);
     this.canSubmit = $derived(!!this.selectedName.trim() && !this.busy);
   }
 

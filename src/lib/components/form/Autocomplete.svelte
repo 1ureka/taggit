@@ -2,7 +2,7 @@
   import { page } from "$app/state";
   import { IconX } from "$lib/components/icons";
   import { Autocomplete } from "./autocomplete.svelte.js";
-  import type { TagFacet } from "$lib/database/client.js";
+  import type { Tag } from "$lib/database/client.js";
   import Popover from "$lib/components/overlay/Popover.svelte";
 
   type Props = {
@@ -13,7 +13,7 @@
     /** 雙向綁定：目前選中的標籤列表 */
     tags: string[];
     /** 候選標籤；預設消費 page data 的 facets（SSR faceted search） */
-    candidates?: TagFacet[];
+    candidates?: Tag[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
     placeholder?: string;
     /** 當標籤變更時觸發 */

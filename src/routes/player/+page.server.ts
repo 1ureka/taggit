@@ -13,5 +13,7 @@ export const load: PageServerLoad = ({ url }) => {
     throw redirect(302, newUrl);
   }
 
-  return { images: result.items, total: result.total, facets: result.facets };
+  const facets = database.queryTags(url.searchParams);
+
+  return { images: result.items, total: result.total, facets };
 };
