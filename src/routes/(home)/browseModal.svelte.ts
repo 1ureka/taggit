@@ -30,6 +30,20 @@ export class BrowseModal {
     });
   }
 
+  /**
+   * 前往 editor 的連結，帶上當下的篩選參數（移除 modal、設定 currentId）。
+   * 使 editor 的統一查詢與 home 一致，隱藏標籤圖片才不會在 editor 被再次遮蔽。
+   */
+  get editorHref(): string {
+    const id = this.record?.id;
+    if (!id) return "/editor";
+
+    const params = new URLSearchParams(page.url.searchParams);
+    params.delete("modal");
+    params.set("currentId", id);
+    return `/editor?${params.toString()}`;
+  }
+
   /** 處理 Trigger 點擊事件 */
   handleTriggerClick = (id: string) => {
     const params = new URLSearchParams(page.url.searchParams);

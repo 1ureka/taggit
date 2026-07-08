@@ -170,7 +170,7 @@
 
       <h2 class="ellipsis">{record.name}</h2>
 
-      <a class="btn-primary btn-sm" href={`/editor?currentId=${record.id}`}>
+      <a class="btn-primary btn-sm" href={modal.editorHref}>
         <IconEditFilled size={16} />
         <span>編輯</span>
       </a>

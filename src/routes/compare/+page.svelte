@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
+  import { page } from "$app/state";
   import { IconArrowsShuffle } from "$lib/components/icons";
 
   import Rating from "$lib/components/form/Rating.svelte";
@@ -10,6 +11,13 @@
   let { data }: { data: PageData } = $props();
 
   const shuffle = new CompareShuffle();
+
+  /** 前往 editor 的連結，帶上當下的篩選參數，避免隱藏標籤圖片在 editor 被再次遮蔽 */
+  const editorHref = (id: string) => {
+    const params = new URLSearchParams(page.url.searchParams);
+    params.set("currentId", id);
+    return `/editor?${params.toString()}`;
+  };
 </script>
 
 <svelte:head>
@@ -25,7 +33,7 @@
     {/if}
   {:else}
     {#each data.pairs as image (image.id)}
-      <a class="card" href="/editor?currentId={encodeURIComponent(image.id)}" title="在管理圖片中開啟">
+      <a class="card" href={editorHref(image.id)} title="在管理圖片中開啟">
         <div class="card-image">
           {#key image.id}
             {@const blurhash = image.blurhash}

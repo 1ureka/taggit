@@ -28,9 +28,17 @@ export class TaggerForm {
 
   /** 是否恰好選取一張圖片（多選時名稱欄位停用） */
   singleSelected: boolean;
+  /** 名稱欄位的提示文字（依選取數量三態） */
+  namePlaceholder: string;
 
   constructor(private options: TaggerFormOptions) {
     this.singleSelected = $derived(this.options.selectedFiles.size === 1);
+    this.namePlaceholder = $derived.by(() => {
+      const n = this.options.selectedFiles.size;
+      if (n === 0) return "尚無圖片可命名";
+      if (n > 1) return "多選時無法命名";
+      return "圖片名稱（留空使用檔名）";
+    });
   }
 
   // ---
