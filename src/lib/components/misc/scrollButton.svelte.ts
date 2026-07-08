@@ -1,4 +1,4 @@
-import { throttle } from "$lib/utils.js";
+import { throttle } from "$lib/utils/shared.js";
 
 /**
  * 回到頂部的配置選項

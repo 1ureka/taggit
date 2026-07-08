@@ -10,7 +10,7 @@
  */
 
 import { readServerJson, writeServerJson } from "./internal/config.js";
-import { log } from "$lib/server/helpers.js";
+import { log } from "$lib/utils/server.js";
 
 export { isCollectionValid, getCollectionPaths } from "./internal/structure.js";
 export type { CollectionPaths } from "./internal/structure.js";

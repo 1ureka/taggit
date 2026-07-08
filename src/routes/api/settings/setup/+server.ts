@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import * as database from "$lib/database/server.js";
-import { parseBody } from "$lib/server/helpers.js";
+import { parseBody } from "$lib/utils/server.js";
 
 /**
  * `GET /api/settings/setup`

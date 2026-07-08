@@ -3,7 +3,7 @@
  *
  * 本檔案僅收錄瀏覽器與 Node.js 環境皆可執行的函數。
  * 若函數依賴僅限於特定環境的 API（例如 DOM、`fs`），
- * 請放置於 `client/` 或 `server/` 對應目錄。
+ * 請放置於同資料夾的 `client.ts` 或 `server.ts`。
  */
 
 /**
@@ -123,4 +123,18 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
  */
 export function isNonEmpty<T>(arr: T[]): arr is [T, ...T[]] {
   return arr.length > 0;
+}
+
+// ---
+
+/** 檔名必須非空且不含路徑穿越字元。 */
+export function isValidFilename(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    !value.includes("/") &&
+    !value.includes("\\") &&
+    !value.includes("..") &&
+    !value.startsWith(".")
+  );
 }

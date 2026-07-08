@@ -4,8 +4,8 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server.js";
 import * as image from "$lib/image/server.js";
-import { uniqueFilename, log } from "$lib/server/helpers.js";
-import { formatError } from "$lib/utils.js";
+import { uniqueFilename, log } from "$lib/utils/server.js";
+import { formatError } from "$lib/utils/shared.js";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
 

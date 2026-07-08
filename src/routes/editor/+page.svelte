@@ -11,7 +11,7 @@
   import ImageList from "$lib/components/media/ImageList.svelte";
   import ImageCanvas from "$lib/components/media/ImageCanvas.svelte";
   import { imgSrc } from "$lib/image/client.js";
-  import { formatDate, formatSize } from "$lib/utils.js";
+  import { formatDate, formatSize } from "$lib/utils/shared.js";
 
   import { EditorFilterModal } from "./editorFilter.svelte.js";
   import { EditorListSelect, EditorListActions } from "./editorList.svelte.js";

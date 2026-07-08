@@ -5,8 +5,8 @@ import type { RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server.js";
 import * as image from "$lib/image/server.js";
-import { isValidFilename } from "$lib/server/validation.js";
-import { log } from "$lib/server/helpers.js";
+import { isValidFilename } from "$lib/utils/shared.js";
+import { log } from "$lib/utils/server.js";
 
 /**
  * `GET /api/images/[filename]`

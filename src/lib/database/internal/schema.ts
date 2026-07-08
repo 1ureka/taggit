@@ -8,8 +8,8 @@
  * - 純讀取永不觸發改寫；首次異動後的寫出即為 v2。
  */
 
-import { isRecord } from "$lib/utils.js";
-import { log } from "$lib/server/helpers.js";
+import { isRecord } from "$lib/utils/shared.js";
+import { log } from "$lib/utils/server.js";
 import type { DBData, ImageRecord, TagMeta } from "./types.js";
 
 /** 目前的資料庫結構版本（寫出時使用）。 */

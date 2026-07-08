@@ -1,5 +1,5 @@
 import { flush } from "$lib/database/server.js";
-import { log } from "$lib/server/helpers.js";
+import { log } from "$lib/utils/server.js";
 
 declare global {
   /** 是否已註冊 SIGINT 處理程序 */

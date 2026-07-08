@@ -15,7 +15,7 @@ import type { Database } from "./store.js";
 import type { ImageWithId, QueryOptions, QueryResult, SortField, TagFacet } from "./types.js";
 import type { TagImageSample, TagQueryOptions, TagQueryResult } from "./types.js";
 import type { TagSampleMode, TagSortField, TagWithSamples } from "./types.js";
-import { isNonEmpty, sortCollator } from "$lib/utils.js";
+import { isNonEmpty, sortCollator } from "$lib/utils/shared.js";
 
 // ---
 

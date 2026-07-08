@@ -2,7 +2,7 @@ import { page } from "$app/state";
 import { goto } from "$app/navigation";
 import { parseQueryParams, buildQueryString } from "$lib/database/client.js";
 import type { SortField } from "$lib/database/client.js";
-import { debounce } from "$lib/utils.js";
+import { debounce } from "$lib/utils/shared.js";
 
 /**
  * 實時篩選表單的互動邏輯

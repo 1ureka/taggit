@@ -5,8 +5,8 @@
 
 import fs from "fs";
 import path from "path";
-import { log } from "$lib/server/helpers.js";
-import { formatError } from "$lib/utils.js";
+import { log } from "$lib/utils/server.js";
+import { formatError } from "$lib/utils/shared.js";
 
 /**
  * 由收藏庫根目錄衍生的完整路徑集合。

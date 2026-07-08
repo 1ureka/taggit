@@ -7,9 +7,9 @@ import * as database from "$lib/database/server.js";
 import * as image from "$lib/image/server.js";
 import type { ImportEntry } from "$lib/database/server.js";
 
-import { isValidFilename } from "$lib/server/validation.js";
-import { log } from "$lib/server/helpers.js";
-import { isRecord } from "$lib/utils.js";
+import { isValidFilename } from "$lib/utils/shared.js";
+import { log } from "$lib/utils/server.js";
+import { isRecord } from "$lib/utils/shared.js";
 
 function validateEntry(
   filename: string,

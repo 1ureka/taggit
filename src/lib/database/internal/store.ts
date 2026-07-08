@@ -12,8 +12,8 @@
  */
 
 import fs from "fs";
-import { formatError } from "$lib/utils.js";
-import { log } from "$lib/server/helpers.js";
+import { formatError } from "$lib/utils/shared.js";
+import { log } from "$lib/utils/server.js";
 import { OrdinalRegistry } from "./ordinal.js";
 import { FacetIndex } from "./facet-index.js";
 import { emptyDBData, parseDBData } from "./schema.js";

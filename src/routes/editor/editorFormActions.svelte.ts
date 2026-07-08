@@ -3,8 +3,8 @@ import type { ImageWithId } from "$lib/database/client.js";
 import type { EditorForm } from "./editorForm.svelte.js";
 import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 
-import { api } from "$lib/client/api.js";
-import { batchRun } from "$lib/utils.js";
+import { api } from "$lib/utils/client.js";
+import { batchRun } from "$lib/utils/shared.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/components/dom.js";
 
 /**

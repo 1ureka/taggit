@@ -1,7 +1,7 @@
-import { api } from "$lib/client/api.js";
+import { api } from "$lib/utils/client.js";
 import { invalidateAll } from "$app/navigation";
 import { addToast, requestConfirm, withProgressToast } from "$lib/components/dom.js";
-import { isRecord } from "$lib/utils.js";
+import { isRecord } from "$lib/utils/shared.js";
 
 /**
  * TaggerList 的配置選項

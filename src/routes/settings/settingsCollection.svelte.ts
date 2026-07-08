@@ -1,4 +1,4 @@
-import { api } from "$lib/client/api.js";
+import { api } from "$lib/utils/client.js";
 import { getCollectionPathHistory, pushCollectionPathHistory } from "$lib/collection/client.js";
 import { clearCollectionPathHistory } from "$lib/collection/client.js";
 

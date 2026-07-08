@@ -1,4 +1,4 @@
-import { debounce } from "$lib/utils";
+import { debounce } from "$lib/utils/shared.js";
 
 /**
  * Player dock 自動隱藏或顯示的互動邏輯

@@ -11,7 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { IMG_EXTS, MIME_TYPES } from "./internal/formats.js";
-import { sortCollator } from "$lib/utils.js";
+import { sortCollator } from "$lib/utils/shared.js";
 
 export { getImageBuffer, clearCache, getCacheStats } from "./internal/thumbnail.js";
 export { generateMetadata, readImageInfo } from "./internal/metadata.js";

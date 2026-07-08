@@ -2,7 +2,7 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as database from "$lib/database/server.js";
 
-import { parseBody, log } from "$lib/server/helpers.js";
+import { parseBody, log } from "$lib/utils/server.js";
 
 /**
  * `POST /api/tags`

@@ -2,8 +2,8 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as database from "$lib/database/server.js";
 
-import { isValidFilename } from "$lib/server/validation.js";
-import { parseBody, log } from "$lib/server/helpers.js";
+import { isValidFilename } from "$lib/utils/shared.js";
+import { parseBody, log } from "$lib/utils/server.js";
 
 /**
  * `PATCH /api/committed/[filename]`

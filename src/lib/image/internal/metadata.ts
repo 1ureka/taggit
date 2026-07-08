@@ -6,8 +6,8 @@
 import fs from "fs";
 import sharp from "sharp";
 import { encode } from "blurhash";
-import { log } from "$lib/server/helpers.js";
-import { formatError } from "$lib/utils.js";
+import { log } from "$lib/utils/server.js";
+import { formatError } from "$lib/utils/shared.js";
 
 /**
  * 提交圖片時由檔案本身衍生的全部元資料。

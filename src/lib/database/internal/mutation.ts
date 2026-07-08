@@ -12,7 +12,7 @@
 import type { Database } from "./store.js";
 import type { FileInfo, ImageRecord, ImageWithId, ImportEntry, TagMeta, UpdatePatch } from "./types.js";
 import { DEFAULT_TAG_META, pruneTagMeta } from "./schema.js";
-import { sortCollator } from "$lib/utils.js";
+import { sortCollator } from "$lib/utils/shared.js";
 
 // ---
 

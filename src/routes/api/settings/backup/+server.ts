@@ -7,7 +7,7 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import * as database from "$lib/database/server.js";
 import type { CollectionPaths } from "$lib/collection/server.js";
-import { log } from "$lib/server/helpers.js";
+import { log } from "$lib/utils/server.js";
 
 /**
  * 使用系統內建的壓縮工具將 images/ 目錄與 db.json 壓縮成 ZIP 檔

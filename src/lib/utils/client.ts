@@ -1,9 +1,9 @@
 /**
- * @file api.ts
+ * @file client.ts
  * 前端統一的 HTTP 請求工具。
  */
 
-import { hasKey } from "$lib/utils.js";
+import { hasKey } from "./shared.js";
 
 // ---
 

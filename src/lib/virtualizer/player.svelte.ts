@@ -2,7 +2,7 @@ import type { ItemWithSize } from "$lib/virtualizer/types";
 import type { PlayerStripItem, PlayerProgress } from "$lib/virtualizer/player.core";
 import { PlayerEngine } from "$lib/virtualizer/player.core";
 import { isInEditable } from "$lib/components/dom";
-import { debounce } from "$lib/utils";
+import { debounce } from "$lib/utils/shared.js";
 
 /**
  * 播放器的配置選項

@@ -1,5 +1,5 @@
 /**
- * @file helpers.ts
+ * @file server.ts
  * API 路由共用的伺服器端輔助函式（不屬於任一業務模組的通用工具）。
  */
 
