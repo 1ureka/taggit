@@ -1,33 +1,15 @@
 import fs from "fs";
 import path from "path";
-import { json, type RequestHandler } from "@sveltejs/kit";
+import type { RequestHandler } from "@sveltejs/kit";
 
-import { requireDatabase } from "$lib/server/db-instance.js";
-import { queryImages } from "$lib/server/db-query.js";
-import { upsertRecord } from "$lib/server/db-mutation.js";
+import * as collection from "$lib/collection/server.js";
+import * as database from "$lib/database/server.js";
+import * as image from "$lib/image/server.js";
+import type { ImportEntry } from "$lib/database/server.js";
 
-import type { ImageRecord, ImportEntry } from "$lib/types.js";
-import { IMG_EXTS } from "$lib/server/config.js";
-import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
-import { log } from "$lib/server/helpers.js";
-import { generateMetadata } from "$lib/server/thumbnail.js";
-import { isRecord, parseQueryParams } from "$lib/utils.js";
-
-/**
- * `GET /api/committed`
- *
- * 查詢已提交圖片，支援篩選與分頁。
- */
-export const GET: RequestHandler = ({ url }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
-    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
-  }
-
-  return json({ ok: true, data: queryImages(loaded.db, parseQueryParams(url)) });
-};
-
-// ---
+import { isValidFilename } from "$lib/utils/shared.js";
+import { log } from "$lib/utils/server.js";
+import { isRecord } from "$lib/utils/shared.js";
 
 function validateEntry(
   filename: string,
@@ -38,7 +20,7 @@ function validateEntry(
     return { ok: false, error: `無效的檔名: ${filename}` };
   }
 
-  if (!IMG_EXTS.has(path.extname(filename).toLowerCase())) {
+  if (!image.isImageFile(filename)) {
     return { ok: false, error: `非圖片檔案: ${filename}` };
   }
 
@@ -52,16 +34,16 @@ function validateEntry(
 
   const { name, tags, rating } = value as Record<string, unknown>;
 
-  if (!isValidName(name)) {
+  if (!database.isValidName(name)) {
     return { ok: false, error: `名稱無效或缺失: ${filename}` };
   }
 
-  if (!isValidTags(tags)) {
+  if (!database.isValidTags(tags)) {
     return { ok: false, error: `標籤無效: ${filename}` };
   }
 
   const resolvedRating = rating !== undefined ? rating : 0;
-  if (!isValidRating(resolvedRating)) {
+  if (!database.isValidRating(resolvedRating)) {
     return { ok: false, error: `評分無效: ${filename}` };
   }
 
@@ -81,15 +63,15 @@ function validateEntry(
  * - `{ event: "done", imported, skipped, errors }`
  */
 export const POST: RequestHandler = async ({ request }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return new Response(JSON.stringify({ ok: false, error: "尚未載入資料庫" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const { db, paths } = loaded;
+  const paths = collection.getCollectionPaths(root);
 
   let body: unknown;
   try {
@@ -144,23 +126,10 @@ export const POST: RequestHandler = async ({ request }) => {
         const { entry } = validation;
 
         try {
-          const filePath = path.join(paths.images, filename);
-          const stat = fs.statSync(filePath);
-          const meta = await generateMetadata(filePath);
-          const trimmedTags = entry.tags.map((t) => t.trim());
+          // route 層組合：image 提供檔案側元資料，database 只收純資料
+          const fileInfo = await image.readImageInfo(path.join(paths.images, filename));
+          database.commitImage(filename, entry, fileInfo);
 
-          const now = Date.now();
-          const record: ImageRecord = {
-            name: entry.name,
-            tags: trimmedTags,
-            rating: entry.rating ?? 0,
-            committedAt: now,
-            updatedAt: now,
-            fileSize: stat.size,
-            ...meta,
-          };
-
-          upsertRecord(db, filename, record);
           imported++;
           send({ event: "progress", current, total, filename, ok: true });
           log({ level: "info", module: "import", message: `[${current}/${total}] ✓ ${filename}` });
@@ -173,7 +142,6 @@ export const POST: RequestHandler = async ({ request }) => {
         }
       }
 
-      db.buildIndexes();
       send({ event: "done", imported, skipped, errors });
       log({ level: "info", module: "import", message: `匯入完成: 成功 ${imported}, 跳過 ${skipped}` });
 

@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { removeRecord } from "$lib/server/db-mutation.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
+import * as collection from "$lib/collection/server.js";
+import * as database from "$lib/database/server.js";
 
 /**
  * `GET /api/settings/missing`
@@ -10,16 +10,16 @@ import { requireDatabase } from "$lib/server/db-instance.js";
  * 列出資料庫中對應圖片檔案已不存在的記錄。
  */
 export const GET: RequestHandler = () => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const { db, paths } = loaded;
+  const imagesDir = collection.getCollectionPaths(root).images;
   const missing: string[] = [];
 
-  for (const filename of Object.keys(db.data.images)) {
-    if (!fs.existsSync(path.join(paths.images, filename))) missing.push(filename);
+  for (const { id } of database.getAllImages()) {
+    if (!fs.existsSync(path.join(imagesDir, id))) missing.push(id);
   }
 
   return json({ ok: true, data: { missing } });
@@ -33,18 +33,18 @@ export const GET: RequestHandler = () => {
  * 移除所有對應圖片檔案已不存在的資料庫記錄。
  */
 export const DELETE: RequestHandler = () => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const { db, paths } = loaded;
+  const imagesDir = collection.getCollectionPaths(root).images;
   const removed: string[] = [];
 
-  for (const filename of Object.keys(db.data.images)) {
-    if (!fs.existsSync(path.join(paths.images, filename))) {
-      removeRecord(db, filename);
-      removed.push(filename);
+  for (const { id } of database.getAllImages()) {
+    if (!fs.existsSync(path.join(imagesDir, id))) {
+      database.removeImage(id);
+      removed.push(id);
     }
   }
 

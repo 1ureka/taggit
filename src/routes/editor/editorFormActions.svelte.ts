@@ -1,12 +1,11 @@
 import { invalidateAll } from "$app/navigation";
-import type { ImageWithId } from "$lib/types.js";
+import type { ImageWithId } from "$lib/database/client.js";
 import type { EditorForm } from "./editorForm.svelte.js";
 import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 
-import { api } from "$lib/client/api.js";
-import { batchRun } from "$lib/utils.js";
-import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
-import { tagCache } from "$lib/client/cache.js";
+import { api } from "$lib/utils/client.js";
+import { batchRun } from "$lib/utils/shared.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/components/dom.js";
 
 /**
  * 編輯操作的配置選項
@@ -105,7 +104,6 @@ export class EditorFormActions {
       addToast(`已存檔: ${record.id}`, "success");
     }
 
-    tagCache.invalidate();
     await invalidateAll();
   }
 
@@ -147,7 +145,6 @@ export class EditorFormActions {
     if (ok) addToast(`已更新 ${ok} 張圖片`, "success");
     if (fail) addToast(`${fail} 張更新失敗`, "error");
 
-    tagCache.invalidate();
     await invalidateAll();
   }
 
@@ -173,7 +170,6 @@ export class EditorFormActions {
       if (ok) addToast(ok === 1 ? `已取消提交: ${ids[0]}` : `已取消提交 ${ok} 張圖片`, "info");
       if (fail) addToast(`${fail} 張刪除失敗`, "error");
 
-      tagCache.invalidate();
       await invalidateAll();
     } finally {
       this.options.pending = false;

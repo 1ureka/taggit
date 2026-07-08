@@ -2,29 +2,12 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import { requireDatabase, requirePaths } from "$lib/server/db-instance.js";
-import { getStagedFiles, uniqueFilename, log } from "$lib/server/helpers.js";
-import { IMG_EXTS } from "$lib/server/config.js";
-import { formatError } from "$lib/utils.js";
+import * as collection from "$lib/collection/server.js";
+import * as image from "$lib/image/server.js";
+import { uniqueFilename, log } from "$lib/utils/server.js";
+import { formatError } from "$lib/utils/shared.js";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
-
-/**
- * `GET /api/staged`
- *
- * 列出所有暫存區中的圖片檔名。
- */
-export const GET: RequestHandler = () => {
-  const loaded = requireDatabase();
-  if (!loaded) {
-    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
-  }
-
-  const { db, paths } = loaded;
-  return json({ ok: true, data: { files: getStagedFiles(db, paths) } });
-};
-
-// ---
 
 /**
  * `POST /api/staged`
@@ -32,10 +15,12 @@ export const GET: RequestHandler = () => {
  * 上傳圖片檔案至 images/ 目錄（尚未提交至 db.json）。
  */
 export const POST: RequestHandler = async ({ request }) => {
-  const paths = requirePaths();
-  if (!paths) {
+  const root = collection.getActiveRoot();
+  if (!root) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
+
+  const paths = collection.getCollectionPaths(root);
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
@@ -65,8 +50,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    const ext = path.extname(entry.name).toLowerCase();
-    if (!IMG_EXTS.has(ext)) {
+    if (!image.isImageFile(entry.name)) {
       errors.push(`${entry.name}: 不支援的檔案格式`);
       continue;
     }

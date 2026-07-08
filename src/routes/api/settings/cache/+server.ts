@@ -1,5 +1,5 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { clearCache, getCacheStats } from "$lib/server/thumbnail.js";
+import { clearCache, getCacheStats } from "$lib/image/server.js";
 
 /**
  * `GET /api/settings/cache`

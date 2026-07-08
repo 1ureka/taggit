@@ -1,8 +1,7 @@
-import { api } from "$lib/client/api.js";
+import { api } from "$lib/utils/client.js";
 import { invalidateAll } from "$app/navigation";
-import { addToast, requestConfirm, withProgressToast } from "$lib/client/dom.js";
-import { tagCache } from "$lib/client/cache.js";
-import { isRecord } from "$lib/utils.js";
+import { addToast, requestConfirm, withProgressToast } from "$lib/components/dom.js";
+import { isRecord } from "$lib/utils/shared.js";
 
 /**
  * TaggerList 的配置選項
@@ -243,7 +242,6 @@ export class TaggerListActions {
         return { message: `匯入完成：${parts.join("，") || "無紀錄"}` };
       });
 
-      tagCache.invalidate();
       await invalidateAll();
     } catch {
       // withProgressToast 已處理 error toast

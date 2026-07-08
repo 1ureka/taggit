@@ -1,4 +1,4 @@
-import { api } from "$lib/client/api.js";
+import { api } from "$lib/utils/client.js";
 
 /**
  * SettingsImages 的配置選項

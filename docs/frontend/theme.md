@@ -240,7 +240,7 @@ background: color-mix(in srgb, var(--accent) 80%, black);
 
 ```svelte
 <script lang="ts">
-  import { IconArrowLeft, IconRefresh } from "$lib/icons";
+  import { IconArrowLeft, IconRefresh } from "$lib/components/icons";
 </script>
 
 <IconArrowLeft />

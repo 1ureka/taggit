@@ -2,15 +2,12 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import { requireDatabase } from "$lib/server/db-instance.js";
-import { addRecord } from "$lib/server/db-mutation.js";
-import { hasImage } from "$lib/server/db-query.js";
+import * as collection from "$lib/collection/server.js";
+import * as database from "$lib/database/server.js";
+import * as image from "$lib/image/server.js";
 
-import type { ImageRecord } from "$lib/types.js";
-import { IMG_EXTS } from "$lib/server/config.js";
-import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
-import { parseBody, log } from "$lib/server/helpers.js";
-import { generateMetadata } from "$lib/server/thumbnail.js";
+import { isValidFilename } from "$lib/utils/shared.js";
+import { parseBody, log } from "$lib/utils/server.js";
 
 /**
  * `POST /api/staged/[filename]`
@@ -19,12 +16,12 @@ import { generateMetadata } from "$lib/server/thumbnail.js";
  * Body: `{ tags, rating }`，filename 來自 URL 路徑參數。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const { db, paths } = loaded;
+  const paths = collection.getCollectionPaths(root);
 
   // ---
 
@@ -33,11 +30,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
-  if (!IMG_EXTS.has(path.extname(filename).toLowerCase())) {
+  if (!image.isImageFile(filename)) {
     return json({ ok: false, error: "非圖片檔案" }, { status: 400 });
   }
 
-  if (hasImage(db, filename)) {
+  if (database.hasImage(filename)) {
     return json({ ok: false, error: "已提交的圖片" }, { status: 409 });
   }
 
@@ -53,37 +50,24 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   const { tags, rating } = body;
 
-  if (!isValidTags(tags)) {
+  if (!database.isValidTags(tags)) {
     return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
   }
 
-  if (!isValidRating(rating)) {
+  if (!database.isValidRating(rating)) {
     return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
   }
 
   // ---
 
   try {
-    const now = Date.now();
-
+    // route 層組合：image 提供檔案側元資料，database 只收純資料
     const ext = path.extname(filename).toLowerCase();
-    const stat = fs.statSync(filePath);
-    const meta = await generateMetadata(filePath);
-    const trimmedTags = tags.map((t) => t.trim());
+    const fileInfo = await image.readImageInfo(filePath);
+    const record = database.commitImage(filename, { name: path.basename(filename, ext), tags, rating }, fileInfo);
 
-    const record: ImageRecord = {
-      name: path.basename(filename, ext),
-      tags: trimmedTags,
-      rating,
-      committedAt: now,
-      updatedAt: now,
-      fileSize: stat.size,
-      ...meta,
-    };
-
-    addRecord(db, filename, record);
     log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
-    return json({ ok: true, data: { id: filename, ...record } }, { status: 201 });
+    return json({ ok: true, data: record }, { status: 201 });
   } catch (e) {
     if (e instanceof Error && "code" in e && e.code === "ENOENT") {
       return json({ ok: false, error: "檔案不存在" }, { status: 404 });
@@ -102,19 +86,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * 永久刪除暫存區中的指定檔案。
  */
 export const DELETE: RequestHandler = ({ params }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const { db, paths } = loaded;
+  const paths = collection.getCollectionPaths(root);
 
   const { filename } = params;
   if (!isValidFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
-  if (hasImage(db, filename)) {
+  if (database.hasImage(filename)) {
     return json({ ok: false, error: "無法透過暫存區端點刪除已提交的圖片" }, { status: 409 });
   }
 

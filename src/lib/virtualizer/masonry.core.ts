@@ -1,4 +1,4 @@
-import type { ItemWithSize } from "$lib/types";
+import type { ItemWithSize } from "$lib/virtualizer/types";
 
 /**
  * 單個項目在軌道中的垂直權重位置資訊

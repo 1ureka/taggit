@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { IconArrowBackUpDouble, IconCheck } from "$lib/icons";
-  import { IconReload, IconX, IconUpload, IconDatabase } from "$lib/icons";
+  import { IconArrowBackUpDouble, IconCheck } from "$lib/components/icons";
+  import { IconReload, IconX, IconUpload, IconDatabase } from "$lib/components/icons";
   import type { PageData } from "./$types.js";
 
-  import Rating from "$lib/components/Rating.svelte";
-  import Autocomplete from "$lib/components/Autocomplete.svelte";
-  import ImageList from "$lib/components/ImageList.svelte";
-  import ImageCanvas from "$lib/components/ImageCanvas.svelte";
-  import { imgSrc } from "$lib/client/api.js";
+  import Rating from "$lib/components/form/Rating.svelte";
+  import Autocomplete from "$lib/components/form/Autocomplete.svelte";
+  import ImageList from "$lib/components/media/ImageList.svelte";
+  import ImageCanvas from "$lib/components/media/ImageCanvas.svelte";
+  import { imgSrc } from "$lib/image/client.js";
 
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
