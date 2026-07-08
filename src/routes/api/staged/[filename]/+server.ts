@@ -48,7 +48,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const { tags, rating } = body;
+  const { tags, rating, name } = body;
 
   if (!database.isValidTags(tags)) {
     return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
@@ -58,13 +58,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
   }
 
+  // name 為可選；未提供時沿用去副檔名的檔名（向後相容匯入等既有呼叫）
+  if (name !== undefined && !database.isValidName(name)) {
+    return json({ ok: false, error: "無效的名稱 (必須是非空字串，長度 ≤ 200)" }, { status: 400 });
+  }
+
   // ---
 
   try {
     // route 層組合：image 提供檔案側元資料，database 只收純資料
     const ext = path.extname(filename).toLowerCase();
+    const resolvedName = name !== undefined ? name.trim() : path.basename(filename, ext);
     const fileInfo = await image.readImageInfo(filePath);
-    const record = database.commitImage(filename, { name: path.basename(filename, ext), tags, rating }, fileInfo);
+    const record = database.commitImage(filename, { name: resolvedName, tags, rating }, fileInfo);
 
     log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
     return json({ ok: true, data: record }, { status: 201 });

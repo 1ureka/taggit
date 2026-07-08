@@ -181,6 +181,20 @@
       </header>
 
       <div class="form-fields">
+        <div class="field-name">
+          <input
+            type="text"
+            class="text-input"
+            bind:value={form.name}
+            maxlength="200"
+            placeholder={form.singleSelected ? "圖片名稱（留空使用檔名）" : "多選時無法命名"}
+            disabled={!form.singleSelected}
+            aria-label="圖片名稱"
+          />
+        </div>
+
+        <div class="separator"></div>
+
         <div class="field-rating">
           <Rating name="rating" bind:value={form.rating} size="1.5rem" />
         </div>
