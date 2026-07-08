@@ -1,31 +1,11 @@
 /**
  * @file helpers.ts
- * API 路由共用的伺服器端輔助函式。
+ * API 路由共用的伺服器端輔助函式（不屬於任一業務模組的通用工具）。
  */
 
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-
-import type { CollectionPaths } from "$lib/types.js";
-import type { JSONDatabase } from "$lib/server/db.js";
-import { IMG_EXTS } from "$lib/server/config.js";
-import { sortCollator } from "$lib/utils.js";
-
-/**
- * 列出 `images/` 目錄中不在 `db.json` 中的圖片檔名（即 staged），依字母排序。
- */
-export function getStagedFiles(db: JSONDatabase, paths: CollectionPaths): string[] {
-  try {
-    const dbImages = db.data.images;
-    return fs
-      .readdirSync(paths.images)
-      .filter((f) => IMG_EXTS.has(path.extname(f).toLowerCase()) && !(f in dbImages))
-      .sort((a, b) => sortCollator.compare(a, b));
-  } catch {
-    return [];
-  }
-}
 
 /**
  * 在 `dir` 中為 `name` 找出不重複的檔名。

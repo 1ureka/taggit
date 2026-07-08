@@ -1,5 +1,5 @@
-import { requireDatabase } from "$lib/server/db-instance.js";
-import { log } from "$lib/server/helpers";
+import { flush } from "$lib/database/server.js";
+import { log } from "$lib/server/helpers.js";
 
 declare global {
   /** 是否已註冊 SIGINT 處理程序 */
@@ -11,7 +11,7 @@ if (!globalThis.__sigintRegistered) {
 
   const onExit = (signal: string) => {
     log({ level: "info", module: "hooks", message: `接收到 ${signal} 訊號，正在寫入資料庫…` });
-    requireDatabase({ allowUnload: true }).db.flush();
+    flush();
     log({ level: "info", module: "hooks", message: "資料庫寫入完成，正在退出…" });
     process.exit(0);
   };

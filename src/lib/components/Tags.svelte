@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { buildQueryString } from "$lib/utils.js";
+  import { buildQueryString } from "$lib/database/client.js";
 
   type Props = {
     tags: string[];

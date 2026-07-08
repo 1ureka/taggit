@@ -1,5 +1,4 @@
-import type { TagInfo } from "$lib/types.js";
-import { tagCache } from "$lib/client/cache.js";
+import type { TagFacet } from "$lib/database/client.js";
 import { scrollToActive } from "$lib/client/dom";
 
 /**
@@ -9,6 +8,8 @@ type AutocompleteOptions = {
   /** 雙向綁定：目前選中的標籤列表 */
   get selectedTags(): string[];
   set selectedTags(value: string[]);
+  /** 候選標籤來源（通常為 page data 的 facets，由 SSR 提供） */
+  get candidates(): TagFacet[];
   /** 當標籤變更時觸發 */
   onchange?: () => void;
   /** 選項元素的高度 */
@@ -16,7 +17,8 @@ type AutocompleteOptions = {
 };
 
 /**
- * 自動補全組件的互動邏輯
+ * 自動補全組件的互動邏輯。
+ * 候選標籤由建構端注入（SSR faceted search 的資料流），本類別無任何網路副作用。
  */
 export class Autocomplete {
   /** 輸入框實例的引用 (DOM) */
@@ -31,18 +33,18 @@ export class Autocomplete {
   /** 下拉選單中目前高亮選項的索引 */
   activeIndex = $state(-1);
 
-  /** 從快取中獲取的所有原始標籤數據 */
-  tags = $state<TagInfo[]>([]);
   /** 顯示在下拉選單中的標籤列表 */
-  dropdownTags: TagInfo[];
+  dropdownTags: TagFacet[];
+  /** 同時顯示的標籤數量 */
+  maxVisibleTags = 100;
 
   constructor(private options: AutocompleteOptions) {
     this.dropdownTags = $derived.by(() => {
       const query = this.inputValue.trim().toLowerCase();
       const excluded = new Set(this.options.selectedTags);
-      const available = this.tags.filter((t) => !excluded.has(t.name));
-      if (!query) return available;
-      return available.filter((t) => t.name.toLowerCase().includes(query));
+      const available = this.options.candidates.filter((t) => !excluded.has(t.name));
+      if (!query) return available.slice(0, this.maxVisibleTags);
+      return available.filter((t) => t.name.toLowerCase().includes(query)).slice(0, this.maxVisibleTags);
     });
   }
 
@@ -95,9 +97,8 @@ export class Autocomplete {
 
   // ---
 
-  /** 開啟下拉選單並從快取載入標籤數據 */
-  async #openDropdown() {
-    this.tags = await tagCache.get(); // 這會自己請求去重、使用快取、並在後台更新等
+  /** 開啟下拉選單 */
+  #openDropdown() {
     this.showDropdown = true;
     this.#setActiveIndex(-1);
   }
@@ -182,7 +183,7 @@ export class Autocomplete {
   // ---
 
   /** 處理 dropdown 鼠標按下事件：選中對應標籤並阻止 input 失去焦點 */
-  handleDropdownMouseDown = (e: MouseEvent, tag: TagInfo) => {
+  handleDropdownMouseDown = (e: MouseEvent, tag: TagFacet) => {
     e.preventDefault(); // 阻止 input 失去焦點，從而保持 dropdown 打開
     this.#addTag(tag.name);
   };

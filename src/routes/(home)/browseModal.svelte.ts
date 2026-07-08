@@ -1,6 +1,6 @@
 import { replaceState } from "$app/navigation";
 import { page } from "$app/state";
-import type { ImageWithId } from "$lib/types.js";
+import type { ImageWithId } from "$lib/database/client.js";
 
 type BrowseModalOptions = {
   /** SSR 的圖片集合結果 */

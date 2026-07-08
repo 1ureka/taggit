@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { IconX } from "$lib/icons";
   import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import type { TagFacet } from "$lib/database/client.js";
   import Popover from "$lib/components/Popover.svelte";
 
   type Props = {
@@ -10,6 +12,8 @@
     name?: string;
     /** 雙向綁定：目前選中的標籤列表 */
     tags: string[];
+    /** 候選標籤；預設消費 page data 的 facets（SSR faceted search） */
+    candidates?: TagFacet[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
     placeholder?: string;
     /** 當標籤變更時觸發 */
@@ -18,7 +22,15 @@
     variant?: "top" | "inline";
   };
 
-  let { id, name, tags = $bindable([]), placeholder = "輸入標籤...", onchange, variant = "top" }: Props = $props();
+  let {
+    id,
+    name,
+    tags = $bindable([]),
+    candidates,
+    placeholder = "輸入標籤...",
+    onchange,
+    variant = "top",
+  }: Props = $props();
 
   const itemHeight = 32;
 
@@ -28,6 +40,9 @@
     },
     set selectedTags(v) {
       tags = v;
+    },
+    get candidates() {
+      return candidates ?? page.data.facets ?? [];
     },
     onchange: () => onchange?.(),
     itemHeight,
