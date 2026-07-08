@@ -1,14 +1,11 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import { queryImages } from "$lib/server/db-query.js";
-import { parseQueryParams } from "$lib/utils.js";
-import { requireDatabase } from "$lib/server/db-instance.js";
+import * as database from "$lib/database/server.js";
 
 export const load: PageServerLoad = ({ url }) => {
-  const loaded = requireDatabase();
-  if (!loaded) throw redirect(303, "/settings?alert=error");
+  if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
 
-  const result = queryImages(loaded.db, parseQueryParams(url));
+  const result = database.queryImages(url.searchParams);
 
   if (result.total === 0) {
     const newUrl = new URL(url);
@@ -16,5 +13,5 @@ export const load: PageServerLoad = ({ url }) => {
     throw redirect(302, newUrl);
   }
 
-  return { images: result.items, total: result.total };
+  return { images: result.items, total: result.total, facets: result.facets };
 };
