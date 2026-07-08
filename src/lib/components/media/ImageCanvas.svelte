@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { blurhashStyle } from "$lib/client/blurhash";
+  import { blurhashStyle } from "$lib/image/client.js";
   import { ZoomPan } from "./zoom-pan.svelte.js";
 
   type PreviewConfig = {

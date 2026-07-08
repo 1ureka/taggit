@@ -4,8 +4,7 @@
 
   import Rating from "$lib/components/form/Rating.svelte";
   import Tags from "$lib/components/misc/Tags.svelte";
-  import { blurhashStyle } from "$lib/client/blurhash.js";
-  import { imgSrc } from "$lib/image/client.js";
+  import { imgSrc, blurhashStyle } from "$lib/image/client.js";
   import { CompareShuffle } from "./compareShuffle.svelte.js";
 
   let { data }: { data: PageData } = $props();

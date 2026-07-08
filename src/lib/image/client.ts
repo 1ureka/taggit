@@ -8,8 +8,10 @@
  */
 
 import type { ImageSize } from "./internal/formats.js";
+import { blurhashStyle } from "./internal/blurhash.js";
 
 export type { ImageSize };
+export { blurhashStyle };
 
 /**
  * 構建 `/api/images/{filename}` 的圖片 URL，自動處理 URL 編碼與尺寸參數。
