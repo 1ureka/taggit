@@ -12,20 +12,19 @@
 
 項目 0（隱藏標籤）上線後浮現的結構性問題：標籤的「篩選」與「編寫／管理」兩種角色共用同一條遮蔽資料通道。收斂為「兩實體、兩引擎」的 database 重寫：
 
-- [0_database-rewrite.md](./0_database-rewrite.md) — **已完成**：`Tag` 實體 + `queryImages`/`queryTags` 兩引擎 + 共用 `resolveScope`；刪除 `TagFacet`/`getAllTagFacets` 等冗餘型別與介面。刻意維持舊行為（不修 bug）。
-- [1_bugfixes-and-frontend-refactor.md](./1_bugfixes-and-frontend-refactor.md) — **待辦**：以新 `queryTags` 組合修四個 hidden bug + 抽象化 Autocomplete／新增雙模式 TagAutocomplete／page.data 雙通道。「列出 hidden」與 tag CRUD 為 open question。
+- [0_database-rewrite.md](./0_database-rewrite.md) — **已完成**：`Tag` 實體 + `queryImages`/`queryTags` 兩引擎 + 共用 `resolveScope`；刪除 `TagFacet`/`getAllTagFacets` 等冗餘型別與介面。
 
 ## 共通慣例（撰寫計畫時已對照現有程式）
 
-- **模組邊界**：外部只能 import 各模組的 `client.ts` / `server.ts`（見 `$lib/{collection,database,image}`）。`internal/` 不對外。
+- **模組邊界**：外部只能 import 各模組的 `client.ts` / `server.ts`，`internal/` 不對外。(*註1)
 - **API 回應格式**：`{ ok, data? , error? }`，前端一律走 `$lib/utils/client.ts` 的 `api.{get,post,patch,del}`。
 - **狀態邏輯**：頁面互動邏輯放在同名 `*.svelte.ts` 的 class（Runes），元件 `.svelte` 只負責渲染與綁定。
 - **資料流**：伺服器變更後前端以 `invalidateAll()` 重新載入 page data。
 - **語言**：註解、文案、log 皆為繁體中文。
 
+> 註1: 見 `$lib/{collection,database,image}`
+
 ## 建議實作順序
 
 4 →（獨立、低風險，先清掉正確性問題）
 7 → 8（都動 layout，可一起做）
-0 → 1（都在既有頁面加欄位／分區）
-3（唯一牽涉平台原生對話框，風險最高，最後做並先確認方向）

@@ -1,8 +1,5 @@
 # 0_ database 模組重寫：兩實體、兩引擎（已完成）
 
-> 本文記錄「已實作」的底層重寫。修 bug 與前端重構屬後續，見
-> [1_bugfixes-and-frontend-refactor.md](./1_bugfixes-and-frontend-refactor.md)。
-
 ## 動機
 
 hidden 標籤上線後暴露的一連串 bug，本質都是同一件事：**database 模組沒有把「標籤」當成一等實體看待**。所有標籤讀取都是 faceted、遮蔽、count 導向、used-only，把「篩選述詞」與「被編寫／管理的實體」兩種角色混在同一條通道。此重寫先把底層地基補正，讓後續 bug 變成「呼叫端組合」而非「新增特例 API」。
@@ -37,15 +34,3 @@ hidden 標籤上線後暴露的一連串 bug，本質都是同一件事：**data
 | 呼叫端 `+page.server.ts`（home／player／compare／editor） | `facets` 改由 `database.queryTags(url.searchParams)` 取得（取代 `queryImages().facets`）。 |
 | 呼叫端 `+page.server.ts`（tagger／settings） | `getAllTagFacets()` → `queryTags()`（無參數＝全庫）。 |
 | `app.d.ts`／`Autocomplete(.svelte/.ts)`／`settingsHiddenTags.svelte.ts` | 型別 `TagFacet` → `Tag`；`f.hidden` → `f.meta.hidden`（純型別／存取路徑調整）。 |
-
-## 刻意保留的行為（＝故意不修 bug）
-
-- 所有呼叫端一律用 `queryTags` 的**預設** `{ hidden: "mask", universe: "used" }`，精確重現舊 `queryImages().facets` 與 `getAllTagFacets()` 的輸出。
-- 因此先前發現的 hidden 相關 bug（互相共存的 hidden 標籤在清單消失、ghost 標籤看不到、編寫語境候選被遮蔽）**依舊存在**，留待 [1_](./1_bugfixes-and-frontend-refactor.md) 以「換組合選項」修復。
-- `page.data.facets` 欄位名暫時沿用（呼叫端組合不變）；改名為雙通道屬前端重構範圍。
-
-## 備註
-
-- **命名**：`facets` 欄位名待前端重構時再處理；`Tag` 已取代語義誤導的 `TagFacet`。
-- **效能**：query 頁現在對同一 `conditions` 各跑一次 `resolveScope`（images 一次、tags 一次）。皆為位元圖集合運算，相對 materialize＋排序可忽略；facet 不再是免費副產物是此正交化的已知、可接受成本。
-- **驗證**：`svelte-check` 0 error / 0 warning；全庫無殘留對已刪符號的引用。行為對照舊實作為等價（同樣的 mask／used 預設）。
