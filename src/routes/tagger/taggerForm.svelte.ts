@@ -1,7 +1,7 @@
 import { invalidateAll } from "$app/navigation";
 import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
-import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/components/dom.js";
 
 /**
  * TaggerForm 的配置選項

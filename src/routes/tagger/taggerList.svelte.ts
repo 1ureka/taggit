@@ -1,6 +1,6 @@
 import { api } from "$lib/client/api.js";
 import { invalidateAll } from "$app/navigation";
-import { addToast, requestConfirm, withProgressToast } from "$lib/client/dom.js";
+import { addToast, requestConfirm, withProgressToast } from "$lib/components/dom.js";
 import { isRecord } from "$lib/utils.js";
 
 /**

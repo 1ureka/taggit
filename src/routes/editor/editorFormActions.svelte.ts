@@ -5,7 +5,7 @@ import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 
 import { api } from "$lib/client/api.js";
 import { batchRun } from "$lib/utils.js";
-import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/components/dom.js";
 
 /**
  * 編輯操作的配置選項

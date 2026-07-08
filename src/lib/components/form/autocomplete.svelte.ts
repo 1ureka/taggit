@@ -1,5 +1,5 @@
 import type { TagFacet } from "$lib/database/client.js";
-import { scrollToActive } from "$lib/client/dom";
+import { scrollToActive } from "$lib/components/dom";
 
 /**
  * 自動補全組件的配置選項

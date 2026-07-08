@@ -1,5 +1,5 @@
 import { api } from "$lib/client/api.js";
-import { requestConfirm } from "$lib/client/dom.js";
+import { requestConfirm } from "$lib/components/dom.js";
 
 /**
  * SettingsMaintenance 的互動邏輯

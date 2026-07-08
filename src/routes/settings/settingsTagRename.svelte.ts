@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/client/api.js";
-import { requestConfirm } from "$lib/client/dom.js";
+import { requestConfirm } from "$lib/components/dom.js";
 
 /**
  * 標籤操作結果
