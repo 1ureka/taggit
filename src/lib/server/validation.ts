@@ -7,8 +7,6 @@
  * 每個函式同時作為 TypeScript 型別收窄（narrowing）使用。
  */
 
-import type { ImageSize } from "$lib/types.js";
-
 /** 標籤必須為非空陣列，每個元素為修剪後非空、不重複的字串（各最長 50 字元）。 */
 export function isValidTags(value: unknown): value is string[] {
   if (!Array.isArray(value) || value.length === 0) return false;
@@ -46,11 +44,6 @@ export function isValidFilename(value: unknown): value is string {
     !value.includes("..") &&
     !value.startsWith(".")
   );
-}
-
-/** 檢查 size 查詢參數是否為 sm / md / xl 其中之一。 */
-export function isValidSize(value: unknown): value is ImageSize {
-  return value === "sm" || value === "md" || value === "xl";
 }
 
 /** name 必須為非空字串，長度 ≤ 200 */
