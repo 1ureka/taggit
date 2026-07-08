@@ -1,8 +1,8 @@
 import { tick } from "svelte";
-import type { ToastEventName, ToastPayload, ToastType } from "$lib/types.js";
-import type { ToastProgressStartEventName, ToastProgressStartPayload } from "$lib/types.js";
-import type { ToastProgressUpdateEventName, ToastProgressUpdatePayload } from "$lib/types.js";
-import type { ToastProgressDoneEventName, ToastProgressDonePayload } from "$lib/types.js";
+import type { ToastEventName, ToastPayload, ToastType } from "../types.js";
+import type { ToastProgressStartEventName, ToastProgressStartPayload } from "../types.js";
+import type { ToastProgressUpdateEventName, ToastProgressUpdatePayload } from "../types.js";
+import type { ToastProgressDoneEventName, ToastProgressDonePayload } from "../types.js";
 
 /**
  * Toast 項目資料結構
