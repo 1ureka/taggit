@@ -29,6 +29,7 @@ export class SettingsNav {
       const base: NavSection[] = [{ id: "collection", label: "圖片集路徑" }];
       if (options.collectionRoot) {
         base.push({ id: "tags", label: "標籤管理" });
+        base.push({ id: "hidden", label: "隱藏標籤" });
         base.push({ id: "images", label: "圖片與快取" });
         base.push({ id: "maintenance", label: "系統維護" });
       }

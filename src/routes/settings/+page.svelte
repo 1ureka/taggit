@@ -10,6 +10,7 @@
   import { SettingsNav } from "./settingsNav.svelte.js";
   import { SettingsCollection } from "./settingsCollection.svelte.js";
   import { SettingsTagRename } from "./settingsTagRename.svelte.js";
+  import { SettingsHiddenTags } from "./settingsHiddenTags.svelte.js";
   import { SettingsImages } from "./settingsImages.svelte.js";
   import { SettingsMaintenance } from "./settingsMaintenance.svelte.js";
 
@@ -28,6 +29,12 @@
   });
 
   const tagRename = new SettingsTagRename();
+
+  const hiddenTags = new SettingsHiddenTags({
+    get facets() {
+      return data.facets;
+    },
+  });
 
   const images = new SettingsImages({
     get cacheStats() {
@@ -146,6 +153,50 @@
           {tagRename.result.message}
         </p>
       {/if}
+    {/if}
+  </section>
+{/snippet}
+
+{#snippet hiddenTagsSettings()}
+  <section id="section-hidden">
+    <h2>隱藏標籤</h2>
+    <p>帶有隱藏標籤的圖片，只有在查詢明確包含此標籤時才會出現，可用來收納想私藏或干擾探索的標籤。</p>
+
+    <div class="field">
+      <span class="label">目前隱藏中</span>
+      {#if hiddenTags.hiddenTags.length > 0}
+        <div class="hidden-list">
+          {#each hiddenTags.hiddenTags as tag}
+            <span class="chip">{tag}</span>
+          {/each}
+        </div>
+      {:else}
+        <p class="empty">尚無隱藏標籤</p>
+      {/if}
+    </div>
+
+    <div class="field">
+      <span class="label">選擇標籤</span>
+      <Autocomplete
+        bind:tags={hiddenTags.selectedTags}
+        variant="inline"
+        placeholder="選擇標籤..."
+        onchange={hiddenTags.handleSelectChange}
+      />
+    </div>
+
+    <button
+      type="button"
+      class="btn-primary"
+      class:pending={hiddenTags.busy}
+      onclick={hiddenTags.handleToggleClick}
+      disabled={!hiddenTags.canSubmit}
+    >
+      <span>{hiddenTags.selectedHidden ? "取消隱藏" : "設為隱藏"}</span>
+    </button>
+
+    {#if hiddenTags.message}
+      <p class="result" class:error={hiddenTags.isError}>{hiddenTags.message}</p>
     {/if}
   </section>
 {/snippet}
@@ -280,6 +331,7 @@
       {@render collectionSettings()}
       {#if data.collectionRoot}
         {@render tagsSettings()}
+        {@render hiddenTagsSettings()}
         {@render imagesSettings()}
         {@render maintenanceSettings()}
       {/if}
@@ -490,6 +542,40 @@
       &:hover {
         text-decoration: underline;
       }
+    }
+  }
+
+  /* --- */
+
+  section#section-hidden > .field {
+    margin-bottom: 0.75rem;
+  }
+
+  section#section-hidden > .field > .label {
+    display: block;
+    font-size: var(--font-size-body1);
+    color: var(--text);
+    margin-bottom: 0.375rem;
+  }
+
+  section#section-hidden .hidden-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  section#section-hidden .empty {
+    font-size: var(--font-size-body2);
+    color: var(--text-dim);
+  }
+
+  section#section-hidden > .result {
+    font-size: var(--font-size-body2);
+    color: var(--color-success);
+    margin-top: 0.75rem;
+
+    &.error {
+      color: var(--destructive);
     }
   }
 
