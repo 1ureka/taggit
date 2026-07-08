@@ -8,7 +8,7 @@ type AutocompleteOptions = {
   /** 雙向綁定：目前選中的標籤列表 */
   get selectedTags(): string[];
   set selectedTags(value: string[]);
-  /** 候選標籤來源（通常為 page data 的 facets，由 SSR 提供） */
+  /** 候選標籤來源 */
   get candidates(): Tag[];
   /** 當標籤變更時觸發 */
   onchange?: () => void;

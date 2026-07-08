@@ -6,8 +6,8 @@ import type { Tag } from "$lib/database/client.js";
  * SettingsHiddenTags 的配置選項
  */
 type SettingsHiddenTagsOptions = {
-  /** 全庫標籤 facets（含 hidden 標記），由 page data 提供 */
-  facets: Tag[];
+  /** 全庫標籤（含 hidden／未使用），authoring 通道，由 page data 提供 */
+  authoringTags: Tag[];
 };
 
 /**
@@ -36,9 +36,11 @@ export class SettingsHiddenTags {
   canSubmit: boolean;
 
   constructor(private options: SettingsHiddenTagsOptions) {
-    this.hiddenTags = $derived(this.options.facets.filter((f) => f.meta.hidden).map((f) => f.name));
+    this.hiddenTags = $derived(this.options.authoringTags.filter((f) => f.meta.hidden).map((f) => f.name));
     this.selectedName = $derived(this.selectedTags[0] ?? "");
-    this.selectedHidden = $derived(this.options.facets.find((f) => f.name === this.selectedName)?.meta.hidden ?? false);
+    this.selectedHidden = $derived(
+      this.options.authoringTags.find((f) => f.name === this.selectedName)?.meta.hidden ?? false,
+    );
     this.canSubmit = $derived(!!this.selectedName.trim() && !this.busy);
   }
 

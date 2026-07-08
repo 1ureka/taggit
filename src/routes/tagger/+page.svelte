@@ -202,7 +202,7 @@
         <div class="separator"></div>
 
         <div class="field-tags">
-          <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+          <Autocomplete bind:tags={form.tags} candidates={data.authoringTags} variant="top" placeholder="輸入標籤..." />
         </div>
       </div>
 

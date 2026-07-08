@@ -201,7 +201,7 @@
     <div class="separator"></div>
 
     <div class="field-tags">
-      <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+      <Autocomplete bind:tags={form.tags} candidates={data.authoringTags} variant="top" placeholder="輸入標籤..." />
     </div>
   </div>
 {/snippet}
@@ -218,14 +218,26 @@
 
     <div class="field-tags">
       <label for="batch-add-tags">新增標籤</label>
-      <Autocomplete id="batch-add-tags" bind:tags={form.addTags} variant="top" placeholder="輸入要新增的標籤..." />
+      <Autocomplete
+        id="batch-add-tags"
+        bind:tags={form.addTags}
+        candidates={data.authoringTags}
+        variant="top"
+        placeholder="輸入要新增的標籤..."
+      />
     </div>
 
     <div class="separator"></div>
 
     <div class="field-tags">
       <label for="batch-rm-tags">刪除標籤</label>
-      <Autocomplete id="batch-rm-tags" bind:tags={form.removeTags} variant="top" placeholder="輸入要刪除的標籤..." />
+      <Autocomplete
+        id="batch-rm-tags"
+        bind:tags={form.removeTags}
+        candidates={data.authoringTags}
+        variant="top"
+        placeholder="輸入要刪除的標籤..."
+      />
     </div>
   </div>
 {/snippet}
@@ -286,7 +298,7 @@
   <h3 class="modal-title">篩選條件</h3>
 
   <div class="modal-body">
-    <FilterFields allowRandomSort={false} />
+    <FilterFields allowRandomSort={false} candidates={data.facets} />
   </div>
 
   <div class="modal-actions">

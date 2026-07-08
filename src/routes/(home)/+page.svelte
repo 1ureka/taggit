@@ -131,7 +131,7 @@
       </header>
 
       <div>
-        <FilterFields />
+        <FilterFields candidates={data.facets} />
       </div>
 
       <div>

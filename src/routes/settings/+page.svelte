@@ -31,8 +31,8 @@
   const tagRename = new SettingsTagRename();
 
   const hiddenTags = new SettingsHiddenTags({
-    get facets() {
-      return data.facets;
+    get authoringTags() {
+      return data.authoringTags;
     },
   });
 
@@ -112,6 +112,7 @@
       <span class="label">標籤名稱</span>
       <Autocomplete
         bind:tags={tagRename.selectedTags}
+        candidates={data.authoringTags}
         variant="inline"
         placeholder="選擇標籤..."
         onchange={tagRename.handleSelectChange}
@@ -179,6 +180,7 @@
       <span class="label">選擇標籤</span>
       <Autocomplete
         bind:tags={hiddenTags.selectedTags}
+        candidates={data.authoringTags}
         variant="inline"
         placeholder="選擇標籤..."
         onchange={hiddenTags.handleSelectChange}

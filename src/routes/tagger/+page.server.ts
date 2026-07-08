@@ -12,5 +12,5 @@ export const load: PageServerLoad = () => {
   const paths = collection.getCollectionPaths(root);
   const stagedFiles = listImageFiles(paths.images).filter((f) => !database.hasImage(f));
 
-  return { stagedFiles, facets: database.queryTags() };
+  return { stagedFiles, authoringTags: database.queryTags(undefined, { hidden: "ignore", universe: "all" }) };
 };
