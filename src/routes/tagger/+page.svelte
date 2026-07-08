@@ -181,6 +181,20 @@
       </header>
 
       <div class="form-fields">
+        <div class="field-name">
+          <input
+            type="text"
+            class="text-input"
+            bind:value={form.name}
+            maxlength="200"
+            placeholder={form.namePlaceholder}
+            disabled={!form.singleSelected}
+            aria-label="圖片名稱"
+          />
+        </div>
+
+        <div class="separator"></div>
+
         <div class="field-rating">
           <Rating name="rating" bind:value={form.rating} size="1.5rem" />
         </div>
@@ -188,7 +202,7 @@
         <div class="separator"></div>
 
         <div class="field-tags">
-          <Autocomplete bind:tags={form.tags} variant="top" placeholder="輸入標籤..." />
+          <Autocomplete bind:tags={form.tags} candidates={data.authoringTags} variant="top" placeholder="輸入標籤..." />
         </div>
       </div>
 

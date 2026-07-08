@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { page } from "$app/state";
-  import { IconX } from "$lib/components/icons";
+  import { IconX, IconAlertTriangleFilled } from "$lib/components/icons";
   import { Autocomplete } from "./autocomplete.svelte.js";
-  import type { TagFacet } from "$lib/database/client.js";
+  import type { Tag } from "$lib/database/client.js";
   import Popover from "$lib/components/overlay/Popover.svelte";
 
   type Props = {
@@ -12,8 +11,8 @@
     name?: string;
     /** 雙向綁定：目前選中的標籤列表 */
     tags: string[];
-    /** 候選標籤；預設消費 page data 的 facets（SSR faceted search） */
-    candidates?: TagFacet[];
+    /** 候選標籤 */
+    candidates: Tag[];
     /** 輸入框佔位符，預設 "輸入標籤..." */
     placeholder?: string;
     /** 當標籤變更時觸發 */
@@ -42,7 +41,7 @@
       tags = v;
     },
     get candidates() {
-      return candidates ?? page.data.facets ?? [];
+      return candidates;
     },
     onchange: () => onchange?.(),
     itemHeight,
@@ -92,12 +91,18 @@
         tabindex="-1"
         class:active={i === ui.activeIndex}
         aria-selected={i === ui.activeIndex}
+        title={tag.meta.hidden ? "已隱藏的標籤" : undefined}
         onmousedown={(e) => ui.handleDropdownMouseDown(e, tag)}
         onmouseenter={() => ui.handleDropdownMouseOver(i)}
         style="height: {itemHeight}px; min-height: {itemHeight}px; contain-intrinsic-size: auto {itemHeight}px;"
       >
         <span class="name">{tag.name}</span>
-        <span class="count">{tag.count}</span>
+        <span class="meta">
+          {#if tag.meta.hidden}
+            <IconAlertTriangleFilled size={14} />
+          {/if}
+          <span class="count">{tag.count}</span>
+        </span>
       </div>
     {/each}
   </Popover>
@@ -160,10 +165,16 @@
     white-space: nowrap;
   }
 
-  div[role="option"] > .count {
-    font-size: var(--font-size-caption);
-    color: var(--text-dim);
-    font-family: var(--font-mono);
+  div[role="option"] > .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
     flex-shrink: 0;
+    color: var(--text-dim);
+  }
+
+  div[role="option"] > .meta > .count {
+    font-size: var(--font-size-caption);
+    font-family: var(--font-mono);
   }
 </style>

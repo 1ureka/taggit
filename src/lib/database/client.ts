@@ -9,10 +9,10 @@
  * 模組外部只能 import 本檔與 {@link ./server.ts}。
  */
 
-import { parseQueryParams as parseFromParams, parseTagQueryParams as parseTagFromParams } from "./internal/params.js";
-import type { QueryOptions, TagQueryOptions } from "./internal/types.js";
+import { parseQueryParams as parseFromParams } from "./internal/params.js";
+import type { QueryOptions } from "./internal/types.js";
 
-export { buildQueryString, buildTagQueryString } from "./internal/params.js";
+export { buildQueryString } from "./internal/params.js";
 
 export type {
   DBData,
@@ -23,15 +23,9 @@ export type {
   QueryOptions,
   QueryResult,
   SortField,
-  TagFacet,
-  TagImageSample,
-  TagInfo,
+  Tag,
   TagMeta,
   TagQueryOptions,
-  TagQueryResult,
-  TagSampleMode,
-  TagSortField,
-  TagWithSamples,
   UpdatePatch,
 } from "./internal/types.js";
 
@@ -40,11 +34,4 @@ export type {
  */
 export function parseQueryParams(url: URL): QueryOptions {
   return parseFromParams(url.searchParams);
-}
-
-/**
- * 從 URL 中提取 {@link TagQueryOptions}。
- */
-export function parseTagQueryParams(url: URL): TagQueryOptions {
-  return parseTagFromParams(url.searchParams);
 }

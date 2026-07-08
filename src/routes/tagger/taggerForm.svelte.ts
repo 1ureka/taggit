@@ -21,10 +21,25 @@ export class TaggerForm {
   tags = $state<string[]>([]);
   /** 評等 0–5 */
   rating = $state(0);
+  /** 圖片名稱（僅在單選時生效；留空則沿用檔名） */
+  name = $state("");
   /** 操作狀態（提交與刪除共用鎖） */
   pending = $state(false);
 
-  constructor(private options: TaggerFormOptions) {}
+  /** 是否恰好選取一張圖片（多選時名稱欄位停用） */
+  singleSelected: boolean;
+  /** 名稱欄位的提示文字（依選取數量三態） */
+  namePlaceholder: string;
+
+  constructor(private options: TaggerFormOptions) {
+    this.singleSelected = $derived(this.options.selectedFiles.size === 1);
+    this.namePlaceholder = $derived.by(() => {
+      const n = this.options.selectedFiles.size;
+      if (n === 0) return "尚無圖片可命名";
+      if (n > 1) return "多選時無法命名";
+      return "圖片名稱（留空使用檔名）";
+    });
+  }
 
   // ---
 
@@ -32,6 +47,7 @@ export class TaggerForm {
   #resetForm() {
     this.tags = [];
     this.rating = 0;
+    this.name = "";
   }
 
   /** 提交已選取的圖片 */
@@ -48,6 +64,8 @@ export class TaggerForm {
     }
 
     const names = [...this.options.selectedFiles];
+    // name 只在單選時生效；多選時各檔案各自沿用檔名
+    const customName = names.length === 1 ? this.name.trim() : "";
     this.pending = true;
 
     try {
@@ -55,6 +73,7 @@ export class TaggerForm {
         return api.post(`/api/staged/${encodeURIComponent(fn)}`, {
           tags: this.tags,
           rating: this.rating,
+          ...(customName ? { name: customName } : {}),
         });
       });
 

@@ -6,6 +6,8 @@ export const load: PageServerLoad = ({ url }) => {
   if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
 
   const result = database.queryImages(url.searchParams, { limit: 0 });
+  const facets = database.queryTags(url.searchParams);
+  const authoringTags = database.queryTags(undefined, { hidden: "ignore", universe: "all" });
 
   const requestedId = url.searchParams.get("currentId");
   let resolvedId: string | null = null; // fallback: URL 指定 → 篩選結果第一張 → null
@@ -21,5 +23,5 @@ export const load: PageServerLoad = ({ url }) => {
   }
 
   const currentRecord = resolvedId ? database.getImage(resolvedId) : null;
-  return { committedFiles: result.items, currentRecord, facets: result.facets };
+  return { committedFiles: result.items, currentRecord, facets, authoringTags };
 };

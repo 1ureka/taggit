@@ -6,6 +6,7 @@ export const load: PageServerLoad = ({ url }) => {
   if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
 
   const result = database.queryImages(url.searchParams);
+  const facets = database.queryTags(url.searchParams);
 
-  return { items: result.items, total: result.total, facets: result.facets };
+  return { items: result.items, total: result.total, facets };
 };

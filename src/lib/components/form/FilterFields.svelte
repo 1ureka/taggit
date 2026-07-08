@@ -2,13 +2,16 @@
   import { FilterFields } from "./filterFields.svelte.js";
   import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
+  import type { Tag } from "$lib/database/client.js";
 
   type Props = {
+    /** 篩選語境的候選標籤 */
+    candidates: Tag[];
     /** 是否允許隨機排序 */
     allowRandomSort?: boolean;
   };
 
-  let { allowRandomSort = true }: Props = $props();
+  let { candidates, allowRandomSort = true }: Props = $props();
 
   const ui = new FilterFields();
 
@@ -61,12 +64,24 @@
 
   <div class="field">
     <span>包含的標籤</span>
-    <Autocomplete bind:tags={ui.includedTags} variant="inline" placeholder="包含標籤..." onchange={ui.handleChange} />
+    <Autocomplete
+      bind:tags={ui.includedTags}
+      {candidates}
+      variant="inline"
+      placeholder="包含標籤..."
+      onchange={ui.handleChange}
+    />
   </div>
 
   <div class="field">
     <span>排除的標籤</span>
-    <Autocomplete bind:tags={ui.excludedTags} variant="inline" placeholder="排除標籤..." onchange={ui.handleChange} />
+    <Autocomplete
+      bind:tags={ui.excludedTags}
+      {candidates}
+      variant="inline"
+      placeholder="排除標籤..."
+      onchange={ui.handleChange}
+    />
   </div>
 
   <div class="field">

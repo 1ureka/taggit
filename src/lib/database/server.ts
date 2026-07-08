@@ -15,9 +15,9 @@
 import { Database } from "./internal/store.js";
 import * as query from "./internal/query.js";
 import * as mutation from "./internal/mutation.js";
-import { parseQueryParams, parseTagQueryParams } from "./internal/params.js";
+import { parseQueryParams } from "./internal/params.js";
 import type { FileInfo, ImageRecord, ImageWithId, ImportEntry, QueryOptions } from "./internal/types.js";
-import type { QueryResult, TagFacet, TagMeta, TagQueryOptions, TagQueryResult, UpdatePatch } from "./internal/types.js";
+import type { QueryResult, Tag, TagMeta, TagQueryOptions, UpdatePatch } from "./internal/types.js";
 
 export { isValidName, isValidTags, isValidRating } from "./internal/schema.js";
 export type {
@@ -29,15 +29,9 @@ export type {
   QueryOptions,
   QueryResult,
   SortField,
-  TagFacet,
-  TagImageSample,
-  TagInfo,
+  Tag,
   TagMeta,
   TagQueryOptions,
-  TagQueryResult,
-  TagSampleMode,
-  TagSortField,
-  TagWithSamples,
   UpdatePatch,
 } from "./internal/types.js";
 
@@ -120,22 +114,15 @@ export function queryImages(params: URLSearchParams, overrides?: Partial<QueryOp
 }
 
 /**
- * 統一標籤查詢：篩選 + 排序 + 分頁 + 樣本圖片。
+ * 統一標籤查詢：以「與 {@link queryImages} 相同的圖片篩選條件」界定 scope，
+ * 逐一計數標籤並附上 meta。facet 查詢＝以相同條件同時呼叫兩大引擎。
  *
- * @param params - URL 的 searchParams，由本模組自行解析。
- * @param overrides - 覆寫解析結果的查詢選項（page load 特化用）。
+ * @param params - URL 的 searchParams（圖片篩選條件）；未提供代表全庫（不帶篩選）。
+ * @param opts - 標籤查詢的組合選項（hidden 遮蔽、universe）。
  */
-export function queryTags(params: URLSearchParams, overrides?: Partial<TagQueryOptions>): TagQueryResult {
-  const opts = { ...parseTagQueryParams(params), ...overrides };
-  return query.queryTags(requireLoaded(), opts);
-}
-
-/**
- * 全庫（不帶任何篩選）的標籤 facet 計數。
- * 供無查詢語境的頁面（tagger、settings）的自動完成使用。
- */
-export function getAllTagFacets(): TagFacet[] {
-  return query.getAllTagFacets(requireLoaded());
+export function queryTags(params?: URLSearchParams, opts?: TagQueryOptions): Tag[] {
+  const conditions = params ? parseQueryParams(params) : {};
+  return query.queryTags(requireLoaded(), conditions, opts);
 }
 
 /**
