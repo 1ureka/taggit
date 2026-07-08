@@ -66,8 +66,6 @@ Svelte 5 的 `{#snippet}` 是 **template 層面的變數**——就像 JS 中會
 
 共用組件位於 `src/lib/components/`，有明確的跨頁面復用場景（如 Rating、Autocomplete、Modal）。判定原則：**如果一段 UI 只在一個頁面出現，它就不是共用組件。**
 
-→ 詳見 [components.md](./components.md)
-
 ### Layout
 
 `+layout.svelte` 是特殊案例——它提供跨路由的共享外殼（header、導航、全域 modal/toast 容器）。本專案只有一個根 layout，作為全域 shell 使用。Layout 內可以持有少量自己的 `$state`（如導航面板的開關狀態），這是對一般頁面規則的例外。
