@@ -1,6 +1,6 @@
 import { api } from "$lib/client/api.js";
-import { getCollectionPathHistory, pushCollectionPathHistory } from "$lib/client/localStorage.js";
-import { clearCollectionPathHistory } from "$lib/client/localStorage.js";
+import { getCollectionPathHistory, pushCollectionPathHistory } from "$lib/collection/client.js";
+import { clearCollectionPathHistory } from "$lib/collection/client.js";
 
 /**
  * SettingsCollection 的配置選項

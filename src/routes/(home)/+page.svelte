@@ -11,7 +11,7 @@
   import Tags from "$lib/components/Tags.svelte";
   import ScrollButton from "$lib/components/ScrollButton.svelte";
   import InverseRadius from "$lib/components/InverseRadius.svelte";
-  import { imgSrc } from "$lib/client/api.js";
+  import { imgSrc } from "$lib/image/client.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 
   import { Masonry } from "$lib/virtualizer/masonry.svelte.js";

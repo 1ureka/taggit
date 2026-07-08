@@ -1,5 +1,5 @@
+import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/client/api.js";
-import { tagCache } from "$lib/client/cache.js";
 import { requestConfirm } from "$lib/client/dom.js";
 
 /**
@@ -57,9 +57,9 @@ export class SettingsTagRename {
     if (res.ok && res.data) {
       const message = `已將「${trimOld}」重命名為「${trimNew}」，影響 ${res.data.affected} 張圖片`;
       this.result = { type: "success", message };
-      tagCache.invalidate();
       this.selectedTags = [];
       this.newName = "";
+      await invalidateAll();
     } else {
       this.result = { type: "error", message: res.error || "未知錯誤" };
     }
@@ -82,8 +82,8 @@ export class SettingsTagRename {
 
     if (res.ok) {
       this.result = { type: "success", message: `已刪除標籤「${trimOld}」` };
-      tagCache.invalidate();
       this.selectedTags = [];
+      await invalidateAll();
     } else if (res.status === 409) {
       this.result = { type: "conflict", tagName: trimOld };
     } else {

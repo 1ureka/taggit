@@ -4,11 +4,11 @@
   import { cubicOut } from "svelte/easing";
 
   import type { PageData } from "./$types.js";
-  import type { ImageWithId } from "$lib/types.js";
+  import type { ImageWithId } from "$lib/database/client.js";
 
   import { IconPlayerPause, IconPlayerPlay } from "$lib/icons";
   import { blurhashStyle } from "$lib/client/blurhash.js";
-  import { imgSrc } from "$lib/client/api.js";
+  import { imgSrc } from "$lib/image/client.js";
   import { Player } from "$lib/virtualizer/player.svelte.js";
   import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
 

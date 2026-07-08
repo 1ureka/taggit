@@ -1,7 +1,7 @@
 import { untrack } from "svelte";
 import { goto, invalidateAll } from "$app/navigation";
 import { addToast } from "$lib/client/dom.js";
-import type { ImageWithId } from "$lib/types.js";
+import type { ImageWithId } from "$lib/database/client.js";
 
 /**
  * EditorListSelect 的配置選項

@@ -3,14 +3,14 @@
   import { IconFilter, IconReload } from "$lib/icons";
   import type { PageData } from "./$types.js";
 
-  import type { ImageWithId } from "$lib/types.js";
+  import type { ImageWithId } from "$lib/database/client.js";
   import Rating from "$lib/components/Rating.svelte";
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
   import ImageList from "$lib/components/ImageList.svelte";
   import ImageCanvas from "$lib/components/ImageCanvas.svelte";
-  import { imgSrc } from "$lib/client/api.js";
+  import { imgSrc } from "$lib/image/client.js";
   import { formatDate, formatSize } from "$lib/utils.js";
 
   import { EditorFilterModal } from "./editorFilter.svelte.js";

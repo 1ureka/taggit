@@ -2,7 +2,6 @@ import { invalidateAll } from "$app/navigation";
 import { batchRun } from "$lib/utils.js";
 import { api } from "$lib/client/api.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/client/dom.js";
-import { tagCache } from "$lib/client/cache.js";
 
 /**
  * TaggerForm 的配置選項
@@ -64,7 +63,6 @@ export class TaggerForm {
       }
       if (fail) addToast(`${fail} 張提交失敗`, "error");
 
-      tagCache.invalidate();
       this.options.progress += ok;
       await invalidateAll();
     } finally {

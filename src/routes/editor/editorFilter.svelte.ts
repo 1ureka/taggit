@@ -1,6 +1,6 @@
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { buildQueryString } from "$lib/utils";
+import { buildQueryString } from "$lib/database/client.js";
 
 /**
  * 篩選對話框的互動邏輯

@@ -7,7 +7,7 @@
   import Autocomplete from "$lib/components/Autocomplete.svelte";
   import ImageList from "$lib/components/ImageList.svelte";
   import ImageCanvas from "$lib/components/ImageCanvas.svelte";
-  import { imgSrc } from "$lib/client/api.js";
+  import { imgSrc } from "$lib/image/client.js";
 
   import { TaggerPage } from "./taggerPage.svelte.js";
   import { TaggerProgress } from "./taggerProgress.svelte.js";
