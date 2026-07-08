@@ -19,6 +19,7 @@ import { parseQueryParams, parseTagQueryParams } from "./internal/params.js";
 import type { FileInfo, ImageRecord, ImageWithId, ImportEntry, QueryOptions } from "./internal/types.js";
 import type { QueryResult, TagFacet, TagMeta, TagQueryOptions, TagQueryResult, UpdatePatch } from "./internal/types.js";
 
+export { isValidName, isValidTags, isValidRating } from "./internal/schema.js";
 export type {
   DBData,
   FileInfo,

@@ -6,7 +6,7 @@ import * as collection from "$lib/collection/server.js";
 import * as database from "$lib/database/server.js";
 import * as image from "$lib/image/server.js";
 
-import { isValidFilename, isValidTags, isValidRating } from "$lib/server/validation.js";
+import { isValidFilename } from "$lib/server/validation.js";
 import { parseBody, log } from "$lib/server/helpers.js";
 
 /**
@@ -50,11 +50,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   const { tags, rating } = body;
 
-  if (!isValidTags(tags)) {
+  if (!database.isValidTags(tags)) {
     return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
   }
 
-  if (!isValidRating(rating)) {
+  if (!database.isValidRating(rating)) {
     return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
   }
 

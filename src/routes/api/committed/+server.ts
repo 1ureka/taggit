@@ -7,7 +7,7 @@ import * as database from "$lib/database/server.js";
 import * as image from "$lib/image/server.js";
 import type { ImportEntry } from "$lib/database/server.js";
 
-import { isValidTags, isValidRating, isValidName, isValidFilename } from "$lib/server/validation.js";
+import { isValidFilename } from "$lib/server/validation.js";
 import { log } from "$lib/server/helpers.js";
 import { isRecord } from "$lib/utils.js";
 
@@ -34,16 +34,16 @@ function validateEntry(
 
   const { name, tags, rating } = value as Record<string, unknown>;
 
-  if (!isValidName(name)) {
+  if (!database.isValidName(name)) {
     return { ok: false, error: `名稱無效或缺失: ${filename}` };
   }
 
-  if (!isValidTags(tags)) {
+  if (!database.isValidTags(tags)) {
     return { ok: false, error: `標籤無效: ${filename}` };
   }
 
   const resolvedRating = rating !== undefined ? rating : 0;
-  if (!isValidRating(resolvedRating)) {
+  if (!database.isValidRating(resolvedRating)) {
     return { ok: false, error: `評分無效: ${filename}` };
   }
 

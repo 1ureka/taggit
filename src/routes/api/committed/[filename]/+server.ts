@@ -2,7 +2,7 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as database from "$lib/database/server.js";
 
-import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
+import { isValidFilename } from "$lib/server/validation.js";
 import { parseBody, log } from "$lib/server/helpers.js";
 
 /**
@@ -31,15 +31,15 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "無效的預期更新時間" }, { status: 400 });
   }
 
-  if (tags !== undefined && !isValidTags(tags)) {
+  if (tags !== undefined && !database.isValidTags(tags)) {
     return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
   }
 
-  if (rating !== undefined && !isValidRating(rating)) {
+  if (rating !== undefined && !database.isValidRating(rating)) {
     return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
   }
 
-  if (name !== undefined && !isValidName(name)) {
+  if (name !== undefined && !database.isValidName(name)) {
     return json({ ok: false, error: "無效的名稱 (必須是非空字串，最多 200 個字元)" }, { status: 400 });
   }
 

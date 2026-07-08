@@ -1,7 +1,6 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import * as database from "$lib/database/server.js";
-import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
 
 /**
@@ -15,6 +14,11 @@ export const GET: RequestHandler = () => {
 };
 
 // ---
+
+/** 絕對路徑看起來合理（非空字串）。 */
+function isValidAbsPath(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
 
 /**
  * `POST /api/settings/setup`

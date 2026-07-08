@@ -3,7 +3,6 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import * as database from "$lib/database/server.js";
 
 import { parseBody, log } from "$lib/server/helpers.js";
-import { isValidTags } from "$lib/server/validation.js";
 
 /**
  * `POST /api/tags`
@@ -22,7 +21,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const fields = [body.oldName, body.newName];
-  if (!isValidTags(fields)) {
+  if (!database.isValidTags(fields)) {
     return json({ ok: false, error: "oldName 和 newName 必須是有效且不同的標籤字串" }, { status: 400 });
   }
 
