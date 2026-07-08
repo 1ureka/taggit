@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { IconArrowUp } from "$lib/components/icons";
-  import { ScrollButton } from "$lib/ui/scrollButton.svelte";
+  import { ScrollButton } from "./scrollButton.svelte.js";
 
   type Props = {
     /** 滾動容器 DOM 引用 */

@@ -1,6 +1,6 @@
 <script lang="ts">
   import Modal from "./Modal.svelte";
-  import { ConfirmModal } from "$lib/ui/confirmModal.svelte.js";
+  import { ConfirmModal } from "./confirmModal.svelte.js";
 
   const ui = new ConfirmModal();
 </script>

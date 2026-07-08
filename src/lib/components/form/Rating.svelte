@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconStar, IconStarFilled } from "$lib/components/icons";
-  import { Rating } from "$lib/ui/rating.svelte.js";
+  import { Rating } from "./rating.svelte.js";
 
   type Props = {
     /** 欄位 id，用於 label 的 for 屬性 */

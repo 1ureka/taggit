@@ -4,8 +4,8 @@
   import type { PageData } from "./$types.js";
 
   import { IconPhotoFilled, IconFilter, IconAlertCircleFilled, IconDatabase } from "$lib/components/icons";
-  import Alert from "$lib/components/Alert.svelte";
-  import Autocomplete from "$lib/components/Autocomplete.svelte";
+  import Alert from "$lib/components/feedback/Alert.svelte";
+  import Autocomplete from "$lib/components/form/Autocomplete.svelte";
 
   import { SettingsNav } from "./settingsNav.svelte.js";
   import { SettingsCollection } from "./settingsCollection.svelte.js";

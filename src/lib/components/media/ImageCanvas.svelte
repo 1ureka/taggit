@@ -1,6 +1,6 @@
 <script lang="ts">
   import { blurhashStyle } from "$lib/client/blurhash";
-  import { ZoomPan } from "$lib/ui/zoom-pan.svelte";
+  import { ZoomPan } from "./zoom-pan.svelte.js";
 
   type PreviewConfig = {
     /** 當前圖片的模糊哈希 */

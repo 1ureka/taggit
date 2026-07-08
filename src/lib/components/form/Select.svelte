@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   import { IconChevronDown } from "$lib/components/icons";
-  import { Select, type SelectItem } from "$lib/ui/select.svelte.js";
-  import Popover from "$lib/components/Popover.svelte";
+  import { Select, type SelectItem } from "./select.svelte.js";
+  import Popover from "$lib/components/overlay/Popover.svelte";
 
   type Props = {
     /** 雙向綁定：目前選中的值 */

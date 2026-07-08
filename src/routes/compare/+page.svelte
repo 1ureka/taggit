@@ -2,8 +2,8 @@
   import type { PageData } from "./$types.js";
   import { IconArrowsShuffle } from "$lib/components/icons";
 
-  import Rating from "$lib/components/Rating.svelte";
-  import Tags from "$lib/components/Tags.svelte";
+  import Rating from "$lib/components/form/Rating.svelte";
+  import Tags from "$lib/components/misc/Tags.svelte";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/image/client.js";
   import { CompareShuffle } from "./compareShuffle.svelte.js";

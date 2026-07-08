@@ -7,9 +7,9 @@
 
   import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/components/icons";
   import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/components/icons";
-  import Modal from "$lib/components/Modal.svelte";
-  import Toast from "$lib/components/Toast.svelte";
-  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
+  import Modal from "$lib/components/overlay/Modal.svelte";
+  import Toast from "$lib/components/feedback/Toast.svelte";
+  import ConfirmModal from "$lib/components/overlay/ConfirmModal.svelte";
 
   let { children } = $props();
 

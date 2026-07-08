@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconX, IconCheckFilled, IconAlertCircleFilled, IconInfoCircleFilled } from "$lib/components/icons";
-  import { Toast } from "$lib/ui/toast.svelte.js";
+  import { Toast } from "./toast.svelte.js";
 
   const ui = new Toast({
     gap: 8,

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { IconX } from "$lib/components/icons";
-  import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
+  import { Autocomplete } from "./autocomplete.svelte.js";
   import type { TagFacet } from "$lib/database/client.js";
-  import Popover from "$lib/components/Popover.svelte";
+  import Popover from "$lib/components/overlay/Popover.svelte";
 
   type Props = {
     /** 欄位 id，用於 label 的 for 屬性 */

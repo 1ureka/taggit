@@ -3,7 +3,7 @@
   import type { HTMLAttributes } from "svelte/elements";
   import type { Placement } from "@floating-ui/dom";
   import { fly } from "svelte/transition";
-  import { Popover } from "$lib/ui/popover.svelte.js";
+  import { Popover } from "./popover.svelte.js";
 
   interface Props extends HTMLAttributes<HTMLDivElement> {
     /** 開關狀態（由消費端控制） */

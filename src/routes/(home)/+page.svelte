@@ -4,13 +4,13 @@
   import type { PageData } from "./$types.js";
 
   import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/components/icons";
-  import Select from "$lib/components/Select.svelte";
-  import FilterFields from "$lib/components/FilterFields.svelte";
-  import Modal from "$lib/components/Modal.svelte";
-  import Rating from "$lib/components/Rating.svelte";
-  import Tags from "$lib/components/Tags.svelte";
-  import ScrollButton from "$lib/components/ScrollButton.svelte";
-  import InverseRadius from "$lib/components/InverseRadius.svelte";
+  import Select from "$lib/components/form/Select.svelte";
+  import FilterFields from "$lib/components/form/FilterFields.svelte";
+  import Modal from "$lib/components/overlay/Modal.svelte";
+  import Rating from "$lib/components/form/Rating.svelte";
+  import Tags from "$lib/components/misc/Tags.svelte";
+  import ScrollButton from "$lib/components/misc/ScrollButton.svelte";
+  import InverseRadius from "$lib/components/misc/InverseRadius.svelte";
   import { imgSrc } from "$lib/image/client.js";
   import { blurhashStyle } from "$lib/client/blurhash.js";
 

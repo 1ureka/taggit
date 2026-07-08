@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FilterFields } from "$lib/ui/filterFields.svelte";
+  import { FilterFields } from "./filterFields.svelte.js";
   import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
 

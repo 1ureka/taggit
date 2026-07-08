@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
   import { fade, fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import { Modal } from "$lib/ui/modal.svelte.js";
+  import { Modal } from "./modal.svelte.js";
 
   type Props = {
     /** 是否開啟 Modal */
