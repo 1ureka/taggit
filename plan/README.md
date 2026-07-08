@@ -1,10 +1,10 @@
-# 2.1.0 實作計畫
+# 2.X.X 實作計畫
 
-本目錄拆解 [`draft.md`](../draft.md) 中 2.1.0 的部分項目，每個項目一份計畫。
+本目錄拆解 [`draft.md`](../draft.md) 中 2.X.X 的部分項目，每個項目一份計畫。
 
 | # | 項目 | 計畫 | 主要涉及層 |
 |---|------|------|-----------|
-| 4 | 切換 collection 時清空快取 | [4-clear-cache-on-switch.md](./4-clear-cache-on-switch.md) | collection / image 模組 |
+| 3 | 匯入紀錄改為先顯示引導說明 modal | [3-import-guide-modal.md](./3-import-guide-modal.md) | tagger 頁 |
 | 7 | 顯示當前 collection 名稱 | [7-current-collection-name.md](./7-current-collection-name.md) | layout |
 | 8 | 導航 dialog 顯示 committed / staged 數量 | [8-nav-dialog-counts.md](./8-nav-dialog-counts.md) | layout + 新 API |
 
@@ -23,8 +23,3 @@
 - **語言**：註解、文案、log 皆為繁體中文。
 
 > 註1: 見 `$lib/{collection,database,image}`
-
-## 建議實作順序
-
-4 →（獨立、低風險，先清掉正確性問題）
-7 → 8（都動 layout，可一起做）
