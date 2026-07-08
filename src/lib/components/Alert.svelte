@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconInfoCircleFilled, IconAlertCircleFilled, IconAlertTriangleFilled } from "$lib/icons";
+  import { IconInfoCircleFilled, IconAlertCircleFilled, IconAlertTriangleFilled } from "$lib/components/icons";
 
   type Props = {
     /** 警示類型，會影響顏色與圖示 */

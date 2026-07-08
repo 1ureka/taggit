@@ -6,7 +6,7 @@
   import type { PageData } from "./$types.js";
   import type { ImageWithId } from "$lib/database/client.js";
 
-  import { IconPlayerPause, IconPlayerPlay } from "$lib/icons";
+  import { IconPlayerPause, IconPlayerPlay } from "$lib/components/icons";
   import { blurhashStyle } from "$lib/client/blurhash.js";
   import { imgSrc } from "$lib/image/client.js";
   import { Player } from "$lib/virtualizer/player.svelte.js";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { IconArrowUp } from "$lib/icons";
+  import { IconArrowUp } from "$lib/components/icons";
   import { ScrollButton } from "$lib/ui/scrollButton.svelte";
 
   type Props = {

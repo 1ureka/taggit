@@ -3,7 +3,7 @@
   import { innerWidth } from "svelte/reactivity/window";
   import type { PageData } from "./$types.js";
 
-  import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/icons";
+  import { IconPlayerPlay, IconArrowsShuffle, IconX, IconEditFilled } from "$lib/components/icons";
   import Select from "$lib/components/Select.svelte";
   import FilterFields from "$lib/components/FilterFields.svelte";
   import Modal from "$lib/components/Modal.svelte";

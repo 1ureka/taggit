@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { IconX } from "$lib/icons";
+  import { IconX } from "$lib/components/icons";
   import { Autocomplete } from "$lib/ui/autocomplete.svelte.js";
   import type { TagFacet } from "$lib/database/client.js";
   import Popover from "$lib/components/Popover.svelte";
