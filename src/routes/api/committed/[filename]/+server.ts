@@ -1,37 +1,9 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import { requireDatabase } from "$lib/server/db-instance.js";
-import { updateRecord, removeRecord } from "$lib/server/db-mutation.js";
-import { getImageRecord } from "$lib/server/db-query.js";
+import * as database from "$lib/database/server.js";
 
 import { isValidFilename, isValidTags, isValidRating, isValidName } from "$lib/server/validation.js";
 import { parseBody, log } from "$lib/server/helpers.js";
-
-/**
- * `GET /api/committed/[filename]`
- *
- * 取得單張已提交圖片的元資料。
- */
-export const GET: RequestHandler = ({ params }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
-    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
-  }
-
-  const { filename } = params;
-  if (!isValidFilename(filename)) {
-    return json({ ok: false, error: "無效的檔名" }, { status: 400 });
-  }
-
-  const image = getImageRecord(loaded.db, filename);
-  if (!image) {
-    return json({ ok: false, error: "找不到圖片" }, { status: 404 });
-  }
-
-  return json({ ok: true, data: image });
-};
-
-// ---
 
 /**
  * `PATCH /api/committed/[filename]`
@@ -39,8 +11,7 @@ export const GET: RequestHandler = ({ params }) => {
  * 更新圖片的標籤、評分或名稱（支援樂觀併發控制）。
  */
 export const PATCH: RequestHandler = async ({ params, request }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  if (!database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -72,13 +43,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "無效的名稱 (必須是非空字串，最多 200 個字元)" }, { status: 400 });
   }
 
-  const trimmedTags = tags !== undefined ? tags.map((t) => t.trim()) : undefined;
-
   // ---
 
   try {
-    const { db } = loaded;
-    const updated = updateRecord(db, filename, { expectedUpdatedAt, tags: trimmedTags, rating, name });
+    const updated = database.updateImage(filename, { expectedUpdatedAt, tags, rating, name });
 
     return json({ ok: true, data: updated });
   } catch (e) {
@@ -105,8 +73,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
  * 取消提交，僅移除 DB 記錄，檔案保留於 images/ 並回到 staged 狀態。
  */
 export const DELETE: RequestHandler = ({ params }) => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  if (!database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -116,7 +83,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   try {
-    removeRecord(loaded.db, filename);
+    database.removeImage(filename);
 
     log({ level: "info", module: "committed/[id]", message: `取消提交: ${filename}` });
     return json({ ok: true, data: { filename } });

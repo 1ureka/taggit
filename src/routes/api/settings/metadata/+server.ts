@@ -1,7 +1,8 @@
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { requireDatabase } from "$lib/server/db-instance.js";
-import { generateMetadata } from "$lib/server/thumbnail.js";
+import * as collection from "$lib/collection/server.js";
+import * as database from "$lib/database/server.js";
+import { generateMetadata } from "$lib/image/server.js";
 
 /**
  * `POST /api/settings/metadata`
@@ -9,41 +10,38 @@ import { generateMetadata } from "$lib/server/thumbnail.js";
  * 為缺少 blurhash 或寬高的圖片補算元資料。
  */
 export const POST: RequestHandler = async () => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  const root = collection.getActiveRoot();
+  if (!root || !database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const { db, paths } = loaded;
-  const images = db.data.images;
+  const imagesDir = collection.getCollectionPaths(root).images;
 
   let updated = 0;
 
-  for (const [filename, record] of Object.entries(images)) {
+  for (const record of database.getAllImages()) {
     const needsBlurhash = !record.blurhash;
     const needsDimensions = record.width === 0 || record.height === 0;
     if (!needsBlurhash && !needsDimensions) continue;
 
-    const filePath = path.join(paths.images, filename);
-    const meta = await generateMetadata(filePath);
+    const meta = await generateMetadata(path.join(imagesDir, record.id));
 
-    let changed = false;
+    const patch: { width?: number; height?: number; blurhash?: string } = {};
 
     if (needsBlurhash && meta.blurhash) {
-      record.blurhash = meta.blurhash;
-      changed = true;
+      patch.blurhash = meta.blurhash;
     }
 
     if (needsDimensions && meta.width > 0 && meta.height > 0) {
-      record.width = meta.width;
-      record.height = meta.height;
-      changed = true;
+      patch.width = meta.width;
+      patch.height = meta.height;
     }
 
-    if (changed) updated++;
+    if (Object.keys(patch).length > 0) {
+      database.updateImageFileMeta(record.id, patch);
+      updated++;
+    }
   }
-
-  if (updated > 0) db.markDirty();
 
   return json({ ok: true, data: { updated } });
 };
@@ -56,16 +54,13 @@ export const POST: RequestHandler = async () => {
  * 檢查缺少元資料的圖片數量。
  */
 export const GET: RequestHandler = () => {
-  const loaded = requireDatabase();
-  if (!loaded) {
+  if (!database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const images = loaded.db.data.images;
-
   let missing = 0;
 
-  for (const record of Object.values(images)) {
+  for (const record of database.getAllImages()) {
     if (!record.blurhash || record.width === 0 || record.height === 0) {
       missing++;
     }

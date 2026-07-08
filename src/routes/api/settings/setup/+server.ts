@@ -1,8 +1,8 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { requireDatabase } from "$lib/server/db-instance.js";
+import * as collection from "$lib/collection/server.js";
+import * as database from "$lib/database/server.js";
 import { isValidAbsPath } from "$lib/server/validation.js";
 import { parseBody } from "$lib/server/helpers.js";
-import { getCollectionRoot, isCollectionValid, setCollectionRoot } from "$lib/server/config.js";
 
 /**
  * `GET /api/settings/setup`
@@ -10,7 +10,7 @@ import { getCollectionRoot, isCollectionValid, setCollectionRoot } from "$lib/se
  * 取得目前的圖片集根目錄路徑。
  */
 export const GET: RequestHandler = () => {
-  const collectionRoot = getCollectionRoot();
+  const collectionRoot = collection.getCollectionRoot();
   return json({ ok: true, data: { collectionRoot } });
 };
 
@@ -33,12 +33,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const root = collectionRoot.trim();
 
-  if (!isCollectionValid(root)) {
+  if (!collection.isCollectionValid(root)) {
     return json({ ok: false, error: "路徑不存在或無法建立所需的子目錄" }, { status: 422 });
   }
 
-  setCollectionRoot(root);
-  requireDatabase({ allowUnload: true }).db.loadCollection(root);
+  collection.setCollectionRoot(root);
+  collection.setActiveRoot(root);
+  database.ensureLoaded(collection.getCollectionPaths(root).db);
 
   return json({ ok: true, data: { collectionRoot: root } });
 };
