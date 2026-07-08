@@ -48,11 +48,17 @@ src/lib/collection/
 **server.ts 介面**
 
 ```ts
+getActiveRoot(): string | null              // 當前作用中根目錄（純記憶體，見下）
+setActiveRoot(root: string): void           // 設定當前作用中根目錄（純記憶體）
 getCollectionRoot(): string | null          // 讀 server.json
 setCollectionRoot(root: string): void       // 寫 server.json
 isCollectionValid(root: string): boolean    // 目錄存在性 + 自動建立 images/
 getCollectionPaths(root: string): CollectionPaths   // { root, images, db }
 ```
+
+「當前是哪個 collection」的記憶內聚於本模組：`getActiveRoot`/`setActiveRoot` 以 `globalThis`
+持有作用中根目錄，layout 啟動時記憶體優先、退回 server.json（見 §5），
+避免每次請求都對 server.json 做 I/O，也不再從 database 的載入狀態反推當前 collection。
 
 **client.ts 介面**
 
@@ -158,10 +164,11 @@ src/lib/image/
 ├─ server.ts
 ├─ client.ts
 └─ internal/
-   ├─ formats.ts       # IMG_EXTS / MIME_TYPES（自 server/config.ts 移入）
+   ├─ formats.ts       # IMG_EXTS / MIME_TYPES / ImageSize / isValidSize（自 server/config.ts + validation 移入）
    ├─ resources.ts     # LRUCache / TaskPool（現 server/resources.ts）
    ├─ thumbnail.ts     # 縮圖產生（現 server/thumbnail.ts 的 processImage 家族）
-   └─ metadata.ts      # blurhash + 尺寸讀取（現 generateMetadata）
+   ├─ metadata.ts      # blurhash + 尺寸讀取（generateMetadata + readImageInfo）
+   └─ blurhash.ts      # BlurHash → CSS 背景樣式（前端佔位圖；原 client/blurhash.ts）
 ```
 
 **server.ts 介面**
@@ -183,10 +190,12 @@ getCacheStats(): { entries: number; bytes: number }
 
 ```ts
 imgSrc(file: string, size?: ImageSize, animated?: boolean): string
+blurhashStyle(opts): string          // BlurHash → CSS 背景樣式（前端佔位圖）
 // + ImageSize 型別 re-export
 ```
 
-`ImageSize` 型別由本模組定義（自 `$lib/types.ts` 移出）。
+`ImageSize` 型別由本模組定義（自 `$lib/types.ts` 移出，實置於 `internal/formats.ts`）。
+`blurhashStyle`（原 `client/blurhash.ts`）併入本模組的 `internal/blurhash.ts` 並經此輸出。
 
 ---
 
@@ -197,9 +206,11 @@ imgSrc(file: string, size?: ImageSize, animated?: boolean): string
 **layout 啟動**（`+layout.server.ts`，行為不變）：
 
 ```ts
-const root = database.isLoaded() ? currentRoot : collection.getCollectionRoot();
+// 記憶體優先，退回 server.json（作用中 collection 的記憶內聚於 collection 模組）
+const root = collection.getActiveRoot() ?? collection.getCollectionRoot();
 if (!root) redirect("/settings?alert=default");
 if (!collection.isCollectionValid(root)) redirect("/settings?alert=error");
+collection.setActiveRoot(root);
 database.ensureLoaded(collection.getCollectionPaths(root).db);
 ```
 
@@ -235,8 +246,12 @@ image 提供 buffer / mime，route 只做驗證與回應組裝，不碰 database
 | `utils.ts` 查詢參數函式 | database `internal/params.ts`（經兩入口輸出） |
 | `server/thumbnail.ts` | image `internal/thumbnail.ts` + `metadata.ts`（經 `server.ts` 輸出） |
 | `server/resources.ts` | image `internal/resources.ts` |
-| `client/api.ts` 的 `imgSrc` | image `client.ts`；`api` 請求工具留在 `client/api.ts` |
+| `client/api.ts` | `imgSrc` → image `client.ts`；`api` 請求工具 → `utils/client.ts` |
 | `client/cache.ts` | 刪除，無去向（見 [ssr-data-flow.md](./ssr-data-flow.md)） |
-| `server/helpers.ts` | `log`/`parseBody`/`uniqueFilename` 留作通用 server 工具；`getStagedFiles` 刪除（route 層組合取代） |
-| `server/validation.ts` | 留在原位（API 層輸入驗證，不屬於任一業務模組） |
-| `$lib/types.ts` 查詢/紀錄型別 | database `internal/types.ts`；`ImageSize` → image；`CollectionPaths` → collection；UI 型別留在原檔 |
+| `client/dom.ts` | `components/dom.ts` |
+| `client/blurhash.ts` | image `internal/blurhash.ts`（`blurhashStyle` 經 image `client.ts` 輸出） |
+| `ui/*`、`icons/*` | 併入 `components/`（`form/`、`icons/` 等子分類） |
+| `server/helpers.ts` | `log`/`parseBody`/`uniqueFilename` → `utils/server.ts`；`getStagedFiles` 刪除（route 層組合取代） |
+| `utils.ts`（root） | `utils/shared.ts`（前後端共用工具與型別守衛，含 `isValidFilename`） |
+| `server/validation.ts` | 拆分後刪除：`isValidName`/`isValidTags`/`isValidRating` → database `internal/schema.ts`（經 `server.ts` re-export）；`isValidSize` → image `internal/formats.ts`；`isValidFilename` → `utils/shared.ts`；route 層組合驗證（如 `validateEntry`）留在 route |
+| `$lib/types.ts` 查詢/紀錄型別 | database `internal/types.ts`；`ImageSize` → image `internal/formats.ts`；`CollectionPaths` → collection `internal/structure.ts`；UI 型別 → `components/types.ts`（root `types.ts` 刪除） |

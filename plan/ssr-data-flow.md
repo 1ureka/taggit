@@ -58,14 +58,14 @@ SWR 的「先回舊資料、背景更新」在這裡只製造過期畫面與雙�
 
 ## 3. 自動完成（Autocomplete）改造
 
-現制：`ui/autocomplete.svelte.ts` 在攔截輸入時自行 `await tagCache.get()`。
+現制：`components/form/autocomplete.svelte.ts`（原 `ui/autocomplete.svelte.ts`）在攔截輸入時自行 `await tagCache.get()`。
 
 改為：候選標籤由建構端注入 —— 元件 / 控制器增加 `tags: TagFacet[]`（或 getter）參數，
 各頁面把 page data 的 `facets` 傳進來。效果：
 
 - 自動完成候選自動反映當前篩選語境（faceted：已被篩掉的標籤 count 為 0 / 不出現）；
 - tagger / editor 表單場景傳入全量 facets（tagger load 提供、editor 以 `limit: 0` 全量查詢的 facets 即全庫計數）；
-- `ui/autocomplete.svelte.ts` 變成純 UI 元件，不再有網路副作用，符合模組邊界原則。
+- `components/form/autocomplete.svelte.ts` 變成純 UI 元件，不再有網路副作用，符合模組邊界原則。
 
 hidden 標籤在 facets 中帶有 `hidden: true` 旗標，自動完成照常列出
 （使用者必須能主動輸入 hidden 標籤來檢視這些圖片），由 UI 自行決定是否加註樣式（本版不做樣式）。
@@ -100,7 +100,7 @@ hidden 標籤在 facets 中帶有 `hidden: true` 旗標，自動完成照常列�
 | `/api/settings/*`（setup / missing / metadata / cache / backup） | settings 頁工具 | 全部保留（settings 頁必須在 collection 未載入時可用，維持 client 觸發），內部轉呼叫新模組 |
 
 **回應格式**：`{ ok, data | error }` 封包與各狀態碼（400 / 404 / 409 / 503）不變，
-`client/api.ts` 的 `api` 請求工具不變。
+`api` 請求工具行為不變（後續整併中由 `client/api.ts` 移至 `utils/client.ts`）。
 
 ---
 
@@ -109,11 +109,11 @@ hidden 標籤在 facets 中帶有 `hidden: true` 旗標，自動完成照常列�
 | 檔案 | 改動 |
 | --- | --- |
 | `lib/client/cache.ts` | 刪除 |
-| `lib/ui/autocomplete.svelte.ts` | 移除 `tagCache` import，改為注入 `tags`（§3） |
+| `lib/components/form/autocomplete.svelte.ts` | 移除 `tagCache` import，改為注入 `tags`（§3） |
 | `routes/tagger/taggerForm.svelte.ts`、`taggerList.svelte.ts` | 移除 `tagCache.invalidate()`；staged 資料流不變（load 供給） |
 | `routes/editor/editorFormActions.svelte.ts` | 移除 `tagCache.invalidate()` × 3 |
 | `routes/settings/settingsTagRename.svelte.ts` | 移除 `tagCache.invalidate()` × 2 |
-| `lib/ui/filterFields.svelte.ts`、`routes/editor/editorFilter.svelte.ts` | import 路徑改為 `database/client.ts`；行為不變 |
+| `lib/components/form/filterFields.svelte.ts`、`routes/editor/editorFilter.svelte.ts` | import 路徑改為 `database/client.ts`；行為不變 |
 | 各 `+page.server.ts` | 改呼叫 `database/server.ts` / route 層組合；回傳補 `facets` |
 | 所有 `imgSrc` 呼叫點 | import 路徑改為 `image/client.ts` |
 | `+layout.server.ts`、`hooks.server.ts` | 改用 collection / database 新入口（見 [architecture.md](./architecture.md) §5） |

@@ -65,10 +65,18 @@ src/lib/
 │  │                      #        列目錄圖檔、快取管理
 │  ├─ client.ts           #   入口：imgSrc（定義前端如何要求圖片）
 │  └─ internal/…
-├─ components/、ui/、virtualizer/、icons/、styles/   # UI 層，不變
-├─ client/dom.ts、client/blurhash.ts                 # 通用前端工具，保留
-└─ utils.ts、types.ts                                # 通用工具與跨領域型別（查詢型別移入 database）
+├─ components/            # UI 層：feedback/ form/ media/ misc/ overlay/ icons/
+│  │                      #   + dom.ts + types.ts（原 ui/、icons/、client/dom.ts 併入）
+├─ virtualizer/、styles/  # UI 層，不變
+└─ utils/                 # 通用工具：shared.ts（前後端）/ client.ts（api 請求）/ server.ts（log 等）
+                          #   （原 client/blurhash.ts 已移入 image/internal，經 image/client.ts 輸出）
 ```
+
+> 註：上列 UI 層與通用工具的組織，在 2.0.0 完成後又經一次整併（`ui/`/`icons/`/`client/dom.ts`
+> 併入 `components/`；root `utils.ts` 收編為 `utils/`，吸收 `server/helpers.ts` 與 `client/api.ts`
+> 的 `api` 工具；root `types.ts` 刪除，型別分散至各模組 —— 查詢/紀錄型別入 database、
+> `ImageSize` 入 image、`CollectionPaths` 入 collection、UI 型別入 `components/types.ts`）。
+> 下方各文件的搬遷描述以此現行結構為準。
 
 職責一句話版（詳見 [architecture.md](./architecture.md)）：
 
