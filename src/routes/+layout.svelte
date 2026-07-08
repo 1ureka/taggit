@@ -4,6 +4,8 @@
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
+  import type { Snippet } from "svelte";
+  import type { LayoutData } from "./$types.js";
 
   import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/components/icons";
   import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/components/icons";
@@ -11,7 +13,7 @@
   import Toast from "$lib/components/feedback/Toast.svelte";
   import ConfirmModal from "$lib/components/overlay/ConfirmModal.svelte";
 
-  let { children } = $props();
+  let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
   /** 導航項目 */
   const navItems = [
@@ -133,7 +135,9 @@
     <button type="button" class="btn-ghost btn-sm" onclick={handleNavigateBack} aria-label="上一頁">
       <IconArrowLeft size={16} />
     </button>
-    <span class="ellipsis">{page.url.pathname + page.url.search}</span>
+    <span class="ellipsis">
+      {data.collectionName + page.url.pathname + page.url.search}
+    </span>
     <button type="button" class="btn-ghost btn-sm" onclick={handleNavigateForward} aria-label="下一頁">
       <IconArrowRight size={16} />
     </button>
