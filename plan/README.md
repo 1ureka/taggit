@@ -11,14 +11,10 @@
 項目 0（隱藏標籤）上線後浮現的結構性問題：標籤的「篩選」與「編寫／管理」兩種角色共用同一條遮蔽資料通道。收斂為「兩實體、兩引擎」的 database 重寫：
 
 - [0_database-rewrite.md](./0_database-rewrite.md) — **已完成**：引擎層對稱（`queryImages`／`queryTags` 共用 `resolveScope`）。
-- [1_query-symmetry.md](./1_query-symmetry.md) — 把同一份對稱推到型別層與 params 層，讓標籤成為平權的一等查詢主體（為標籤頁鋪路）。
 
 ## 共通慣例（撰寫計畫時已對照現有程式）
 
-- **模組邊界**：外部只能 import 各模組的 `client.ts` / `server.ts`，`internal/` 不對外。(*註1)
 - **API 回應格式**：`{ ok, data? , error? }`，前端一律走 `$lib/utils/client.ts` 的 `api.{get,post,patch,del}`。
 - **狀態邏輯**：頁面互動邏輯放在同名 `*.svelte.ts` 的 class（Runes），元件 `.svelte` 只負責渲染與綁定。
 - **資料流**：伺服器變更後前端以 `invalidateAll()` 重新載入 page data。
 - **語言**：註解、文案、log 皆為繁體中文。
-
-> 註1: 見 `$lib/{collection,database,image}`
