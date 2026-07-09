@@ -128,26 +128,9 @@ class TagWhere {
 - `mutation` 的 args 是**純型別**,編譯期抹除、無 runtime code 可洩漏 → 跨邊界永遠安全 → 直接住 `lib/mutation` 即可。
 - 「class vs 型別」與「要不要獨立模組」是**同一個根**:runtime code vs 會被抹除的型別,誰能安全穿過前後端邊界。
 
-## 7. 業務清單(用來驗證組合面)
-
-確定要 / 可能要(以此檢查介面能不能組出來):
-1. **Faceted 瀏覽**:同一 `ImageWhere` → ImageQuery + TagQuery(masonry + 側欄標籤)。
-2. 單張詳情:by id。
-3. 鄰居導航:Scope(有序)→ 定位 id → ±1(fullscreen 翻頁)。← 需要 Scope「有序」
-4. 隨機取樣:Scope → 抽樣 n(compare)。
-5. 標籤列表:TagQuery 分頁 + 依 name/count 排序(標籤中心頁)。
-6. 標籤 autocomplete:實際在前端即時篩選(limit 0 + scope 全拿),**非**後端 TagWhere 查詢;`TagWhere` 主要為 #5「標籤為主」頁面預留。
-7. 統計摘要:總數、各評分直方圖、標籤數(導航徽章)。
-8. 維護掃描:全部圖片(不遮蔽),補元資料。
-9. 提交/匯入(可能批次)。
-10. 更新單張(樂觀併發)。
-11. 刪除單張的對應紀錄。
-12. **批次編輯**:`query 解析 scope → id 集合 → 餵給吃 id[] 的批次 mutation`。← 讓 mutation 只認 id、WHERE 安心留在 query
-13. 標籤管理:全域改名 / 刪除 / 設定對應標籤名稱的 metadata 紀錄。
-
-## 8. 待定 / 開放問題
+## 7. 待定 / 開放問題
 
 - `lib/query-spec` 名稱待定(candidates:`query-spec` / `criteria` / `query-model`);「該獨立」的理由是硬的,名稱是 bikeshed。
-- Scope 是否需要「有序」由 #3 鄰居導航是否要做決定;#12 批次編輯確認採「query→id→mutation」組合。
+- Scope 是否需要「有序」由鄰居導航(player fullscreen 翻頁)決定。**批次不影響引擎**:提交/編輯的批次都在**呼叫端**逐筆組合單筆 mutation(前端 `batchRun` 對單筆 API,或匯入路由的 SSE 迴圈),mutation 一律只認單筆、只回單筆 Result;引擎不持有批次動詞。
 - 「帶 scope → 遮蔽」假設沒有「帶 scope 卻要原始 count」的情境(目前不存在)。未來標籤主角頁若需要「某範圍內、但含隱藏圖的真實計數」,再引入顯式 flag;在那之前不先燒這個軸(YAGNI)。
 - `database` 的名稱:現在它只是引擎/儲存,語意比今天窄,是否改名待定。

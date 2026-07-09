@@ -1,4 +1,4 @@
-# Q2 — mutation 錯誤模型(已定案)+ not-load 的層級(開放)
+# Q2 — mutation 錯誤模型 + not-load 層級(完全定案)
 
 ## Part A — mutation 錯誤模型(已定案)
 
@@ -10,11 +10,12 @@
 ### 形狀:`Result<T, E>`,E 用純物件可辨識聯集(不用 Error class)
 
 ```ts
-// 領域錯誤:純物件變體,以 kind 辨識
-type NotFound   = { kind: "not_found" };
-type Conflict   = { kind: "conflict"; expectedUpdatedAt: number; actualUpdatedAt: number };
-type Validation = { kind: "validation"; fields: string[]; message: string };
-type MutationError = NotFound | Conflict | Validation;
+// 領域錯誤:純物件變體,以 kind 辨識。kind 名稱一律「明確」,不用模糊的 "conflict"。
+type NotFound    = { kind: "not_found" };
+type StaleUpdate = { kind: "stale_update"; expectedUpdatedAt: number; actualUpdatedAt: number }; // 樂觀併發:更新基於過期版本
+type LastTag     = { kind: "last_tag"; images: string[] };                                       // 刪標籤會讓這些圖片失去最後一個標籤
+type Validation  = { kind: "validation"; fields: string[]; message: string };                    // fields 一律 string[](無特定欄位就 [])
+type MutationError = NotFound | StaleUpdate | LastTag | Validation;
 
 // 統一信封:成功帶 method-unique 的 data,失敗帶 E
 type Result<T, E = MutationError> =
@@ -22,22 +23,27 @@ type Result<T, E = MutationError> =
   | { ok: false; error: E };
 ```
 
+> **兩種「衝突」拆成兩個明確 kind**(你的決定):`stale_update`(樂觀併發,更新時版本已被別人改)與 `last_tag`(刪標籤會讓某些圖片變成零標籤)是**不同的領域事件**,雖然都映射到 409,但名稱必須說清楚是哪一種,不共用一個含糊的 `conflict`。
+
 **per-method 收窄 E** —— 型別本身文件化「這個方法可能怎麼失敗」:
 
 ```ts
 removeRecord(...): Result<ImageRecord, NotFound>
-updateRecord(...): Result<ImageWithId, NotFound | Conflict | Validation>
+updateRecord(...): Result<ImageWithId, NotFound | StaleUpdate | Validation>
+deleteTag(...):    Result<{ affected: number }, LastTag | Validation>
 setTagMeta(...):   Result<void,        Validation>
 ```
 
 **極小工廠**把樣板壓到與 `new XxxError()` 一樣短、零 class 包袱:
 
 ```ts
-const ok       = <T>(data: T): Result<T, never>            => ({ ok: true,  data });
-const notFound = (): Result<never, NotFound>              => ({ ok: false, error: { kind: "not_found" } });
-const conflict = (e: number, a: number): Result<never, Conflict>
-  => ({ ok: false, error: { kind: "conflict", expectedUpdatedAt: e, actualUpdatedAt: a } });
-const invalid  = (fields: string[], message: string): Result<never, Validation>
+const ok          = <T>(data: T): Result<T, never>          => ({ ok: true,  data });
+const notFound    = (): Result<never, NotFound>            => ({ ok: false, error: { kind: "not_found" } });
+const staleUpdate = (e: number, a: number): Result<never, StaleUpdate>
+  => ({ ok: false, error: { kind: "stale_update", expectedUpdatedAt: e, actualUpdatedAt: a } });
+const lastTag     = (images: string[]): Result<never, LastTag>
+  => ({ ok: false, error: { kind: "last_tag", images } });
+const invalid     = (fields: string[], message: string): Result<never, Validation>
   => ({ ok: false, error: { kind: "validation", fields, message } });
 
 // mutation 內部:乾淨
@@ -60,7 +66,14 @@ return ok(record);
 
 ---
 
-## Part B — not-load 的層級(開放)
+## Part B — not-load 的層級(已定案:完全 route)
+
+**定案:not-load 完全由 route 守衛。** `query` 與 `mutation` 都**假設呼叫端帶入的是已載入的 db** ——
+它們是 `(db, …) → 結果` 的純函式,不認識「載入狀態」,not-load 永遠不進它們的世界(也不在 mutation 的 E 裡)。
+
+- 頁面 load:route 頂端 `if (!isLoaded()) throw redirect(303, "/settings")`。
+- API endpoint:route 頂端 `if (!isLoaded()) return json(…, { status: 503 })`。
+- 回應形狀歸 route(它才知道要 redirect 還是 503);`requireLoaded()` 取得已載入實例,理論上拿不到只發生在 route 沒守好的 bug 情境,屬「真正非預期」→ 可 throw 到框架邊界。
 
 ### 為什麼 not-load **不在** mutation 的 E 裡
 
@@ -77,22 +90,9 @@ return ok(record);
 | **頁面 load**(home/player/…) | `if (!isLoaded()) throw redirect(303, "/settings")` | 導去設定頁(比 503 錯誤頁友善) |
 | **API endpoint**(mutation) | `if (!isLoaded()) return json(…, { status: 503 })` | 503 JSON |
 
-關鍵:**not-load 的期望回應依 route 類型而異**(redirect vs 503),只有 route 知道要哪一種。
-
-### 開放選項(先不定)
-
-1. **route 頂端顯式守衛**(現況):各 route 開頭 `if (!isLoaded()) …` 自行決定 redirect / 503。
-   - 優點:回應形狀歸 route(它才知道要 redirect 還是 503);query/mutation 完全不碰 not-load。
-   - 缺點:每個 route 要記得守;一行重複。
-2. **存取器回 Result**:`requireLoaded(): Result<Db, NotLoaded>`,route `if (!r.ok) …` 映射。
-   - 優點:與 mutation 的 Result 同一套機制、一個 mapper。
-   - 缺點:每個 db 存取點都要 unwrap,為一個幾乎不會 false 的守衛加儀式。
-3. **存取器 throw 具名錯誤**:`requireLoaded()` throw `DatabaseNotLoadedError`,hook 集中映射。
-   - 優點:route 零儀式。
-   - 缺點:是個 throw(與 no-throw 純度相衝);且 hook 難把它變成「頁面要的 redirect」。
-
-> 待決:先保持開放。分析見本目錄外的討論總結(route 守衛 vs mutation 守衛)。
+關鍵:**not-load 的期望回應依 route 類型而異**(redirect vs 503),只有 route 知道要哪一種 ——
+這正是「完全 route 守衛」勝出的核心理由:回應形狀是路由層才知道的知識,下沉到 mutation 只會逼 route 再翻譯一次,還弄髒 mutation 的領域 E、破壞與 query 的對稱。
 
 ## 你的回答
 
-<!-- Part A 已定案。Part B(not-load 層級)待你決定: -->
+Part A、Part B 皆已定案。not-load 完全由 route 守衛;query / mutation 一律假設呼叫端帶入已載入的 db。
