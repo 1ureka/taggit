@@ -39,7 +39,7 @@ src/lib/database/
 
 | 舊問題 | 解法 | 落在哪 |
 |---|---|---|
-| 1 god-facade | facade 溶解,呼叫端直接組合 `query` / `mutation`;新需求 = 組合原語,非新 API | index / query / mutation |
+| 1 god-facade | facade 溶解成**每模組一個 class**(`Query` / `Mutation` 建構時注入 db);呼叫端組合實例方法,新需求 = 組合原語,非往大 facade 焊新函式 | index / query / mutation |
 | 2 預設散落 | `query-spec` 值物件**建構時一次**定預設,引擎收到保證已填滿的欄位;刪掉 `FilterParams`/`toFilterParams` | query-spec |
 | 3 HTTP 洩漏 | `mutation` 回 `Result<T, MutationError>`(領域 `kind`,不帶 status);`errorToHttp` 只在 route | mutation |
 | 4 驗證散落 | 驗證**內化進 mutation、私有**,無論呼叫端有無 pre-check 都驗(單一守門人) | mutation |
@@ -74,6 +74,7 @@ src/lib/database/
 6. **批次一律呼叫端逐筆**(前端 `batchRun` / 匯入路由 SSE 迴圈),引擎只認單筆、只回單筆 `Result`。
 7. **isomorphic 值物件(query-spec)絕不 import server code**;**query 與 mutation 絕不互相 import**(CQRS)。
 8. **hidden 遮蔽**:image 側一律遮蔽(否則洩漏隱藏圖);tag 側由 `TagQuery.scope` 有無決定。
+9. **模組對外只一個 class**(`Database` / `Query` / `Mutation`;query-spec 因是多值物件而豁免):`Query` / `Mutation` 實例持有 db;`Database` 以**靜態成員**扛單例生命週期(單一私有 `filePath`,無 getter)。內部按職責切扁平檔(無 `/internal`)、各自物件封裝;**禁止 grab-bag 匯出**(反例:舊 `schema.ts` 為了給別人 export 一堆局部東西 → 邊界糊掉)。內部檔只露 owner 真正需要的最小面。
 
 > 這八條若與某個實作直覺衝突,**以這八條為準**;它們是本次重寫的不變式,細節都應收斂回它們。
 

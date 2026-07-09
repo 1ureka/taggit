@@ -2,6 +2,8 @@
 
 唯一前端也會 import 的一層。**純轉換 + 組合原語,不含業務**:預設值建構時內建、`fromSearchParams` / `toSearchParams` / `with`。
 
+**豁免「對外只一個 class」規則**:query-spec 天生是多個值物件 class,每個都自我描述(`ImageQuery.fromSearchParams`、`ImageWhere.with`),不是 `import * as` 後裸呼的模糊 free function;那條規則要治的病(`import * as query` 後不知 `images()` 在幹嘛)它本來就沒有。故維持多值物件具名匯出。
+
 **為何獨立模組**:值物件是 class(帶 runtime code),且 isomorphic(前端組來導航、後端組來查詢)。
 若與「會 import database 的 server 執行器」同資料夾,前端 import 易經相依鏈把 server code 拉進去 → SvelteKit build 失敗。
 故需**實體隔離**成獨立模組,把「不能有那條 edge」從慣例升級成結構強制。
@@ -62,6 +64,23 @@ with(patch: Partial<Fields>): Self;                      // 不可變覆寫(取�
 
 - **建構時一次確立預設**,引擎收到保證已填滿的欄位;engine 內不再有任何 `??` 補空(消除舊碼散落多處的預設值填補、`FilterParams`/`toFilterParams` 那層重複)。
 - **overlay**(改一個 facet、保留 URL 其餘參數、產出可 goto 的字串)由**呼叫端組合**;值物件只封裝「自己的 key 集」(合併時先清舊 key,免得落回預設被省略的欄位殘留舊值)。不重蹈舊 `buildQueryString` 一函式塞四件事的覆轍。
+- **`ListOptions<S>` 保持 dumb**:泛型持 `sort`/`order`/`page`/`limit`,但「預設 sort」依領域而異(image=`rating` / tag=`count`),故由 `ImageQuery` / `TagQuery` 在 parse/serialize 時提供,`ListOptions` 只認被填好的 `sort`(領域知識留在具體查詢值物件,`ListOptions` 不耦合任何領域)。
+
+## 內部檔案結構(扁平,無 `/internal`)
+
+```
+lib/query-spec/
+  index.ts        ← re-export 全部值物件（多值物件,豁免「只一個 class」）
+  image-where.ts  ← class ImageWhere
+  list-options.ts ← class ListOptions<S>
+  image-query.ts  ← class ImageQuery
+  tag-where.ts    ← class TagWhere
+  tag-query.ts    ← class TagQuery
+  parse.ts        ← parseTags / safeInt / parseEnum（純函式 util,非 class,值物件共用）
+  types.ts        ← ImageSort / TagSort / 各欄位 Fields 型別
+```
+
+- `QueryResult<T>` / `Tag` **不在這裡**(它們是查詢結果,屬 `query` 模組);query-spec 只放「查詢的輸入描述」。
 
 ## 尚開放(Q4,限 query + query-spec)
 
