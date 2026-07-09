@@ -28,8 +28,8 @@
 
 | 群組 | 原語 | 說明 |
 |---|---|---|
-| **真相存取** | image by id:get / set / delete | 完整讀寫,無正規化 |
-| | tagMeta by name:get / set / delete | **get 補預設(反正規化)、set 剝預設(正規化,維持稀疏)** |
+| **真相 CRUD**(對稱、完整業務型別) | `getImage` / `setImage` / `deleteImage`(by id,`ImageRecord`) | 完整讀寫、覆寫語意,無正規化 |
+| | `getTagMeta` / `setTagMeta` / `deleteTagMeta`(by name,`TagMeta`) | **介面與 image 完全對稱(完整 `TagMeta` 進出)**;稀疏 norm/denorm 藏在原語內部 |
 | **索引原子** | `indexAdd` / `indexRemove` | 單筆進出序號 + 位元圖(含墓碑壓實) |
 | **投影查詢** | `tagBits` / `ratingRange` / `live` / `idOf` / `ordinalOf` / `hiddenTagNames` | 位元圖與序號的唯讀取用 |
 | **一致性** | `rebuild` | 「索引純由 images 推導」這個契約本身 |
@@ -40,40 +40,50 @@
 
 真正的分界是 **儲存機制(primitive)vs 政策(verb)**:
 
-- **原語** = authority-free、policy-free 的儲存機制:真相 get/set/delete、索引原子、rebuild、序列化。索引維護只是其中**一種**機制;真相 get/set 是**另一種**。
+- **原語** = authority-free、policy-free 的儲存機制:真相 CRUD、索引原子、rebuild、序列化。**真相 CRUD 與索引維護是兩組不同的原語**——真相 get/set/delete 只碰真相 slot、不碰投影;索引同步(indexAdd/indexRemove)是另一組。
+- **真相 CRUD 一律吃吐「完整業務型別」、覆寫語意**:`setImage(id, rec: ImageRecord)` / `setTagMeta(name, meta: TagMeta)` 不收 partial。**合併/patch 是動詞的事**:想改一部分的動詞先 `get`(拿到完整基底)→ 覆蓋要改的欄位 → 交回完整值。`get` 對缺席鍵也回完整(tag 回 DEFAULT hydrate 後的值),所以「新建」與「更新」對動詞是同一個 read-overlay-write。
 - **動詞**(query / mutation)= 用原語組合,再疊上 policy:
   - query:`resolveScope`、materialize、count、sort、分頁。
-  - mutation:不變式(樂觀併發、最後一個標籤)、輸入驗證、索引維護的組合、回 Result。
+  - mutation:不變式(樂觀併發、最後一個標籤)、輸入驗證、`get`→覆蓋→`set` 的合併、索引維護的組合、回 Result。
 
 例(mutation 動詞如何坐在原語上):
 
 ```
-commitRecord(動詞) = 驗證(policy)
-                   + setImageRecord(原語) + indexAdd(原語)
-                   + markDirty(原語)
+updateRecord(動詞) = getImage(原語,拿完整基底)
+                   + 不變式(樂觀併發)+ 覆蓋 patch → 完整 ImageRecord(policy)
+                   + setImage(原語) + indexRemove/indexAdd(原語) + markDirty(原語)
 ```
 
-## 6. 為什麼 tagMeta 的 get/set「塌回」原語(getTagMeta/setTagMeta 的定位)
+## 6. 定案:對稱的完整型別真相 CRUD,稀疏藏在原語內部
 
-這是「積木 vs CRUD」那條線最微妙的地方,也是 Q5 的深層答案。
+Q5 的深層結論。決定原則:**database 的 get/set/delete 一律對「完整業務型別」操作、名稱完全對稱(`getImage`/`getTagMeta`…)。稀疏儲存是被藏起來的實作技術,呼叫端永遠不必知道。**
 
-**image 的 get/set 永遠被動詞包起來**,因為寫一張 image **一定**連帶:
-1. 維護索引(indexAdd/indexRemove)—— 有衍生投影要同步;
-2. 檢查不變式(樂觀併發、找不到…)。
+### 為什麼 default / prune / hydrate 屬 database(最本質的理由)
 
-有這兩層 policy 可疊,所以 image 的真相 get/set 從不單獨出現,總是藏在 `commitRecord`/`updateRecord` 這些動詞裡。
+**原語的介面契約是「完整業務型別」,稀疏只是被隱藏的實作;而 default 正是「完整 ⇄ 稀疏」轉換的一部分,所以它跟著實作住在 database。** 這是純 information hiding:
 
-**tagMeta 是「裸真相」**:
-- **沒有任何投影/索引從它推導** → 寫它不需要維護任何索引;
-- **目前沒有不變式** → 寫它不需要檢查什麼。
+- 這個記憶體設計**沒有 RDBMS 那層獨立 storage schema**,slot 直接裝 domain 型別 → raw get/set 天生吃吐完整業務型別。
+- image 的 raw slot 剛好就是完整 `ImageRecord`,零轉換。
+- tagMeta 當初用稀疏儲存,等於偷開了一個「mini storage schema」與 domain 型別分家。把介面對齊回完整 `TagMeta`,就是**把這個分家收進 database 內部**;`DEFAULT_TAG_META` / `pruneTagMeta` / hydrate 是維持這個乾淨介面的內部零件。
 
-沒有 policy 可疊,它的 get/set 就**直接塌成原語** —— 純粹是「這份稀疏真相的 norm/denorm 存取」。這正是:
-- `getTagMeta`(讀 + 補預設)= 讀取側反正規化,是 `pruneTagMeta`(寫入側正規化)缺失已久的**孿生**。缺了它,query 的 `tagMetaOf` 與 mutation 的 `getTagMeta` 只好各造一份 → Q5 的重複。
-- `setTagMeta`(合併 + 剝預設 + 寫入 + markDirty)= 寫入側正規化,同樣是儲存機制。
+### image vs tag:介面對稱、實作不對稱
 
-### 定位結論
+| | 介面 | 內部實作 |
+|---|---|---|
+| `getImage`/`setImage` | 完整 `ImageRecord` 進出 | dumb(raw 就是 complete,零轉換) |
+| `getTagMeta`/`setTagMeta` | **完整 `TagMeta` 進出(與 image 完全對稱)** | **不 dumb** —— 內部 hydrate(get,缺席回 DEFAULT)/ prune(set,存稀疏) |
 
-- **讀(`getTagMeta`)= 純原語**,直接放 database,query 與(未來的)mutation 都向它拿。重複與「一個讀住在 mutation」同時消失。
-- **寫(`setTagMeta`)= 原語機制**。它今天無驗證,就是個原語;但因為它是**寫**,而寫是不變式未來會長出來的地方(若 `TagMeta` 加顏色/別名等需驗證的欄位),保險做法是:**norm+write 這個機制放 database 原語,對外的公開寫入仍走一層薄 mutation 動詞**(如同 image 的寫永遠走動詞、不讓 route 碰裸 setRecord)。今天那層動詞是 pass-through,未來在原語上疊驗證即可,呼叫端不變。
+選的是**介面對稱**而非實作對稱:用「tag 原語內部多做一點」換「呼叫端完全不必碰稀疏」。另一條路(把 raw `Partial<TagMeta>` 露出去)會把稀疏這個儲存技術洩漏給每個呼叫端 —— 正是要避免的。
 
-一句話:**getTagMeta/setTagMeta 之所以「感覺不屬於 mutation」,是因為它們本來就是原語 —— tagMeta 是沒有投影、沒有不變式的裸真相,它的存取沒有 policy 可疊,自然落在線的原語側。**
+### 覆寫 vs 合併:原語只做覆寫,合併上移為動詞
+
+- **原語 `setTagMeta(name, meta: TagMeta)` 吃完整、覆寫**,和 `setImage` 一樣。
+- **想「只改 hidden、不動別的」= 動詞的事**:動詞先 `getTagMeta(name)`(缺席也回完整 DEFAULT)→ 覆蓋 → 交回完整 —— 與 image 的 `updateRecord` read-overlay-write 同構。今天 `TagMeta` 只有 `hidden`,覆寫與 patch 看起來一樣;等它長出 color/alias 這條線才顯形。
+- 這使「上層原本預期 update 就自己組好完整型別、不能缺」**可達成**:因為 `get` 永遠回完整基底,動詞總能 read → overlay → write 完整值。這也正是現有程式已在做的(`{ ...existing, ...changes }`),原則只是讓原語的簽章**強制**完整、讓 partial 無法混進來。
+
+### Q5 的兩個症狀如何一次消掉
+
+- `getTagMeta`(hydrate)成為 database 原語 → query 的 `tagMetaOf` 與 mutation 的 `getTagMeta` 不再各造一份(重複消失)。
+- 真相 CRUD 全在 database、對稱命名 → mutation 不再對外露出任何「讀」,`setTagMeta` 也不再是「感覺放錯地方的東西」,它本來就是原語。
+
+一句話:**它們感覺不屬於 mutation,是因為它們本來就是原語 —— 只是 tag 的原語為了維持與 image 對稱的完整型別介面,把稀疏 norm/denorm(含 default)藏在了自己內部。**

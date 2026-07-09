@@ -1,80 +1,45 @@
-# Q5 — 標籤 metadata 的「讀」放哪?(CQRS 的乾淨度)
+# Q5 — 標籤 metadata 的存取歸屬(已定案)
 
-> 這題最小,但不釘會讓 CQRS 的「query/mutation 互不依賴」在標籤 metadata 上破一個小洞。
+> 起點是「`getTagMeta`(mutation)與 `tagMetaOf`(query)重複」這個小症狀,往下挖後定案為
+> **database 的真相 CRUD 原則**。完整推導見 [q0](./q0_database-shape.md) §6,此處收結論。
 
-## 一句話問題
+## 症狀
 
-`getTagMeta`(讀標籤 metadata)今天住在 **`mutation.ts`**,而 query.ts 又有一份幾乎一樣的 `tagMetaOf`。
-CQRS 落地後,**讀**不該住 mutation。這份讀該歸誰?
+同一段「讀 tagMeta + 補預設」寫了兩份:
+- `mutation.getTagMeta`(公開,給 route 在 `setTagMeta` 後讀回)
+- `query.tagMetaOf`(私有,`queryTags` 逐標籤附 meta 用)
 
-## 現況:同一個讀,兩個地方各寫一份
+一個**讀**住在**寫**模組,且邏輯重複。
 
-```ts
-// mutation.ts —— 一個「讀」卻住在寫模組
-export function getTagMeta(db: Database, name: string): TagMeta {
-  return { ...DEFAULT_TAG_META, ...db.data.tags[name] };
-}
+## 根因(非 Tag 特例,是缺一個原語)
 
-// query.ts —— 幾乎一模一樣,只是叫別的名字、private
-function tagMetaOf(db: Database, name: string): TagMeta {
-  return { ...DEFAULT_TAG_META, ...db.data.tags[name] };
-}
-```
+不是「這個讀該挑去哪放」,而是 **database 少給了一個讀取原語**:
+- database 有寫入側正規化 `pruneTagMeta`(存檔剝預設,維持稀疏),卻**缺對應的讀取側反正規化**(補預設 hydrate)。
+- 因為這個 hydrate 原語沒被 database 收編,query 與 mutation 只好各造一份 → 重複。
+- 深層原因:tagMeta 稀疏儲存,讀時要 hydrate、寫時要 prune;image 完整儲存,無此需求。所以症狀只出現在 tag —— 它是唯一的稀疏真相。
 
-兩者邏輯相同(補預設值後回傳),差別只在:
-- `mutation.getTagMeta` 是**公開**的,給 [api/tags](../../src/routes/api/tags/+server.ts) 在 `setTagMeta` 之後讀回合併結果:
-  ```ts
-  database.setTagMeta(name, { hidden: body.hidden });
-  return json({ ok: true, data: { name, ...database.getTagMeta(name) } });
-  ```
-- `query.tagMetaOf` 是**私有**的,`queryTags` 逐標籤附 meta 時用。
+## 定案
 
-## 為什麼是個問題
+**database 提供對稱、吃吐完整業務型別的真相 CRUD;稀疏是藏在原語內部的實作技術。**
 
-計畫 §2:「`query` 與 `mutation` **互不依賴**,都只依賴 `database`。這是 CQRS 落到模組層級。」
+- 原語(名稱與 image 完全對稱):
+  - `getTagMeta(name): TagMeta` —— 內部 hydrate,**缺席鍵回 `DEFAULT_TAG_META`**,永遠回完整。
+  - `setTagMeta(name, meta: TagMeta)` —— 吃**完整** `TagMeta`、覆寫語意,內部 prune 存稀疏。
+  - `deleteTagMeta(name)`。
+- `DEFAULT_TAG_META` / `pruneTagMeta` / hydrate 全部**住 database**,是維持「完整型別介面」的內部零件(理由見 q0 §6:介面契約是完整型別,稀疏是被隱藏的實作,default 是完整⇄稀疏轉換的一部分)。
+- **合併/patch(只改一欄)是動詞的事**,不是原語:動詞先 `getTagMeta`(拿完整基底)→ 覆蓋 → `setTagMeta`(完整),與 image `updateRecord` 的 read-overlay-write 同構。今天 `TagMeta` 只有 `hidden`,覆寫與 patch 尚不可分。
+- **寫入的公開入口仍走一層 mutation 動詞**(如同 image 的寫永遠走動詞、不讓 route 碰裸 `setImage`),未來 `TagMeta` 長出需驗證欄位時,在動詞疊驗證即可,呼叫端不變。今天該動詞近乎 pass-through。
 
-一個**讀**(`getTagMeta`)住在 mutation,有兩個副作用:
-1. 呼叫端為了「讀一筆 tag meta」得 import `mutation` —— 語意錯位(讀為什麼要碰寫模組)。
-2. 同一段補預設值的邏輯在 query / mutation 各一份 —— 就是計畫想消滅的「多個真相來源」。
+## 兩個症狀一次消掉
 
-而「補預設值」(`{ ...DEFAULT_TAG_META, ...raw }`)本質是**儲存格式的正規化**,`DEFAULT_TAG_META` 也已經住在 `schema.ts`(計畫說 schema.ts 留在 database 當「儲存格式」)。
+- `getTagMeta`(hydrate)成為 database 原語 → `query.tagMetaOf` 與 `mutation.getTagMeta` 不再各造一份。**重複消失。**
+- 真相 CRUD 全在 database、對稱命名 → **mutation 不再對外露出任何「讀」**;`setTagMeta` 不再是「感覺放錯地方」,它本來就是原語。
 
-## 選項
+## 呼叫端影響
 
-### 選項 A(建議):把「讀 tag meta 並補預設」下沉為 `database` 原語
-
-```ts
-// lib/database(schema.ts 或原語面)
-export function tagMetaOf(db, name: string): TagMeta {
-  return { ...DEFAULT_TAG_META, ...db.data.tags[name] };
-}
-```
-
-- query 的 `queryTags` 附 meta 時呼叫它;mutation 完全不需要 `getTagMeta` 了。
-- api/tags 那個「setTagMeta 後讀回」的呼叫,改成:寫走 `mutation.setTagMeta`、讀走 `database.tagMetaOf`(或 query)。
-- 理由:補預設值 = 儲存格式正規化 = database 的職責(跟 `parseDBData` 同性質),`DEFAULT_TAG_META` 也在那。query / mutation 共用同一個原語,零重複。
-
-### 選項 B:讀歸 `query`
-
-把 `tagMetaOf` 公開成 `query.getTagMeta`,mutation 那份刪掉,api/tags 讀走 query。
-
-- 也合理(讀就是 query 的事)。但 `queryTags` 內部本來就要用它,放 query 內順;缺點是「補預設」這個**純儲存格式**的邏輯離開了 database,和 `DEFAULT_TAG_META` 分兩地。
-
-### 選項 C:維持現況
-
-- mutation 繼續持有一個公開的讀。CQRS 的「互不依賴」在這一點上有例外。不建議。
-
-## 順帶一提:`setTagMeta` 本身是寫,毫無疑問留 mutation
-
-這題只在搬「讀」。`setTagMeta`(合併寫入 + `pruneTagMeta` + markDirty)是不折不扣的寫,留在 mutation。
-`pruneTagMeta` 目前在 schema.ts,是儲存格式正規化(維持稀疏),留在 database 由 mutation 呼叫即可。
-
-## 我的建議
-
-**選項 A。** 把「讀 tag meta + 補預設」當成 **database 原語**下沉,query 與 mutation 都向 database 拿。
-理由最一致:它跟 `DEFAULT_TAG_META`、`pruneTagMeta`、`parseDBData` 是同一類「儲存格式正規化」,本就屬 database;
-順手消滅 query/mutation 的重複,並讓 mutation 不再對外露出任何「讀」。
+- `queryTags` 附 meta:改呼叫 `database.getTagMeta(name)`。
+- [api/tags](../../src/routes/api/tags/+server.ts) 的「`setTagMeta` 後讀回」:寫走 mutation 動詞、讀走 `database.getTagMeta`。
 
 ## 你的回答
 
-<!-- 在這裡寫下你的決定與理由 -->
+已定案(見上)。完整推導 [q0](./q0_database-shape.md) §6。
