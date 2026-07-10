@@ -140,18 +140,44 @@ export class Database {
 
   // ---
 
-  /** 將單筆紀錄加入序號與位元圖索引，回傳其序號。 */
-  indexAdd(id: string, rec: ImageRecord): number {
-    const ordinal = this.ordinals.add(id);
-    this.facets.add(ordinal, rec);
-    return ordinal;
-  }
+  /**
+   * - 新增 `給定的 id 未建立索引` & `oldRec: null`
+   * - 刪除 `給定的 id 已建立索引` & `oldRec: ImageRecord`
+   * - 更新 `給定的 id 已建立索引` & `oldRec: ImageRecord`
+   *
+   * > 呼叫端須**先寫好**（setImage / deleteImage），再呼叫此方法
+   *
+   * @param id 目標紀錄 id。
+   * @param oldRec 該 id 先前的紀錄；`null` 表示先前不存在（純新增）。
+   */
+  replaceIndex(id: string, oldRec: ImageRecord | null): void {
+    // 錯誤 `給定的 id 已建立索引` & `oldRec: null`
+    if (oldRec === null && this.ordinals.ordinalOf(id) !== undefined) {
+      log({
+        level: "error",
+        module: "database",
+        message: `replaceIndex 要求的 \`${id}\` 已在索引中呼叫方卻聲稱沒有 \`oldRec\``,
+      });
+      this.rebuild();
+      return;
+    }
 
-  /** 將單筆紀錄自序號與位元圖索引移除（留下墓碑）。墓碑超門檻時自動壓實（整體重建）*/
-  indexRemove(id: string, rec: ImageRecord): void {
-    const ordinal = this.ordinals.remove(id);
-    if (ordinal !== undefined) this.facets.remove(ordinal, rec);
-    if (this.ordinals.needsCompaction) this.rebuild();
+    if (oldRec) {
+      const ordinal = this.ordinals.remove(id);
+      if (ordinal !== undefined) this.facets.remove(ordinal, oldRec);
+    }
+
+    // 墓碑數達臨界值：直接從最新的主資料全面重建索引，完成後即可返回
+    if (this.ordinals.needsCompaction) {
+      this.rebuild();
+      return;
+    }
+
+    const newRec = this.data.images[id];
+    if (newRec) {
+      const ordinal = this.ordinals.add(id);
+      this.facets.add(ordinal, newRec);
+    }
   }
 
   /** 以目前的真相快照，從頭重建序號與全部位元圖。 */

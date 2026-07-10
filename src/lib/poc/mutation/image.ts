@@ -3,7 +3,8 @@
  * ImageCommands —— 專心做圖片異動：commit / update / updateFileMeta / remove。
  *
  * 動詞坐在 database 原語上（read-overlay-write）：合併語意住動詞、原語只做覆寫。
- * 寫真相後組合索引原語（indexRemove/indexAdd）同步投影，再 markDirty。
+ * 索引同步的鐵則：**先寫真相（setImage / deleteImage），再 replaceIndex 同步投影**，
+ * 最後 markDirty。replaceIndex 依當前真相重建該筆，避免「半更新視窗」殘留舊 bit。
  */
 
 import type { Database, ImageRecord, ImageWithId } from "../database/index.js";
@@ -31,8 +32,7 @@ export class ImageCommands {
     if (entry.rating !== undefined && !Validator.rating(entry.rating)) return invalid(["rating"], "評分不合法");
 
     const db = this.db;
-    const existing = db.getImage(id);
-    if (existing) db.indexRemove(id, existing);
+    const existing = db.getImage(id); // null（新增）或舊紀錄（覆寫）
 
     const now = Date.now();
     const record: ImageRecord = {
@@ -47,8 +47,8 @@ export class ImageCommands {
       blurhash: file.blurhash,
     };
 
-    db.setImage(id, record);
-    db.indexAdd(id, record);
+    db.setImage(id, record); // 先寫真相
+    db.replaceIndex(id, existing); // 再同步投影（依當前真相）
     db.markDirty();
 
     return ok({ id, ...record });
@@ -72,9 +72,8 @@ export class ImageCommands {
     if (patch.name !== undefined) next.name = patch.name;
     next.updatedAt = Date.now();
 
-    db.indexRemove(id, record);
-    db.setImage(id, next);
-    db.indexAdd(id, next);
+    db.setImage(id, next); // 先寫真相
+    db.replaceIndex(id, record); // 再同步投影（舊 record 出、當前真相進）
     db.markDirty();
 
     return ok({ id, ...next });
@@ -82,7 +81,7 @@ export class ImageCommands {
 
   /**
    * 更新圖片的檔案側元資料（尺寸、blurhash），不經樂觀併發檢查、不更動 `updatedAt`。
-   * 這些欄位不進投影索引，故無須 indexRemove/indexAdd。僅供維護用途。
+   * 這些欄位不進投影索引，且 tags / rating 不變，故無須 replaceIndex。僅供維護用途。
    */
   updateFileMeta(id: string, meta: FileMetaPatch): Result<ImageWithId, NotFound> {
     const db = this.db;
@@ -102,8 +101,8 @@ export class ImageCommands {
     const record = db.getImage(id);
     if (!record) return notFound();
 
-    db.indexRemove(id, record);
-    db.deleteImage(id);
+    db.deleteImage(id); // 先寫真相（刪除）
+    db.replaceIndex(id, record); // 再同步投影（當前真相缺席 → 純移除）
     db.markDirty();
 
     return ok(record);
