@@ -1,95 +1,96 @@
 import fs from "fs";
 import path from "path";
-import type { RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import * as database from "$lib/database/server.js";
-import * as image from "$lib/image/server.js";
-import type { ImportEntry } from "$lib/database/server.js";
+import * as collection from "$lib/collection/server";
+import * as image from "$lib/image/server";
+import { Database } from "$lib/poc/database";
+import { Mutation } from "$lib/poc/mutation";
 
-import { isValidFilename } from "$lib/utils/shared.js";
-import { log } from "$lib/utils/server.js";
-import { isRecord } from "$lib/utils/shared.js";
+import { isRecord, isSafeFilename, formatError } from "$lib/utils/shared";
+import { log } from "$lib/utils/server";
 
-function validateEntry(
+// ---
+
+/** 單筆匯入的結果；失敗一律收斂成人類可讀的 error，`unexpected` 標記非預期例外。 */
+type ImportResult = { ok: true } | { ok: false; error: string; unexpected?: boolean };
+
+/** 逐筆串流回傳給前端的即時事件。 */
+type ImportEvent =
+  | { event: "progress"; current: number; total: number; filename: string; ok: boolean; error?: string }
+  | { event: "done"; imported: number; skipped: number; errors: string[] };
+
+// ---
+
+/**
+ * 匯入前的檔案側檢查：檔名安全、副檔名為圖片、實體檔案存在、紀錄為物件。
+ * 紀錄欄位（name / tags / rating）本身的驗證留給 mutation。
+ */
+function precheckEntry(filename: string, value: unknown, imagesDir: string): ImportResult {
+  if (!isSafeFilename(filename)) return { ok: false, error: `無效的檔名: ${filename}` };
+  if (!image.isImageFile(filename)) return { ok: false, error: `非圖片檔案: ${filename}` };
+  if (!fs.existsSync(path.join(imagesDir, filename))) return { ok: false, error: `檔案不存在: ${filename}` };
+  if (!isRecord(value)) return { ok: false, error: `紀錄格式無效: ${filename}` };
+  return { ok: true };
+}
+
+/**
+ * 匯入單筆紀錄：通過前置檢查後，讀取檔案元資料並寫入資料庫。
+ * 不擲出例外，一切失敗（含非預期例外）都收斂成 {@link ImportResult}。
+ */
+async function importEntry(
   filename: string,
   value: unknown,
   imagesDir: string,
-): { ok: true; entry: ImportEntry } | { ok: false; error: string } {
-  if (!isValidFilename(filename)) {
-    return { ok: false, error: `無效的檔名: ${filename}` };
+  mutation: Mutation,
+): Promise<ImportResult> {
+  const precheck = precheckEntry(filename, value, imagesDir);
+  if (!precheck.ok) return precheck;
+
+  try {
+    const fileInfo = await image.readImageInfo(path.join(imagesDir, filename));
+    const committed = mutation.commitRecord(filename, value, fileInfo);
+
+    if (!committed.ok) {
+      const { message, fields } = committed.error;
+      return { ok: false, error: `${filename}: ${message} (${fields.join(", ")})` };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: `${filename}: 處理失敗: ${formatError(err)}`, unexpected: true };
   }
-
-  if (!image.isImageFile(filename)) {
-    return { ok: false, error: `非圖片檔案: ${filename}` };
-  }
-
-  if (!fs.existsSync(path.join(imagesDir, filename))) {
-    return { ok: false, error: `檔案不存在: ${filename}` };
-  }
-
-  if (!isRecord(value)) {
-    return { ok: false, error: `紀錄格式無效: ${filename}` };
-  }
-
-  const { name, tags, rating } = value as Record<string, unknown>;
-
-  if (!database.isValidName(name)) {
-    return { ok: false, error: `名稱無效或缺失: ${filename}` };
-  }
-
-  if (!database.isValidTags(tags)) {
-    return { ok: false, error: `標籤無效: ${filename}` };
-  }
-
-  const resolvedRating = rating !== undefined ? rating : 0;
-  if (!database.isValidRating(resolvedRating)) {
-    return { ok: false, error: `評分無效: ${filename}` };
-  }
-
-  return { ok: true, entry: { name, tags, rating: resolvedRating } };
 }
+
+// ---
 
 /**
  * `POST /api/committed`
  *
- * 匯入圖片紀錄至資料庫。接收 JSON body，逐筆驗證並處理，
- * 以 SSE (Server-Sent Events) 串流回傳即時進度。
- *
- * Body 格式: `Record<filename, ImportEntry>`
- *
- * SSE 事件格式:
+ * 匯入圖片紀錄至資料庫。Body 為 `Record<filename, ImportEntry>`，
+ * 逐筆匯入並以 SSE (Server-Sent Events) 串流回傳即時進度：
  * - `{ event: "progress", current, total, filename, ok, error? }`
  * - `{ event: "done", imported, skipped, errors }`
  */
 export const POST: RequestHandler = async ({ request }) => {
   const root = collection.getActiveRoot();
-  if (!root || !database.isLoaded()) {
-    return new Response(JSON.stringify({ ok: false, error: "尚未載入資料庫" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (!root || !Database.isLoaded()) {
+    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
-
-  const paths = collection.getCollectionPaths(root);
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "無效的 JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ ok: false, error: "無效的 JSON" }, { status: 400 });
   }
 
   if (!isRecord(body) || Object.keys(body).length === 0) {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 必須是非空的物件" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ ok: false, error: "JSON 必須是非空的物件" }, { status: 400 });
   }
 
+  const imagesDir = collection.getCollectionPaths(root).images;
+  const mutation = new Mutation(Database.requireLoaded());
   const entries = Object.entries(body);
   const total = entries.length;
 
@@ -98,8 +99,8 @@ export const POST: RequestHandler = async ({ request }) => {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-      const send = (data: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      const send = (event: ImportEvent) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
       let imported = 0;
@@ -109,37 +110,24 @@ export const POST: RequestHandler = async ({ request }) => {
       for (let i = 0; i < entries.length; i++) {
         const [filename, value] = entries[i];
         const current = i + 1;
+        const position = `[${current}/${total}]`;
 
-        const validation = validateEntry(filename, value, paths.images);
-        if (!validation.ok) {
-          errors.push(validation.error);
-          skipped++;
-          send({ event: "progress", current, total, filename, ok: false, error: validation.error });
-          log({
-            level: "warn",
-            module: "import",
-            message: `[${current}/${total}] SKIP ${filename} — ${validation.error}`,
-          });
+        const result = await importEntry(filename, value, imagesDir, mutation);
+
+        if (result.ok) {
+          imported++;
+          send({ event: "progress", current, total, filename, ok: true });
+          log({ level: "info", module: "import", message: `${position} ✓ ${filename}` });
           continue;
         }
 
-        const { entry } = validation;
+        skipped++;
+        errors.push(result.error);
+        send({ event: "progress", current, total, filename, ok: false, error: result.error });
 
-        try {
-          // route 層組合：image 提供檔案側元資料，database 只收純資料
-          const fileInfo = await image.readImageInfo(path.join(paths.images, filename));
-          database.commitImage(filename, entry, fileInfo);
-
-          imported++;
-          send({ event: "progress", current, total, filename, ok: true });
-          log({ level: "info", module: "import", message: `[${current}/${total}] ✓ ${filename}` });
-        } catch (err) {
-          const msg = `處理失敗: ${err instanceof Error ? err.message : String(err)}`;
-          errors.push(`${filename}: ${msg}`);
-          skipped++;
-          send({ event: "progress", current, total, filename, ok: false, error: msg });
-          log({ level: "error", module: "import", message: `[${current}/${total}] FAIL ${filename} — ${msg}` });
-        }
+        const level = result.unexpected ? "error" : "warn";
+        const tag = result.unexpected ? "FAIL" : "SKIP";
+        log({ level, module: "import", message: `${position} ${tag} ${filename} — ${result.error}` });
       }
 
       send({ event: "done", imported, skipped, errors });
