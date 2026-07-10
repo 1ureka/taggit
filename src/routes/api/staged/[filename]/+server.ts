@@ -2,26 +2,30 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import * as database from "$lib/database/server.js";
-import * as image from "$lib/image/server.js";
+import * as collection from "$lib/collection/server";
+import * as image from "$lib/image/server";
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { Mutation } from "$lib/poc/mutation";
 
-import { isValidFilename } from "$lib/utils/shared.js";
-import { parseBody, log } from "$lib/utils/server.js";
+import { isValidFilename } from "$lib/utils/shared";
+import { parseBody, errorJson, log } from "$lib/utils/server";
 
 /**
  * `POST /api/staged/[filename]`
  *
- * 將暫存檔案提交至資料庫。
- * Body: `{ tags, rating }`，filename 來自 URL 路徑參數。
+ * 將暫存檔案提交至資料庫，也就是為一張圖片新增紀錄。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   const root = collection.getActiveRoot();
-  if (!root || !database.isLoaded()) {
+  if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
   const paths = collection.getCollectionPaths(root);
+  const db = Database.requireLoaded();
+  const query = new Query(db);
+  const mutation = new Mutation(db);
 
   // ---
 
@@ -34,7 +38,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "非圖片檔案" }, { status: 400 });
   }
 
-  if (database.hasImage(filename)) {
+  if (query.hasImage(filename)) {
     return json({ ok: false, error: "已提交的圖片" }, { status: 409 });
   }
 
@@ -50,30 +54,20 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   const { tags, rating, name } = body;
 
-  if (!database.isValidTags(tags)) {
-    return json({ ok: false, error: "無效的標籤 (必須是非空的唯一且非空字串陣列)" }, { status: 400 });
-  }
-
-  if (!database.isValidRating(rating)) {
-    return json({ ok: false, error: "無效的評分 (必須是 0 ~ 5 的整數)" }, { status: 400 });
-  }
-
   // name 為可選；未提供時沿用去副檔名的檔名（向後相容匯入等既有呼叫）
-  if (name !== undefined && !database.isValidName(name)) {
-    return json({ ok: false, error: "無效的名稱 (必須是非空字串，長度 ≤ 200)" }, { status: 400 });
-  }
+  const ext = path.extname(filename).toLowerCase();
+  const resolvedName =
+    name === undefined ? path.basename(filename, ext) : typeof name === "string" ? name.trim() : name;
 
   // ---
 
   try {
-    // route 層組合：image 提供檔案側元資料，database 只收純資料
-    const ext = path.extname(filename).toLowerCase();
-    const resolvedName = name !== undefined ? name.trim() : path.basename(filename, ext);
     const fileInfo = await image.readImageInfo(filePath);
-    const record = database.commitImage(filename, { name: resolvedName, tags, rating }, fileInfo);
+    const r = mutation.commitRecord(filename, { name: resolvedName, tags, rating }, fileInfo);
+    if (!r.ok) return errorJson(r.error);
 
     log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
-    return json({ ok: true, data: record }, { status: 201 });
+    return json({ ok: true, data: r.data }, { status: 201 });
   } catch (e) {
     if (e instanceof Error && "code" in e && e.code === "ENOENT") {
       return json({ ok: false, error: "檔案不存在" }, { status: 404 });
@@ -93,18 +87,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
  */
 export const DELETE: RequestHandler = ({ params }) => {
   const root = collection.getActiveRoot();
-  if (!root || !database.isLoaded()) {
+  if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
   const paths = collection.getCollectionPaths(root);
+  const query = new Query(Database.requireLoaded());
 
   const { filename } = params;
   if (!isValidFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
-  if (database.hasImage(filename)) {
+  if (query.hasImage(filename)) {
     return json({ ok: false, error: "無法透過暫存區端點刪除已提交的圖片" }, { status: 409 });
   }
 
