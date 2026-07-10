@@ -8,10 +8,10 @@
  * 判準是 present vs absent，**不是** empty vs non-empty（空 ImageWhere 仍算 facet）。
  */
 
-import { ImageWhere } from "./image-where.js";
-import { TagWhere } from "./tag-where.js";
-import { ListOptions } from "./list-options.js";
-import type { TagSort } from "./types.js";
+import { ImageWhere } from "./image-where";
+import { TagWhere } from "./tag-where";
+import { ListOptions } from "./list-options";
+import type { TagSort } from "./types";
 
 export class TagQuery {
   readonly scope?: ImageWhere;
