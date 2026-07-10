@@ -124,18 +124,9 @@ export class Database {
     delete this.data.tags[name];
   }
 
-  /** 列出所有有非預設元資料的標籤名稱 */
-  tagMetaNames(): string[] {
-    return Object.keys(this.data.tags);
-  }
-
-  /** 列出目前被標記為 hidden 的標籤名稱列表。 */
-  hiddenTagNames(): string[] {
-    const names: string[] = [];
-    for (const [name, meta] of Object.entries(this.data.tags)) {
-      if (meta.hidden === true) names.push(name);
-    }
-    return names;
+  /** 列出所有有非預設元資料的標籤 → 其（稀疏）元資料。 */
+  tagMetaEntries(): [string, Partial<TagMeta>][] {
+    return Object.entries(this.data.tags);
   }
 
   // ---

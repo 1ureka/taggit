@@ -47,9 +47,9 @@ export class TagCommands {
     }
 
     // 元資料搬移：newName 已有設定時遵從對方
-    const names = db.tagMetaNames();
-    if (names.includes(oldName)) {
-      if (!names.includes(newName)) db.setTagMeta(newName, db.getTagMeta(oldName));
+    const metaNames = db.tagMetaEntries().map(([name]) => name);
+    if (metaNames.includes(oldName)) {
+      if (!metaNames.includes(newName)) db.setTagMeta(newName, db.getTagMeta(oldName));
       db.deleteTagMeta(oldName);
     }
 
@@ -89,7 +89,7 @@ export class TagCommands {
       }
     }
 
-    const hadMeta = db.tagMetaNames().includes(name);
+    const hadMeta = db.tagMetaEntries().some(([n]) => n === name);
     db.deleteTagMeta(name);
 
     if (affected > 0 || hadMeta) {

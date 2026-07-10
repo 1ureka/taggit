@@ -38,7 +38,7 @@ export class TagEngine {
   /** facet（present scope）：scope 篩選 + hidden 遮蔽後計數。 */
   private facet(scope: ImageWhere, where: TagWhere): Tag[] {
     const { preHidden, visible, included } = this.scope.resolve(scope);
-    const hiddenSet = new Set(this.db.hiddenTagNames());
+    const hiddenSet = this.scope.hiddenNames();
     const tags: Tag[] = [];
 
     for (const [name, bits] of this.db.tagBitsEntries()) {
@@ -66,7 +66,7 @@ export class TagEngine {
 
   /** 獨立列表（absent scope）：count = 原始總使用數，不遮蔽。 */
   private standalone(where: TagWhere): Tag[] {
-    const hiddenSet = new Set(this.db.hiddenTagNames());
+    const hiddenSet = this.scope.hiddenNames();
     const tags: Tag[] = [];
 
     for (const [name, bits] of this.db.tagBitsEntries()) {
@@ -81,8 +81,8 @@ export class TagEngine {
   /** universe="all"：併入僅有元資料、未被任何圖片使用的標籤（count 0）。 */
   private appendUnused(where: TagWhere, tags: Tag[]): void {
     if (where.universe !== "all") return;
-    const hiddenSet = new Set(this.db.hiddenTagNames());
-    for (const name of this.db.tagMetaNames()) {
+    const hiddenSet = this.scope.hiddenNames();
+    for (const [name] of this.db.tagMetaEntries()) {
       if (this.db.tagBits(name)) continue;
       if (!this.passesWhere(name, hiddenSet.has(name), where)) continue;
       tags.push({ name, count: 0, meta: this.db.getTagMeta(name) });

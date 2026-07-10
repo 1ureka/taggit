@@ -42,7 +42,7 @@ if (!r.ok) return json({ ok: false, error: r.error }, { status: errorToHttp(r.er
   `requireLoaded()` / `ensureLoaded(dbPath)` / `isLoaded()` / `flush()`
 - **實例：真相 CRUD**（對稱、完整型別、覆寫語意，不收 partial）
   `getImage/setImage/deleteImage/hasImage/imageCount/imageEntries`
-  `getTagMeta/setTagMeta/deleteTagMeta/tagMetaNames/hiddenTagNames`
+  `getTagMeta/setTagMeta/deleteTagMeta/tagMetaEntries`
   （`getTagMeta` 缺席鍵回 hydrate 後的預設值；`setTagMeta` 內部 prune，全預設會移除表項）
 - **實例：索引維護**
   `replaceIndex(id, oldRec)` — 出舊 + 依當前真相進新，墓碑數超門檻時整體 `rebuild`
@@ -50,7 +50,7 @@ if (!r.ok) return json({ ok: false, error: r.error }, { status: errorToHttp(r.er
   規則：動詞一律先寫真相（`setImage`/`deleteImage`），再呼叫 `replaceIndex` 同步投影。
   用單一 `replaceIndex` 而不拆 `indexAdd`/`indexRemove`，是為了避免「出舊 → 寫真相 → 進新」三步之間，`rebuild` 在半更新狀態讀到舊真相、殘留舊 bit 的問題。
 - **實例：投影查詢（唯讀）**
-  `tagBits/tagBitsEntries/ratingRange/live/idOf/ordinalOf`
+  `tagBits/tagBitsEntries/ratingRange/liveClone/idOf/ordinalOf`
 
 檔案：`store.ts`（Database 本體）、`bitmap.ts`（`BitSet`）、`ordinal.ts`（`OrdinalRegistry`）、
 `facet-index.ts`（`FacetIndex`）、`serialization.ts`（`parseDBData`/`emptyDBData`/`TagMetaCodec`）、

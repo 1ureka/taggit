@@ -33,10 +33,19 @@ export class ScopeResolver {
     return { preHidden, visible, included };
   }
 
+  /** 目前被標記為 hidden 的標籤名稱集合。 */
+  hiddenNames(): Set<string> {
+    const names = new Set<string>();
+    for (const [name, meta] of this.db.tagMetaEntries()) {
+      if (meta.hidden === true) names.add(name);
+    }
+    return names;
+  }
+
   /** hidden 遮罩：所有「hidden 且 ∉ exclude」標籤位元圖的聯集；無適用者回 `null`。 */
   hiddenMask(exclude: ReadonlySet<string>): BitSet | null {
     let mask: BitSet | null = null;
-    for (const name of this.db.hiddenTagNames()) {
+    for (const name of this.hiddenNames()) {
       if (exclude.has(name)) continue;
       const bits = this.db.tagBits(name);
       if (!bits) continue;
