@@ -1,31 +1,56 @@
 # 專案測試指引：基於 Vite SSR 的輕量自動化測試
 
-> 本專案**刻意不引入 Vitest / Jest 等第三方測試庫**。
-> 當需要驗證程式「真實執行邏輯」時，統一採用專案現有的 **Vite 作為模組載入器**，撰寫獨立的 `.mjs` 腳本進行斷言。
+## 概述
 
-## TL;DR
+本專案目前**不引入 Vitest / Jest 等測試框架**。驗證邏輯正確性時，一律用專案既有的
+**Vite** 作為模組載入器：以 `createServer(...).ssrLoadModule()` 直接載入 `src/lib/poc/`
+下的 TypeScript 原始碼（`$lib` alias、`.ts` 副檔名解析、server-only 的 `fs` import 皆與
+正式環境一致），在同一支腳本內完成載入、執行、斷言、清理。
 
-- **不要** 為了測一段邏輯就 `npm i` 一個測試框架。
-- 寫一個 `*.mjs`,用 `vite` 的 `createServer(...).ssrLoadModule("/src/...ts")` 載入**真正的 TS 原始碼**(含 `$lib` alias、`.ts` 解析、server-only 的 `fs` import 都照常運作),跑完手寫斷言後 `process.exit`。
-- 檔案放**專案內**(node 才找得到 `vite`),跑完即刪。
+選擇這條路徑，而非額外安裝測試框架，原因是：
 
-## 為什麼用 Vite 而不是 `node --experimental-strip-types`
+- `poc/` 目前處於快速迭代期，模組邊界（`database` / `query` / `mutation` / `query-spec`）
+  還會調整，過早固化成測試框架的 suite 結構成本較高。
+- `ssrLoadModule` 用的是與正式 build 相同的解析器與轉譯管線，載入到的模組行為即上線行為，
+  不需要額外維護 mock / transform 設定。
+- vite 本來就在 `devDependencies`，不增加依賴面。
 
-`node` 原生跑 `.ts`(strip-types)**不會**處理:
-- `$lib/...` 這種路徑 alias(SvelteKit 的);
-- import 寫 `./foo.js` 卻實體是 `./foo.ts` 的副檔名改寫;
-- 其他 vite/svelte 專案級的解析規則。
+等模組邊界穩定下來後，可以評估導入正式測試框架；在那之前，以下方法是本專案驗證邏輯的
+標準做法。
 
-而 `ssrLoadModule` 用的是**和正式 build 同一套解析器與轉譯**,所以你載到的模組行為 = 上線行為,擬真度最高,還零額外依賴(vite 本來就在 `devDependencies`)。
+## 什麼時候要寫這種腳本
 
-> 例外:若你要測的模組是**純 isomorphic、沒有 `$lib`/`fs`/alias**(例如 `query-spec/` 那些值物件),可以直接 `node --experimental-strip-types file.ts`,更輕。有任何 alias 或 server import 就走 Vite 版。
+- 修改 `database/`、`query/`、`mutation/` 底下任何檔案後，尤其是牽涉到索引同步
+  （`replaceIndex` / `rebuild`）、樂觀併發（`updatedAt` 檢查）、或持久化（`flush` /
+  `markDirty`）的變更。
+- 新增或調整 `query-spec/` 的值物件解析邏輯（例如 `parse.ts` 內的 `safeInt` /
+  `parseEnum` / `parseTags`）。
+- 懷疑某個 PR 影響到單例生命週期（`Database.ensureLoaded` / `requireLoaded`）在
+  HMR 或多次載入下的行為。
 
-## 可直接複製的模板
+不適用的情況見文末「什麼時候不用這招」。
 
-把以下存成專案根目錄的 `_smoke.mjs`(或任何 `.mjs`),改中間的載入與斷言即可:
+## 快速開始
+
+1. 在專案根目錄建立一支一次性腳本，例如 `_smoke.mjs`（檔名不重要，但**必須放在專案內**，
+   細節見下方「已知限制」第 1 點）。
+2. 貼上「模板」一節的內容，依需求修改載入的模組與斷言。
+3. 執行：
+
+   ```bash
+   node ./_smoke.mjs
+   ```
+
+4. 確認全數通過後，**刪除腳本**（除非要留作回歸測試，見「進階」一節）。
+
+```bash
+rm -f ./_smoke.mjs
+```
+
+## 模板
 
 ```js
-// _smoke.mjs —— 一次性測試腳本;跑完請刪除
+// _smoke.mjs —— 一次性驗證腳本；跑完請刪除，或依「進階」一節移入 scripts/
 import { createServer } from "vite";
 import path from "node:path";
 import fs from "node:fs";
@@ -33,42 +58,42 @@ import os from "node:os";
 
 const root = process.cwd();
 
-// Vite 當「模組載入器」用:middlewareMode 不會真的開 port。
+// Vite 純作「模組載入器」：middlewareMode 不會真的開 port。
 const server = await createServer({
   root,
-  configFile: false, // 不讀 svelte.config,自己給最小設定
+  configFile: false, // 不讀 svelte.config，自己給最小設定
   logLevel: "error",
   resolve: { alias: { $lib: path.join(root, "src/lib") } }, // 對齊本專案的 $lib
   server: { middlewareMode: true },
-  optimizeDeps: { noDiscovery: true }, // 跳過 dep 預打包,啟動更快
+  optimizeDeps: { noDiscovery: true }, // 跳過 dep 預打包，啟動更快
 });
 
-// 極簡斷言器:JSON 深比較,計數 pass/fail。
+// 極簡斷言器：JSON 深比較，計數 pass/fail。
 let pass = 0, fail = 0;
 const eq = (label, got, want) => {
   const ok = JSON.stringify(got) === JSON.stringify(want);
-  console.log(`${ok ? "✓" : "✗"} ${label}` + (ok ? "" : `  got=${JSON.stringify(got)} want=${JSON.stringify(want)}`));
+  console.log(`${ok ? "PASS" : "FAIL"} ${label}` + (ok ? "" : `  got=${JSON.stringify(got)} want=${JSON.stringify(want)}`));
   ok ? pass++ : fail++;
 };
 
 try {
-  // ── 載入真正的原始碼(路徑相對 root、以 / 開頭)──
+  // ── 載入真正的原始碼（路徑相對 root、以 / 開頭）──
   const { Database } = await server.ssrLoadModule("/src/lib/poc/database/index.ts");
   const { Query } = await server.ssrLoadModule("/src/lib/poc/query/index.ts");
   const { Mutation } = await server.ssrLoadModule("/src/lib/poc/mutation/index.ts");
-  const spec = await server.ssrLoadModule("/src/lib/poc/query-spec/index.ts");
 
-  // ── 若模組要碰檔案系統,給它一個 temp 檔,別碰真實資料 ──
+  // ── 需要碰檔案系統的模組，一律餵 temp 檔，別碰真實資料 ──
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "smoke-"));
   Database.ensureLoaded(path.join(tmpDir, "db.json"));
   const db = Database.requireLoaded();
-  const q = new Query(db);
-  const m = new Mutation(db);
+  const query = new Query(db);
+  const mutation = new Mutation(db);
 
-  // ── 你的斷言 ──
+  // ── 斷言 ──
   const file = { fileSize: 1, width: 1, height: 1, blurhash: "" };
-  eq("commit ok", m.commitRecord("a.png", { name: "A", tags: ["cat"], rating: 5 }, file).ok, true);
-  eq("count", q.getImageCount(), 1);
+  const committed = mutation.commitRecord("a.png", { name: "A", tags: ["cat"], rating: 5 }, file);
+  eq("commit 成功", committed.ok, true);
+  eq("圖片總數為 1", query.getImageCount(), 1);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 } catch (e) {
@@ -77,44 +102,66 @@ try {
 } finally {
   await server.close();
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-  process.exit(fail > 0 ? 1 : 0); // 見「陷阱 4」:一定要 exit
+  process.exit(fail > 0 ? 1 : 0); // 見「已知限制」第 4 點：一定要 exit
 }
 ```
 
-跑法:
+跑法：
 
 ```bash
 node ./_smoke.mjs
-# 應用程式自己的 log() 會夾雜輸出,想安靜可過濾:
+
+# 應用程式自己的 log() 會夾雜輸出，想安靜可過濾：
 node ./_smoke.mjs 2>&1 | grep -vE "^\[|INFO"
-# 跑完刪掉
-rm -f ./_smoke.mjs
 ```
 
-## 陷阱(都是實際踩過的)
+## 撰寫慣例
 
-1. **腳本必須放在專案內**。`node` 解析 `import "vite"` 是從**腳本檔所在目錄往上找** `node_modules`,不是看 cwd。放在專案外(例如系統暫存區)會 `ERR_MODULE_NOT_FOUND: Cannot find package 'vite'`。→ 放專案根目錄,跑完刪。
-2. **一定要設 `$lib` alias**。`configFile: false` 時 SvelteKit 的 alias 不會自動套用,漏了就會解析不到 `$lib/utils/...`。若模組還用了別的 alias,一併補進 `resolve.alias`。
-3. **`ssrLoadModule` 的路徑以 `/` 開頭、相對 `root`**,且指向 `.ts` 原始碼本身(如 `/src/lib/poc/query/index.ts`),不是 build 產物。
-4. **結尾一定要 `process.exit()`**。像本專案的 `markDirty()` 會排一個 `setTimeout` 防抖 flush,會**吊住 event loop** 讓 node 不退出。`server.close()` 之後顯式 `process.exit(code)`,順便用 exit code 表達成敗(CI 友善)。
-5. **別碰真實資料**。要落地檔案的模組,用 `os.tmpdir()` + `fs.mkdtempSync` 開一個 temp 目錄餵它,結束 `rmSync` 清掉。
-6. **log 雜訊**。模組內的 `log()` 會印到 stdout/stderr;用 `logLevel: "error"`(或 `"silent"`)壓 vite 自己的,再用 `grep -v` 濾掉應用程式的。
-7. **斷言物件相等**要嘛用 `JSON.stringify` 深比較(如模板),要嘛比 `.map(i => i.id)` 這種**純量投影**——別直接對物件陣列 `.join()`,會得到 `[object Object]`(這個 pitfall 讓我某次誤報成 ❌)。
+- **斷言一律走 `eq(label, got, want)`**，用 `JSON.stringify` 深比較。若要比物件陣列，先投影成純量
+  （如 `.map(i => i.id)`）再比對；直接對物件陣列 `.join()` 只會得到 `[object Object]`。
+- **每條斷言的 label 要能單獨說明「測什麼」**，`FAIL` 時的 `got` / `want` 輸出才有意義，不需要
+  回頭看程式碼才知道斷言在驗證什麼。
+- **會落地檔案的模組一律用 `os.tmpdir()` + `fs.mkdtempSync` 開 temp 目錄**餵入，結束後
+  `fs.rmSync(tmpDir, { recursive: true, force: true })` 清掉，不得指向專案內或真實的
+  `db.json`。
+- **純 isomorphic、不含 `$lib` / `fs` / 其他 alias 的模組**（例如 `query-spec/` 內的值物件）
+  可以省去 Vite，直接 `node --experimental-strip-types file.ts`，啟動更快。只要有一個 alias
+  或 server-only import，就改用 Vite 版模板。
 
-## 進階:把「一次性腳本」變「回歸測試」
+## 已知限制
 
-同一招可以留成可重跑的回歸案例。做法不變,只是:
+1. **腳本必須放在專案內。** `node` 解析 `import "vite"` 是從腳本檔所在目錄往上找
+   `node_modules`，不是看 cwd。放在系統暫存區之類的專案外路徑會拋出
+   `ERR_MODULE_NOT_FOUND: Cannot find package 'vite'`。
+2. **`configFile: false` 時不會自動套用 alias。** 需要的 alias（目前僅 `$lib`）要手動列進
+   `resolve.alias`；若模組用到其他 alias，一併補上，否則會解析不到對應路徑。
+3. **`ssrLoadModule` 的路徑以 `/` 開頭、相對 `root`**，且指向 `.ts` 原始碼本身
+   （如 `/src/lib/poc/query/index.ts`），不是 build 產物路徑。
+4. **結尾必須顯式呼叫 `process.exit()`。** `Database` 的 `markDirty()` 會排一個
+   500ms 防抖 `setTimeout` 觸發 `flush()`，會吊住 event loop、讓 Node 進程不自然退出。
+   `server.close()` 之後接 `process.exit(code)`，並用 exit code 表達成敗，才能配合 CI 判斷。
+5. **`log()` 輸出會與斷言結果混在一起。** 用 `logLevel: "error"`（或 `"silent"`）壓下 Vite
+   自身的訊息，應用程式內的 `log()` 呼叫則用 `grep -v` 過濾。
 
-- 每條斷言寫清楚 **輸入 → 預期**,`✗` 時印出 `got` / `want`;
-- 用 exit code 讓外層(手動或 CI)判定;
-- 若要固定保留,放到 `scripts/` 之類目錄並在檔頭註明「如何跑、測什麼」,而非留在根目錄。
+## 進階：把一次性腳本留作回歸測試
 
-## 什麼時候「不用」這招
+多數情況下腳本驗證完即刪；若某段邏輯值得長期守住（例如一次修過的 bug、一個容易再犯錯的
+邊界情況），可以保留下來，做法不變，只需：
 
-- 只是想確認**型別**對不對 → `npm run check`(svelte-check)就夠,不必跑腳本。
-- 要測的是 **Svelte 元件互動 / 瀏覽器行為** → 這招只到「模組邏輯」層;UI 行為請走 `/run`、實際起 app 或瀏覽器驅動。
-- 邏輯**純 isomorphic 無 alias** → 直接 `node --experimental-strip-types file.ts` 更省事。
+- 每條斷言寫清楚**輸入 → 預期**，`FAIL` 時印出 `got` / `want`，不依賴外部上下文就能看懂。
+- 保留 `process.exit(fail > 0 ? 1 : 0)`，讓外層（手動執行或 CI）能以 exit code 判定成敗。
+- 移到 `scripts/` 之類的固定目錄，並在檔頭註明「測什麼、如何跑」，不留在專案根目錄。
+
+## 什麼時候不用這招
+
+| 情境 | 改用 |
+| --- | --- |
+| 只需要確認型別是否正確 | `npm run check`（svelte-check），不必跑腳本 |
+| 要測 Svelte 元件互動 / 瀏覽器行為 | 這招只驗證到「模組邏輯」層；UI 行為請走 `/run` 或實際起 app 用瀏覽器操作 |
+| 邏輯純 isomorphic、無 alias / fs | 直接 `node --experimental-strip-types file.ts`，不需要起 Vite server |
 
 ---
 
-**一句話總結給未來的你**:需要跑真邏輯時,別加測試庫——`vite` 的 `ssrLoadModule` 就是現成、高擬真的載入器,配一個自帶斷言的 `.mjs`、記得 temp 資料 + `process.exit`,跑完即刪。
+需要驗證 `poc/` 內的真實邏輯時，不必為此安裝測試框架 —— Vite 的 `ssrLoadModule` 就是現成、
+與正式環境同源的模組載入器；配合本檔的模板與斷言慣例，記得用 temp 目錄隔離資料、結尾
+`process.exit`，跑完即刪即可。
