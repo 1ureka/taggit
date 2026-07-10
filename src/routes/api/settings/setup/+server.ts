@@ -1,6 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import * as database from "$lib/database/server.js";
+import { clearCache } from "$lib/image/server.js";
 import { parseBody } from "$lib/utils/server.js";
 
 /**
@@ -41,9 +42,12 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "路徑不存在或無法建立所需的子目錄" }, { status: 422 });
   }
 
+  const isSwitching = collection.getActiveRoot() !== root;
+
   collection.setCollectionRoot(root);
   collection.setActiveRoot(root);
   database.ensureLoaded(collection.getCollectionPaths(root).db);
+  if (isSwitching) clearCache();
 
   return json({ ok: true, data: { collectionRoot: root } });
 };

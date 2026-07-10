@@ -331,7 +331,7 @@
   <main id="settings-main">
     <div class="slide-up">
       {@render collectionSettings()}
-      {#if data.collectionRoot}
+      {#if data.databaseLoaded}
         {@render tagsSettings()}
         {@render hiddenTagsSettings()}
         {@render imagesSettings()}

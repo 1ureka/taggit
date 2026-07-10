@@ -4,6 +4,8 @@
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
+  import type { Snippet } from "svelte";
+  import type { LayoutData } from "./$types.js";
 
   import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/components/icons";
   import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/components/icons";
@@ -11,10 +13,16 @@
   import Toast from "$lib/components/feedback/Toast.svelte";
   import ConfirmModal from "$lib/components/overlay/ConfirmModal.svelte";
 
-  let { children } = $props();
+  let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
   /** 導航項目 */
-  const navItems = [
+  const navItems: {
+    href: string;
+    Icon: typeof IconPhotoFilled;
+    name: string;
+    desc: string;
+    key?: "committed" | "staged";
+  }[] = [
     {
       href: "/",
       Icon: IconPhotoFilled,
@@ -26,12 +34,14 @@
       Icon: IconTagFilled,
       name: "新增圖片",
       desc: "審查並提交暫存的圖片",
+      key: "staged",
     },
     {
       href: "/editor",
       Icon: IconEditFilled,
       name: "管理圖片",
       desc: "編輯已提交圖片的名稱、標籤或評分",
+      key: "committed",
     },
     {
       href: "/settings",
@@ -40,6 +50,13 @@
       desc: "調整應用的行為、修復圖片資料或是製作備份",
     },
   ];
+
+  /** 導航項目右側徽章的數字，key 未對應到資料時回傳 undefined（不顯示） */
+  const navItemCount = (key: "committed" | "staged" | undefined) => {
+    if (key === "committed") return data.committedCount;
+    if (key === "staged") return data.stagedCount;
+    return undefined;
+  };
 
   // ---
 
@@ -133,18 +150,22 @@
     <button type="button" class="btn-ghost btn-sm" onclick={handleNavigateBack} aria-label="上一頁">
       <IconArrowLeft size={16} />
     </button>
-    <span class="ellipsis">{page.url.pathname + page.url.search}</span>
+    <span class="ellipsis">
+      {data.collectionName + page.url.pathname + page.url.search}
+    </span>
     <button type="button" class="btn-ghost btn-sm" onclick={handleNavigateForward} aria-label="下一頁">
       <IconArrowRight size={16} />
     </button>
   </header>
 
   <nav>
-    {#each navItems as { href, Icon, name, desc }}
+    {#each navItems as { href, Icon, name, desc, key }}
       <a class:active={href === currentActiveItem} {href} onclick={handleTogglePalette}>
-        <span><Icon size={18} /></span>
+        <span class="icon"><Icon size={18} /></span>
         <h2>{name}</h2>
-        {" "}
+        {#if navItemCount(key) !== undefined}
+          <span class="badge">{navItemCount(key)}</span>
+        {/if}
         <p>{desc}</p>
       </a>
     {/each}
@@ -230,7 +251,7 @@
   nav > a {
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto auto;
     row-gap: 0.25rem;
     column-gap: 0.75rem;
@@ -262,7 +283,8 @@
       border-radius: 999px;
     }
 
-    & > span {
+    & > .icon {
+      grid-column: 1;
       grid-row: 1 / 3;
       display: grid;
       place-items: center;
@@ -270,10 +292,18 @@
     }
 
     & > h2 {
+      grid-column: 2;
       color: var(--text);
       font-size: var(--font-size-title2);
       font-weight: 500;
       text-align: left;
+    }
+
+    & > .badge {
+      grid-column: 3;
+      grid-row: 1;
+      align-self: center;
+      justify-self: end;
     }
 
     & > p {

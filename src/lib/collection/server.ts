@@ -4,11 +4,12 @@
  *
  * 職責：管理「當前是哪個 collection」與其目錄結構 ——
  * server.json 的讀寫、根目錄驗證與初始化、路徑衍生、當前作用中根目錄的記憶。
- * 它不在意 db.json 的內容是否合法（那是 database 模組的事）。
+ * 不在意 db.json 的內容是否合法。
  *
  * 模組外部只能 import 本檔與 {@link ./client.ts}。
  */
 
+import path from "path";
 import { readServerJson, writeServerJson } from "./internal/config.js";
 import { log } from "$lib/utils/server.js";
 
@@ -21,6 +22,8 @@ export type { ServerConfig } from "./internal/config.js";
 declare global {
   /** HMR 保護：在熱重載之間保留當前作用中的 collection 根目錄。 */
   var __activeCollectionRoot: string | null | undefined;
+  /** collection 顯示名稱快取，key 為算出該名稱時的 root，root 不變就不重算。 */
+  var __collectionNameCache: { root: string; name: string } | undefined;
 }
 
 /**
@@ -37,6 +40,21 @@ export function getActiveRoot(): string | null {
  */
 export function setActiveRoot(root: string): void {
   globalThis.__activeCollectionRoot = root;
+}
+
+/**
+ * 由 root 推導 collection 顯示名稱。root 不變時直接回傳快取，
+ * 只有實際切換到新的 root 時才會重新計算一次。
+ */
+export function getCollectionName(root: string | null): string {
+  if (!root) return "";
+
+  const cache = globalThis.__collectionNameCache;
+  if (cache && cache.root === root) return cache.name;
+
+  const name = path.basename(path.normalize(root));
+  globalThis.__collectionNameCache = { root, name };
+  return name;
 }
 
 // ---
