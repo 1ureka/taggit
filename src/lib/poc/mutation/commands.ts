@@ -1,10 +1,9 @@
 /**
  * @file commands.ts
- * 命令型別 —— 純輸入 DTO（各自獨立、不 parse URL、不組合）。
- * 型別編譯期抹除、跨前後端天然安全 → 不需獨立 args 模組。
+ * 命令型別，純輸入 DTO。
  */
 
-import type { ImageRecord } from "../database/index.js";
+import type { ImageRecord } from "$lib/poc/database";
 
 export interface ImportEntry {
   name: string;
