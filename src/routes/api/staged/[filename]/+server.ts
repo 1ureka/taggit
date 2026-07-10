@@ -8,7 +8,7 @@ import { Database } from "$lib/poc/database";
 import { Query } from "$lib/poc/query";
 import { Mutation } from "$lib/poc/mutation";
 
-import { isValidFilename } from "$lib/utils/shared";
+import { isSafeFilename } from "$lib/utils/shared";
 import { parseBody, errorJson, log } from "$lib/utils/server";
 
 /**
@@ -30,7 +30,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   // ---
 
   const { filename } = params;
-  if (!isValidFilename(filename)) {
+  if (!isSafeFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
@@ -86,7 +86,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   const query = new Query(Database.requireLoaded());
 
   const { filename } = params;
-  if (!isValidFilename(filename)) {
+  if (!isSafeFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 

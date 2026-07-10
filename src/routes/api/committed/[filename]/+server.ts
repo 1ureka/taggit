@@ -3,7 +3,7 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import { Database } from "$lib/poc/database";
 import { Mutation } from "$lib/poc/mutation";
 
-import { isValidFilename } from "$lib/utils/shared";
+import { isSafeFilename } from "$lib/utils/shared";
 import { parseBody, errorJson, log } from "$lib/utils/server";
 
 /**
@@ -17,7 +17,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) {
+  if (!isSafeFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
@@ -44,7 +44,7 @@ export const DELETE: RequestHandler = ({ params }) => {
   }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) {
+  if (!isSafeFilename(filename)) {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 

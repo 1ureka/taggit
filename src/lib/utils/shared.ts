@@ -127,8 +127,8 @@ export function isNonEmpty<T>(arr: T[]): arr is [T, ...T[]] {
 
 // ---
 
-/** 檔名必須非空且不含路徑穿越字元。 */
-export function isValidFilename(value: unknown): value is string {
+/** 檔名必須非空且不含路徑穿越字元，不涉及 domain validation */
+export function isSafeFilename(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.length > 0 &&
