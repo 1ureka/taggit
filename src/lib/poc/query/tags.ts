@@ -1,13 +1,13 @@
 /**
  * @file tags.ts
- * TagEngine —— 專心做標籤查詢。依 TagQuery.scope present/absent 決定 count 與遮蔽語義：
- *   present（facet）  → scope 篩選 + hidden 遮蔽後計數；hidden 非 included 標籤取「解鎖 N 張」。
- *   absent （standalone）→ count = 原始總使用數，不遮蔽。
- * 之後排序 → 分頁。附 meta 用 db.getTagMeta（讀取原語在 database，Q5）。
+ * TagEngine —— 專心做標籤查詢。兩種 count 與遮蔽語義由**兩個型別**在型別層分派，無 runtime 分支：
+ *   {@link TagFacetQuery}（runFacet）→ scope 篩選 + hidden 遮蔽後計數；hidden 非 included 標籤取「解鎖 N 張」。
+ *   {@link TagQuery}（runStandalone）→ count = 原始總使用數，不遮蔽。
+ * 兩者皆共用 finish：排序 → 分頁。附 meta 用 db.getTagMeta（讀取原語在 database，Q5）。
  */
 
 import type { Database } from "../database/index.js";
-import type { ImageWhere, TagQuery, TagSort, TagWhere } from "../query-spec/index.js";
+import type { ImageWhere, ListOptions, TagFacetQuery, TagQuery, TagSort, TagWhere } from "../query-spec/index.js";
 import type { ScopeResolver } from "./scope.js";
 import type { QueryResult, Tag } from "./types.js";
 import { paginate } from "./pagination.js";
@@ -19,10 +19,20 @@ export class TagEngine {
     private scope: ScopeResolver,
   ) {}
 
-  run(q: TagQuery): QueryResult<Tag> {
-    const collected = q.scope ? this.facet(q.scope, q.where) : this.standalone(q.where);
-    const sorted = this.sort(collected, q.list.sort, q.list.order);
-    return paginate(sorted, q.list.page, q.list.limit);
+  /** 獨立列表：count = 原始總使用數，不遮蔽。 */
+  runStandalone(q: TagQuery): QueryResult<Tag> {
+    return this.finish(this.standalone(q.where), q.list);
+  }
+
+  /** facet：scope 篩選 + hidden 遮蔽後計數。 */
+  runFacet(q: TagFacetQuery): QueryResult<Tag> {
+    return this.finish(this.facet(q.scope, q.where), q.list);
+  }
+
+  /** 兩分支共用的收尾：排序 → 分頁。 */
+  private finish(collected: Tag[], list: ListOptions<TagSort>): QueryResult<Tag> {
+    const sorted = this.sort(collected, list.sort, list.order);
+    return paginate(sorted, list.page, list.limit);
   }
 
   /** facet（present scope）：scope 篩選 + hidden 遮蔽後計數。 */

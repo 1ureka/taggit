@@ -21,7 +21,7 @@ export interface QueryResult<T> {
 export interface Tag {
   /** 標籤名稱（唯一識別）。 */
   name: string;
-  /** 命中數；語義依 TagQuery.scope present/absent 而定。 */
+  /** 命中數；語義依查詢型別而定（TagFacetQuery=遮蔽後計數 / TagQuery=原始總使用數）。 */
   count: number;
   /** 標籤自身的元資料（已補齊預設）。 */
   meta: TagMeta;

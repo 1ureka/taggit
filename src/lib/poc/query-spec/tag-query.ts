@@ -1,53 +1,27 @@
 /**
  * @file tag-query.ts
- * TagQuery —— 標籤查詢值物件。`scope` 的 present / absent 是正確性關鍵（Q4）：
- *   present（{@link TagQuery.facet}）  → facet：count 在「scope 篩選 + hidden 遮蔽後」計算。
- *   absent （{@link TagQuery.standalone}）→ 獨立列表：count = 原始總使用數，不遮蔽。
- *
- * 用具名建構子讓語意軸成為呼叫端顯式動詞，`scope === undefined` 降為內部細節。
- * 判準是 present vs absent，**不是** empty vs non-empty（空 ImageWhere 仍算 facet）。
+ * 標籤查詢值物件
  */
 
-import { ImageWhere } from "./image-where";
 import { TagWhere } from "./tag-where";
 import { ListOptions } from "./list-options";
 import type { TagSort } from "./types";
 
 export class TagQuery {
-  readonly scope?: ImageWhere;
   where: TagWhere;
   list: ListOptions<TagSort>;
 
-  private constructor(scope: ImageWhere | undefined, where: TagWhere, list: ListOptions<TagSort>) {
-    this.scope = scope;
+  constructor(where: TagWhere = new TagWhere(), list?: ListOptions<TagSort>) {
     this.where = where;
-    this.list = list;
+    this.list = list ?? new ListOptions<TagSort>({ sort: "count", order: "desc" });
   }
 
-  /** 是否為 faceted 查詢（帶 scope）。 */
-  get isFacet(): boolean {
-    return this.scope !== undefined;
+  /** 複製當前條件並覆寫部分欄位，回傳一個全新的值物件 (單層覆寫) */
+  with(patch: { where?: TagWhere; list?: ListOptions<TagSort> }): TagQuery {
+    return new TagQuery(patch.where ?? this.where, patch.list ?? this.list);
   }
 
-  private static defaultList(): ListOptions<TagSort> {
-    return new ListOptions<TagSort>({ sort: "count", order: "desc" });
-  }
+  /** 從 URL 查詢參數 (URLSearchParams) 解析並建立完整的查詢值物件 (含篩選、排序與分頁) */
 
-  /** facet：以 `scope` 界定的圖片集合計數並套 hidden 遮蔽。 */
-  static facet(scope: ImageWhere, where = new TagWhere(), list = TagQuery.defaultList()): TagQuery {
-    return new TagQuery(scope, where, list);
-  }
-
-  /** 獨立列表：不帶 scope，count = 原始總使用數，不遮蔽。 */
-  static standalone(where = new TagWhere(), list = TagQuery.defaultList()): TagQuery {
-    return new TagQuery(undefined, where, list);
-  }
-
-  /**
-   * 從 URL 一律產出 **present**（可能為空的）scope → 凡從 URL 來的側欄一律遮蔽
-   * （全新空庫的空 ImageWhere 仍算 facet）。
-   */
-  static fromSearchParams(params: URLSearchParams): TagQuery {
-    return TagQuery.facet(ImageWhere.fromSearchParams(params));
-  }
+  /** 將所有篩選、排序與分頁條件合併轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
 }
