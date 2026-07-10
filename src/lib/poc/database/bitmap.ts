@@ -1,14 +1,11 @@
 /**
  * @file bitmap.ts
- * BitSet —— 以 `Uint32Array` 為後盾的未壓縮位元圖。
+ * 以 `Uint32Array` 為後盾的未壓縮位元圖。
  *
  * 第 n 個 bit 代表序號 n 的圖片是否屬於此集合。
  * 交集 = 逐字 AND、排除 = ANDNOT、計數 = popcount，
  * 一次處理 32 張圖片；faceted search 的熱路徑 {@link BitSet.andSize}
  * 融合 AND + popcount，不配置任何中間集合。
- *
- * 它是 database 投影原語（tagBits / ratingRange / live）的回傳型別，
- * 故經 database 的 index.ts 對外露出，供 query 組合 scope。
  */
 
 /** 計算 32-bit 整數中 set bit 的數量（SWAR popcount）。 */

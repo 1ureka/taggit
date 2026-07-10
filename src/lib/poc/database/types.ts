@@ -1,34 +1,26 @@
 /**
  * @file types.ts
- * database 引擎的核心實體型別（真相 write model）。
+ * database 的實體型別。
  *
- * 只放「引擎持有的真相」相關型別：db.json 結構、圖片紀錄、標籤元資料。
  * 命令型別（ImportEntry / FileInfo / UpdatePatch…）屬 mutation 模組；
  * 查詢值物件（ImageWhere / ImageQuery…）屬 query-spec 模組；
- * 查詢結果（QueryResult / Tag）屬 query 模組。分界見 plan-db/index.md。
+ * 查詢結果（QueryResult / Tag）屬 query 模組。
  */
 
 /**
- * db.json 的頂層結構（v2）。
- *
- * v1 檔案（無 `tags` 欄位）載入時 `tags` 為空表；
- * 純讀取不觸發改寫，首次異動後寫出即為 v2。
+ * db.json 的頂層結構（v2），v1 檔案無 `tags` 欄位
  */
 export interface DBData {
-  /** 資料庫結構版本號（寫出時固定為 2） */
+  /** 資料庫結構版本號 */
   version: number;
-  /** 圖片紀錄對映表，鍵為圖片 ID（真相，完整型別） */
+  /** 圖片紀錄對映表，鍵為圖片 ID */
   images: Record<string, ImageRecord>;
-  /**
-   * 標籤元資料對映表（真相，稀疏儲存：只存非預設值）。
-   * 稀疏是**序列化格式**、引擎內部細節；對外的讀寫原語一律以完整
-   * {@link TagMeta} 進出（見 Database.getTagMeta / setTagMeta）。
-   */
+  /** 標籤元資料對映表，鍵為標籤名稱（稀疏，只存非預設值）*/
   tags: Record<string, Partial<TagMeta>>;
 }
 
 /**
- * 已提交圖片的元資料紀錄（真相，完整型別）。
+ * 已提交圖片的元資料紀錄。
  */
 export interface ImageRecord {
   /** 使用者可編輯的圖片名稱 */
@@ -52,10 +44,7 @@ export interface ImageRecord {
 }
 
 /**
- * 帶有唯一識別碼的圖片紀錄。`id` 為檔名（如 `"photo.png"`），同時作為 db.json 中的鍵。
- *
- * 真相原語（Database.getImage）以不帶 id 的 {@link ImageRecord} 進出；
- * 「id 是身份、record 是內容」的組裝由讀取端（query）與寫入端（mutation）負責。
+ * 帶有識別碼的圖片紀錄。`id` 為檔名（如 `"photo.png"`），也是 db.json 中的鍵。
  */
 export interface ImageWithId extends ImageRecord {
   /** 圖片的唯一識別碼（= 檔名） */
@@ -63,9 +52,7 @@ export interface ImageWithId extends ImageRecord {
 }
 
 /**
- * 標籤本身的元資料（真相，完整型別）。
- * 所有欄位皆有預設值；db.json 只儲存非預設的部分（稀疏），
- * 但對外的讀寫原語一律以此完整型別進出。
+ * 標籤本身的元資料，所有欄位皆有預設值；db.json 只儲存非預設的部分。
  */
 export interface TagMeta {
   /** 隱藏標籤：帶有此標籤的圖片，僅在查詢明確包含此標籤時可見。預設 false。 */

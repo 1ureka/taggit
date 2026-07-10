@@ -1,16 +1,13 @@
 /**
  * @file facet-index.ts
- * FacetIndex —— 所有查詢用位元圖的維護。
+ * 所有查詢用位元圖的維護。
  *
  * - `tagBits`：標籤 → 位元圖（惰性建立，清空即刪除）。
  * - `ratingBits`：評分 0..5 各一張位元圖，讓評分篩選成為 1~6 張位元圖的 OR。
- *
- * 純衍生資料，永不持久化；任何懷疑不一致的場景一律由 store 整體重建。
- * 內部零件，不對 database 模組外露出（外部只透過 Database 的投影原語存取）。
  */
 
-import { BitSet } from "./bitmap.js";
-import type { ImageRecord } from "./types.js";
+import { BitSet } from "./bitmap";
+import type { ImageRecord } from "./types";
 
 /** 評分的有效範圍：0（未評分）～ 5。 */
 const RATING_LEVELS = 6;

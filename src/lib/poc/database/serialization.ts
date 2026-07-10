@@ -1,29 +1,20 @@
 /**
  * @file serialization.ts
- * db.json 的序列化（寬容哲學）+ tagMeta 稀疏↔完整 codec。
- *
- * 對 store.ts 只露最小面：整檔的 {@link parseDBData} / {@link emptyDBData}，
- * 以及 {@link TagMetaCodec}（hydrate / prune / DEFAULT 綁成一個內聚單位）。
- * `parseImages` / `parseTagsMeta` / `DB_VERSION` 皆為**局部**、不匯出
- * ——刻意避免舊 `schema.ts` 那種「為了給別人 export 一堆局部東西」的 grab-bag。
- *
- * **驗證不在這裡**（住 mutation 的私有 Validator）：序列化寬容、驗證嚴格，
- * 哲學相反、不同家（見 plan-db/motivation.md 收斂原則 5、6）。
+ * db.json 的序列化 + 稀疏處理。
  */
 
-import { isRecord } from "$lib/utils/shared.js";
-import { log } from "$lib/utils/server.js";
-import type { DBData, ImageRecord, TagMeta } from "./types.js";
+import { isRecord } from "$lib/utils/shared";
+import { log } from "$lib/utils/server";
+import type { DBData, ImageRecord, TagMeta } from "./types";
 
 /** 目前的資料庫結構版本（寫出時使用）。局部常數，不匯出。 */
 const DB_VERSION = 2;
 
 /**
- * tagMeta 稀疏↔完整的 codec —— 內聚單位（DEFAULT / hydrate / prune 綁在一起）。
- * store.ts 的 getTagMeta 用 hydrate、setTagMeta 用 prune；序列化用兩者。
+ * tagMeta 的稀疏儲存處理
  */
 export class TagMetaCodec {
-  /** 標籤元資料的預設值（引擎內部；對外由 hydrate 補齊）。 */
+  /** 標籤元資料的預設值。 */
   static readonly DEFAULT: TagMeta = { hidden: false };
 
   /** 稀疏 → 完整：以預設值補齊缺席欄位（缺席鍵等同全預設）。 */
@@ -31,7 +22,7 @@ export class TagMetaCodec {
     return { ...TagMetaCodec.DEFAULT, ...sparse };
   }
 
-  /** 完整 → 稀疏：剔除等於預設值的欄位；全為預設時回 `null`（該表項應被移除）。 */
+  /** 完整 → 稀疏：剔除等於預設值的欄位；全為預設時回 `null`。 */
   static prune(meta: TagMeta): Partial<TagMeta> | null {
     const pruned: Partial<TagMeta> = {};
     if (meta.hidden === true) pruned.hidden = true;

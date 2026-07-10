@@ -1,15 +1,15 @@
 /**
  * @file ordinal.ts
- * OrdinalRegistry —— 字串 ID 與序號（ordinal）的雙向映射。
+ * 字串 ID 與序號（ordinal）的雙向映射。
  *
  * 序號是位元圖使用的稠密整數下標，純屬記憶體、永不持久化：
  * 對外世界（API、URL、db.json）的識別永遠是字串 ID。
  *
  * 刪除採墓碑策略（序號不重用），避免任何懸掛 bit 造成錯配；
- * 墓碑過多時由呼叫端（store）觸發整體重建。內部零件，不對 database 模組外露出。
+ * 墓碑過多時由呼叫端（store）觸發整體重建。
  */
 
-import { BitSet } from "./bitmap.js";
+import { BitSet } from "./bitmap";
 
 export class OrdinalRegistry {
   /** 序號 → ID；`null` 為墓碑（已刪除，序號不重用）。 */
