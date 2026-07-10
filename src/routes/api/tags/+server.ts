@@ -1,8 +1,9 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
+import { Mutation } from "$lib/poc/mutation";
 
-import { parseBody, log } from "$lib/utils/server.js";
+import { parseBody, errorJson, log } from "$lib/utils/server.js";
 
 /**
  * `POST /api/tags`
@@ -11,7 +12,7 @@ import { parseBody, log } from "$lib/utils/server.js";
  * Body: `{ oldName, newName }`
  */
 export const POST: RequestHandler = async ({ request }) => {
-  if (!database.isLoaded()) {
+  if (!Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -20,17 +21,19 @@ export const POST: RequestHandler = async ({ request }) => {
     return parseErr;
   }
 
-  const fields = [body.oldName, body.newName];
-  if (!database.isValidTags(fields)) {
-    return json({ ok: false, error: "oldName 和 newName 必須是有效且不同的標籤字串" }, { status: 400 });
+  if (typeof body.oldName !== "string" || typeof body.newName !== "string") {
+    return json({ ok: false, error: "oldName 和 newName 必須是字串" }, { status: 400 });
   }
 
-  const oldName = fields[0].trim();
-  const newName = fields[1].trim();
+  const oldName = body.oldName.trim();
+  const newName = body.newName.trim();
 
-  const affected = database.renameTag(oldName, newName);
-  log({ level: "info", module: "tags", message: `重命名標籤: "${oldName}" → "${newName}"`, data: { affected } });
-  return json({ ok: true, data: { affected } });
+  const mutation = new Mutation(Database.requireLoaded());
+  const r = mutation.renameTag(oldName, newName);
+  if (!r.ok) return errorJson(r.error);
+
+  log({ level: "info", module: "tags", message: `重命名標籤: "${oldName}" → "${newName}"`, data: r.data });
+  return json({ ok: true, data: r.data });
 };
 
 // ---
@@ -39,11 +42,11 @@ export const POST: RequestHandler = async ({ request }) => {
  * `DELETE /api/tags`
  *
  * 刪除指定標籤，從所有圖片中移除（含標籤元資料）。
- * 若有圖片會因此失去最後一個標籤，回應 409。
+ * 若有圖片會因此失去最後一個標籤，回應 409（`last_tag`，帶受影響的 id 列表）。
  * Body: `{ name }`
  */
 export const DELETE: RequestHandler = async ({ request }) => {
-  if (!database.isLoaded()) {
+  if (!Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -58,16 +61,12 @@ export const DELETE: RequestHandler = async ({ request }) => {
 
   const name = body.name.trim();
 
-  try {
-    const affected = database.deleteTag(name);
-    log({ level: "info", module: "tags", message: `刪除標籤: "${name}"`, data: { affected } });
-    return json({ ok: true, data: { affected } });
-  } catch (e) {
-    if (e instanceof Error && "status" in e && e.status === 409) {
-      return json({ ok: false, error: "conflict" }, { status: 409 });
-    }
-    throw e;
-  }
+  const mutation = new Mutation(Database.requireLoaded());
+  const r = mutation.deleteTag(name);
+  if (!r.ok) return errorJson(r.error);
+
+  log({ level: "info", module: "tags", message: `刪除標籤: "${name}"`, data: r.data });
+  return json({ ok: true, data: r.data });
 };
 
 // ---
@@ -80,7 +79,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
  * Body: `{ name, hidden }`
  */
 export const PATCH: RequestHandler = async ({ request }) => {
-  if (!database.isLoaded()) {
+  if (!Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -98,8 +97,12 @@ export const PATCH: RequestHandler = async ({ request }) => {
   }
 
   const name = body.name.trim();
+  const hidden = body.hidden;
 
-  database.setTagMeta(name, { hidden: body.hidden });
-  log({ level: "info", module: "tags", message: `設定標籤元資料: "${name}"`, data: { hidden: body.hidden } });
-  return json({ ok: true, data: { name, ...database.getTagMeta(name) } });
+  const mutation = new Mutation(Database.requireLoaded());
+  const r = mutation.setTagMeta(name, { hidden });
+  if (!r.ok) return errorJson(r.error);
+
+  log({ level: "info", module: "tags", message: `設定標籤元資料: "${name}"`, data: { hidden } });
+  return json({ ok: true, data: { name, hidden } });
 };

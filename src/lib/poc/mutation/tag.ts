@@ -10,6 +10,7 @@ import type { LastTag, Result, Validation } from "./result";
 import { Validator } from "./validator";
 import { ok, invalid, lastTag } from "./result";
 
+/** 標籤正規化：修剪 + 自然排序 */
 function normalizeTags(tags: string[]): string[] {
   return tags.map((t) => t.trim()).toSorted(sortCollator.compare);
 }
@@ -33,12 +34,14 @@ export class TagCommands {
       for (const ordinal of [...bits.values()]) {
         const id = db.idOf(ordinal);
         if (id === null) continue;
+
         const record = db.getImage(id);
         if (!record) continue;
 
         const nextTags = record.tags.includes(newName)
           ? record.tags.filter((t) => t !== oldName)
           : normalizeTags(record.tags.map((t) => (t === oldName ? newName : t)));
+
         db.setImage(id, { ...record, tags: nextTags });
         affected++;
       }
@@ -53,6 +56,7 @@ export class TagCommands {
 
     db.rebuild();
     db.markDirty();
+
     return ok({ affected });
   }
 
@@ -66,22 +70,28 @@ export class TagCommands {
 
     if (bits) {
       const wouldEmpty: string[] = [];
+
       for (const ordinal of bits.values()) {
         const id = db.idOf(ordinal);
         if (id === null) continue;
+
         const record = db.getImage(id);
         if (record && record.tags.length === 1) wouldEmpty.push(id);
       }
+
       if (wouldEmpty.length > 0) return lastTag(wouldEmpty);
     }
 
     let affected = 0;
+
     if (bits) {
       for (const ordinal of [...bits.values()]) {
         const id = db.idOf(ordinal);
         if (id === null) continue;
+
         const record = db.getImage(id);
         if (!record) continue;
+
         db.setImage(id, { ...record, tags: record.tags.filter((t) => t !== name) });
         affected++;
       }
@@ -99,12 +109,14 @@ export class TagCommands {
   }
 
   /**
-   * 覆寫標籤元資料（吃完整 {@link TagMeta}）。今天近乎 pass-through：驗證 + 委派 db.setTagMeta。
+   * 覆寫標籤元資料
    */
   setMeta(name: string, meta: TagMeta): Result<void, Validation> {
     if (!Validator.tagName(name)) return invalid(["name"], "標籤名不合法");
+
     this.db.setTagMeta(name, meta);
     this.db.markDirty();
+
     return ok(undefined);
   }
 }
