@@ -1,7 +1,6 @@
 /**
  * @file parse.ts
- * URLSearchParams 解析的純函式 util（isomorphic，非 class，值物件共用）。
- * 只做「字串 → 值」的中性轉換，不含任何領域預設（預設由各值物件建構時填）。
+ * URLSearchParams 解析的純函式 util
  */
 
 /** 解析逗號分隔標籤字串為裁切後的非空陣列。 */

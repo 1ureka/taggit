@@ -1,9 +1,6 @@
 /**
  * @file list-options.ts
- * ListOptions<S> —— 排序 + 分頁選項（isomorphic 值物件，泛型、dumb）。
- *
- * 「預設 sort」依領域而異（image=rating / tag=count），故由 ImageQuery / TagQuery
- * 在 parse/serialize 時提供；本類別只認被填好的 sort，不耦合任何領域。
+ * 排序&分頁值物件，其中預設 sort 依領域而異
  */
 
 /** {@link ListOptions} 的資料欄位。 */
@@ -29,6 +26,7 @@ export class ListOptions<S extends string> {
     this.limit = init.limit ?? 0;
   }
 
+  /** 複製當前條件並覆寫部分欄位，回傳一個全新的值物件 */
   with(patch: Partial<ListFields<S>>): ListOptions<S> {
     return new ListOptions<S>({
       sort: patch.sort ?? this.sort,

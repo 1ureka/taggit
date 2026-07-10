@@ -1,14 +1,11 @@
 /**
  * @file image-where.ts
- * ImageWhere —— 圖片篩選述詞（isomorphic 值物件）。
- *
- * `ImageQuery.where` 與 `TagQuery.scope` 皆為此型別：faceted 頁 = 同一個 ImageWhere
- * 各建一個 ImageQuery 與 TagQuery，分別執行。預設值於建構時一次確立。
+ * 圖片篩選值物件
  */
 
-import { parseTags, safeInt, parseEnum } from "./parse.js";
+import { parseTags, safeInt, parseEnum } from "./parse";
 
-/** {@link ImageWhere} 的資料欄位（去掉方法），用於建構 / with 的 patch 形狀。 */
+/** {@link ImageWhere} 的資料欄位 (去掉方法) */
 export type ImageWhereFields = {
   search: string;
   includedTags: string[];
@@ -18,7 +15,7 @@ export type ImageWhereFields = {
 };
 
 export class ImageWhere {
-  /** 圖片名稱子字串搜尋（大小寫不敏感由引擎處理；此處保留原樣以利 round-trip）。 */
+  /** 圖片名稱子字串搜尋。 */
   search: string;
   /** 必須同時包含的標籤（AND）。 */
   includedTags: string[];
@@ -48,11 +45,12 @@ export class ImageWhere {
     };
   }
 
-  /** 不可變覆寫。 */
+  /** 複製當前條件並覆寫部分欄位，回傳一個全新的值物件 */
   with(patch: Partial<ImageWhereFields>): ImageWhere {
     return new ImageWhere({ ...this.fields(), ...patch });
   }
 
+  /** 從 URL 查詢參數（URLSearchParams）解析並建立值物件 */
   static fromSearchParams(params: URLSearchParams): ImageWhere {
     return new ImageWhere({
       search: params.get("search") ?? undefined,
@@ -63,7 +61,7 @@ export class ImageWhere {
     });
   }
 
-  /** 只輸出自己的 key，預設省略（利 round-trip）。 */
+  /** 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
   toSearchParams(): URLSearchParams {
     const p = new URLSearchParams();
     if (this.search.trim()) p.set("search", this.search.trim());

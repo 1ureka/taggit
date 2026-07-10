@@ -68,12 +68,14 @@ tagMetaNames(): string[];                     // 有非預設元資料的標籤�
 ## 原語 B:索引(與真相 CRUD 分開的另一組)
 
 ```ts
-indexAdd(id: string, rec: ImageRecord): number;      // 進序號 + 位元圖,回 ordinal
-indexRemove(id: string, rec: ImageRecord): void;     // 出(留墓碑;超門檻自動壓實 = 全 rebuild)
-rebuild(): void;                                      // 全建;「索引純由 images 推導」這個契約本身
+replaceIndex(id: string, oldRec: ImageRecord | null): void;  // 出舊 + 依「當前真相」進新;超門檻自動壓實(全 rebuild)
+rebuild(): void;                                             // 全建;「索引純由 images 推導」這個契約本身
 ```
 
-真相 CRUD 只碰真相 slot、**不碰投影**;索引同步是這組。`Mutation` 動詞在寫真相後**組合**它們(只有 image 需要;tagMeta 無投影)。
+真相 CRUD 只碰真相 slot、**不碰投影**;索引同步是這組。**鐵則:動詞先寫真相(`setImage`/`deleteImage`),再 `replaceIndex` 同步投影**(只有 image 需要;tagMeta 無投影)。
+
+- **為何是單一 `replaceIndex`,而非分開的 `indexAdd`/`indexRemove`**:分開時動詞得自己串「出舊 → 寫真相 → 進新」三步;若「出舊」內部觸發壓實(墓碑超門檻),`rebuild` 會在「舊真相已出、新真相未寫」的**半更新視窗**讀到舊真相,隨後的 `indexAdd` 又疊上新值 → 殘留舊 bit(見 WALKTHROUGHS C9,已修的實測缺陷)。`replaceIndex` 把三步收成一個不可分割原語:先以 `oldRec` 出舊,再依**當前真相**(由真相表讀出,呼叫端不可能傳入與真相不一致的新值)進新;必要時 `rebuild` 從已更新的真相整體重建、涵蓋新值後直接收工,不再增量 add。
+- `oldRec` 語意:`null`=先前不存在(純新增);傳舊 record=覆寫/更新;搭配呼叫端已 `deleteImage` 則當前真相缺席 → 純移除。
 
 ## 原語 C:投影查詢(唯讀)
 
@@ -113,4 +115,4 @@ lib/database/
 ## 資料流(兩個方向)
 
 - **讀**(disk→可操作):bytes ──反序列化──► 真相 ──`rebuild`──► 投影;`Query` 再用投影(哪些)+ 真相(什麼)。
-- **寫**(可操作→disk):動詞 正規化/不變式 ──►(`setImage` 寫真相 + `indexAdd/Remove` 同步投影 + `markDirty`)──`flush`序列化──► bytes。
+- **寫**(可操作→disk):動詞 正規化/不變式 ──►(`setImage` 寫真相 + `replaceIndex` 同步投影 + `markDirty`)──`flush`序列化──► bytes。

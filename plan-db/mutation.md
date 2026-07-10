@@ -76,14 +76,15 @@ lib/mutation/
 ## 寫入的組合(動詞如何坐在原語上)
 
 ```
-updateRecord = db.getImage(拿完整基底)
+updateRecord = db.getImage(拿完整基底 record)
              + 不變式(找不到→notFound;updatedAt 不符→staleUpdate)
              + Validator(不合法→invalid)
-             + 覆蓋 patch → 完整 ImageRecord
-             + db.setImage(覆寫) + db.indexRemove/indexAdd + db.markDirty
-             → ok(record)
+             + 覆蓋 patch → 完整 next
+             + db.setImage(next)(先寫真相) + db.replaceIndex(id, record)(再同步投影) + db.markDirty
+             → ok(next)
 ```
 
+- **索引同步鐵則:先寫真相、再 `replaceIndex`**(見 database.md 原語 B)。`replaceIndex` 依當前真相進新、必要時壓實,杜絕「半更新視窗」殘留舊 bit(commit 覆寫、remove 同理:remove 先 `deleteImage` 再 `replaceIndex`)。
 - **合併語意住動詞**(read-overlay-write),原語只做覆寫。`setTagMeta` 動詞同理:要「只改一欄」就先 `db.getTagMeta`(缺席回 DEFAULT)→ 覆蓋 → `db.setTagMeta`。
 - 批次標籤動詞(`renameTag` / `deleteTag`)寫多筆真相後以 `db.rebuild()` 收斂投影。
 
