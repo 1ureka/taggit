@@ -1,9 +1,6 @@
 /**
  * @file validator.ts
- * Validator —— 寫入的守門人（私有於 mutation、必跑）。
- *
- * 修正舊碼 `isValidXX` 被 export、每 route 自行 pre-check 的散落：驗證下沉為此 class 的
- * 靜態方法，不對模組外匯出，無論呼叫端有無 pre-check 都驗。嚴格哲學（與序列化的寬容相反）。
+ * 實際操作執行前的的驗證工具
  */
 
 export class Validator {
@@ -25,12 +22,12 @@ export class Validator {
     return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 5;
   }
 
-  /** name 必須為非空字串，長度 ≤ 200。 */
+  /** 圖片名稱必須為非空字串，長度 ≤ 200。 */
   static name(value: unknown): value is string {
     return typeof value === "string" && value.trim().length > 0 && value.length <= 200;
   }
 
-  /** 單一標籤名必須修剪後非空、≤ 50 字元、不含逗號。 */
+  /** 標籤名必須修剪後非空、≤ 50 字元、不含逗號。 */
   static tagName(value: unknown): value is string {
     return typeof value === "string" && value.trim().length > 0 && value.trim().length <= 50 && !value.includes(",");
   }
