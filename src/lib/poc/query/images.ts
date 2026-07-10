@@ -1,15 +1,15 @@
 /**
  * @file images.ts
- * ImageEngine —— 專心做圖片查詢：scope → materialize → sort → paginate。
- * 持有 db + 共用 ScopeResolver。image 側一律遮蔽（用 scope.visible）。
+ * 圖片紀錄查詢器
  */
 
-import { BitSet, type Database, type ImageWithId } from "../database/index.js";
-import type { ImageQuery, ImageSort } from "../query-spec/index.js";
-import type { ScopeResolver } from "./scope.js";
-import type { QueryResult } from "./types.js";
-import { paginate } from "./pagination.js";
-import { sortCollator } from "$lib/utils/shared.js";
+import { sortCollator } from "$lib/utils/shared";
+import { BitSet, type Database, type ImageWithId } from "$lib/poc/database";
+import type { ImageQuery, ImageSort } from "$lib/poc/query-spec";
+
+import type { ScopeResolver } from "./scope";
+import type { QueryResult } from "./types";
+import { paginate } from "./pagination";
 
 export class ImageEngine {
   constructor(
@@ -17,22 +17,27 @@ export class ImageEngine {
     private scope: ScopeResolver,
   ) {}
 
-  /** 篩選 + hidden 遮蔽 + 排序 + 分頁。 */
+  /** 執行篩選 + 遮蔽 + 排序 + 分頁。 */
   run(q: ImageQuery): QueryResult<ImageWithId> {
     const { visible } = this.scope.resolve(q.where);
+
     const sorted = this.sort(this.materialize(visible), q.list.sort, q.list.order);
+
     return paginate(sorted, q.list.page, q.list.limit);
   }
 
-  /** 將位元圖物化為帶 id 的圖片紀錄（投影答「哪些」、真相答「什麼」）。 */
+  /** 將位元圖 (索引) 轉化為實際圖片紀錄。 */
   private materialize(bits: BitSet): ImageWithId[] {
     const items: ImageWithId[] = [];
+
     for (const ordinal of bits.values()) {
       const id = this.db.idOf(ordinal);
       if (id === null) continue;
+
       const rec = this.db.getImage(id);
       if (rec) items.push({ id, ...rec });
     }
+
     return items;
   }
 
@@ -43,6 +48,7 @@ export class ImageEngine {
     }
 
     const dir = order === "asc" ? 1 : -1;
+
     items.sort((a, b) => {
       if (sort !== "name") {
         const primary = dir * sortCollator.compare(sortKey(a, sort), sortKey(b, sort));
@@ -50,6 +56,7 @@ export class ImageEngine {
       }
       return dir * sortCollator.compare(a.name.toLowerCase(), b.name.toLowerCase());
     });
+
     return items;
   }
 }

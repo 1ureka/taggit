@@ -1,11 +1,11 @@
 /**
  * @file pagination.ts
- * 通用分頁（純函式 util，非 class；兩引擎共用）。
+ * 通用的分頁純函式
  */
 
-import type { QueryResult } from "./types.js";
+import type { QueryResult } from "./types";
 
-/** `limit <= 0` 回全部（page 1 / pages 1）；否則夾住頁碼並切片。 */
+/** `limit <= 0` 代表不分頁，否則限縮頁碼並分頁。 */
 export function paginate<T>(items: T[], page: number, limit: number): QueryResult<T> {
   const total = items.length;
   if (limit <= 0) return { items, total, page: 1, pages: 1 };

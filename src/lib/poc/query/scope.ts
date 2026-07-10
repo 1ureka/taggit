@@ -1,15 +1,14 @@
 /**
  * @file scope.ts
- * ScopeResolver —— 兩大引擎共用的私有原語：把 ImageWhere 解析為位元圖 scope。
+ * 將 ImageWhere 解析為位元圖 scope 的執行器
  *
- * 持有 db，組合投影原語（tagBits / ratingRange / live）+ hidden 遮罩。
  * hidden 語義：設 H = hidden 標籤集合、Q = 查詢的 includedTags，
  * 圖片被遮蔽 ⇔ 存在 h ∈ H 使圖片擁有 h 且 h ∉ Q。
  */
 
-import { BitSet, type Database } from "../database/index.js";
-import type { ImageWhere } from "../query-spec/index.js";
-import { isNonEmpty } from "$lib/utils/shared.js";
+import { BitSet, type Database } from "$lib/poc/database";
+import type { ImageWhere } from "$lib/poc/query-spec";
+import { isNonEmpty } from "$lib/utils/shared";
 
 /** scope 解析結果：遮蔽前 / 遮蔽後 + 正規化的 includedTags 集合。 */
 export interface Scope {
