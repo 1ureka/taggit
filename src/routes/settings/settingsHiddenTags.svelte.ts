@@ -58,7 +58,7 @@ export class SettingsHiddenTags {
     this.isError = false;
 
     const next = !this.selectedHidden;
-    const res = await api.patch("/api/tags", { name, hidden: next });
+    const res = await api.patch(`/api/tags/${encodeURIComponent(name)}`, { hidden: next });
 
     if (res.ok) {
       this.message = next ? `已將「${name}」設為隱藏` : `已取消隱藏「${name}」`;

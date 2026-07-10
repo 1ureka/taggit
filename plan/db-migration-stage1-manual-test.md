@@ -84,7 +84,7 @@
 ## 10. 未載入守衛（503）
 
 - [ ] 把 collection path 指到無效位置（或重啟 dev server 後不進任何頁面直接打 API）：
-      `PATCH /api/tags` → 503 字串「尚未載入資料庫」；頁面路由則導向 `/settings?alert=...`。
+      `PATCH /api/tags/[tagName]` → 503 字串「尚未載入資料庫」；頁面路由則導向 `/settings?alert=...`。
 
 ## 11. 持久化收尾
 
