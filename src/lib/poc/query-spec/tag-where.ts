@@ -3,7 +3,7 @@
  * 標籤篩選值物件
  */
 
-import { parseBool, parseEnum } from "./parse";
+import { parseBool, parseEnum, buildSearchParams } from "./search-params";
 
 /** {@link TagWhere} 的資料欄位 (去掉方法) */
 export type TagWhereFields = {
@@ -13,6 +13,9 @@ export type TagWhereFields = {
 };
 
 export class TagWhere {
+  /** 本值物件在 URL 上擁有的可能出現的查詢鍵 */
+  static readonly KEYS = ["name", "hidden", "universe"] as const;
+
   /** 標籤名稱子字串搜尋。 */
   name?: string;
   /** 只列 hidden / 非 hidden；`undefined` = 兩者皆列。 */
@@ -44,9 +47,11 @@ export class TagWhere {
     });
   }
 
-  /** 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
-  toSearchParams(): URLSearchParams {
-    const p = new URLSearchParams();
+  /**
+   * 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址)，可透過傳入 `base` 保留頁面其他的查詢參數
+   */
+  toSearchParams(base?: URLSearchParams): URLSearchParams {
+    const p = buildSearchParams(base, TagWhere.KEYS);
     if (this.name?.trim()) p.set("name", this.name.trim());
     if (this.hidden !== undefined) p.set("hidden", String(this.hidden));
     if (this.universe !== "used") p.set("universe", this.universe);

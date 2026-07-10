@@ -107,24 +107,25 @@ export async function createHarness() {
   silenceConsole();
 
   const load = (p) => server.ssrLoadModule(p);
-  const [database, querySpec, query, mutation, bitmap, ordinal, facetIndex, serialization, parse] = await Promise.all([
-    load("/src/lib/poc/database/index.ts"),
-    load("/src/lib/poc/query-spec/index.ts"),
-    load("/src/lib/poc/query/index.ts"),
-    load("/src/lib/poc/mutation/index.ts"),
-    load("/src/lib/poc/database/bitmap.ts"),
-    load("/src/lib/poc/database/ordinal.ts"),
-    load("/src/lib/poc/database/facet-index.ts"),
-    load("/src/lib/poc/database/serialization.ts"),
-    load("/src/lib/poc/query-spec/parse.ts"),
-  ]);
+  const [database, querySpec, query, mutation, bitmap, ordinal, facetIndex, serialization, searchParams] =
+    await Promise.all([
+      load("/src/lib/poc/database/index.ts"),
+      load("/src/lib/poc/query-spec/index.ts"),
+      load("/src/lib/poc/query/index.ts"),
+      load("/src/lib/poc/mutation/index.ts"),
+      load("/src/lib/poc/database/bitmap.ts"),
+      load("/src/lib/poc/database/ordinal.ts"),
+      load("/src/lib/poc/database/facet-index.ts"),
+      load("/src/lib/poc/database/serialization.ts"),
+      load("/src/lib/poc/query-spec/search-params.ts"),
+    ]);
 
   const modules = {
     ...database, // Database, BitSet
-    ...querySpec, // ImageWhere, TagWhere, ListOptions, ImageQuery, TagQuery, TagFacetQuery, IMAGE_SORTS, TAG_SORTS
+    ...querySpec, // ImageWhere, TagWhere, ListOptions, ImageQuery, TagQuery, ...
     ...query, // Query
     ...mutation, // Mutation
-    ...parse, // parseTags, safeInt, parseEnum, parseBool
+    ...searchParams, // parseTags, safeInt, parseEnum, parseBool, ...
     OrdinalRegistry: ordinal.OrdinalRegistry,
     FacetIndex: facetIndex.FacetIndex,
     serialization, // emptyDBData, parseDBData, TagMetaCodec

@@ -1,6 +1,6 @@
 /**
- * @file parse.ts
- * URLSearchParams 解析的純函式 util
+ * @file search-params.ts
+ * URLSearchParams 讀寫純函式（parse + serialize helpers）
  */
 
 /** 解析逗號分隔標籤字串為裁切後的非空陣列。 */
@@ -29,4 +29,15 @@ export function parseBool(raw: string | null): boolean | undefined {
   if (raw === "true") return true;
   if (raw === "false") return false;
   return undefined;
+}
+
+/**
+ * 初始化一個全新的 `URLSearchParams`。
+ * - 若傳入 `base` 則會進行深拷貝並刪除 `keys` 指定的鍵。
+ * - 若未傳入 `base`，則直接回傳一個乾淨的空 `URLSearchParams`。
+ */
+export function buildSearchParams(base: URLSearchParams | undefined, keys: readonly string[]): URLSearchParams {
+  const p = new URLSearchParams(base);
+  keys.forEach((k) => p.delete(k));
+  return p;
 }

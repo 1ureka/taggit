@@ -23,7 +23,7 @@
 - 修改 `database/`、`query/`、`mutation/` 底下任何檔案後，尤其是牽涉到索引同步
   （`replaceIndex` / `rebuild`）、樂觀併發（`updatedAt` 檢查）、或持久化（`flush` /
   `markDirty`）的變更。
-- 新增或調整 `query-spec/` 的值物件解析邏輯（例如 `parse.ts` 內的 `safeInt` /
+- 新增或調整 `query-spec/` 的值物件解析邏輯（例如 `search-params.ts` 內的 `safeInt` /
   `parseEnum` / `parseTags`）。
 - 懷疑某個 PR 影響到單例生命週期（`Database.ensureLoaded` / `requireLoaded`）在
   HMR 或多次載入下的行為。

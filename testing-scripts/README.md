@@ -27,7 +27,7 @@ exit code：全通過 0，有失敗 1（可配合 CI）。
 | `facet-index.suite.mjs` | `FacetIndex`：tag 位元圖增刪、`ratingRange` 夾制、`clampRating` |
 | `serialization.suite.mjs` | `parseDBData` v1/v2 相容、寬容跳過壞紀錄、`TagMetaCodec` |
 | `database.suite.mjs` | `Database`：真相 CRUD、`replaceIndex`/`rebuild`、壓實觸發、稀疏 tag meta |
-| `query-spec.suite.mjs` | 值物件 `fromSearchParams`/`toSearchParams`/`with`、`parse` 純函式 |
+| `query-spec.suite.mjs` | 值物件 `fromSearchParams`/`toSearchParams` /`with`、`search-params` 純函式 |
 | `query.suite.mjs` | `Query`：篩選、排序、分頁、`tags`/`facets`（不含 hidden） |
 | `mutation.suite.mjs` | `Mutation`：commit/update/remove/rename/delete/setMeta、驗證、樂觀併發、`last_tag` |
 | `hidden.suite.mjs` | **hidden 標籤的完整情境**：images 遮蔽、解鎖、facet 解鎖投影計數、動態切換 |

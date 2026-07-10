@@ -6,7 +6,7 @@
 import { ImageWhere } from "./image-where";
 import { ListOptions } from "./list-options";
 import { IMAGE_SORTS, type ImageSort } from "./types";
-import { safeInt, parseEnum } from "./parse";
+import { safeInt, parseEnum } from "./search-params";
 
 export class ImageQuery {
   where: ImageWhere;
@@ -33,9 +33,12 @@ export class ImageQuery {
     return new ImageQuery(ImageWhere.fromSearchParams(params), list);
   }
 
-  /** 將所有篩選、排序與分頁條件合併轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
-  toSearchParams(): URLSearchParams {
-    const p = this.where.toSearchParams();
+  /**
+   * 將當前篩選、排序與分頁條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址)，可透過傳入 `base` 保留頁面其他的查詢參數
+   */
+  toSearchParams(base?: URLSearchParams): URLSearchParams {
+    const p = this.where.toSearchParams(base);
+    ListOptions.KEYS.forEach((k) => p.delete(k));
     if (this.list.sort !== "rating") p.set("sort", this.list.sort);
     if (this.list.order !== "desc") p.set("order", this.list.order);
     if (this.list.page > 1) p.set("page", String(this.list.page));

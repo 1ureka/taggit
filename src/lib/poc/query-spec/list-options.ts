@@ -12,6 +12,9 @@ export type ListFields<S extends string> = {
 };
 
 export class ListOptions<S extends string> {
+  /** 本值物件在 URL 上擁有的可能出現的查詢鍵 */
+  static readonly KEYS = ["sort", "order", "page", "limit"] as const;
+
   sort: S;
   order: "asc" | "desc";
   /** 頁碼（從 1 起）。 */

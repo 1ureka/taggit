@@ -124,6 +124,44 @@ export async function run(t, h) {
     t.eq("fromSearchParams 只解析 scope", fromParams.scope.fields().includedTags, ["dog"]);
     t.eq("fromSearchParams scope rating", fromParams.scope.rating, 4);
   }
+
+  // ── toSearchParams(base)：合併進既有參數、保留外來鍵、清掉回退預設的殘留鍵、不 mutate base ──
+  {
+    // base 同時帶頁面自有參數(modal/currentId)、一個會回退預設的舊 where 值(ratingOp=lte)、與舊 list 值(sort/page)
+    const base = sp({ modal: "1", currentId: "42", ratingOp: "lte", search: "old", sort: "name", page: "3" });
+    const before = base.toString();
+
+    // ImageWhere 只擁有 where 鍵：清掉自己的，但不動 list 的 sort/page（擁有權邊界）
+    const w = new ImageWhere({ search: "cat", rating: 5 });
+    const wMerged = w.toSearchParams(base);
+    t.eq("ImageWhere(base) 覆寫 search", wMerged.get("search"), "cat");
+    t.eq("ImageWhere(base) 清掉回退預設的 ratingOp", wMerged.has("ratingOp"), false);
+    t.eq("ImageWhere(base) 保留外來鍵 modal", wMerged.get("modal"), "1");
+    t.eq("ImageWhere(base) 不碰非自有的 sort", wMerged.get("sort"), "name");
+
+    // ImageQuery 擁有 where + list 鍵：兩組都清，只留外來鍵
+    const q = new ImageQuery(new ImageWhere({ search: "cat", rating: 5 }));
+    const merged = q.toSearchParams(base);
+    t.eq("ImageQuery(base) 覆寫 search", merged.get("search"), "cat");
+    t.eq("ImageQuery(base) 寫入 rating", merged.get("rating"), "5");
+    t.eq("ImageQuery(base) 保留外來鍵", `${merged.get("modal")},${merged.get("currentId")}`, "1,42");
+    t.eq("ImageQuery(base) 清掉回退預設的 ratingOp", merged.has("ratingOp"), false);
+    t.eq("ImageQuery(base) 清掉回退預設的 sort", merged.has("sort"), false);
+    t.eq("ImageQuery(base) 清掉回退預設的 page", merged.has("page"), false);
+    t.eq("toSearchParams(base) 不 mutate 傳入的 base", base.toString(), before);
+
+    // reset：預設查詢覆蓋 base → 清光全部 owned 鍵、只留外來鍵
+    const reset = new ImageQuery().toSearchParams(base);
+    t.eq("reset 清光 owned 鍵只留外來鍵", dump(reset), "currentId=42&modal=1");
+
+    // Tag 領域同樣適用
+    const tagBase = sp({ modal: "x", universe: "all", sort: "name" });
+    const tagMerged = new TagQuery(new TagWhere({ name: "ca" })).toSearchParams(tagBase);
+    t.eq("TagQuery(base) 覆寫 name", tagMerged.get("name"), "ca");
+    t.eq("TagQuery(base) 清掉回退預設的 universe", tagMerged.has("universe"), false);
+    t.eq("TagQuery(base) 清掉回退預設的 sort", tagMerged.has("sort"), false);
+    t.eq("TagQuery(base) 保留外來鍵", tagMerged.get("modal"), "x");
+  }
 }
 
 export default { name, run };

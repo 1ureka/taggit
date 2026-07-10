@@ -3,7 +3,7 @@
  * 圖片篩選值物件
  */
 
-import { parseTags, safeInt, parseEnum } from "./parse";
+import { parseTags, safeInt, parseEnum, buildSearchParams } from "./search-params";
 
 /** {@link ImageWhere} 的資料欄位 (去掉方法) */
 export type ImageWhereFields = {
@@ -15,6 +15,9 @@ export type ImageWhereFields = {
 };
 
 export class ImageWhere {
+  /** 本值物件在 URL 上擁有的可能出現的查詢鍵 */
+  static readonly KEYS = ["search", "includedTags", "excludedTags", "rating", "ratingOp"] as const;
+
   /** 圖片名稱子字串搜尋。 */
   search: string;
   /** 必須同時包含的標籤（AND）。 */
@@ -61,9 +64,11 @@ export class ImageWhere {
     });
   }
 
-  /** 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
-  toSearchParams(): URLSearchParams {
-    const p = new URLSearchParams();
+  /**
+   * 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址)，可透過傳入 `base` 保留頁面其他的查詢參數
+   */
+  toSearchParams(base?: URLSearchParams): URLSearchParams {
+    const p = buildSearchParams(base, ImageWhere.KEYS);
     if (this.search.trim()) p.set("search", this.search.trim());
     if (this.includedTags.length > 0) p.set("includedTags", this.includedTags.join(","));
     if (this.excludedTags.length > 0) p.set("excludedTags", this.excludedTags.join(","));
