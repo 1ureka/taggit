@@ -1,16 +1,14 @@
 /**
  * @file tag.ts
- * TagCommands —— 專心做標籤異動：rename / delete / setMeta。
- *
- * 批次標籤動詞寫多筆真相後以 db.rebuild() 收斂投影。
- * setMeta 吃完整 TagMeta（覆寫）；「只改一欄」由呼叫端先 db.getTagMeta 再覆蓋。
+ * 標籤操作 rename / delete / setMeta
  */
 
-import type { Database, TagMeta } from "../database/index.js";
-import { Validator } from "./validator.js";
-import { ok, invalid, lastTag } from "./result.js";
-import type { LastTag, Result, Validation } from "./result.js";
-import { sortCollator } from "$lib/utils/shared.js";
+import { sortCollator } from "$lib/utils/shared";
+import type { Database, TagMeta } from "$lib/poc/database";
+
+import type { LastTag, Result, Validation } from "./result";
+import { Validator } from "./validator";
+import { ok, invalid, lastTag } from "./result";
 
 function normalizeTags(tags: string[]): string[] {
   return tags.map((t) => t.trim()).toSorted(sortCollator.compare);

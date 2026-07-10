@@ -1,20 +1,17 @@
 /**
  * @file image.ts
- * ImageCommands —— 專心做圖片異動：commit / update / updateFileMeta / remove。
- *
- * 動詞坐在 database 原語上（read-overlay-write）：合併語意住動詞、原語只做覆寫。
- * 索引同步的鐵則：**先寫真相（setImage / deleteImage），再 replaceIndex 同步投影**，
- * 最後 markDirty。replaceIndex 依當前真相重建該筆，避免「半更新視窗」殘留舊 bit。
+ * 圖片紀錄操作 commit / update / updateFileMeta / remove
  */
 
-import type { Database, ImageRecord, ImageWithId } from "../database/index.js";
-import type { FileInfo, FileMetaPatch, ImportEntry, UpdatePatch } from "./commands.js";
-import { Validator } from "./validator.js";
-import { ok, notFound, staleUpdate, invalid } from "./result.js";
-import type { NotFound, Result, StaleUpdate, Validation } from "./result.js";
-import { sortCollator } from "$lib/utils/shared.js";
+import { sortCollator } from "$lib/utils/shared";
+import type { Database, ImageRecord, ImageWithId } from "$lib/poc/database";
 
-/** 標籤正規化：修剪 + 自然排序（寫入真相前的統一形狀）。 */
+import type { FileInfo, FileMetaPatch, ImportEntry, UpdatePatch } from "./commands";
+import type { NotFound, Result, StaleUpdate, Validation } from "./result";
+import { Validator } from "./validator";
+import { ok, notFound, staleUpdate, invalid } from "./result";
+
+/** 標籤正規化：修剪 + 自然排序 */
 function normalizeTags(tags: string[]): string[] {
   return tags.map((t) => t.trim()).toSorted(sortCollator.compare);
 }
@@ -47,8 +44,8 @@ export class ImageCommands {
       blurhash: file.blurhash,
     };
 
-    db.setImage(id, record); // 先寫真相
-    db.replaceIndex(id, existing); // 再同步投影（依當前真相）
+    db.setImage(id, record);
+    db.replaceIndex(id, existing);
     db.markDirty();
 
     return ok({ id, ...record });
@@ -65,23 +62,21 @@ export class ImageCommands {
     if (patch.tags !== undefined && !Validator.tags(patch.tags)) return invalid(["tags"], "標籤不合法");
     if (patch.rating !== undefined && !Validator.rating(patch.rating)) return invalid(["rating"], "評分不合法");
 
-    // read-overlay-write：完整基底 → 覆蓋 → 完整 record
     const next: ImageRecord = { ...record };
     if (patch.tags !== undefined) next.tags = normalizeTags(patch.tags);
     if (patch.rating !== undefined) next.rating = patch.rating;
     if (patch.name !== undefined) next.name = patch.name;
     next.updatedAt = Date.now();
 
-    db.setImage(id, next); // 先寫真相
-    db.replaceIndex(id, record); // 再同步投影（舊 record 出、當前真相進）
+    db.setImage(id, next);
+    db.replaceIndex(id, record);
     db.markDirty();
 
     return ok({ id, ...next });
   }
 
   /**
-   * 更新圖片的檔案側元資料（尺寸、blurhash），不經樂觀併發檢查、不更動 `updatedAt`。
-   * 這些欄位不進投影索引，且 tags / rating 不變，故無須 replaceIndex。僅供維護用途。
+   * 更新圖片的檔案側元資料，不經樂觀併發檢查、不更動 `updatedAt` 也不影響索引
    */
   updateFileMeta(id: string, meta: FileMetaPatch): Result<ImageWithId, NotFound> {
     const db = this.db;
@@ -95,14 +90,16 @@ export class ImageCommands {
     return ok({ id, ...next });
   }
 
-  /** 移除已提交的圖片紀錄並回傳。 */
+  /**
+   * 移除已提交的圖片紀錄並回傳該紀錄，也可以理解為 "退回"
+   */
   remove(id: string): Result<ImageRecord, NotFound> {
     const db = this.db;
     const record = db.getImage(id);
     if (!record) return notFound();
 
-    db.deleteImage(id); // 先寫真相（刪除）
-    db.replaceIndex(id, record); // 再同步投影（當前真相缺席 → 純移除）
+    db.deleteImage(id);
+    db.replaceIndex(id, record);
     db.markDirty();
 
     return ok(record);

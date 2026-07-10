@@ -1,32 +1,8 @@
-# 第一階段手動測試清單：`lib/database` 汰除後的全路徑走查
-
-前置條件：`npm run dev` 起 app。整份清單從**一個全新的空 collection path**開始，
-依序走完「放入圖片 → tagger 匯入 → editor 編修 → tags 改名/刪除/hidden → compare → player →
-settings 維護掃描」的完整操作路徑，並在對應步驟驗證錯誤路徑在新的 `Result` + `errorToHttp` 下的預期回應。
-
-## 錯誤回應的新格式（先讀這段）
-
-mutation 失敗不再 throw，API route 統一回：
-
-```json
-{ "ok": false, "error": { "kind": "..." , ... } }
-```
-
-| kind | HTTP | error 內容 | 前端 toast 顯示 |
-|---|---|---|---|
-| `not_found` | 404 | `{ kind: "not_found" }` | 找不到目標紀錄 |
-| `stale_update` | 409 | `{ kind, expectedUpdatedAt, actualUpdatedAt }` | 紀錄已被其他操作更新，請重新整理後再試 |
-| `last_tag` | 409 | `{ kind, images: [受影響的 id] }` | 有圖片會因此失去最後一個標籤 |
-| `validation` | 400 | `{ kind, fields: [...], message }` | validator 的 message（如「標籤不合法」） |
-
-route 層自己的守衛（非 `MutationError`）仍是字串 error：503「尚未載入資料庫」、
-400「無效的檔名」、409「已提交的圖片」等。
-
----
+# 第一階段手動測試清單
 
 ## 1. 建立全新 collection（settings）
 
-- [ ] 開 `/settings`，在 collection path 填一個**全新的空資料夾**路徑，儲存。
+- [x] 開 `/settings`，在 collection path 填一個**全新的空資料夾**路徑，儲存。
 - [ ] 預期：成功切換；側欄顯示 committed 0 / staged 0；首頁為空清單。
 - [ ] 錯誤路徑：填一個不存在且無法建立的路徑 → 422「路徑不存在或無法建立所需的子目錄」。
 
@@ -49,8 +25,8 @@ route 層自己的守衛（非 `MutationError`）仍是字串 error：503「尚�
 
 ## 4. home 瀏覽 + 篩選
 
-- [ ] 開 `/`，確認全部圖片出現、facet 側欄的標籤計數正確。
-- [ ] 加一個 includedTags 篩選 → 清單縮小、facet 計數跟著 scope 變化、URL 帶 `includedTags=`。
+- [x] 開 `/`，確認全部圖片出現、facet 側欄的標籤計數正確。
+- [x] 加一個 includedTags 篩選 → 清單縮小、facet 計數跟著 scope 變化、URL 帶 `includedTags=`。
 - [ ] 名稱搜尋、評分篩選（≥ / ≤ / =）、排序切換（時間/評分/名稱/隨機）、升降冪都動一輪。
 - [ ] 重點：換任何篩選條件後 `page` 回到 1；URL 上非預設值才出現（乾淨網址）。
 - [ ] 點圖開 modal → 點「在 editor 開啟」→ editor 帶著同樣篩選 + currentId 開啟。
