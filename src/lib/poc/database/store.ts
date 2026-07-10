@@ -207,9 +207,9 @@ export class Database {
     return this.facets.ratingRange(from, to);
   }
 
-  /** 目前存活的序號全集。呼叫端需 clone 後才能改動。 */
-  get live(): BitSet {
-    return this.ordinals.live;
+  /** 目前存活的序號全集複本。 */
+  get liveClone(): BitSet {
+    return this.ordinals.live.clone();
   }
 
   /** 序號 → id，墓碑 / 超界回 `null`。 */

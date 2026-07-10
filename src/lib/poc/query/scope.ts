@@ -52,7 +52,7 @@ export class ScopeResolver {
    */
   private filterBeforeHidden(where: ImageWhere): BitSet {
     const db = this.db;
-    let result = db.live.clone();
+    let result = db.liveClone;
 
     // 1. 包含標籤：AND；任一標籤不存在，交集必為空
     if (isNonEmpty(where.includedTags)) {
