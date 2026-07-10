@@ -5,4 +5,4 @@
 
 export { Database } from "./store";
 export { BitSet } from "./bitmap";
-export type { DBData, ImageRecord, ImageWithId, TagMeta } from "./types";
+export type { DBData, ImageRecord, ImageWithId, Tag, TagMeta } from "./types";

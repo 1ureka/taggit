@@ -8,7 +8,7 @@ import { BitSet, type Database, type ImageWithId } from "$lib/poc/database";
 import type { ImageQuery, ImageSort } from "$lib/poc/query-spec";
 
 import type { ScopeResolver } from "./scope";
-import type { QueryResult } from "./types";
+import type { QueryResult } from "./result";
 import { paginate } from "./pagination";
 
 export class ImageEngine {

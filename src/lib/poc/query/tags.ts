@@ -4,11 +4,11 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
-import type { Database } from "$lib/poc/database";
+import type { Database, Tag } from "$lib/poc/database";
 import type { ImageWhere, ListOptions, TagFacetQuery, TagQuery, TagSort, TagWhere } from "$lib/poc/query-spec";
 
 import type { ScopeResolver } from "./scope";
-import type { QueryResult, Tag } from "./types";
+import type { QueryResult } from "./result";
 import { paginate } from "./pagination";
 
 export class TagEngine {

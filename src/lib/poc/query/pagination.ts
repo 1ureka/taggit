@@ -3,7 +3,7 @@
  * 通用的分頁純函式
  */
 
-import type { QueryResult } from "./types";
+import type { QueryResult } from "./result";
 
 /** `limit <= 0` 代表不分頁，否則限縮頁碼並分頁。 */
 export function paginate<T>(items: T[], page: number, limit: number): QueryResult<T> {

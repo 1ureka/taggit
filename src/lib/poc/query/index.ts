@@ -3,15 +3,15 @@
  * 查詢執行器的公開入口
  */
 
-import type { Database, ImageWithId } from "$lib/poc/database";
+import type { Database, ImageWithId, Tag } from "$lib/poc/database";
 import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/poc/query-spec";
 
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";
 import { TagEngine } from "./tags";
-import type { QueryResult, Tag } from "./types";
+import type { QueryResult } from "./result";
 
-export type { QueryResult, Tag } from "./types";
+export type { QueryResult } from "./result";
 
 export class Query {
   private imageEngine: ImageEngine;

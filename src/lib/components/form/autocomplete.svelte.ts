@@ -1,4 +1,4 @@
-import type { Tag } from "$lib/poc/query";
+import type { Tag } from "$lib/poc/database";
 import { scrollToActive } from "$lib/components/dom";
 
 /**

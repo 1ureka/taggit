@@ -54,3 +54,15 @@ export interface TagMeta {
   /** 隱藏標籤：帶有此標籤的圖片，僅在查詢明確包含此標籤時可見。預設 false。 */
   hidden: boolean;
 }
+
+/**
+ * 帶有名稱的標籤實體，對標 ImageWithId。
+ */
+export interface Tag {
+  /** 標籤名稱 (唯一識別) */
+  name: string;
+  /** 標籤的使用次數 */
+  count: number;
+  /** 標籤自身的元資料 */
+  meta: TagMeta;
+}
