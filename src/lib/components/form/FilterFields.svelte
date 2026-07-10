@@ -2,7 +2,7 @@
   import { FilterFields } from "./filterFields.svelte.js";
   import Autocomplete from "./Autocomplete.svelte";
   import Select from "./Select.svelte";
-  import type { Tag } from "$lib/database/client.js";
+  import type { Tag } from "$lib/poc/query";
 
   type Props = {
     /** 篩選語境的候選標籤 */

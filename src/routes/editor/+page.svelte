@@ -3,7 +3,7 @@
   import { IconFilter, IconReload } from "$lib/components/icons";
   import type { PageData } from "./$types.js";
 
-  import type { ImageWithId } from "$lib/database/client.js";
+  import type { ImageWithId } from "$lib/poc/database";
   import Rating from "$lib/components/form/Rating.svelte";
   import Autocomplete from "$lib/components/form/Autocomplete.svelte";
   import Modal from "$lib/components/overlay/Modal.svelte";

@@ -5,7 +5,7 @@ import { execFileSync } from "child_process";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server.js";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
 import type { CollectionPaths } from "$lib/collection/server.js";
 import { log } from "$lib/utils/server.js";
 
@@ -42,12 +42,12 @@ const pack = (paths: CollectionPaths & { zip: string }) => {
  */
 export const POST: RequestHandler = () => {
   const root = collection.getActiveRoot();
-  if (!root || !database.isLoaded()) {
+  if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
   const paths = collection.getCollectionPaths(root);
-  database.flush();
+  Database.flush();
 
   // ---
 

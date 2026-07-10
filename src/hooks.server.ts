@@ -1,4 +1,4 @@
-import { flush } from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
 import { log } from "$lib/utils/server.js";
 
 declare global {
@@ -11,7 +11,7 @@ if (!globalThis.__sigintRegistered) {
 
   const onExit = (signal: string) => {
     log({ level: "info", module: "hooks", message: `接收到 ${signal} 訊號，正在寫入資料庫…` });
-    flush();
+    Database.flush();
     log({ level: "info", module: "hooks", message: "資料庫寫入完成，正在退出…" });
     process.exit(0);
   };

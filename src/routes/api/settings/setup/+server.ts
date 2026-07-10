@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
 import { clearCache } from "$lib/image/server.js";
 import { parseBody } from "$lib/utils/server.js";
 
@@ -46,7 +46,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   collection.setCollectionRoot(root);
   collection.setActiveRoot(root);
-  database.ensureLoaded(collection.getCollectionPaths(root).db);
+  Database.ensureLoaded(collection.getCollectionPaths(root).db);
   if (isSwitching) clearCache();
 
   return json({ ok: true, data: { collectionRoot: root } });

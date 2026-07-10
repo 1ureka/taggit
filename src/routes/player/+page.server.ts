@@ -1,11 +1,14 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { ImageQuery } from "$lib/poc/query-spec";
 
 export const load: PageServerLoad = ({ url }) => {
-  if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  if (!Database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  const query = new Query(Database.requireLoaded());
 
-  const result = database.queryImages(url.searchParams);
+  const result = query.images(ImageQuery.fromSearchParams(url.searchParams));
 
   if (result.total === 0) {
     const newUrl = new URL(url);

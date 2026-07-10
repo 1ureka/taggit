@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/utils/client.js";
-import type { Tag } from "$lib/database/client.js";
+import type { Tag } from "$lib/poc/query";
 
 /**
  * SettingsHiddenTags 的配置選項

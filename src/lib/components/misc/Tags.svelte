@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { buildQueryString } from "$lib/database/client.js";
+  import { ImageWhere } from "$lib/poc/query-spec";
 
   type Props = {
     tags: string[];
@@ -10,7 +10,7 @@
   let { tags, nowrap = false, readonly = false }: Props = $props();
 
   function href(tag: string): string {
-    return `/${buildQueryString({ includedTags: [tag] })}`;
+    return `/?${new ImageWhere({ includedTags: [tag] }).toSearchParams()}`;
   }
 </script>
 
