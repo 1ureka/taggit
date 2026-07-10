@@ -1,15 +1,9 @@
 /**
  * @file commands.ts
- * 命令型別，純輸入 DTO。
+ * 命令參數型別
  */
 
 import type { ImageRecord } from "$lib/poc/database";
-
-export interface ImportEntry {
-  name: string;
-  tags: string[];
-  rating?: number;
-}
 
 export interface FileInfo {
   fileSize: number;

@@ -12,9 +12,6 @@ type SettingsHiddenTagsOptions = {
 
 /**
  * SettingsHiddenTags 的互動邏輯
- *
- * 隱藏標籤的資料模型（TagMeta.hidden）、讀寫端點（PATCH /api/tags）與查詢遮蔽
- * 皆已於 database 模組實作；本類別只負責設定頁的挑選與切換互動。
  */
 export class SettingsHiddenTags {
   /** 選中的標籤（只保留一個） */

@@ -1,10 +1,6 @@
 /**
  * @file types.ts
- * database 的實體型別。
- *
- * 命令型別（ImportEntry / FileInfo / UpdatePatch…）屬 mutation 模組；
- * 查詢值物件（ImageWhere / ImageQuery…）屬 query-spec 模組；
- * 查詢結果（QueryResult / Tag）屬 query 模組。
+ * database 的紀錄實體型別
  */
 
 /**

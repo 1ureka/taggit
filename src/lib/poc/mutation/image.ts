@@ -6,7 +6,7 @@
 import { sortCollator } from "$lib/utils/shared";
 import type { Database, ImageRecord, ImageWithId } from "$lib/poc/database";
 
-import type { FileInfo, FileMetaPatch, ImportEntry, UpdatePatch } from "./commands";
+import type { FileInfo, FileMetaPatch } from "./commands";
 import type { NotFound, Result, StaleUpdate, Validation } from "./result";
 import { Validator } from "./validator";
 import { ok, notFound, staleUpdate, invalid } from "./result";
@@ -23,19 +23,22 @@ export class ImageCommands {
    * 提交（或覆寫）一筆圖片紀錄。使用者可控欄位來自 `entry`，
    * 檔案側元資料由呼叫端向 image 模組取得後以 `file` 傳入。
    */
-  commit(id: string, entry: ImportEntry, file: FileInfo): Result<ImageWithId, Validation> {
-    if (!Validator.name(entry.name)) return invalid(["name"], "名稱不合法");
-    if (!Validator.tags(entry.tags)) return invalid(["tags"], "標籤不合法");
-    if (entry.rating !== undefined && !Validator.rating(entry.rating)) return invalid(["rating"], "評分不合法");
+  commit(id: string, entry: unknown, file: FileInfo): Result<ImageWithId, Validation> {
+    if (!Validator.record(entry)) return invalid(["entry"], "紀錄格式無效");
+
+    const { name, tags, rating } = entry;
+    if (!Validator.name(name)) return invalid(["name"], "名稱不合法");
+    if (!Validator.tags(tags)) return invalid(["tags"], "標籤不合法");
+    if (rating !== undefined && !Validator.rating(rating)) return invalid(["rating"], "評分不合法");
 
     const db = this.db;
     const existing = db.getImage(id); // null（新增）或舊紀錄（覆寫）
 
     const now = Date.now();
     const record: ImageRecord = {
-      name: entry.name,
-      tags: normalizeTags(entry.tags),
-      rating: entry.rating ?? 0,
+      name,
+      tags: normalizeTags(tags),
+      rating: rating ?? 0,
       committedAt: now,
       updatedAt: now,
       fileSize: file.fileSize,
@@ -52,20 +55,25 @@ export class ImageCommands {
   }
 
   /** 以樂觀併發檢查更新現有圖片的標籤 / 評分 / 名稱。 */
-  update(id: string, patch: UpdatePatch): Result<ImageWithId, NotFound | StaleUpdate | Validation> {
+  update(id: string, patch: unknown): Result<ImageWithId, NotFound | StaleUpdate | Validation> {
+    if (!Validator.record(patch)) return invalid(["patch"], "更新內容格式無效");
+
+    const { expectedUpdatedAt, name, tags, rating } = patch;
+    if (!Validator.timestamp(expectedUpdatedAt)) return invalid(["expectedUpdatedAt"], "無效的預期更新時間");
+
     const db = this.db;
     const record = db.getImage(id);
     if (!record) return notFound();
-    if (record.updatedAt !== patch.expectedUpdatedAt) return staleUpdate(patch.expectedUpdatedAt, record.updatedAt);
+    if (record.updatedAt !== expectedUpdatedAt) return staleUpdate(expectedUpdatedAt, record.updatedAt);
 
-    if (patch.name !== undefined && !Validator.name(patch.name)) return invalid(["name"], "名稱不合法");
-    if (patch.tags !== undefined && !Validator.tags(patch.tags)) return invalid(["tags"], "標籤不合法");
-    if (patch.rating !== undefined && !Validator.rating(patch.rating)) return invalid(["rating"], "評分不合法");
+    if (name !== undefined && !Validator.name(name)) return invalid(["name"], "名稱不合法");
+    if (tags !== undefined && !Validator.tags(tags)) return invalid(["tags"], "標籤不合法");
+    if (rating !== undefined && !Validator.rating(rating)) return invalid(["rating"], "評分不合法");
 
     const next: ImageRecord = { ...record };
-    if (patch.tags !== undefined) next.tags = normalizeTags(patch.tags);
-    if (patch.rating !== undefined) next.rating = patch.rating;
-    if (patch.name !== undefined) next.name = patch.name;
+    if (tags !== undefined) next.tags = normalizeTags(tags);
+    if (rating !== undefined) next.rating = rating;
+    if (name !== undefined) next.name = name;
     next.updatedAt = Date.now();
 
     db.setImage(id, next);

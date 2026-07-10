@@ -19,9 +19,10 @@ import database from "./database.suite.mjs";
 import querySpec from "./query-spec.suite.mjs";
 import query from "./query.suite.mjs";
 import mutation from "./mutation.suite.mjs";
+import mutationValidation from "./mutation-validation.suite.mjs";
 import hidden from "./hidden.suite.mjs";
 
-const SUITES = [bitmap, ordinal, facetIndex, serialization, database, querySpec, query, mutation, hidden];
+const SUITES = [bitmap, ordinal, facetIndex, serialization, database, querySpec, query, mutation, mutationValidation, hidden];
 
 const filter = process.argv[2]?.toLowerCase();
 const selected = filter ? SUITES.filter((s) => s.name.toLowerCase().includes(filter)) : SUITES;
