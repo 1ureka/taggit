@@ -9,9 +9,9 @@ export class Validator {
     if (!Array.isArray(value) || value.length === 0) return false;
     const seen = new Set<string>();
     for (const t of value) {
-      if (typeof t !== "string") return false;
+      if (!Validator.tagName(t)) return false;
       const trimmed = t.trim();
-      if (trimmed === "" || trimmed.length > 50 || trimmed.includes(",") || seen.has(trimmed)) return false;
+      if (seen.has(trimmed)) return false;
       seen.add(trimmed);
     }
     return true;
