@@ -23,3 +23,10 @@ export function safeInt(raw: string | null): number | undefined {
 export function parseEnum<T extends string>(raw: string | null, allowed: readonly T[]): T | undefined {
   return raw != null && (allowed as readonly string[]).includes(raw) ? (raw as T) : undefined;
 }
+
+/** 字串轉布林，只接受 `"true"` / `"false"`，其餘回 `undefined`。 */
+export function parseBool(raw: string | null): boolean | undefined {
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return undefined;
+}

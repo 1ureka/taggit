@@ -3,6 +3,8 @@
  * 標籤篩選值物件
  */
 
+import { parseBool, parseEnum } from "./parse";
+
 /** {@link TagWhere} 的資料欄位 (去掉方法) */
 export type TagWhereFields = {
   name?: string;
@@ -31,5 +33,23 @@ export class TagWhere {
       hidden: "hidden" in patch ? patch.hidden : this.hidden,
       universe: patch.universe ?? this.universe,
     });
+  }
+
+  /** 從 URL 查詢參數（URLSearchParams）解析並建立值物件 */
+  static fromSearchParams(params: URLSearchParams): TagWhere {
+    return new TagWhere({
+      name: params.get("name") ?? undefined,
+      hidden: parseBool(params.get("hidden")),
+      universe: parseEnum(params.get("universe"), ["used", "all"]),
+    });
+  }
+
+  /** 將當前篩選條件轉換為 URL 查詢參數 (自動忽略預設值以精簡網址) */
+  toSearchParams(): URLSearchParams {
+    const p = new URLSearchParams();
+    if (this.name?.trim()) p.set("name", this.name.trim());
+    if (this.hidden !== undefined) p.set("hidden", String(this.hidden));
+    if (this.universe !== "used") p.set("universe", this.universe);
+    return p;
   }
 }
