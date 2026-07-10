@@ -61,21 +61,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   // ---
 
-  try {
-    const fileInfo = await image.readImageInfo(filePath);
-    const r = mutation.commitRecord(filename, { name: resolvedName, tags, rating }, fileInfo);
-    if (!r.ok) return errorJson(r.error);
+  const fileInfo = await image.readImageInfo(filePath);
+  const r = mutation.commitRecord(filename, { name: resolvedName, tags, rating }, fileInfo);
+  if (!r.ok) return errorJson(r.error);
 
-    log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
-    return json({ ok: true, data: r.data }, { status: 201 });
-  } catch (e) {
-    if (e instanceof Error && "code" in e && e.code === "ENOENT") {
-      return json({ ok: false, error: "檔案不存在" }, { status: 404 });
-    }
-
-    log({ level: "error", module: "staged/[id]", message: `POST 未知錯誤: ${filename}`, data: { error: String(e) } });
-    return json({ ok: false, error: "未知的錯誤" }, { status: 500 });
-  }
+  log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
+  return json({ ok: true, data: r.data }, { status: 201 });
 };
 
 // ---
