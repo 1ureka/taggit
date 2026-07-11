@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconStar, IconStarFilled } from "$lib/components/icons";
+  import { IconStar, IconStarFilled } from "$lib/ui/icons";
   import { Rating } from "./rating.svelte.js";
 
   type Props = {

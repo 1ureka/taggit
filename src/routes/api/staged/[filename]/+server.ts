@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server";
-import * as image from "$lib/image/server";
+import { Collection } from "$lib/collection";
+import { ImageLibrary } from "$lib/image/server";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { Mutation } from "$lib/mutation";
@@ -17,12 +17,11 @@ import { parseBody, errorJson, log } from "$lib/utils/server";
  * 將暫存檔案提交至資料庫，也就是為一張圖片新增紀錄。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
-  const root = collection.getActiveRoot();
-  if (!root || !Database.isLoaded()) {
+  const root = Collection.getActiveRoot();
+  if (!root || !Database.isLoaded() || !ImageLibrary.isActive()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
   const db = Database.requireLoaded();
   const query = new Query(db);
   const mutation = new Mutation(db);
@@ -34,7 +33,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "無效的檔名" }, { status: 400 });
   }
 
-  if (!image.isImageFile(filename)) {
+  if (!ImageLibrary.isImageFile(filename)) {
     return json({ ok: false, error: "非圖片檔案" }, { status: 400 });
   }
 
@@ -42,8 +41,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "已提交的圖片" }, { status: 409 });
   }
 
-  const filePath = path.join(paths.images, filename);
-  if (!fs.existsSync(filePath)) {
+  if (!ImageLibrary.has(filename)) {
     return json({ ok: false, error: "檔案不存在" }, { status: 404 });
   }
 
@@ -61,8 +59,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   // ---
 
-  const fileInfo = await image.readImageInfo(filePath);
-  const r = mutation.commitRecord(filename, { name: resolvedName, tags, rating }, fileInfo);
+  const probed = await ImageLibrary.probe(filename);
+  if (!probed.ok) {
+    return json({ ok: false, error: "檔案不存在" }, { status: 404 });
+  }
+
+  const r = mutation.commitRecord(filename, { name: resolvedName, tags, rating }, probed.data);
   if (!r.ok) return errorJson(r.error);
 
   log({ level: "info", module: "staged/[id]", message: `提交成功: ${filename}` });
@@ -77,12 +79,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * 永久刪除暫存區中的指定檔案。
  */
 export const DELETE: RequestHandler = ({ params }) => {
-  const root = collection.getActiveRoot();
-  if (!root || !Database.isLoaded()) {
+  const root = Collection.getActiveRoot();
+  if (!root || !Database.isLoaded() || !ImageLibrary.isActive()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
   const query = new Query(Database.requireLoaded());
 
   const { filename } = params;
@@ -94,12 +95,12 @@ export const DELETE: RequestHandler = ({ params }) => {
     return json({ ok: false, error: "無法透過暫存區端點刪除已提交的圖片" }, { status: 409 });
   }
 
-  const filePath = path.join(paths.images, filename);
-  if (!fs.existsSync(filePath)) {
+  const resolved = ImageLibrary.resolve(filename);
+  if (!resolved.ok) {
     return json({ ok: false, error: "檔案不存在" }, { status: 404 });
   }
 
-  fs.unlinkSync(filePath);
+  fs.unlinkSync(resolved.data);
   log({ level: "info", module: "staged/[id]", message: `刪除暫存: ${filename}` });
   return json({ ok: true, data: { filename } });
 };

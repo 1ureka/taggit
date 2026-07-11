@@ -3,9 +3,9 @@ import type { ImageWithId } from "$lib/database";
 import type { EditorForm } from "./editorForm.svelte.js";
 import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 
-import { api } from "$lib/utils/client.js";
+import { api } from "$lib/ui/request.js";
 import { batchRun } from "$lib/utils/shared.js";
-import { addToast, isInEditable, requestConfirm } from "$lib/components/dom.js";
+import { addToast, isInEditable, requestConfirm } from "$lib/ui/dom.js";
 
 /**
  * 編輯操作的配置選項

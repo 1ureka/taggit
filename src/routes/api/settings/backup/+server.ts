@@ -4,10 +4,9 @@ import path from "path";
 import { execFileSync } from "child_process";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
+import { Collection, type CollectionPaths } from "$lib/collection";
 import { Database } from "$lib/database";
-import type { CollectionPaths } from "$lib/collection/server.js";
-import { log } from "$lib/utils/server.js";
+import { log } from "$lib/utils/server";
 
 /**
  * 使用系統內建的壓縮工具將 images/ 目錄與 db.json 壓縮成 ZIP 檔
@@ -41,12 +40,12 @@ const pack = (paths: CollectionPaths & { zip: string }) => {
  * 建立 images/ 與 db.json 的 ZIP 備份並下載。
  */
 export const POST: RequestHandler = () => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
+  const paths = Collection.paths(root);
   Database.flush();
 
   // ---

@@ -27,15 +27,28 @@ import mutation from "./repo/mutation/mutation.suite.mjs";
 import mutationValidation from "./repo/mutation/mutation-validation.suite.mjs";
 import hidden from "./repo/scenario/hidden.suite.mjs";
 
+import { createImageFixtures } from "./image/fixtures.mjs";
+import imageResources from "./image/resources.suite.mjs";
+import imageFormats from "./image/formats.suite.mjs";
+import imageBlurhash from "./image/blurhash.suite.mjs";
+import imageMetadata from "./image/metadata.suite.mjs";
+import imageProcessor from "./image/processor.suite.mjs";
+import imageServer from "./image/server.suite.mjs";
+
 /**
  * 後端各領域。每個領域有自己的 fixtures 工廠（setup）與 suite 清單。
- * 目前只有 repo；未來 collection / image 等後端模組可各加一筆。
+ * 目前有 repo 與 image；未來 collection 等後端模組可各加一筆。
  */
 const DOMAINS = [
   {
     name: "repo",
     setup: createRepoFixtures,
     suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, query, mutation, mutationValidation, hidden],
+  },
+  {
+    name: "image",
+    setup: createImageFixtures,
+    suites: [imageResources, imageFormats, imageBlurhash, imageMetadata, imageProcessor, imageServer],
   },
 ];
 

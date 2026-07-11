@@ -1,9 +1,7 @@
-import fs from "fs";
-import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server";
-import * as image from "$lib/image/server";
+import { Collection } from "$lib/collection";
+import { ImageLibrary } from "$lib/image/server";
 import { Database } from "$lib/database";
 import { Mutation } from "$lib/mutation";
 
@@ -26,10 +24,10 @@ type ImportEvent =
  * 匯入前的檔案側檢查：檔名安全、副檔名為圖片、實體檔案存在、紀錄為物件。
  * 紀錄欄位（name / tags / rating）本身的驗證留給 mutation。
  */
-function precheckEntry(filename: string, value: unknown, imagesDir: string): ImportResult {
+function precheckEntry(filename: string, value: unknown): ImportResult {
   if (!isSafeFilename(filename)) return { ok: false, error: `無效的檔名: ${filename}` };
-  if (!image.isImageFile(filename)) return { ok: false, error: `非圖片檔案: ${filename}` };
-  if (!fs.existsSync(path.join(imagesDir, filename))) return { ok: false, error: `檔案不存在: ${filename}` };
+  if (!ImageLibrary.isImageFile(filename)) return { ok: false, error: `非圖片檔案: ${filename}` };
+  if (!ImageLibrary.has(filename)) return { ok: false, error: `檔案不存在: ${filename}` };
   if (!isRecord(value)) return { ok: false, error: `紀錄格式無效: ${filename}` };
   return { ok: true };
 }
@@ -38,18 +36,15 @@ function precheckEntry(filename: string, value: unknown, imagesDir: string): Imp
  * 匯入單筆紀錄：通過前置檢查後，讀取檔案元資料並寫入資料庫。
  * 不擲出例外，一切失敗（含非預期例外）都收斂成 {@link ImportResult}。
  */
-async function importEntry(
-  filename: string,
-  value: unknown,
-  imagesDir: string,
-  mutation: Mutation,
-): Promise<ImportResult> {
-  const precheck = precheckEntry(filename, value, imagesDir);
+async function importEntry(filename: string, value: unknown, mutation: Mutation): Promise<ImportResult> {
+  const precheck = precheckEntry(filename, value);
   if (!precheck.ok) return precheck;
 
   try {
-    const fileInfo = await image.readImageInfo(path.join(imagesDir, filename));
-    const committed = mutation.commitRecord(filename, value, fileInfo);
+    const probed = await ImageLibrary.probe(filename);
+    if (!probed.ok) return { ok: false, error: `檔案不存在: ${filename}` };
+
+    const committed = mutation.commitRecord(filename, value, probed.data);
 
     if (!committed.ok) {
       const { message, fields } = committed.error;
@@ -73,8 +68,8 @@ async function importEntry(
  * - `{ event: "done", imported, skipped, errors }`
  */
 export const POST: RequestHandler = async ({ request }) => {
-  const root = collection.getActiveRoot();
-  if (!root || !Database.isLoaded()) {
+  const root = Collection.getActiveRoot();
+  if (!root || !Database.isLoaded() || !ImageLibrary.isActive()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
@@ -89,7 +84,6 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "JSON 必須是非空的物件" }, { status: 400 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
   const mutation = new Mutation(Database.requireLoaded());
   const entries = Object.entries(body);
   const total = entries.length;
@@ -112,7 +106,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const current = i + 1;
         const position = `[${current}/${total}]`;
 
-        const result = await importEntry(filename, value, imagesDir, mutation);
+        const result = await importEntry(filename, value, mutation);
 
         if (result.ok) {
           imported++;

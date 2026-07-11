@@ -2,10 +2,11 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import * as image from "$lib/image/server.js";
-import { uniqueFilename, log } from "$lib/utils/server.js";
-import { formatError } from "$lib/utils/shared.js";
+import { uniqueFilename, log } from "$lib/utils/server";
+import { formatError } from "$lib/utils/shared";
+
+import { Collection } from "$lib/collection";
+import { ImageLibrary } from "$lib/image/server";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
 
@@ -15,12 +16,12 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
  * 上傳圖片檔案至 images/ 目錄（尚未提交至 db.json）。
  */
 export const POST: RequestHandler = async ({ request }) => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
+  const paths = Collection.paths(root);
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
@@ -50,7 +51,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    if (!image.isImageFile(entry.name)) {
+    if (!ImageLibrary.isImageFile(entry.name)) {
       errors.push(`${entry.name}: 不支援的檔案格式`);
       continue;
     }

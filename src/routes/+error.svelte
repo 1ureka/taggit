@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { IconArrowLeft, IconAlertTriangleFilled } from "$lib/components/icons";
+  import { IconArrowLeft, IconAlertTriangleFilled } from "$lib/ui/icons";
 </script>
 
 <svelte:head>

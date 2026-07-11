@@ -2,13 +2,11 @@
  * @file image/client.ts
  * image 模組的 client 端入口。
  *
- * 職責：定義前端如何要求圖片（imgSrc 即模組對外的溝通格式）。
- *
  * 模組外部只能 import 本檔與 {@link ./server.ts}。
  */
 
-import type { ImageSize } from "./internal/formats.js";
-import { blurhashStyle } from "./internal/blurhash.js";
+import type { ImageSize } from "./formats";
+import { blurhashStyle } from "./blurhash";
 
 export type { ImageSize };
 export { blurhashStyle };

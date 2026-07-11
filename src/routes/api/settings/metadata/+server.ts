@@ -1,9 +1,7 @@
-import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import { generateMetadata } from "$lib/image/server.js";
-
+import { ImageLibrary } from "$lib/image/server";
+import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { Mutation, type FileMetaPatch } from "$lib/mutation";
@@ -14,12 +12,11 @@ import { Mutation, type FileMetaPatch } from "$lib/mutation";
  * 為缺少 blurhash 或寬高的圖片補算元資料。
  */
 export const POST: RequestHandler = async () => {
-  const root = collection.getActiveRoot();
-  if (!root || !Database.isLoaded()) {
+  const root = Collection.getActiveRoot();
+  if (!root || !Database.isLoaded() || !ImageLibrary.isActive()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
   const db = Database.requireLoaded();
   const query = new Query(db);
   const mutation = new Mutation(db);
@@ -31,7 +28,9 @@ export const POST: RequestHandler = async () => {
     const needsDimensions = record.width === 0 || record.height === 0;
     if (!needsBlurhash && !needsDimensions) continue;
 
-    const meta = await generateMetadata(path.join(imagesDir, record.id));
+    const probed = await ImageLibrary.probe(record.id);
+    if (!probed.ok) continue;
+    const meta = probed.data;
 
     const patch: FileMetaPatch = {};
 

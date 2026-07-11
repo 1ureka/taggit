@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
-import { api } from "$lib/utils/client.js";
-import { requestConfirm } from "$lib/components/dom.js";
+import { api } from "$lib/ui/request.js";
+import { requestConfirm } from "$lib/ui/dom.js";
 
 /**
  * 標籤操作結果

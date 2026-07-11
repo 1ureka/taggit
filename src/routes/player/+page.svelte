@@ -6,9 +6,9 @@
   import type { PageData } from "./$types.js";
   import type { ImageWithId } from "$lib/database";
 
-  import { IconPlayerPause, IconPlayerPlay } from "$lib/components/icons";
+  import { IconPlayerPause, IconPlayerPlay } from "$lib/ui/icons";
   import { blurhashStyle, imgSrc } from "$lib/image/client.js";
-  import { Player } from "$lib/virtualizer/player.svelte.js";
+  import { Player } from "$lib/ui/virtualizer/player.svelte.js";
   import { PlayerAutoHide } from "./playerAutoHide.svelte.js";
 
   let { data }: { data: PageData } = $props();

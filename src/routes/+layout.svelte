@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "$lib/styles/app.css";
+  import "$lib/ui/styles/app.css";
   import favicon from "$lib/favicon.svg";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
@@ -7,8 +7,8 @@
   import type { Snippet } from "svelte";
   import type { LayoutData } from "./$types.js";
 
-  import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/components/icons";
-  import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/components/icons";
+  import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/ui/icons";
+  import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/ui/icons";
   import Modal from "$lib/components/overlay/Modal.svelte";
   import Toast from "$lib/components/feedback/Toast.svelte";
   import ConfirmModal from "$lib/components/overlay/ConfirmModal.svelte";
