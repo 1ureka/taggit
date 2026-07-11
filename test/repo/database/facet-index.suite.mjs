@@ -79,6 +79,20 @@ export async function run(t, h) {
     t.eq("clear 後 count 歸零", fx.getTagCount("x"), 0);
   }
 
+  // ── getSortedTags：增量維護、名稱升冪、歸零移除 ──
+  {
+    const fx = new FacetIndex();
+    fx.add(0, rec({ tags: ["banana", "apple"] }));
+    fx.add(1, rec({ tags: ["cherry", "apple"] }));
+    t.eq("getSortedTags 依名稱升冪", [...fx.getSortedTags()], ["apple", "banana", "cherry"]);
+    fx.add(2, rec({ tags: ["apple"] })); // 既有標籤：不重複插入
+    t.eq("既有標籤不重複進有序名單", [...fx.getSortedTags()], ["apple", "banana", "cherry"]);
+    fx.remove(0, rec({ tags: ["banana", "apple"] })); // banana 歸零消失；apple 仍被 1,2 使用
+    t.eq("標籤歸零後從有序名單移除", [...fx.getSortedTags()], ["apple", "cherry"]);
+    fx.clear();
+    t.eq("clear 後有序名單清空", [...fx.getSortedTags()], []);
+  }
+
   // ── ratingRange：含端點的聯集 ──
   {
     const fx = new FacetIndex();

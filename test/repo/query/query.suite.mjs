@@ -109,6 +109,42 @@ export async function run(t, h) {
     db.deleteTagMeta("ghost"); // 還原 fixture
   }
 
+  // ── tags 排序：name 排序、多個 count-0 併入的名稱序（沿用 p1-p4 fixture：fruit3/red2/dry1）──
+  // 同 count 的 name 升冪 tiebreak 由下方 facet 的 fruit:2/red:2 與此處 count-0 尾巴一併涵蓋。
+  {
+    // sort=name（新路徑：預排名稱 + 反轉，不經 Intl tiebreak）
+    t.eq(
+      "tags sort=name asc",
+      q.tags(new TagQuery(new TagWhere(), new ListOptions({ sort: "name", order: "asc" }))).items.map((tg) => tg.name),
+      ["dry", "fruit", "red"],
+    );
+    t.eq(
+      "tags sort=name desc",
+      q.tags(new TagQuery(new TagWhere(), new ListOptions({ sort: "name", order: "desc" }))).items.map((tg) => tg.name),
+      ["red", "fruit", "dry"],
+    );
+
+    // 多個未使用的 count-0 meta 標籤（用非預設 hidden:true 才會持久化），universe=all 應依名稱插入正確位置
+    db.setTagMeta("alpha", { hidden: true });
+    db.setTagMeta("zebra", { hidden: true });
+    db.setTagMeta("mango", { hidden: true });
+    t.eq(
+      "count-0 未使用標籤依名稱交錯（sort=name asc）",
+      q
+        .tags(new TagQuery(new TagWhere({ universe: "all" }), new ListOptions({ sort: "name", order: "asc" })))
+        .items.map((tg) => tg.name),
+      ["alpha", "dry", "fruit", "mango", "red", "zebra"],
+    );
+    t.eq(
+      "count-0 未使用標籤排尾且彼此名稱升冪（sort=count desc）",
+      q.tags(new TagQuery(new TagWhere({ universe: "all" }))).items.map((tg) => `${tg.name}:${tg.count}`),
+      ["fruit:3", "red:2", "dry:1", "alpha:0", "mango:0", "zebra:0"],
+    );
+    db.deleteTagMeta("alpha"); // 還原 fixture
+    db.deleteTagMeta("zebra");
+    db.deleteTagMeta("mango");
+  }
+
   // ── facets：scope 篩選後計數（無 hidden，故 = 交集大小）──
   {
     const scope = imgWhere({ includedTags: ["red"] });

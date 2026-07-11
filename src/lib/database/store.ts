@@ -198,6 +198,11 @@ export class Database {
     return this.facets.getTagCount(name);
   }
 
+  /** 目前被使用的標籤名稱，依 sortCollator 升冪。 */
+  sortedTags(): readonly string[] {
+    return this.facets.getSortedTags();
+  }
+
   /** 評分區間 `[from, to]`（含端點）的聯集位元圖。 */
   ratingRange(from: number, to: number): BitSet {
     return this.facets.ratingRange(from, to);
