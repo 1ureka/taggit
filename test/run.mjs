@@ -22,7 +22,8 @@ import facetIndex from "./repo/database/facet-index.suite.mjs";
 import serialization from "./repo/database/serialization.suite.mjs";
 import database from "./repo/database/database.suite.mjs";
 import querySpec from "./repo/query/query-spec.suite.mjs";
-import query from "./repo/query/query.suite.mjs";
+import queryImages from "./repo/query/query-images.suite.mjs";
+import queryTags from "./repo/query/query-tags.suite.mjs";
 import mutation from "./repo/mutation/mutation.suite.mjs";
 import mutationValidation from "./repo/mutation/mutation-validation.suite.mjs";
 import hidden from "./repo/scenario/hidden.suite.mjs";
@@ -43,7 +44,7 @@ const DOMAINS = [
   {
     name: "repo",
     setup: createRepoFixtures,
-    suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, query, mutation, mutationValidation, hidden],
+    suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, queryImages, queryTags, mutation, mutationValidation, hidden],
   },
   {
     name: "image",
