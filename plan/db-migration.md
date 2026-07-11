@@ -73,7 +73,7 @@
 第二階段把這層過渡痕跡清掉,**不改任何行為**:
 
 - **把 `src/lib/poc/*` 提升到 `src/lib/*`**(`database` / `query` / `query-spec` / `mutation` 各就各位),
-  隨之更新呼叫端的 import 路徑,以及 `testing-scripts/` 裡的 import 路徑。
+  隨之更新呼叫端的 import 路徑,以及 `test/` 裡的 import 路徑。
 - **清掉命名裡的「poc」痕跡。** 例如單例目前為了跟舊版並存,叫的是 `globalThis.__pocDb` 這種帶前綴的名字;
   舊版沒了之後,這類前綴就該還原成乾淨的名字。連同註解、路徑、識別字裡殘留的「poc」字樣一併收掉。
 
@@ -83,5 +83,5 @@
 
 ## 驗證要點
 
-- **第一階段**(有行為變化):跑 `testing-scripts/run-all.mjs` 守住引擎層。
+- **第一階段**(有行為變化):跑 `test/run.mjs` 守住引擎層。
 - **第二階段**(無行為變化):測試全綠 + app 能跑即可;若有東西壞了,幾乎一定是 import 路徑或改名沒收乾淨。
