@@ -3,7 +3,7 @@
  * 前端統一的 HTTP 請求工具。
  */
 
-import { hasKey } from "./shared.js";
+import { hasKey } from "../utils/shared.js";
 
 // ---
 

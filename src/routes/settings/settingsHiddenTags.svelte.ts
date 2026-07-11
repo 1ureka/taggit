@@ -1,5 +1,5 @@
 import { invalidateAll } from "$app/navigation";
-import { api } from "$lib/utils/client.js";
+import { api } from "$lib/ui/request.js";
 import type { Tag } from "$lib/database";
 
 /**

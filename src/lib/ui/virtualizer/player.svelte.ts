@@ -1,8 +1,8 @@
-import type { ItemWithSize } from "./types";
+import type { ItemWithSize } from "$lib/ui/types";
 import type { PlayerStripItem, PlayerProgress } from "./player.core";
 import { PlayerEngine } from "./player.core";
 import { isInEditable } from "$lib/ui/dom";
-import { debounce } from "$lib/utils/shared.js";
+import { debounce } from "$lib/utils/shared";
 
 /**
  * 播放器的配置選項

@@ -1,4 +1,4 @@
-import type { ItemWithSize } from "./types";
+import type { ItemWithSize } from "$lib/ui/types";
 
 /** 播放器引擎的佈局結果 */
 interface PlayerLayout {

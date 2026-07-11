@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { batchRun } from "$lib/utils/shared.js";
-import { api } from "$lib/utils/client.js";
+import { api } from "$lib/ui/request.js";
 import { addToast, isInEditable, requestConfirm } from "$lib/ui/dom.js";
 
 /**

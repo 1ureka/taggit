@@ -1,4 +1,4 @@
-import { api } from "$lib/utils/client.js";
+import { api } from "$lib/ui/request.js";
 import { invalidateAll } from "$app/navigation";
 import { addToast, requestConfirm, withProgressToast } from "$lib/ui/dom.js";
 import { isRecord } from "$lib/utils/shared.js";

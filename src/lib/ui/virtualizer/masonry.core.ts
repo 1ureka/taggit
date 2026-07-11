@@ -1,4 +1,4 @@
-import type { ItemWithSize } from "./types";
+import type { ItemWithSize } from "$lib/ui/types";
 
 /**
  * 單個項目在軌道中的垂直權重位置資訊
