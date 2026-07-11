@@ -5,7 +5,7 @@
 
 import fs from "fs";
 import path from "path";
-import { log } from "$lib/utils/server.js";
+import { log } from "$lib/utils/server";
 
 /**
  * 伺服器組態。

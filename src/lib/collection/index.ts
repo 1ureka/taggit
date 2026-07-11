@@ -6,11 +6,11 @@
 import path from "path";
 import { log } from "$lib/utils/server";
 
-import { readServerJson, writeServerJson } from "./internal/config";
-import { isCollectionValid, getCollectionPaths } from "./internal/structure";
-import type { CollectionPaths } from "./internal/structure";
+import { readServerJson, writeServerJson } from "./config";
+import { isCollectionValid, getCollectionPaths } from "./structure";
+import type { CollectionPaths } from "./structure";
 
-export type { CollectionPaths } from "./internal/structure";
+export type { CollectionPaths } from "./structure";
 
 declare global {
   /** HMR 保護：在熱重載之間保留當前作用中的 collection 根目錄與名稱快取。 */
