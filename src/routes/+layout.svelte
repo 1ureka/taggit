@@ -7,8 +7,8 @@
   import type { Snippet } from "svelte";
   import type { LayoutData } from "./$types.js";
 
-  import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/ui/icons/index.js";
-  import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/ui/icons/index.js";
+  import { IconCompassFilled, IconChevronDown, IconEditFilled, IconPhotoFilled } from "$lib/ui/icons";
+  import { IconArrowLeft, IconArrowRight, IconSettings, IconTagFilled } from "$lib/ui/icons";
   import Modal from "$lib/components/overlay/Modal.svelte";
   import Toast from "$lib/components/feedback/Toast.svelte";
   import ConfirmModal from "$lib/components/overlay/ConfirmModal.svelte";

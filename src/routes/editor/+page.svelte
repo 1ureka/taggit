@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { IconArrowBackUpDouble, IconArrowLeft, IconCheck } from "$lib/ui/icons/index.js";
-  import { IconFilter, IconReload } from "$lib/ui/icons/index.js";
+  import { IconArrowBackUpDouble, IconArrowLeft, IconCheck } from "$lib/ui/icons";
+  import { IconFilter, IconReload } from "$lib/ui/icons";
   import type { PageData } from "./$types.js";
 
   import type { ImageWithId } from "$lib/database";

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types.js";
   import { page } from "$app/state";
-  import { IconArrowsShuffle } from "$lib/ui/icons/index.js";
+  import { IconArrowsShuffle } from "$lib/ui/icons";
 
   import Rating from "$lib/components/form/Rating.svelte";
   import Tags from "$lib/components/misc/Tags.svelte";

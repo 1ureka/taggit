@@ -3,7 +3,7 @@
   import { page } from "$app/state";
   import type { PageData } from "./$types.js";
 
-  import { IconPhotoFilled, IconFilter, IconAlertCircleFilled, IconDatabase } from "$lib/ui/icons/index.js";
+  import { IconPhotoFilled, IconFilter, IconAlertCircleFilled, IconDatabase } from "$lib/ui/icons";
   import Alert from "$lib/components/feedback/Alert.svelte";
   import Autocomplete from "$lib/components/form/Autocomplete.svelte";
 
