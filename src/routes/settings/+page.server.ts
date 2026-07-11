@@ -4,7 +4,7 @@ import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { TagQuery, TagWhere } from "$lib/query-spec";
-import { getCacheStats } from "$lib/image/server";
+import { ImageLibrary } from "$lib/image/server";
 
 const loadAuthoringTags = () => {
   if (!Database.isLoaded()) return [];
@@ -15,7 +15,7 @@ const loadAuthoringTags = () => {
 export const load: PageServerLoad = () => {
   return {
     collectionRoot: Collection.getPersistedRoot() ?? "",
-    cacheStats: getCacheStats(),
+    cacheStats: ImageLibrary.stats(),
     databaseLoaded: Database.isLoaded(),
     authoringTags: loadAuthoringTags(),
   };

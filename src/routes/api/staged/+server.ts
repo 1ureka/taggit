@@ -6,7 +6,7 @@ import { uniqueFilename, log } from "$lib/utils/server";
 import { formatError } from "$lib/utils/shared";
 
 import { Collection } from "$lib/collection";
-import * as image from "$lib/image/server";
+import { ImageLibrary } from "$lib/image/server";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MiB
 
@@ -51,7 +51,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    if (!image.isImageFile(entry.name)) {
+    if (!ImageLibrary.isImageFile(entry.name)) {
       errors.push(`${entry.name}: 不支援的檔案格式`);
       continue;
     }
