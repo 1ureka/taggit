@@ -3,7 +3,7 @@
  * 命令參數型別
  */
 
-import type { ImageRecord } from "$lib/poc/database";
+import type { ImageRecord } from "$lib/database";
 
 export interface FileInfo {
   fileSize: number;

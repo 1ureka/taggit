@@ -21,7 +21,7 @@ import type { DBData, ImageRecord, TagMeta } from "./types";
 declare global {
   /** HMR 保護：在熱重載之間重用現有的 {@link Database} 實例。 */
   // eslint-disable-next-line no-var
-  var __pocDb: Database | undefined;
+  var __db: Database | undefined;
 }
 
 export class Database {
@@ -29,8 +29,8 @@ export class Database {
 
   /** 取模組層級單例，首次存取時建立；為了 Vite HMR。 */
   private static singleton(): Database {
-    if (!globalThis.__pocDb) globalThis.__pocDb = new Database();
-    return globalThis.__pocDb;
+    if (!globalThis.__db) globalThis.__db = new Database();
+    return globalThis.__db;
   }
 
   /** 取用已載入的實例。此處拿不到 = route 有 bug → throw 到框架邊界。*/

@@ -1,9 +1,9 @@
 /**
- * @file poc/mutation/index.ts
+ * @file mutation/index.ts
  * 對資料庫操作 (命令) 的公開入口
  */
 
-import type { Database, ImageRecord, ImageWithId } from "$lib/poc/database";
+import type { Database, ImageRecord, ImageWithId } from "$lib/database";
 
 import { ImageCommands } from "./image";
 import { TagCommands } from "./tag";

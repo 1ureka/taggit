@@ -2,8 +2,8 @@ import type { LayoutServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import * as image from "$lib/image/server.js";
-import { Database } from "$lib/poc/database";
-import { Query } from "$lib/poc/query";
+import { Database } from "$lib/database";
+import { Query } from "$lib/query";
 
 const loadSettings = () => {
   const root = collection.getActiveRoot() ?? collection.getCollectionRoot();

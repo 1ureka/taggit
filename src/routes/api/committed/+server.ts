@@ -4,8 +4,8 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server";
 import * as image from "$lib/image/server";
-import { Database } from "$lib/poc/database";
-import { Mutation } from "$lib/poc/mutation";
+import { Database } from "$lib/database";
+import { Mutation } from "$lib/mutation";
 
 import { isRecord, isSafeFilename, formatError } from "$lib/utils/shared";
 import { log } from "$lib/utils/server";

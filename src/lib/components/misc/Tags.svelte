@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ImageWhere } from "$lib/poc/query-spec";
+  import { ImageWhere } from "$lib/query-spec";
 
   type Props = {
     tags: string[];

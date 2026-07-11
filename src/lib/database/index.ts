@@ -1,5 +1,5 @@
 /**
- * @file poc/database/index.ts
+ * @file database/index.ts
  * database 引擎的公開入口
  */
 

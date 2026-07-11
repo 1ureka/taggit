@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconX, IconAlertTriangleFilled } from "$lib/components/icons";
   import { Autocomplete } from "./autocomplete.svelte.js";
-  import type { Tag } from "$lib/poc/database";
+  import type { Tag } from "$lib/database";
   import Popover from "$lib/components/overlay/Popover.svelte";
 
   type Props = {

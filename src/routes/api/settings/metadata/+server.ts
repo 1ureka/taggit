@@ -4,9 +4,9 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import { generateMetadata } from "$lib/image/server.js";
 
-import { Database } from "$lib/poc/database";
-import { Query } from "$lib/poc/query";
-import { Mutation, type FileMetaPatch } from "$lib/poc/mutation";
+import { Database } from "$lib/database";
+import { Query } from "$lib/query";
+import { Mutation, type FileMetaPatch } from "$lib/mutation";
 
 /**
  * `POST /api/settings/metadata`

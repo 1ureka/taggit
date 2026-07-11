@@ -4,7 +4,7 @@
  */
 
 import { isRecord } from "$lib/utils/shared";
-import type { TagMeta } from "$lib/poc/database";
+import type { TagMeta } from "$lib/database";
 
 export class Validator {
   /** 標籤必須為非空陣列，每個元素為修剪後非空、不重複的字串（各最長 50 字元）。 */

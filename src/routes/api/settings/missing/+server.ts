@@ -2,9 +2,9 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
-import { Database } from "$lib/poc/database";
-import { Query } from "$lib/poc/query";
-import { Mutation } from "$lib/poc/mutation";
+import { Database } from "$lib/database";
+import { Query } from "$lib/query";
+import { Mutation } from "$lib/mutation";
 
 /**
  * `GET /api/settings/missing`

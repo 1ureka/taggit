@@ -6,7 +6,7 @@
 import fs from "fs";
 import path from "path";
 import { json } from "@sveltejs/kit";
-import type { MutationError } from "$lib/poc/mutation";
+import type { MutationError } from "$lib/mutation";
 
 /**
  * 在 `dir` 中為 `name` 找出不重複的檔名。

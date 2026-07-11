@@ -4,7 +4,7 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
-import type { Database } from "$lib/poc/database";
+import type { Database } from "$lib/database";
 
 import type { LastTag, Result, Validation } from "./result";
 import { Validator } from "./validator";

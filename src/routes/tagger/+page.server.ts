@@ -4,9 +4,9 @@ import { redirect } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
 import { listImageFiles } from "$lib/image/server.js";
 
-import { Database } from "$lib/poc/database";
-import { Query } from "$lib/poc/query";
-import { TagQuery, TagWhere } from "$lib/poc/query-spec";
+import { Database } from "$lib/database";
+import { Query } from "$lib/query";
+import { TagQuery, TagWhere } from "$lib/query-spec";
 
 export const load: PageServerLoad = () => {
   const root = collection.getActiveRoot();
