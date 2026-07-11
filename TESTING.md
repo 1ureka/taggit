@@ -30,8 +30,8 @@ test/
   core/                與領域無關的底座，任何後端模組都共用
     loader.mjs           Vite 模組載入器（load / tmpRoot）、console 靜音、dispose
     assert.mjs           斷言器 createAsserter（t.eq/ok/throws/notThrows）與 say
-  poc/                 一個「領域」＝一組相關後端模組 + 它的 fixtures + suites
-    fixtures.mjs         載入 poc 模組、提供 db 隔離工具（freshDb/seedFile/putImage）
+  repo/                 一個「領域」＝一組相關後端模組 + 它的 fixtures + suites
+    fixtures.mjs         載入 repo 模組、提供 db 隔離工具（freshDb/seedFile/putImage）
     database/*.suite.mjs 依模組分層擺放的 suite
     query/*.suite.mjs
     mutation/*.suite.mjs
@@ -41,7 +41,7 @@ test/
 三個層次各司其職：
 
 - **core**：不認識任何領域，只給「載入原始碼」「斷言」「暫存隔離」三件事。
-- **領域（domain）**：一組相關後端模組（目前只有 `poc`）。每個領域有一支 `fixtures.mjs`，
+- **領域（domain）**：一組相關後端模組（目前只有 `repo`）。每個領域有一支 `fixtures.mjs`，
   用 core 的 `load` 載入該領域模組、回傳測試需要的工具物件（慣例命名為 `h`）。
 - **suite**：實際的斷言集合，一支 `*.suite.mjs`，只認 `(t, h)` 兩個參數。
 
@@ -50,7 +50,7 @@ test/
 每支 suite 預設匯出 `{ name, run(t, h) }`：
 
 ```js
-// test/poc/database/example.suite.mjs
+// test/repo/database/example.suite.mjs
 export const name = "example (簡短說明測什麼)";
 
 export async function run(t, h) {
@@ -66,8 +66,8 @@ export default { name, run };
 
 - `t` 來自 `core/assert.mjs`：`t.eq(label, got, want)`（JSON 深比較）、`t.ok(label, cond)`、
   `t.throws(label, fn)`、`t.notThrows(label, fn)`。
-- `h` 是所屬領域 `fixtures.mjs` 的回傳物件；poc 領域提供 `modules`、`freshDb`、`seedFile`、
-  `putImage`、`newDbPath`（見 [`test/poc/fixtures.mjs`](test/poc/fixtures.mjs)）。
+- `h` 是所屬領域 `fixtures.mjs` 的回傳物件；repo 領域提供 `modules`、`freshDb`、`seedFile`、
+  `putImage`、`newDbPath`（見 [`test/repo/fixtures.mjs`](test/repo/fixtures.mjs)）。
 
 ## 撰寫慣例
 
@@ -75,7 +75,7 @@ export default { name, run };
   label 寫清楚才不必回頭翻程式碼。
 - **深比較走 `t.eq`，比物件陣列先投影成純量**（如 `.map(i => i.id)`）再比對；直接 `.join()`
   物件陣列只會得到 `[object Object]`。
-- **會落地檔案的模組一律用暫存目錄隔離。** 走領域 fixtures 提供的工具（poc 用 `freshDb` /
+- **會落地檔案的模組一律用暫存目錄隔離。** 走領域 fixtures 提供的工具（repo 用 `freshDb` /
   `seedFile`，路徑都在 `loader.tmpRoot` 底下），`dispose()` 時一次清乾淨，**不得指向專案內或
   真實的 `db.json`**。
 - **一個案例一個 `{ ... }` 區塊**，各自造 fixture、互不共用可變狀態，順序無關才好定位失敗。
@@ -100,7 +100,7 @@ export default { name, run };
 2. **`configFile: false` 不會自動套 alias。** 需要的 alias（目前僅 `$lib`）已列在
    `core/loader.mjs` 的 `resolve.alias`；若某模組用到別的 alias，往那裡補。
 3. **`ssrLoadModule` 的路徑以 `/` 開頭、相對專案根目錄**，且指向 `.ts` 原始碼本身
-   （如 `/src/lib/poc/query/index.ts`），不是 build 產物路徑。
+   （如 `/src/lib/query/index.ts`），不是 build 產物路徑。
 4. **進入點結尾必須顯式 `process.exit()`。** `Database.markDirty()` 會排一個 500ms 防抖
    `setTimeout` 觸發 `flush()`，會吊住 event loop 讓進程不自然退出。`run.mjs` 在 `dispose()`
    後以 exit code 表達成敗並 `process.exit()`，才能配合 CI。
@@ -119,7 +119,7 @@ import { createAsserter, say } from "./test/core/assert.mjs";
 const loader = await createLoader();
 const { t, state } = createAsserter();
 try {
-  const { Database } = await loader.load("/src/lib/poc/database/index.ts");
+  const { Database } = await loader.load("/src/lib/database/index.ts");
   Database.ensureLoaded(loader.tmpRoot + "/smoke.json");
   t.ok("載入成功", Database.isLoaded());
 } finally {

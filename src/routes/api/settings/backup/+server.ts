@@ -5,7 +5,7 @@ import { execFileSync } from "child_process";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server.js";
-import { Database } from "$lib/poc/database";
+import { Database } from "$lib/database";
 import type { CollectionPaths } from "$lib/collection/server.js";
 import { log } from "$lib/utils/server.js";
 

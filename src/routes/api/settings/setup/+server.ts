@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as collection from "$lib/collection/server.js";
-import { Database } from "$lib/poc/database";
+import { Database } from "$lib/database";
 import { clearCache } from "$lib/image/server.js";
 import { parseBody } from "$lib/utils/server.js";
 

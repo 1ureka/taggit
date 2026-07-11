@@ -1,6 +1,6 @@
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { ImageQuery } from "$lib/poc/query-spec";
+import { ImageQuery } from "$lib/query-spec";
 
 /**
  * 篩選對話框的互動邏輯

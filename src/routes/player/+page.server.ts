@@ -1,8 +1,8 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import { Database } from "$lib/poc/database";
-import { Query } from "$lib/poc/query";
-import { ImageQuery } from "$lib/poc/query-spec";
+import { Database } from "$lib/database";
+import { Query } from "$lib/query";
+import { ImageQuery } from "$lib/query-spec";
 
 export const load: PageServerLoad = ({ url }) => {
   if (!Database.isLoaded()) throw redirect(303, "/settings?alert=error");

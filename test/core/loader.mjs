@@ -8,7 +8,7 @@
  *   - tmpRoot：一個一次性暫存目錄，供各領域的 fixtures 隔離落地檔用，dispose() 時清乾淨。
  *   - dispose()：關閉 server、清暫存、還原 console。
  *
- * 領域專屬的 fixtures（例如 poc/fixtures.mjs）建立在這層之上。
+ * 領域專屬的 fixtures（例如 repo/fixtures.mjs）建立在這層之上。
  */
 
 import { createServer } from "vite";
@@ -51,7 +51,7 @@ export async function createLoader() {
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "taggit-test-"));
 
-  /** 以 `/` 開頭、相對 root 的路徑載入 .ts 原始碼本身（如 /src/lib/poc/query/index.ts）。 */
+  /** 以 `/` 開頭、相對 root 的路徑載入 .ts 原始碼本身（如 /src/lib/query/index.ts）。 */
   const load = (p) => server.ssrLoadModule(p);
 
   const dispose = async () => {

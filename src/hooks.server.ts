@@ -1,4 +1,4 @@
-import { Database } from "$lib/poc/database";
+import { Database } from "$lib/database";
 import { log } from "$lib/utils/server.js";
 
 declare global {

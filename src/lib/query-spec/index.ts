@@ -1,5 +1,5 @@
 /**
- * @file poc/query-spec/index.ts
+ * @file query-spec/index.ts
  * 查詢值物件 (isomorphic) 的公開入口
  */
 

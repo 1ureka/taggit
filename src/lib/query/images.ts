@@ -4,8 +4,8 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
-import { BitSet, type Database, type ImageWithId } from "$lib/poc/database";
-import type { ImageQuery, ImageSort } from "$lib/poc/query-spec";
+import { BitSet, type Database, type ImageWithId } from "$lib/database";
+import type { ImageQuery, ImageSort } from "$lib/query-spec";
 
 import type { ScopeResolver } from "./scope";
 import type { QueryResult } from "./result";

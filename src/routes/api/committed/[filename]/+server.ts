@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import { Database } from "$lib/poc/database";
-import { Mutation } from "$lib/poc/mutation";
+import { Database } from "$lib/database";
+import { Mutation } from "$lib/mutation";
 
 import { isSafeFilename } from "$lib/utils/shared";
 import { parseBody, errorJson, log } from "$lib/utils/server";

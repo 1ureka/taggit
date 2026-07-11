@@ -1,7 +1,7 @@
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { ImageQuery, ImageWhere, ListOptions } from "$lib/poc/query-spec";
-import type { ImageSort } from "$lib/poc/query-spec";
+import { ImageQuery, ImageWhere, ListOptions } from "$lib/query-spec";
+import type { ImageSort } from "$lib/query-spec";
 import { debounce } from "$lib/utils/shared.js";
 
 /**

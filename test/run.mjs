@@ -15,26 +15,26 @@
 import { createLoader } from "./core/loader.mjs";
 import { createAsserter, say } from "./core/assert.mjs";
 
-import { createPocFixtures } from "./poc/fixtures.mjs";
-import bitmap from "./poc/database/bitmap.suite.mjs";
-import ordinal from "./poc/database/ordinal.suite.mjs";
-import facetIndex from "./poc/database/facet-index.suite.mjs";
-import serialization from "./poc/database/serialization.suite.mjs";
-import database from "./poc/database/database.suite.mjs";
-import querySpec from "./poc/query/query-spec.suite.mjs";
-import query from "./poc/query/query.suite.mjs";
-import mutation from "./poc/mutation/mutation.suite.mjs";
-import mutationValidation from "./poc/mutation/mutation-validation.suite.mjs";
-import hidden from "./poc/scenario/hidden.suite.mjs";
+import { createRepoFixtures } from "./repo/fixtures.mjs";
+import bitmap from "./repo/database/bitmap.suite.mjs";
+import ordinal from "./repo/database/ordinal.suite.mjs";
+import facetIndex from "./repo/database/facet-index.suite.mjs";
+import serialization from "./repo/database/serialization.suite.mjs";
+import database from "./repo/database/database.suite.mjs";
+import querySpec from "./repo/query/query-spec.suite.mjs";
+import query from "./repo/query/query.suite.mjs";
+import mutation from "./repo/mutation/mutation.suite.mjs";
+import mutationValidation from "./repo/mutation/mutation-validation.suite.mjs";
+import hidden from "./repo/scenario/hidden.suite.mjs";
 
 /**
  * 後端各領域。每個領域有自己的 fixtures 工廠（setup）與 suite 清單。
- * 目前只有 poc；未來 collection / image 等後端模組可各加一筆。
+ * 目前只有 repo；未來 collection / image 等後端模組可各加一筆。
  */
 const DOMAINS = [
   {
-    name: "poc",
-    setup: createPocFixtures,
+    name: "repo",
+    setup: createRepoFixtures,
     suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, query, mutation, mutationValidation, hidden],
   },
 ];

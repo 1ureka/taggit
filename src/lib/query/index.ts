@@ -1,10 +1,10 @@
 /**
- * @file poc/query/index.ts
+ * @file query/index.ts
  * 查詢執行器的公開入口
  */
 
-import type { Database, ImageWithId, Tag } from "$lib/poc/database";
-import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/poc/query-spec";
+import type { Database, ImageWithId, Tag } from "$lib/database";
+import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/query-spec";
 
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";

@@ -4,7 +4,7 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
-import type { Database, ImageRecord, ImageWithId } from "$lib/poc/database";
+import type { Database, ImageRecord, ImageWithId } from "$lib/database";
 
 import type { FileInfo, FileMetaPatch } from "./commands";
 import type { NotFound, Result, StaleUpdate, Validation } from "./result";

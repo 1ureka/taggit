@@ -6,8 +6,8 @@
  * 圖片被遮蔽 ⇔ 存在 h ∈ H 使圖片擁有 h 且 h ∉ Q。
  */
 
-import { BitSet, type Database } from "$lib/poc/database";
-import type { ImageWhere } from "$lib/poc/query-spec";
+import { BitSet, type Database } from "$lib/database";
+import type { ImageWhere } from "$lib/query-spec";
 import { isNonEmpty } from "$lib/utils/shared";
 
 /** scope 解析結果：遮蔽前 / 遮蔽後 + 正規化的 includedTags 集合。 */
