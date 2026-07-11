@@ -83,5 +83,5 @@
 
 ## 驗證要點
 
-- **第一階段**(有行為變化):跑 `testing-scripts/run-all.mjs` 守住引擎層。並完成 `plan\db-migration-stage1-manual-test.md`
+- **第一階段**(有行為變化):跑 `testing-scripts/run-all.mjs` 守住引擎層。
 - **第二階段**(無行為變化):測試全綠 + app 能跑即可;若有東西壞了,幾乎一定是 import 路徑或改名沒收乾淨。
