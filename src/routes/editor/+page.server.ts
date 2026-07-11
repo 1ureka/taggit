@@ -1,27 +1,30 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { ImageQuery, TagFacetQuery, TagQuery, TagWhere } from "$lib/poc/query-spec";
 
 export const load: PageServerLoad = ({ url }) => {
-  if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  if (!Database.isLoaded()) throw redirect(303, "/settings?alert=error");
 
-  const result = database.queryImages(url.searchParams, { limit: 0 });
-  const facets = database.queryTags(url.searchParams);
-  const authoringTags = database.queryTags(undefined, { hidden: "ignore", universe: "all" });
+  const query = new Query(Database.requireLoaded());
+  const base = ImageQuery.fromSearchParams(url.searchParams);
+
+  const { items: committedFiles } = query.images(base.with({ list: base.list.with({ limit: 0 }) }));
+  const { items: facets } = query.facets(TagFacetQuery.fromSearchParams(url.searchParams));
+  const { items: authoringTags } = query.tags(new TagQuery(new TagWhere({ universe: "all" })));
 
   const requestedId = url.searchParams.get("currentId");
   let resolvedId: string | null = null; // fallback: URL 指定 → 篩選結果第一張 → null
 
-  for (const item of result.items) {
-    if (item.id === requestedId) {
-      resolvedId = item.id;
-    }
+  for (const item of committedFiles) {
+    if (item.id === requestedId) resolvedId = item.id;
   }
 
-  if (!resolvedId && result.items.length > 0) {
-    resolvedId = result.items[0].id;
+  if (!resolvedId && committedFiles.length > 0) {
+    resolvedId = committedFiles[0].id;
   }
 
-  const currentRecord = resolvedId ? database.getImage(resolvedId) : null;
-  return { committedFiles: result.items, currentRecord, facets, authoringTags };
+  const currentRecord = resolvedId ? query.getImage(resolvedId) : null;
+  return { committedFiles, currentRecord, facets, authoringTags };
 };

@@ -1,4 +1,4 @@
-import type { ImageWithId } from "$lib/database/client.js";
+import type { ImageWithId } from "$lib/poc/database";
 
 /**
  * 編輯單張圖片的表單狀態配置選項

@@ -5,7 +5,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 
 import * as collection from "$lib/collection/server.js";
 import * as image from "$lib/image/server.js";
-import { isValidFilename } from "$lib/utils/shared.js";
+import { isSafeFilename } from "$lib/utils/shared.js";
 import { log } from "$lib/utils/server.js";
 
 /**
@@ -20,7 +20,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
   }
 
   const { filename } = params;
-  if (!isValidFilename(filename)) {
+  if (!isSafeFilename(filename)) {
     return new Response("無效的檔名", { status: 400 });
   }
 

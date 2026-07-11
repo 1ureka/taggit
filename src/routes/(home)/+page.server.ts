@@ -1,12 +1,15 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { ImageQuery, TagFacetQuery } from "$lib/poc/query-spec";
 
 export const load: PageServerLoad = ({ url }) => {
-  if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  if (!Database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  const query = new Query(Database.requireLoaded());
 
-  const result = database.queryImages(url.searchParams);
-  const facets = database.queryTags(url.searchParams);
+  const result = query.images(ImageQuery.fromSearchParams(url.searchParams));
+  const facets = query.facets(TagFacetQuery.fromSearchParams(url.searchParams));
 
-  return { items: result.items, total: result.total, facets };
+  return { items: result.items, total: result.total, facets: facets.items };
 };

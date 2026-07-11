@@ -1,8 +1,12 @@
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
+
 import * as collection from "$lib/collection/server.js";
-import * as database from "$lib/database/server.js";
 import { generateMetadata } from "$lib/image/server.js";
+
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { Mutation, type FileMetaPatch } from "$lib/poc/mutation";
 
 /**
  * `POST /api/settings/metadata`
@@ -11,22 +15,25 @@ import { generateMetadata } from "$lib/image/server.js";
  */
 export const POST: RequestHandler = async () => {
   const root = collection.getActiveRoot();
-  if (!root || !database.isLoaded()) {
+  if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
   const imagesDir = collection.getCollectionPaths(root).images;
+  const db = Database.requireLoaded();
+  const query = new Query(db);
+  const mutation = new Mutation(db);
 
   let updated = 0;
 
-  for (const record of database.getAllImages()) {
+  for (const record of query.getAllImages()) {
     const needsBlurhash = !record.blurhash;
     const needsDimensions = record.width === 0 || record.height === 0;
     if (!needsBlurhash && !needsDimensions) continue;
 
     const meta = await generateMetadata(path.join(imagesDir, record.id));
 
-    const patch: { width?: number; height?: number; blurhash?: string } = {};
+    const patch: FileMetaPatch = {};
 
     if (needsBlurhash && meta.blurhash) {
       patch.blurhash = meta.blurhash;
@@ -38,8 +45,8 @@ export const POST: RequestHandler = async () => {
     }
 
     if (Object.keys(patch).length > 0) {
-      database.updateImageFileMeta(record.id, patch);
-      updated++;
+      const r = mutation.updateRecordFileMeta(record.id, patch);
+      if (r.ok) updated++;
     }
   }
 
@@ -54,13 +61,15 @@ export const POST: RequestHandler = async () => {
  * 檢查缺少元資料的圖片數量。
  */
 export const GET: RequestHandler = () => {
-  if (!database.isLoaded()) {
+  if (!Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
+  const query = new Query(Database.requireLoaded());
+
   let missing = 0;
 
-  for (const record of database.getAllImages()) {
+  for (const record of query.getAllImages()) {
     if (!record.blurhash || record.width === 0 || record.height === 0) {
       missing++;
     }

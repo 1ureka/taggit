@@ -1,6 +1,6 @@
 import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/utils/client.js";
-import type { Tag } from "$lib/database/client.js";
+import type { Tag } from "$lib/poc/database";
 
 /**
  * SettingsHiddenTags 的配置選項
@@ -12,9 +12,6 @@ type SettingsHiddenTagsOptions = {
 
 /**
  * SettingsHiddenTags 的互動邏輯
- *
- * 隱藏標籤的資料模型（TagMeta.hidden）、讀寫端點（PATCH /api/tags）與查詢遮蔽
- * 皆已於 database 模組實作；本類別只負責設定頁的挑選與切換互動。
  */
 export class SettingsHiddenTags {
   /** 選中的標籤（只保留一個） */
@@ -61,7 +58,7 @@ export class SettingsHiddenTags {
     this.isError = false;
 
     const next = !this.selectedHidden;
-    const res = await api.patch("/api/tags", { name, hidden: next });
+    const res = await api.patch(`/api/tags/${encodeURIComponent(name)}`, { hidden: next });
 
     if (res.ok) {
       this.message = next ? `已將「${name}」設為隱藏` : `已取消隱藏「${name}」`;

@@ -1,6 +1,6 @@
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { buildQueryString } from "$lib/database/client.js";
+import { ImageQuery } from "$lib/poc/query-spec";
 
 /**
  * 篩選對話框的互動邏輯
@@ -19,11 +19,11 @@ export class EditorFilterModal {
     this.open = false;
   };
 
-  /** 處理篩選表單重置 */
+  /** 處理篩選表單重置：以預設查詢覆蓋（清掉全部查詢鍵），保留頁面自有參數（如 currentId） */
   handleFilterReset = (e: Event) => {
     e.preventDefault();
-    const qs = new URLSearchParams(page.url.search);
-    const search = buildQueryString({}, qs);
-    goto(`${page.url.pathname}${search}`, { replaceState: true, noScroll: true, keepFocus: true });
+    const params = new ImageQuery().toSearchParams(page.url.searchParams);
+    const qs = params.toString();
+    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
   };
 }

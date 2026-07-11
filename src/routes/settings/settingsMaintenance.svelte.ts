@@ -1,3 +1,4 @@
+import { invalidateAll } from "$app/navigation";
 import { api } from "$lib/utils/client.js";
 import { requestConfirm } from "$lib/components/dom.js";
 
@@ -42,10 +43,11 @@ export class SettingsMaintenance {
     if (!(await requestConfirm(msg, { title: "刪除記錄", action: "刪除" }))) return;
 
     this.missingBusy = true;
-    const res = await api.del<{ deleted: number }>("/api/settings/missing");
+    const res = await api.del<{ removed: string[] }>("/api/settings/missing");
     if (res.ok && res.data) {
-      this.missingResult = `已刪除 ${res.data.deleted} 個缺失記錄`;
+      this.missingResult = `已刪除 ${res.data.removed.length} 個缺失記錄`;
       this.missingList = [];
+      await invalidateAll();
     } else {
       this.missingResult = "錯誤: " + (res.error || "未知");
     }

@@ -1,7 +1,7 @@
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { parseQueryParams, buildQueryString } from "$lib/database/client.js";
-import type { SortField } from "$lib/database/client.js";
+import { ImageQuery, ImageWhere, ListOptions } from "$lib/poc/query-spec";
+import type { ImageSort } from "$lib/poc/query-spec";
 import { debounce } from "$lib/utils/shared.js";
 
 /**
@@ -19,37 +19,38 @@ export class FilterFields {
   /** 評等比較運算子 */
   ratingOp: "gte" | "lte" | "eq";
   /** 排序欄位 */
-  sort: SortField;
+  sort: ImageSort;
   /** 排序方向 */
   order: "asc" | "desc";
 
   constructor() {
-    const params = () => parseQueryParams(page.url);
+    const query = () => ImageQuery.fromSearchParams(page.url.searchParams);
 
-    this.search = $derived(params().search ?? "");
-    this.includedTags = $derived(params().includedTags ?? []);
-    this.excludedTags = $derived(params().excludedTags ?? []);
-    this.rating = $derived(params().rating);
-    this.ratingOp = $derived(params().ratingOp ?? "gte");
-    this.sort = $derived(params().sort ?? "rating");
-    this.order = $derived(params().order ?? "desc");
+    this.search = $derived(query().where.search);
+    this.includedTags = $derived(query().where.includedTags);
+    this.excludedTags = $derived(query().where.excludedTags);
+    this.rating = $derived(query().where.rating);
+    this.ratingOp = $derived(query().where.ratingOp);
+    this.sort = $derived(query().list.sort);
+    this.order = $derived(query().list.order);
   }
 
   // ---
 
-  /** 取得目前的查詢字串 */
+  /** 由目前欄位組出查詢值物件，再與頁面自有參數合併成查詢字串（值物件自行清掉舊查詢鍵、保留頁面自有參數） */
   #getQueryString(): string {
-    const options = {
+    const where = new ImageWhere({
       search: this.search,
       includedTags: this.includedTags,
       excludedTags: this.excludedTags,
       rating: this.rating,
       ratingOp: this.ratingOp,
-      sort: this.sort,
-      order: this.order,
-    };
+    });
+    const list = new ListOptions<ImageSort>({ sort: this.sort, order: this.order });
+    const params = new ImageQuery(where, list).toSearchParams(page.url.searchParams);
 
-    return buildQueryString(options, new URLSearchParams(page.url.searchParams));
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
   }
 
   #goto() {

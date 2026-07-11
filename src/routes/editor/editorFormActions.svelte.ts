@@ -1,5 +1,5 @@
 import { invalidateAll } from "$app/navigation";
-import type { ImageWithId } from "$lib/database/client.js";
+import type { ImageWithId } from "$lib/poc/database";
 import type { EditorForm } from "./editorForm.svelte.js";
 import type { EditorBatchForm } from "./editorBatchForm.svelte.js";
 

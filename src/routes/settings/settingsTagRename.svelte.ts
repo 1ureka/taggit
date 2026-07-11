@@ -78,7 +78,7 @@ export class SettingsTagRename {
     this.busy = true;
     this.result = null;
 
-    const res = await api.del<{ affected: number }>("/api/tags", { name: trimOld });
+    const res = await api.del<{ affected: number }>(`/api/tags/${encodeURIComponent(trimOld)}`);
 
     if (res.ok) {
       this.result = { type: "success", message: `已刪除標籤「${trimOld}」` };

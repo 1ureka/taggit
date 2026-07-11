@@ -1,10 +1,17 @@
 import type { PageServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import * as database from "$lib/database/server.js";
+import { Database } from "$lib/poc/database";
+import { Query } from "$lib/poc/query";
+import { ImageQuery } from "$lib/poc/query-spec";
 
 export const load: PageServerLoad = ({ url }) => {
-  if (!database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  if (!Database.isLoaded()) throw redirect(303, "/settings?alert=error");
+  const query = new Query(Database.requireLoaded());
 
-  const result = database.queryImages(url.searchParams, { sort: "random", limit: 2 });
+  // 沿用網址上的篩選條件，但隨機抽兩張
+  const base = ImageQuery.fromSearchParams(url.searchParams);
+  const q = base.with({ list: base.list.with({ sort: "random", limit: 2, page: 1 }) });
+
+  const result = query.images(q);
   return { pairs: result.items, total: result.total };
 };

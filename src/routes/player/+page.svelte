@@ -4,7 +4,7 @@
   import { cubicOut } from "svelte/easing";
 
   import type { PageData } from "./$types.js";
-  import type { ImageWithId } from "$lib/database/client.js";
+  import type { ImageWithId } from "$lib/poc/database";
 
   import { IconPlayerPause, IconPlayerPlay } from "$lib/components/icons";
   import { blurhashStyle, imgSrc } from "$lib/image/client.js";
