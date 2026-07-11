@@ -48,6 +48,51 @@ export async function run(t, h) {
     t.eq("移除其一後 shared 位元圖仍在且剩 1", [...fx.getTagBits("shared").values()], [1]);
   }
 
+  // ── getTagCount：增量維護，恆等於 size() ──
+  {
+    const fx = new FacetIndex();
+    fx.add(0, rec({ tags: ["cat", "dog"] }));
+    fx.add(1, rec({ tags: ["cat"] }));
+    t.eq("cat count 為 2", fx.getTagCount("cat"), 2);
+    t.eq("dog count 為 1", fx.getTagCount("dog"), 1);
+    t.eq("count 等同 size()（cat）", fx.getTagCount("cat"), fx.getTagBits("cat").size());
+    t.eq("不存在標籤 count 為 0", fx.getTagCount("bird"), 0);
+
+    fx.remove(0, rec({ tags: ["cat", "dog"] }));
+    t.eq("移除後 cat count 降為 1", fx.getTagCount("cat"), 1);
+    t.eq("移除最後一張後 dog count 為 0", fx.getTagCount("dog"), 0);
+    t.eq("count 歸零後與 size 一致（dog 已刪位元圖）", fx.getTagCount("dog"), 0);
+  }
+  {
+    // 同紀錄重複標籤不重複計數（鏡射 size() 的 distinct-ordinal 語義）
+    const fx = new FacetIndex();
+    fx.add(0, rec({ tags: ["dup", "dup"] }));
+    t.eq("重複標籤 count 仍為 1", fx.getTagCount("dup"), 1);
+    t.eq("重複標籤 count 等同 size()", fx.getTagCount("dup"), fx.getTagBits("dup").size());
+    fx.remove(0, rec({ tags: ["dup", "dup"] }));
+    t.eq("重複標籤移除後 count 歸零", fx.getTagCount("dup"), 0);
+  }
+  {
+    const fx = new FacetIndex();
+    fx.add(0, rec({ tags: ["x"] }));
+    fx.clear();
+    t.eq("clear 後 count 歸零", fx.getTagCount("x"), 0);
+  }
+
+  // ── getSortedTags：增量維護、名稱升冪、歸零移除 ──
+  {
+    const fx = new FacetIndex();
+    fx.add(0, rec({ tags: ["banana", "apple"] }));
+    fx.add(1, rec({ tags: ["cherry", "apple"] }));
+    t.eq("getSortedTags 依名稱升冪", [...fx.getSortedTags()], ["apple", "banana", "cherry"]);
+    fx.add(2, rec({ tags: ["apple"] })); // 既有標籤：不重複插入
+    t.eq("既有標籤不重複進有序名單", [...fx.getSortedTags()], ["apple", "banana", "cherry"]);
+    fx.remove(0, rec({ tags: ["banana", "apple"] })); // banana 歸零消失；apple 仍被 1,2 使用
+    t.eq("標籤歸零後從有序名單移除", [...fx.getSortedTags()], ["apple", "cherry"]);
+    fx.clear();
+    t.eq("clear 後有序名單清空", [...fx.getSortedTags()], []);
+  }
+
   // ── ratingRange：含端點的聯集 ──
   {
     const fx = new FacetIndex();

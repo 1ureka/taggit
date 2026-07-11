@@ -1,4 +1,4 @@
-import type { ConfirmEventName, ConfirmPayload } from "../../ui/types.js";
+import type { ConfirmEventName, ConfirmPayload } from "$lib/ui/types";
 
 /**
  * 確認對話框的互動邏輯

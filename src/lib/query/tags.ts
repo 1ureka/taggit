@@ -39,7 +39,9 @@ export class TagEngine {
     const hiddenSet = this.scope.hiddenNames();
     const tags: Tag[] = [];
 
-    for (const [name, bits] of this.db.tagBitsEntries()) {
+    for (const name of this.db.sortedTags()) {
+      const bits = this.db.tagBits(name);
+      if (!bits) continue;
       const isHidden = hiddenSet.has(name);
       if (!this.passesWhere(name, isHidden, where)) continue;
 
@@ -67,24 +69,36 @@ export class TagEngine {
     const hiddenSet = this.scope.hiddenNames();
     const tags: Tag[] = [];
 
-    for (const [name, bits] of this.db.tagBitsEntries()) {
+    for (const name of this.db.sortedTags()) {
       if (!this.passesWhere(name, hiddenSet.has(name), where)) continue;
-      tags.push({ name, count: bits.size(), meta: this.db.getTagMeta(name) });
+      tags.push({ name, count: this.db.tagCount(name), meta: this.db.getTagMeta(name) });
     }
 
     this.appendUnused(where, tags);
     return tags;
   }
 
-  /** universe="all"：併入僅有元資料、未被任何圖片使用的標籤（count 0）。 */
+  /** `universe="all"` 併入僅有元資料、未被使用的標籤，不在 `sortedTags` 內，依名稱二分插入既有的名稱序 */
   private appendUnused(where: TagWhere, tags: Tag[]): void {
     if (where.universe !== "all") return;
     const hiddenSet = this.scope.hiddenNames();
     for (const [name] of this.db.tagMetaEntries()) {
       if (this.db.tagBits(name)) continue;
       if (!this.passesWhere(name, hiddenSet.has(name), where)) continue;
-      tags.push({ name, count: 0, meta: this.db.getTagMeta(name) });
+      this.insertByName(tags, { name, count: 0, meta: this.db.getTagMeta(name) });
     }
+  }
+
+  /** 依名稱升冪二分插入 tag，維持 list 的名稱序。 */
+  private insertByName(list: Tag[], tag: Tag): void {
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (sortCollator.compare(list[mid].name, tag.name) < 0) lo = mid + 1;
+      else hi = mid;
+    }
+    list.splice(lo, 0, tag);
   }
 
   /** 套用 TagWhere 的標籤名 / hidden 述詞（universe 於各分支另處理）。 */
@@ -94,16 +108,19 @@ export class TagEngine {
     return true;
   }
 
+  /**
+   * items 已依名稱升冪 (透過 `db.sortedTags()`, `appendUnused`)
+   * 故排序只需 count 靠穩定排序保留名稱序 tiebreak
+   */
   private sort(items: Tag[], sort: TagSort, order: "asc" | "desc"): Tag[] {
-    const dir = order === "asc" ? 1 : -1;
-    items.sort((a, b) => {
-      if (sort === "count") {
-        const primary = dir * (a.count - b.count);
-        if (primary !== 0) return primary;
-        return sortCollator.compare(a.name, b.name); // count 相同時 name 一律升冪
-      }
-      return dir * sortCollator.compare(a.name, b.name);
-    });
+    if (sort === "count") {
+      const dir = order === "asc" ? 1 : -1;
+      // 穩定排序：count 並列者保留既有名稱升冪（等同原本的 name 一律升冪 tiebreak）
+      items.sort((a, b) => dir * (a.count - b.count));
+      return items;
+    }
+    // sort === "name"：已是升冪，降冪則反轉
+    if (order === "desc") items.reverse();
     return items;
   }
 }
