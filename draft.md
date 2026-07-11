@@ -19,3 +19,19 @@
 import 路徑有問題，目前大量使用 `from **/something.js` 但應該可以省略 js，除非一個檔案同時導入 `a.svelte.ts + a.svelte` 但這幾乎不會發生，同時由於這個錯誤習慣，導致甚至有可能會出現 `from **/module/index.js` 這種荒謬的寫法
 
 所有新寫的檔案、更新要改的檔案，都應該不讓這件事發生或者順便修復這件事
+
+## Bug：/editor 切換圖片會壓垮後端（重寫時務必避免）
+
+**現象**：`/editor` 快速或長按方向鍵切換圖片時有明顯延遲，長按後後端幾乎當掉——連 routing 與原圖 `xl` 串流都要等很久。`/tagger` 做同樣操作則完全順暢、瞬間反應。
+
+**根因**：editor 的「切換當前圖片」是靠 SSR 完成的。方向鍵 → `editorList` 的 `#navigateTo` → `goto("?currentId=...")`，因 URL 變動而**重跑 `editor/+page.server.ts` 的 `load`**。這個 load 每次都做全量同步工作：`query.images(limit:0)` materialize + 排序整份已提交清單、`query.facets`、`query.tags`、`getImage`，並把**整份 `committedFiles` 重新序列化成 JSON** 回傳。
+
+長按時瀏覽器的 key repeat 以每秒數十次連發 `goto`，而 `#navigateTo` **沒有任何去抖/節流**。這些請求在單執行緒 Node 上同步執行、無法被前端 abort 取消，於是在後端形成**不斷增長的積壓佇列**，把 event loop 反覆佔滿，餓死其他所有請求。
+
+對比：tagger 的切換（`taggerList` 的 `#navigate`）是純前端 state 變更，**一次後端都不打**，清單只在初次載入查一次。差別純粹在「打幾次後端」，不是查詢速度——DB（bitset / facet-index）其實寫得很好。
+
+**重寫時的要求**：
+- 「切換當前圖片」必須是純前端行為，不得每次回 server。editor 前端已握有完整 `committedFiles`（`ImageWithId[]`），`currentRecord` 應由前端 `find(currentId)` 導出，不需 SSR 重查。
+- URL 若要反映 currentId，用 `history.replaceState` 同步網址列，**不要**用會觸發 load 重跑的 `goto`。
+- 只有真正需要與 server 同步的時機（存檔 / 退回 / 手動重整）才 `invalidateAll()`。
+- 任何會連發的互動（key repeat、捲動、輸入）都要有去抖/節流或改為純前端。
