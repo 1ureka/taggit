@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-  import { IconChevronDown } from "$lib/components/icons";
+  import { IconChevronDown } from "$lib/ui/icons/index.js";
   import { Select, type SelectItem } from "./select.svelte.js";
   import Popover from "$lib/components/overlay/Popover.svelte";
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { IconArrowBackUpDouble, IconCheck } from "$lib/components/icons";
-  import { IconReload, IconX, IconUpload, IconDatabase } from "$lib/components/icons";
+  import { IconArrowBackUpDouble, IconCheck } from "$lib/ui/icons/index.js";
+  import { IconReload, IconX, IconUpload, IconDatabase } from "$lib/ui/icons/index.js";
   import type { PageData } from "./$types.js";
 
   import Rating from "$lib/components/form/Rating.svelte";

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconX, IconCheckFilled, IconAlertCircleFilled, IconInfoCircleFilled } from "$lib/components/icons";
+  import { IconX, IconCheckFilled, IconAlertCircleFilled, IconInfoCircleFilled } from "$lib/ui/icons/index.js";
   import { Toast } from "./toast.svelte.js";
 
   const ui = new Toast({
