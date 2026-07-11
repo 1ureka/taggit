@@ -1,9 +1,8 @@
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import { generateMetadata } from "$lib/image/server.js";
-
+import { generateMetadata } from "$lib/image/server";
+import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { Mutation, type FileMetaPatch } from "$lib/mutation";
@@ -14,12 +13,12 @@ import { Mutation, type FileMetaPatch } from "$lib/mutation";
  * 為缺少 blurhash 或寬高的圖片補算元資料。
  */
 export const POST: RequestHandler = async () => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
+  const imagesDir = Collection.paths(root).images;
   const db = Database.requireLoaded();
   const query = new Query(db);
   const mutation = new Mutation(db);

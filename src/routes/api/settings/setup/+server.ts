@@ -1,8 +1,9 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
-import * as collection from "$lib/collection/server.js";
+
+import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
-import { clearCache } from "$lib/image/server.js";
-import { parseBody } from "$lib/utils/server.js";
+import { clearCache } from "$lib/image/server";
+import { parseBody } from "$lib/utils/server";
 
 /**
  * `GET /api/settings/setup`
@@ -10,7 +11,7 @@ import { parseBody } from "$lib/utils/server.js";
  * 取得目前的圖片集根目錄路徑。
  */
 export const GET: RequestHandler = () => {
-  const collectionRoot = collection.getCollectionRoot();
+  const collectionRoot = Collection.getPersistedRoot();
   return json({ ok: true, data: { collectionRoot } });
 };
 
@@ -38,15 +39,15 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const root = collectionRoot.trim();
 
-  if (!collection.isCollectionValid(root)) {
+  if (!Collection.isValid(root)) {
     return json({ ok: false, error: "路徑不存在或無法建立所需的子目錄" }, { status: 422 });
   }
 
-  const isSwitching = collection.getActiveRoot() !== root;
+  const isSwitching = Collection.getActiveRoot() !== root;
 
-  collection.setCollectionRoot(root);
-  collection.setActiveRoot(root);
-  Database.ensureLoaded(collection.getCollectionPaths(root).db);
+  Collection.setPersistedRoot(root);
+  Collection.setActiveRoot(root);
+  Database.ensureLoaded(Collection.paths(root).db);
   if (isSwitching) clearCache();
 
   return json({ ok: true, data: { collectionRoot: root } });

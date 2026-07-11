@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import * as collection from "$lib/collection/server.js";
+
+import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { Mutation } from "$lib/mutation";
@@ -12,12 +13,12 @@ import { Mutation } from "$lib/mutation";
  * 列出資料庫中對應圖片檔案已不存在的記錄。
  */
 export const GET: RequestHandler = () => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
+  const imagesDir = Collection.paths(root).images;
   const query = new Query(Database.requireLoaded());
   const missing: string[] = [];
 
@@ -36,12 +37,12 @@ export const GET: RequestHandler = () => {
  * 移除所有對應圖片檔案已不存在的資料庫記錄。
  */
 export const DELETE: RequestHandler = () => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
+  const imagesDir = Collection.paths(root).images;
   const db = Database.requireLoaded();
   const query = new Query(db);
   const mutation = new Mutation(db);

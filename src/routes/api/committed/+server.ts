@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server";
+import { Collection } from "$lib/collection";
 import * as image from "$lib/image/server";
 import { Database } from "$lib/database";
 import { Mutation } from "$lib/mutation";
@@ -73,7 +73,7 @@ async function importEntry(
  * - `{ event: "done", imported, skipped, errors }`
  */
 export const POST: RequestHandler = async ({ request }) => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
@@ -89,7 +89,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "JSON 必須是非空的物件" }, { status: 400 });
   }
 
-  const imagesDir = collection.getCollectionPaths(root).images;
+  const imagesDir = Collection.paths(root).images;
   const mutation = new Mutation(Database.requireLoaded());
   const entries = Object.entries(body);
   const total = entries.length;

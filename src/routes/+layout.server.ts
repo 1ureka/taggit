@@ -1,17 +1,18 @@
-import type { LayoutServerLoad } from "./$types.js";
 import { redirect } from "@sveltejs/kit";
-import * as collection from "$lib/collection/server.js";
+import type { LayoutServerLoad } from "./$types.js";
+
 import * as image from "$lib/image/server.js";
+import { Collection } from "$lib/collection";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 
 const loadSettings = () => {
-  const root = collection.getActiveRoot() ?? collection.getCollectionRoot();
-  const collectionName = collection.getCollectionName(root);
+  const root = Collection.getActiveRoot() ?? Collection.getPersistedRoot();
+  const collectionName = Collection.nameOf(root);
 
-  if (root && collection.isCollectionValid(root) && Database.isLoaded()) {
+  if (root && Collection.isValid(root) && Database.isLoaded()) {
     const query = new Query(Database.requireLoaded());
-    const paths = collection.getCollectionPaths(root);
+    const paths = Collection.paths(root);
     const committedCount = query.getImageCount();
     const stagedCount = image.listImageFiles(paths.images).filter((f) => !query.hasImage(f)).length;
 
@@ -22,22 +23,22 @@ const loadSettings = () => {
 };
 
 const loadOther = () => {
-  const root = collection.getActiveRoot() ?? collection.getCollectionRoot();
-  const collectionName = collection.getCollectionName(root);
+  const root = Collection.getActiveRoot() ?? Collection.getPersistedRoot();
+  const collectionName = Collection.nameOf(root);
 
   if (!root) {
     throw redirect(303, "/settings?alert=default");
   }
 
-  if (!collection.isCollectionValid(root)) {
+  if (!Collection.isValid(root)) {
     throw redirect(303, "/settings?alert=error");
   }
 
-  collection.setActiveRoot(root);
-  Database.ensureLoaded(collection.getCollectionPaths(root).db);
+  Collection.setActiveRoot(root);
+  Database.ensureLoaded(Collection.paths(root).db);
 
   const query = new Query(Database.requireLoaded());
-  const paths = collection.getCollectionPaths(root);
+  const paths = Collection.paths(root);
   const committedCount = query.getImageCount();
   const stagedCount = image.listImageFiles(paths.images).filter((f) => !query.hasImage(f)).length;
 

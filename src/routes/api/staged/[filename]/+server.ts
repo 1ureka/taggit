@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server";
+import { Collection } from "$lib/collection";
 import * as image from "$lib/image/server";
 import { Database } from "$lib/database";
 import { Query } from "$lib/query";
@@ -17,12 +17,12 @@ import { parseBody, errorJson, log } from "$lib/utils/server";
  * 將暫存檔案提交至資料庫，也就是為一張圖片新增紀錄。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
+  const paths = Collection.paths(root);
   const db = Database.requireLoaded();
   const query = new Query(db);
   const mutation = new Mutation(db);
@@ -77,12 +77,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * 永久刪除暫存區中的指定檔案。
  */
 export const DELETE: RequestHandler = ({ params }) => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const paths = collection.getCollectionPaths(root);
+  const paths = Collection.paths(root);
   const query = new Query(Database.requireLoaded());
 
   const { filename } = params;

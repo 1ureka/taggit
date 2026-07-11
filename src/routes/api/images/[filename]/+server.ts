@@ -3,10 +3,10 @@ import path from "path";
 import { Readable } from "stream";
 import type { RequestHandler } from "@sveltejs/kit";
 
-import * as collection from "$lib/collection/server.js";
-import * as image from "$lib/image/server.js";
-import { isSafeFilename } from "$lib/utils/shared.js";
-import { log } from "$lib/utils/server.js";
+import { Collection } from "$lib/collection";
+import * as image from "$lib/image/server";
+import { isSafeFilename } from "$lib/utils/shared";
+import { log } from "$lib/utils/server";
 
 /**
  * `GET /api/images/[filename]`
@@ -14,7 +14,7 @@ import { log } from "$lib/utils/server.js";
  * 依檔名與尺寸參數回傳圖片二進位資料。
  */
 export const GET: RequestHandler = async ({ params, url }) => {
-  const root = collection.getActiveRoot();
+  const root = Collection.getActiveRoot();
   if (!root) {
     return new Response("尚未載入資料庫", { status: 503 });
   }
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
   // ---
 
-  const baseDir = collection.getCollectionPaths(root).images;
+  const baseDir = Collection.paths(root).images;
 
   const filePath = path.resolve(baseDir, filename);
   if (!filePath.startsWith(path.resolve(baseDir) + path.sep) && filePath !== path.resolve(baseDir)) {
