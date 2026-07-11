@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "$lib/styles/app.css";
+  import "$lib/ui/styles/app.css";
   import favicon from "$lib/favicon.svg";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";

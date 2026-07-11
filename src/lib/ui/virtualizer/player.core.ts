@@ -1,4 +1,4 @@
-import type { ItemWithSize } from "$lib/virtualizer/types";
+import type { ItemWithSize } from "./types";
 
 /** 播放器引擎的佈局結果 */
 interface PlayerLayout {

@@ -9,7 +9,7 @@
     imgSrc: string;
   }"
 >
-  import { List } from "$lib/virtualizer/list.svelte";
+  import { List } from "$lib/ui/virtualizer/list.svelte";
 
   type Props = {
     /** 列表的所有項目 */

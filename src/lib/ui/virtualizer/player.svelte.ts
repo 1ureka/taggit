@@ -1,7 +1,7 @@
-import type { ItemWithSize } from "$lib/virtualizer/types";
-import type { PlayerStripItem, PlayerProgress } from "$lib/virtualizer/player.core";
-import { PlayerEngine } from "$lib/virtualizer/player.core";
-import { isInEditable } from "$lib/components/dom";
+import type { ItemWithSize } from "./types";
+import type { PlayerStripItem, PlayerProgress } from "./player.core";
+import { PlayerEngine } from "./player.core";
+import { isInEditable } from "$lib/ui/dom";
 import { debounce } from "$lib/utils/shared.js";
 
 /**

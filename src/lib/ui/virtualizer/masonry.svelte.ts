@@ -1,5 +1,5 @@
-import type { ItemWithSize, MasonryItem, MasonryLayout } from "$lib/virtualizer/masonry.core";
-import { createMasonryContent, createMasonryLayout } from "$lib/virtualizer/masonry.core";
+import type { ItemWithSize, MasonryItem, MasonryLayout } from "./masonry.core";
+import { createMasonryContent, createMasonryLayout } from "./masonry.core";
 
 /**
  * Masonry 的配置選項

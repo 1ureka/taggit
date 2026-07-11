@@ -13,7 +13,7 @@
   import InverseRadius from "$lib/components/misc/InverseRadius.svelte";
   import { imgSrc, blurhashStyle } from "$lib/image/client.js";
 
-  import { Masonry } from "$lib/virtualizer/masonry.svelte.js";
+  import { Masonry } from "$lib/ui/virtualizer/masonry.svelte.js";
   import { BrowseModal } from "./browseModal.svelte.js";
 
   const columnOptions = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} 欄` }));

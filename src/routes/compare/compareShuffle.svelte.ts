@@ -1,6 +1,6 @@
 import { navigating } from "$app/state";
 import { invalidateAll } from "$app/navigation";
-import { isInEditable } from "$lib/components/dom";
+import { isInEditable } from "$lib/ui/dom";
 
 /**
  * CompareShuffle 的互動邏輯

@@ -1,4 +1,4 @@
-import { scrollToActive } from "$lib/components/dom";
+import { scrollToActive } from "$lib/ui/dom";
 
 /**
  * 虛擬垂直列表的配置選項

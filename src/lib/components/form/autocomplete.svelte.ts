@@ -1,5 +1,5 @@
 import type { Tag } from "$lib/database";
-import { scrollToActive } from "$lib/components/dom";
+import { scrollToActive } from "$lib/ui/dom";
 
 /**
  * 自動補全組件的配置選項

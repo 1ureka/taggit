@@ -1,6 +1,6 @@
 import { untrack } from "svelte";
 import { goto, invalidateAll } from "$app/navigation";
-import { addToast } from "$lib/components/dom.js";
+import { addToast } from "$lib/ui/dom.js";
 import type { ImageWithId } from "$lib/database";
 
 /**
