@@ -83,9 +83,5 @@
 
 ## 驗證要點
 
-- **第一階段**(有行為變化):跑 `testing-scripts/run-all.mjs` 守住引擎層。寫完這一階段後,
-  額外寫一份手動測試 md,內容是**從挑一個全新的空 collection path 開始**,依序走過放入圖片、
-  tagger 匯入、editor 編修、tags 改名/刪除/hidden、compare、player、settings 的維護掃描等完整操作路徑,
-  並標出錯誤路徑(404/409/400/樂觀併發衝突)在新的 `Result` + `errorToHttp` 下該有的預期回應——
-  交給我自己(人類)手動照著這份清單跑一遍。
+- **第一階段**(有行為變化):跑 `testing-scripts/run-all.mjs` 守住引擎層。並完成 `plan\db-migration-stage1-manual-test.md`
 - **第二階段**(無行為變化):測試全綠 + app 能跑即可;若有東西壞了,幾乎一定是 import 路徑或改名沒收乾淨。
