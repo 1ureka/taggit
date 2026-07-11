@@ -15,6 +15,8 @@ const RATING_LEVELS = 6;
 export class FacetIndex {
   /** 標籤 → 擁有該標籤的圖片序號位元圖。 */
   readonly tagBits = new Map<string, BitSet>();
+  /** 標籤 → 使用數（= 該標籤位元圖的 set bit 數）讓標準列表查詢免去每標籤全位元圖 popcount。 */
+  private tagCounts = new Map<string, number>();
   /** 評分 → 該評分的圖片序號位元圖。 */
   private ratingBits: BitSet[] = Array.from({ length: RATING_LEVELS }, () => new BitSet());
 
@@ -22,11 +24,16 @@ export class FacetIndex {
   add(ordinal: number, record: ImageRecord): void {
     for (const tag of record.tags) {
       let bits = this.tagBits.get(tag);
+
       if (!bits) {
         bits = new BitSet();
         this.tagBits.set(tag, bits);
       }
-      bits.set(ordinal);
+
+      if (!bits.has(ordinal)) {
+        bits.set(ordinal);
+        this.tagCounts.set(tag, (this.tagCounts.get(tag) ?? 0) + 1);
+      }
     }
 
     const rating = this.clampRating(record.rating);
@@ -38,7 +45,14 @@ export class FacetIndex {
     for (const tag of record.tags) {
       const bits = this.tagBits.get(tag);
       if (!bits) continue;
-      bits.clear(ordinal);
+
+      if (bits.has(ordinal)) {
+        bits.clear(ordinal);
+        const next = (this.tagCounts.get(tag) ?? 1) - 1;
+        if (next <= 0) this.tagCounts.delete(tag);
+        else this.tagCounts.set(tag, next);
+      }
+
       if (bits.isEmpty()) this.tagBits.delete(tag);
     }
 
@@ -49,6 +63,11 @@ export class FacetIndex {
   /** 回傳指定標籤的位元圖，不存在時為 `undefined`。 */
   getTagBits(tag: string): BitSet | undefined {
     return this.tagBits.get(tag);
+  }
+
+  /** 回傳指定標籤的使用數（O(1)），不存在時為 0。等同 `getTagBits(tag)?.size() ?? 0`。 */
+  getTagCount(tag: string): number {
+    return this.tagCounts.get(tag) ?? 0;
   }
 
   /**
@@ -69,6 +88,7 @@ export class FacetIndex {
   /** 清空全部索引（重建 / 載入前呼叫）。 */
   clear(): void {
     this.tagBits.clear();
+    this.tagCounts.clear();
     this.ratingBits = Array.from({ length: RATING_LEVELS }, () => new BitSet());
   }
 

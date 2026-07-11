@@ -67,9 +67,9 @@ export class TagEngine {
     const hiddenSet = this.scope.hiddenNames();
     const tags: Tag[] = [];
 
-    for (const [name, bits] of this.db.tagBitsEntries()) {
+    for (const [name] of this.db.tagBitsEntries()) {
       if (!this.passesWhere(name, hiddenSet.has(name), where)) continue;
-      tags.push({ name, count: bits.size(), meta: this.db.getTagMeta(name) });
+      tags.push({ name, count: this.db.tagCount(name), meta: this.db.getTagMeta(name) });
     }
 
     this.appendUnused(where, tags);

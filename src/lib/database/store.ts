@@ -193,6 +193,11 @@ export class Database {
     return this.facets.tagBits.entries();
   }
 
+  /** 指定標籤的使用數（O(1)，增量維護），等同 `tagBits(name)?.size() ?? 0`。 */
+  tagCount(name: string): number {
+    return this.facets.getTagCount(name);
+  }
+
   /** 評分區間 `[from, to]`（含端點）的聯集位元圖。 */
   ratingRange(from: number, to: number): BitSet {
     return this.facets.ratingRange(from, to);
