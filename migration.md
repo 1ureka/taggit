@@ -114,11 +114,7 @@ Phase 0 首發（殼層與多數路由都會用到的）：
 
 ### 0.7 icons 補齊
 
-taggit 在用而 workbench 缺的 15 顆（Tabler 風格、24px viewBox，補進 `$lib/icons` 並更新 `index.ts`）：
-
-ArrowBackUpDouble、ArrowLeft、ArrowRight、ArrowsShuffle、ArrowUp、CompassFilled、Database、EditFilled、Filter、PhotoFilled、PlayerPause、PlayerPlay（outline 版）、Settings、TagFilled、Upload。
-
-一律用 workbench 的 `IconProps`（extends `HTMLAttributes<SVGElement>`，支援 `...rest`）。
+使用者已補，若仍有缺失代表使用者認為已經有類似 icon 可替代!
 
 ### 0.8 慣例成文（新專案的 CLAUDE.md / README）
 
