@@ -21,7 +21,7 @@
       {:else}
         <div class="grid">
           {#each section.cards as card (card.slug)}
-            <a class="card" href="/{card.slug}">
+            <a class="card" href="/lab/{card.slug}">
               <p class="eyebrow">{card.component}</p>
               <h3>{card.label}</h3>
               <p>{card.blurb}</p>

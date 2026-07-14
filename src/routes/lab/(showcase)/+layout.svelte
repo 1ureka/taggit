@@ -3,7 +3,7 @@
 </script>
 
 <main class="slide-up">
-  <a class="back" href="/">← All components</a>
+  <a class="back" href="/lab">← All components</a>
   {@render children()}
 </main>
 

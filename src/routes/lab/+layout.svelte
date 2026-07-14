@@ -19,9 +19,9 @@
 </svelte:head>
 
 <header>
-  <ButtonLink variant="ghost" padding="icon" href="/">
+  <ButtonLink variant="ghost" padding="icon" href="/lab">
     <IconFavicon size={32} />
-    <span class="sr-only">Home page</span>
+    <span class="sr-only">Playground home</span>
   </ButtonLink>
 
   <ButtonLink

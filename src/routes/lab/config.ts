@@ -2,7 +2,7 @@
  * 首頁網格的展示卡片資料，依分類分組；卡片連到的頁面內容則由各自的 +page.svelte 自行持有
  */
 
-export type ShowcaseCategory = "Actions" | "Inputs" | "Floating" | "Display";
+export type ShowcaseCategory = "Actions" | "Inputs" | "Floating" | "Display" | "Widgets";
 
 export type ShowcaseCard = {
   slug: string;
@@ -161,6 +161,23 @@ export const showcaseSections: { category: ShowcaseCategory; cards: ShowcaseCard
         component: "ImageCanvas",
         label: "Zoom & pan, any content",
         blurb: "Cursor-anchored zoom, rubber-band pan bounds — the content is just a snippet, images are the common case.",
+      },
+    ],
+  },
+  {
+    category: "Widgets",
+    cards: [
+      {
+        slug: "confirm-dialog",
+        component: "ConfirmDialog",
+        label: "Promise-based confirm",
+        blurb: "A global singleton mounted once in the shell — await requestConfirm() from anywhere and get a boolean back.",
+      },
+      {
+        slug: "blur-image",
+        component: "BlurImage",
+        label: "Blurhash placeholder",
+        blurb: "With a blurhash it remounts to show the placeholder; without one it keeps the last frame and dims while loading.",
       },
     ],
   },
