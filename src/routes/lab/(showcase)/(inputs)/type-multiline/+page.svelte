@@ -5,7 +5,6 @@
 
   const textareaProps = { multiline: true, minRows: 3, maxRows: 6 } as const;
 
-  // TODO: 換文案
   const disabledValue =
     "This is a disabled textarea.\n\nIt can contain multiple lines of text to demonstrate the multiline functionality.";
 </script>

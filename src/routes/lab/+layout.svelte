@@ -44,7 +44,6 @@
     padding="icon"
     aria-label="Customize appearance"
     {@attach tooltip({ content: "Customize appearance" })}
-    // TODO: Implement real theme select ui and logic，目前先暫時做 light/dark 切換
     onclick={() => {
       const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = next;

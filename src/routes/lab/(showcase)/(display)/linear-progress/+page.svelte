@@ -53,7 +53,6 @@
     <div class="container">
       <h4>Determinate</h4>
       <div class="demo-row">
-        <!-- TODO: 若未來有開發 RangeInput，應該替換這裡 -->
         <input type="range" min="0" max="100" bind:value />
         <span class="value">{value}%</span>
       </div>

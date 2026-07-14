@@ -25,7 +25,6 @@
     clearTimeout(timer);
     timer = setTimeout(() => {
       pending = false;
-      // TODO: show a toast or something to indicate success
     }, 1000);
   };
 
@@ -45,7 +44,9 @@
           <ButtonConfirm variant="primary" onconfirm={handleConfirm} {status} {@attach tooltip(tooltipOptions.top)}>
             Primary</ButtonConfirm
           >
-          <ButtonConfirm onconfirm={handleConfirm} {status} {@attach tooltip(tooltipOptions.top)}>Outlined</ButtonConfirm>
+          <ButtonConfirm onconfirm={handleConfirm} {status} {@attach tooltip(tooltipOptions.top)}
+            >Outlined</ButtonConfirm
+          >
           <ButtonConfirm variant="ghost" onconfirm={handleConfirm} {status} {@attach tooltip(tooltipOptions.top)}
             >Ghost</ButtonConfirm
           >
