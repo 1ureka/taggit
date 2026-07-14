@@ -1,0 +1,65 @@
+:root {
+  --border-radius: 6px;
+  --border-style: 2px solid var(--color-border);
+  --shadow1: 0px 1px 2px 1px rgba(0, 0, 0, 0.05);
+
+  --font-family: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-mono: "JetBrains Mono", monospace;
+
+  --font-title1: 600 1.25rem/1.2 var(--font-family);
+  --font-title2: 600 1rem/1.2 var(--font-family);
+  --font-button: 500 0.875rem/1 var(--font-family);
+  --font-input: 400 0.875rem/1 var(--font-family);
+  --font-body1: 400 0.875rem/1.7 var(--font-family);
+  --font-body2: 400 0.8125rem/1.5 var(--font-family);
+  --font-kbd: 400 0.8125rem/1 var(--font-family-mono);
+  --font-caption: 400 0.75rem/1.2 var(--font-family);
+
+  --height-header: 3.5rem;
+  --height-aside: calc(100svh - var(--height-header));
+  --height-content: calc(100svh - var(--height-header));
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0a0a0a;
+  --color-bg-popover: #111111;
+  --color-bg-card: #111111;
+  --color-bg-hover: #222222;
+  --color-bg-active: #333333;
+
+  --color-text: #fafafa;
+  --color-text-muted: hsl(from var(--color-text) h s 65%);
+  --color-border: hsl(from var(--color-text) h s 16%);
+  --color-border-hover: hsl(from var(--color-text) h s 22%);
+  --color-ring: rgba(255, 255, 255, 0.3);
+
+  --color-accent: #ffffff;
+  --color-success: #22c55e;
+  --color-info: #3b82f6;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #fafafa;
+  --color-bg-popover: #fafafa;
+  --color-bg-card: #f4f4f5;
+  --color-bg-hover: #e4e4e7;
+  --color-bg-active: #d4d4d8;
+
+  --color-text: #09090b;
+  --color-text-muted: hsl(from var(--color-text) h s 46%);
+  --color-border: hsl(from var(--color-text) h s 84%);
+  --color-border-hover: hsl(from var(--color-text) h s 78%);
+  --color-ring: rgba(0, 0, 0, 0.2);
+
+  --color-accent: #6366f1;
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+  --color-warning: #ca8a04;
+  --color-error: #dc2626;
+}
