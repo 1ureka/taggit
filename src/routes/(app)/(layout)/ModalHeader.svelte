@@ -42,6 +42,5 @@
   header > span {
     font: var(--font-kbd);
     color: var(--color-text-muted);
-    text-align: center;
   }
 </style>
