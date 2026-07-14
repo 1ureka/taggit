@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { fade } from "svelte/transition";
-  import type { ImageWithId } from "$lib/database";
-  import { Modal } from "$lib/components/floating/modal.core.svelte";
   import { imgSrc } from "$lib/image/client";
+  import { ImageWhere } from "$lib/query-spec";
+  import type { ImageWithId } from "$lib/database";
 
   import { IconX, IconEditFilled } from "$lib/icons";
+  import { Modal } from "$lib/components/floating/modal.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
@@ -20,11 +22,9 @@
     editorHref: string;
     /** 關閉請求（backdrop 點擊、Escape、關閉鈕） */
     onclose: () => void;
-    /** 點擊標籤時觸發（導向以該標籤篩選的主頁） */
-    ontagselect: (name: string) => void;
   };
 
-  let { record, editorHref, onclose, ontagselect }: Props = $props();
+  let { record, editorHref, onclose }: Props = $props();
 
   const open = $derived(record !== null);
 
@@ -42,6 +42,10 @@
       return onclose;
     },
   });
+
+  const handleTagSelect = (name: string) => {
+    goto(`/?${new ImageWhere({ includedTags: [name] }).toSearchParams()}`);
+  };
 </script>
 
 <dialog
@@ -80,7 +84,7 @@
 
         <footer>
           <Rating value={shown.rating} readonly />
-          <TagChips tags={shown.tags} nowrap onselect={ontagselect} />
+          <TagChips tags={shown.tags} nowrap onselect={handleTagSelect} />
         </footer>
       </article>
     </div>
