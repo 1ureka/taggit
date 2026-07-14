@@ -33,7 +33,7 @@
       <span class="icon"><Icon size={18} /></span>
       <h2>{name}</h2>
       {#if navItemCount(key) !== undefined}
-        <span class="badge"><Chip>{navItemCount(key)}</Chip></span>
+        <span class="badge"><Chip style="font: var(--font-caption);">{navItemCount(key)}</Chip></span>
       {/if}
       <p>{desc}</p>
     </a>
@@ -112,8 +112,10 @@
     & > .badge {
       grid-column: 3;
       grid-row: 1;
-      align-self: center;
+      align-self: flex-start;
       justify-self: end;
+      overflow: visible;
+      height: 0;
     }
 
     & > p {

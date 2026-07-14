@@ -1,65 +1,159 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import type { PageData } from "./$types";
+
+  import CollectionSection from "./sections/CollectionSection.svelte";
+  import CacheSection from "./sections/CacheSection.svelte";
+  import MaintenanceSection from "./sections/MaintenanceSection.svelte";
+  import Button from "$lib/components/actions/Button.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  /** 引導 redirect 帶來的提示訊息（Phase 1 會換成正式的 Alert 元件） */
-  const alertMessage = $derived.by(() => {
-    const alert = page.url.searchParams.get("alert");
-    if (alert === "default") return "尚未設定收藏目錄，請先完成收藏目錄設定。";
-    if (alert === "error") return "收藏目錄無效或無法存取，請重新設定。";
-    return null;
+  // ---
+
+  const sections = $derived.by(() => {
+    const base = [{ id: "collection", label: "圖片集路徑" }];
+    if (data.databaseLoaded) {
+      base.push({ id: "images", label: "圖片與快取" });
+      base.push({ id: "maintenance", label: "系統維護" });
+    }
+    return base;
   });
+
+  let mainEl = $state<HTMLElement>();
+  let activeId = $state("collection");
+
+  // scroll-spy：捲動時以「區塊頂端進入容器頂端 100px 內」判定當前區塊
+  $effect(() => {
+    const container = mainEl;
+    if (!container) return;
+    const ids = sections.map((s) => s.id);
+
+    const onScroll = () => {
+      const containerTop = container.getBoundingClientRect().top;
+      let current = ids[0] ?? "collection";
+      for (const id of ids) {
+        const el = document.getElementById(`section-${id}`);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - containerTop <= 100) {
+          current = id;
+        }
+      }
+      activeId = current;
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  });
+
+  const handleNavClick = (id: string) => {
+    document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth" });
+  };
 </script>
 
 <svelte:head>
   <title>設定 — Taggit</title>
 </svelte:head>
 
-<!-- Phase 1 佔位：完整的設定頁（收藏目錄、維護任務、標籤管理）將在路由重寫階段實作 -->
-<main class="slide-up">
-  <h2>設定</h2>
+<div class="layout">
+  <nav>
+    {#each sections as section (section.id)}
+      {@const active = section.id === activeId}
+      {@const background = active ? "background-color: var(--color-bg-active);" : ""}
+      {@const style = `font: var(--font-body2); display: block; text-align: left; ${background}`}
+      <Button variant="ghost" {style} onclick={() => handleNavClick(section.id)}>
+        {section.label}
+      </Button>
+    {/each}
+  </nav>
 
-  {#if alertMessage}
-    <p class="alert">{alertMessage}</p>
-  {/if}
+  <main bind:this={mainEl}>
+    <div class="slide-up">
+      <section id="section-collection">
+        <h2>圖片集路徑</h2>
+        <CollectionSection collectionRoot={data.collectionRoot} />
+      </section>
 
-  <p>目前收藏：{data.collectionName}</p>
-  <p class="note">此頁為建置期的佔位頁，完整設定功能將在後續階段提供。</p>
-</main>
+      {#if data.databaseLoaded}
+        <section id="section-images">
+          <h2>圖片與快取</h2>
+          <CacheSection cacheStats={data.cacheStats} />
+        </section>
+
+        <section id="section-maintenance">
+          <h2>系統維護</h2>
+          <MaintenanceSection />
+        </section>
+      {/if}
+    </div>
+  </main>
+</div>
 
 <style>
-  main {
+  .layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+  }
+
+  /* --- */
+
+  nav {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 1.5rem 0.75rem;
+    border-right: var(--border-style);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    width: 100%;
-    max-width: min(70ch, 100%);
-    margin: 0 auto;
-    padding: 3rem 1.5rem;
+    gap: 0.125rem;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      flex-direction: row;
+      padding: 0.5rem 0.75rem;
+      border-right: none;
+      border-bottom: var(--border-style);
+      overflow-x: auto;
+      gap: 0.25rem;
+    }
+  }
+
+  /* --- */
+
+  main {
+    flex: 1;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+    min-height: 0;
+
+    & > div.slide-up {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 2rem 6rem;
+
+      @media (max-width: 768px) {
+        padding: 1.5rem 1rem 4rem;
+      }
+    }
   }
 
-  h2 {
-    font: var(--font-title1);
-  }
+  section {
+    padding-bottom: 2.5rem;
+    margin-bottom: 2.5rem;
+    border-bottom: var(--border-style);
 
-  p {
-    font: var(--font-body1);
-    color: var(--color-text);
-  }
+    &:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
 
-  .alert {
-    padding: 0.5rem 0.75rem;
-    color: var(--color-warning);
-    background-color: hsl(from var(--color-warning) h s l / 0.1);
-    border: var(--border-style);
-    border-color: hsl(from var(--color-warning) h s l / 0.5);
-    border-radius: var(--border-radius);
-  }
-
-  .note {
-    color: var(--color-text-muted);
+    & > h2 {
+      font: var(--font-title1);
+      font-weight: normal;
+      margin-bottom: 0.75rem;
+    }
   }
 </style>
