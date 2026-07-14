@@ -9,7 +9,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  scrollbar-width: thin;
 }
 
 html {
@@ -70,6 +69,21 @@ img {
 }
 
 /* --- */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(from var(--color-text) h s l / 0.35);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(from var(--color-text) h s l / 0.5);
+}
 
 ::selection {
   background-color: hsl(from var(--color-accent) h s l / 0.15);
