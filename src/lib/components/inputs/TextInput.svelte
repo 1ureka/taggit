@@ -127,7 +127,7 @@
   .root {
     --height-legend: 11px;
     --offset-border-top: -5px;
-    --padding-input: 0.75rem;
+    --padding-input: 0.65rem;
   }
 
   .root {
@@ -229,6 +229,7 @@
   /* --- */
 
   .root.outlined {
+    background-color: var(--color-bg);
     & > fieldset {
       border-color: var(--color-border);
     }
@@ -254,6 +255,7 @@
   /* --- */
 
   .root.outlined.error {
+    background-color: var(--color-bg);
     & > fieldset {
       border-color: hsl(from var(--color-error) h s l / 0.5);
     }
