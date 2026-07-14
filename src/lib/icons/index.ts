@@ -19,7 +19,6 @@ export { default as IconDownload } from "./IconDownload.svelte";
 export { default as IconEditFilled } from "./IconEditFilled.svelte";
 export { default as IconEye } from "./IconEye.svelte";
 export { default as IconEyeOff } from "./IconEyeOff.svelte";
-export { default as IconFavicon } from "./IconFavicon.svelte";
 export { default as IconFilter } from "./IconFilter.svelte";
 export { default as IconGithub } from "./IconGithub.svelte";
 export { default as IconImage } from "./IconImage.svelte";

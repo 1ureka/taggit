@@ -2,14 +2,14 @@
   import "$lib/assets/app.css";
   import favicon from "$lib/assets/favicon.svg";
 
-  import { IconChevronDown, IconFavicon, IconGithub } from "$lib/icons";
+  import { IconChevronDown, IconBook, IconGithub } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Tooltip from "$lib/components/floating/Tooltip.svelte";
   import ToastStage from "$lib/components/floating/ToastStage.svelte";
   import ToastList from "$lib/components/floating/ToastList.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import NavigationIndicator from "$lib/components/navigation/NavigationIndicator.svelte";
+  import NavigationIndicator from "$lib/components/display/NavigationIndicator.svelte";
 
   let { children } = $props();
 </script>
@@ -20,7 +20,7 @@
 
 <header>
   <ButtonLink variant="ghost" padding="icon" href="/lab">
-    <IconFavicon size={32} />
+    <IconBook size={32} />
     <span class="sr-only">Playground home</span>
   </ButtonLink>
 
