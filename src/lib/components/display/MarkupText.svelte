@@ -102,7 +102,7 @@
   }
 
   code {
-    font: var(--font-code);
+    font: var(--font-kbd);
     background-color: var(--color-bg-card);
     border: var(--border-style);
     border-radius: calc(var(--border-radius) * 0.75);
@@ -110,7 +110,7 @@
   }
 
   kbd {
-    font: var(--font-code);
+    font: var(--font-kbd);
     background-color: var(--color-bg-card);
     border: var(--border-style);
     border-radius: calc(var(--border-radius) * 0.75);

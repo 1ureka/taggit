@@ -151,7 +151,7 @@
       background-color: var(--color-bg-active);
       padding: 0.125rem 0.375rem;
       border-radius: calc(var(--border-radius) * 2 / 3);
-      font: var(--font-code);
+      font: var(--font-kbd);
       font-size: 0.75rem;
     }
   }
