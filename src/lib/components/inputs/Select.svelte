@@ -168,7 +168,6 @@
     background: var(--color-bg);
     border: var(--border-style);
     border-radius: var(--border-radius);
-    cursor: pointer;
     user-select: none;
     transition: border-color 0.15s ease;
 
