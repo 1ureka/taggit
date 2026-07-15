@@ -10,7 +10,7 @@
 
   import Toolbar from "./header/Toolbar.svelte";
   import ImportModal from "./header/ImportModal.svelte";
-  import StagedList from "./list/StagedList.svelte";
+  import StagedGrid from "./wall/StagedGrid.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
@@ -243,7 +243,7 @@
   />
 
   <div class="body">
-    <StagedList files={data.stagedFiles} {drafts} {activeFile} onselect={handleSelectFile} />
+    <StagedGrid stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleSelectFile} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector

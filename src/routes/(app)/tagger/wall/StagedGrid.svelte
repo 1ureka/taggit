@@ -8,7 +8,7 @@
 
   type Props = {
     /** 暫存檔案列表 */
-    files: string[];
+    stagedFiles: string[];
     /** 暫存圖片的草稿 */
     drafts: Record<string, Draft>;
     /** 目前編輯中的暫存圖片 */
@@ -17,7 +17,7 @@
     onselect: (file: string) => void;
   };
 
-  let { files, drafts, activeFile, onselect }: Props = $props();
+  let { stagedFiles, drafts, activeFile, onselect }: Props = $props();
 
   const availableWidth = $derived.by(() => {
     const windowWidth = innerWidth.current ?? 1000;
@@ -26,7 +26,7 @@
   });
 
   const layout = $derived.by(() => breakpoints.find((b) => availableWidth >= b.width)!);
-  const layoutItems = $derived(files.map((id) => ({ id, ...CARD_SIZE })));
+  const layoutItems = $derived(stagedFiles.map((id) => ({ id, ...CARD_SIZE })));
 
   const masonry = new Masonry({
     get items() {
@@ -75,7 +75,7 @@
 </script>
 
 <section aria-label="暫存清單" bind:this={masonry.viewportEl}>
-  {#if files.length === 0}
+  {#if stagedFiles.length === 0}
     <p>暫存區目前沒有圖片</p>
   {/if}
 
