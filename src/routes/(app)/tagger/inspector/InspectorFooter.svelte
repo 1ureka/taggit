@@ -27,7 +27,7 @@
 
 <style>
   footer {
-    padding: 0.5rem;
+    padding: 0.75rem;
     display: grid;
     grid-template-columns: 1fr 1fr;
     justify-items: stretch;

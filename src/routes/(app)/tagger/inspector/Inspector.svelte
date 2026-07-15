@@ -32,8 +32,10 @@
   <ImageCanvas resetKey={file} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
     <img src={imgSrc(file, "sm")} alt={file} draggable="false" />
   </ImageCanvas>
-  <InspectorFields {file} bind:draft />
-  <InspectorFooter {file} {pending} {onclear} />
+  <div>
+    <InspectorFields {file} bind:draft />
+    <InspectorFooter {file} {pending} {onclear} />
+  </div>
 </aside>
 
 <style>
@@ -42,7 +44,15 @@
     flex-direction: column;
     width: 22rem;
     min-width: 22rem;
+    min-height: 0;
     border-left: var(--border-style);
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 
