@@ -29,7 +29,7 @@ export class Masonry<T extends ItemWithSize> {
   /** 當需要重新計算內容時的 `make(chan struct{})` */
   #dirtyCh = $state([]);
   /** 以權重為基礎的瀑布流佈局結果 */
-  #layout: MasonryLayout<T>;
+  layout: MasonryLayout<T>;
   /** 二分搜尋虛擬化項目計算結果 */
   #content: ReturnType<typeof createMasonryContent<T>>;
   /** 可見的瀑布流項目 */
@@ -40,13 +40,13 @@ export class Masonry<T extends ItemWithSize> {
   // ---
 
   constructor(options: MasonryOptions<T>) {
-    this.#layout = $derived(createMasonryLayout({ items: options.items, columns: options.columns }));
+    this.layout = $derived(createMasonryLayout({ items: options.items, columns: options.columns }));
 
     this.#content = $derived.by(() => {
       if (!this.viewportEl) return { visibleItems: [], masonryHeight: 0 };
       this.#dirtyCh; // _ = <-dirtyCh
       return createMasonryContent({
-        layout: this.#layout,
+        layout: this.layout,
         viewportEl: this.viewportEl,
         paddingX: options.paddingX,
         paddingY: options.paddingY,
