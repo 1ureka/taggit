@@ -17,13 +17,19 @@
     onpreview: (filename: string) => void;
     /** 點擊紀錄勾選框 */
     ontoggle: (filename: string) => void;
+    /** 點擊全選勾選框 */
+    ontoggleall: () => void;
     /** 某紀錄是否可勾選 */
     isCheckable: (entry: ReviewEntry) => boolean;
     /** 某紀錄是否提交失敗與提交失敗的原因 */
     isFailure: (entry: ReviewEntry) => string;
   };
 
-  let { entries, checked, ontoggle, onedit, onpreview, isCheckable, isFailure }: Props = $props();
+  let { entries, checked, ontoggle, ontoggleall, onedit, onpreview, isCheckable, isFailure }: Props = $props();
+
+  const eligible = $derived(entries.filter(isCheckable));
+  const allSelected = $derived(eligible.length > 0 && eligible.every((e) => checked.has(e.filename)));
+  const someSelected = $derived(eligible.some((e) => checked.has(e.filename)));
 </script>
 
 {#snippet thumbnail({ filename, imgSrc }: ReviewEntry)}
@@ -53,6 +59,18 @@
 {/snippet}
 
 <ul>
+  <li class="select-all">
+    <Checkbox
+      checked={allSelected}
+      indeterminate={someSelected && !allSelected}
+      status={eligible.length === 0 ? "disabled" : "default"}
+      onchange={ontoggleall}
+      aria-label="全選可提交的項目"
+    />
+    <span>全選</span>
+    <span>{checked.size} / {eligible.length} 可提交紀錄已選取</span>
+  </li>
+
   {#each entries as entry (entry.filename)}
     {@const included = checked.has(entry.filename)}
     {@const failure = isFailure(entry)}
@@ -107,6 +125,16 @@
     &.excluded > * {
       opacity: 0.5;
     }
+  }
+
+  li.select-all > span:nth-of-type(1) {
+    font: var(--font-body2);
+  }
+
+  li.select-all > span:nth-of-type(2) {
+    margin-left: auto;
+    font: var(--font-caption);
+    color: var(--color-text-muted);
   }
 
   /* --- */
