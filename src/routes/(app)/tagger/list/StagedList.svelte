@@ -32,11 +32,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    width: 18rem;
-    flex-shrink: 0;
+    flex: 1;
     overflow-y: auto;
     padding: 0.75rem;
-    border-right: var(--border-style);
     list-style: none;
   }
 

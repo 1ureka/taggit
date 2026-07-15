@@ -14,6 +14,7 @@
   import TagChips from "$lib/widgets/TagChips.svelte";
 
   // TODO: 該組件完全過時，請不要參考，待重新設計，未來 home 會希望也有自己的 Carousels 型態，而不是只是單張打開
+  // TODO: 絕對不准把該組件濫用 global 的習慣照抄，global 只能用於 `:global([data-theme="light"])` 這種形式
 
   type Props = {
     /** 目前顯示的圖片紀錄；null 代表關閉 */
