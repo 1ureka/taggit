@@ -36,7 +36,7 @@ export class ImageCommands {
 
     const now = Date.now();
     const record: ImageRecord = {
-      name,
+      name: name.trim(),
       tags: normalizeTags(tags),
       rating: rating ?? 0,
       committedAt: now,
@@ -73,7 +73,7 @@ export class ImageCommands {
     const next: ImageRecord = { ...record };
     if (tags !== undefined) next.tags = normalizeTags(tags);
     if (rating !== undefined) next.rating = rating;
-    if (name !== undefined) next.name = name;
+    if (name !== undefined) next.name = name.trim();
     next.updatedAt = Date.now();
 
     db.setImage(id, next);
