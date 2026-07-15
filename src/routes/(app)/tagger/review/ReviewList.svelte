@@ -67,7 +67,7 @@
       aria-label="全選可提交的項目"
     />
     <span>全選</span>
-    <span>{entries.filter((e) => e.checked).length} / {checkableCount} 可提交紀錄已選取</span>
+    <span>{checkedCount} / {checkableCount} 可提交紀錄已選取</span>
   </li>
 
   {#each entries as entry (entry.filename)}
