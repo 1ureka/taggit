@@ -3,16 +3,18 @@
   import { invalidateAll } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import { formatError } from "$lib/utils/shared";
+  import { formatError, isRecord } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
 
   import Toolbar from "./header/Toolbar.svelte";
+  import ImportModal from "./header/ImportModal.svelte";
   import StagedList from "./list/StagedList.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
   import { emptyDraft, isTouched, commitDrafts, type Draft } from "./inspector/draft";
   import { buildEntry, computeNewTags, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
+  import { importRecords, type ImportProgress, type ImportResult } from "./header/import";
 
   // ---
 
@@ -28,6 +30,12 @@
   let reviewOpen = $state(false);
   /** 提交後的失敗匯總 */
   let failures = $state<Record<string, string>>({});
+  /** 匯入對話框是否打開 */
+  let importOpen = $state(false);
+  /** 匯入中的即時進度 */
+  let importProgress = $state<ImportProgress | null>(null);
+  /** 上一次匯入完成後的結果摘要 */
+  let importResult = $state<ImportResult | null>(null);
   /** 目前審查清單的勾選狀態，使用者的原始意圖，不主動清除 */
   const checkedFiles = new SvelteSet<string>();
 
@@ -117,6 +125,49 @@
 
   // ---
 
+  const handleOpenImport = () => {
+    importProgress = null;
+    importResult = null;
+    importOpen = true;
+  };
+
+  const handleImportClose = () => {
+    if (pending) return;
+    importOpen = false;
+    importProgress = null;
+    importResult = null;
+  };
+
+  const handleImportFile = async (file: File) => {
+    if (pending) return;
+
+    let data: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!isRecord(parsed) || Object.keys(parsed).length === 0) {
+        addToast({ message: "JSON 必須是非空的物件", variant: "error" });
+        return;
+      }
+      data = parsed;
+    } catch {
+      addToast({ message: "無法解析 JSON 檔案", variant: "error" });
+      return;
+    }
+
+    pending = true;
+    importProgress = { current: 0, total: Object.keys(data).length };
+    try {
+      importResult = await importRecords(data, (p) => (importProgress = p));
+      await invalidateAll();
+    } catch (e) {
+      importResult = { imported: 0, skipped: 0, errors: [formatError(e)] };
+    } finally {
+      pending = false;
+    }
+  };
+
+  // ---
+
   const handleClearDraft = () => {
     if (activeFile === null) return;
     drafts[activeFile] = emptyDraft();
@@ -138,7 +189,14 @@
 </svelte:head>
 
 <div class="page">
-  <Toolbar {fileCount} touchedCount={touchedFiles.length} {readyCount} onreview={handleOpenReview} />
+  <Toolbar
+    {fileCount}
+    touchedCount={touchedFiles.length}
+    {readyCount}
+    {pending}
+    onreview={handleOpenReview}
+    onimport={handleOpenImport}
+  />
 
   <div class="body">
     <StagedList
@@ -175,6 +233,15 @@
   onpreview={handlePreviewFromReview}
   ontoggle={handleToggleReview}
   ontoggleall={handleToggleAllReview}
+/>
+
+<ImportModal
+  open={importOpen}
+  {pending}
+  progress={importProgress}
+  result={importResult}
+  onclose={handleImportClose}
+  onimport={handleImportFile}
 />
 
 <style>
