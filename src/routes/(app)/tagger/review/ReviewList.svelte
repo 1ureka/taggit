@@ -111,14 +111,15 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.5rem;
-    border: var(--border-style);
-    border-radius: var(--border-radius);
-    background: var(--color-bg);
+    padding: 0.5rem 0px;
 
     &.excluded > * {
       opacity: 0.5;
     }
+  }
+
+  li.select-all {
+    padding: 0.25rem 0px;
   }
 
   li.select-all > span:nth-of-type(1) {
