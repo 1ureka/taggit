@@ -9,11 +9,13 @@
     open: boolean;
     /** 關閉請求回呼，由 backdrop 點擊、Escape 鍵觸發 */
     onclose?: () => void;
-    /** Modal 內容 */
+    /** 對話框內容 */
     children: Snippet;
+    /** 對話框內容容器的 props */
+    containerProps?: HTMLAttributes<HTMLDivElement>;
   }
 
-  let { open, onclose, children, ...rest }: Props = $props();
+  let { open, onclose, children, containerProps, ...rest }: Props = $props();
 
   const modal = new Modal({
     get open() {
@@ -39,6 +41,7 @@
       in:scale={{ duration: 150, start: 0.95 }}
       out:scale={{ duration: 150, start: 0.95 }}
       onoutroend={modal.handleOutroEnd}
+      {...containerProps}
     >
       {@render children()}
     </div>
