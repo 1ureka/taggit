@@ -8,19 +8,19 @@
     /** 目前正在編輯的檔案的檔案名稱 */
     file: string;
     /** 目前正在編輯的檔案的指標 */
-    current: number;
+    activeIndex: number;
     /** 暫存檔案的總數量 */
-    total: number;
+    fileCount: number;
     /** 點擊關閉面板按紐 */
     onclose: () => void;
   };
 
-  let { file, current, total, onclose }: Props = $props();
+  let { file, activeIndex, fileCount, onclose }: Props = $props();
 </script>
 
 <header>
   <h3 class="ellipsis" title={file}>{file}</h3>
-  <Chip variant="outlined" style="font: var(--font-caption);">{`${current} / ${total}`}</Chip>
+  <Chip variant="outlined" style="font: var(--font-caption);">{`${activeIndex} / ${fileCount}`}</Chip>
   <Button
     variant="ghost"
     padding="icon"

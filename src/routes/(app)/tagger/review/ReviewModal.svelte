@@ -3,26 +3,7 @@
   import ReviewFooter from "./ReviewFooter.svelte";
   import ReviewHeader from "./ReviewHeader.svelte";
   import ReviewList from "./ReviewList.svelte";
-
-  /** 審查清單上的一列。勾選/失敗狀態由外部算好傳入，本元件純展示。 */
-  export type ReviewEntry = {
-    /** 該紀錄的對應檔名 */
-    filename: string;
-    /** 該紀錄的縮圖 src */
-    imgSrc: string;
-    /** 生效的名稱（暫存名稱或去副檔名的檔名） */
-    name: string;
-    /** 該紀錄的評分 */
-    rating: number;
-    /** 該紀錄的標籤 */
-    tags: string[];
-    /** 該紀錄的問題 */
-    problem: string | null;
-    /** 是否已被勾選 */
-    checked: boolean;
-    /** 是否不可勾選 */
-    disabled: boolean;
-  };
+  import type { ReviewEntry } from "./reviewEntry";
 
   type Props = {
     /** 是否開啟審查清單對話框 */

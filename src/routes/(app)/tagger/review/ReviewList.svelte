@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ReviewEntry } from "./ReviewModal.svelte";
+  import type { ReviewEntry } from "./reviewEntry";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import Chip from "$lib/components/display/Chip.svelte";

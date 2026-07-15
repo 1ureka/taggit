@@ -9,11 +9,11 @@
 
   type Props = {
     /** 暫存檔案的總數量 */
-    total: number;
+    fileCount: number;
     /** 目前正在編輯的檔案的檔案名稱 */
-    file: string;
+    activeFile: string;
     /** 目前正在編輯的檔案的指標 */
-    current: number;
+    activeIndex: number;
     /** 目前正在編輯的檔案的草稿 */
     draft: Draft;
     /** 是否正在處理中 */
@@ -24,11 +24,11 @@
     onclose: () => void;
   };
 
-  let { total, current, file, draft = $bindable(), pending, onclear, onclose }: Props = $props();
+  let { fileCount, activeIndex, activeFile: file, draft = $bindable(), pending, onclear, onclose }: Props = $props();
 </script>
 
 <aside>
-  <InspectorHeader {file} {total} {current} {onclose} />
+  <InspectorHeader {file} {fileCount} {activeIndex} {onclose} />
   <ImageCanvas resetKey={file} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
     <img src={imgSrc(file, "sm")} alt={file} draggable="false" />
   </ImageCanvas>
