@@ -37,7 +37,7 @@
   class={{ viewport: true, dragging: ui.isDragging }}
   role="button"
   tabindex="0"
-  aria-label="圖片預覽區域：滾輪或 +/− 縮放（以指標位置為錨點）、拖曳或方向鍵平移、雙擊／Enter／Space／Esc 重置"
+  aria-label="圖片預覽區域：滾輪或 + / - 縮放、拖曳或方向鍵平移、雙擊/Enter/Space/Esc 重置"
   onwheel={ui.handleContainerWheel}
   onmousedown={ui.handleContainerMousedown}
   ondblclick={ui.handleContainerDblclick}
@@ -52,9 +52,6 @@
 <style>
   .viewport {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -69,5 +66,7 @@
   .content {
     transform-origin: center center;
     will-change: transform;
+    width: 100%;
+    height: 100%;
   }
 </style>
