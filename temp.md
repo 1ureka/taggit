@@ -20,13 +20,18 @@
 
 **未來 TODO（先記錄，之後實作 StagedList 虛擬化時要在程式碼補上對應 TODO 註解）**：如果之後還想要那種「矮高規律交錯」的視覺效果，不能靠餵不同 `height` 值給現有的 `masonry.svelte.ts`/`masonry.core.ts` 達成，因為它的貪婪權重演算法本質上不支援跨欄對齊。需要另外寫一個新的虛擬化模組——不用「丟給目前最短欄」的邏輯，而是直接以 `(row, col)` 座標決定每個位置的尺寸（本質上是一個「尺寸交錯的規則網格」，不是真正的瀑布流），但仍可比照 `masonry.core.ts` 的二分搜尋作法做可視範圍虛擬化。這是一個新模組，不是修改現有 masonry。
 
-## 欄數策略：比照首頁 breakpoint 陣列，但量測基準不同
+## 欄數策略：比照首頁 breakpoint 陣列，用 `innerWidth.current` 扣固定值即可
 
-比照 `(home)/wall/config.ts` 的做法——用一個 `{ width, cols, p, g }` 的 breakpoint 陣列，依可用寬度找對應欄數。但**不能直接照抄首頁的數字**，原因：
+比照 `(home)/wall/config.ts` 的做法——用一個 `{ width, cols, p, g }` 的 breakpoint 陣列，依可用寬度找對應欄數。但**不能直接照抄首頁的數字**，因為首頁是整頁版面，直接用 `innerWidth.current`（`svelte/reactivity/window`）當可用寬度；`/tagger` 的 `StagedList` 是跟 `Inspector` 並排的側欄，可用寬度會因為 `Inspector` 開關而變。
 
-- 首頁 `+page.svelte` 是用 `innerWidth.current`（`svelte/reactivity/window`）也就是**整個瀏覽器視窗寬度**去查表，因為首頁的 masonry 就是整頁版面。
-- `/tagger` 不一樣：`StagedList` 是跟 `Inspector`（固定 `22rem` = 352px）並排的側欄，可用寬度是「視窗寬度 − 22rem − 其餘版面留白」，而且 `Inspector` 是條件渲染（選取某張圖才出現）——選取前後可用寬度會跳動，這不是「使用者改變視窗大小」，`innerWidth` 完全捕捉不到。
-- 因此 `/tagger` 這裡的 breakpoint 查表基準必須是 **`StagedList` 自己容器的實際寬度**（例如透過 `bind:clientWidth` 或 ResizeObserver 量測 `masonry.viewportEl`），不是 `innerWidth.current`。門檻數字也要重新抓，考量到扣掉 Inspector 後的常見可用寬度，欄數上限大概落在 2~3 欄（不會到首頁的 5 欄），實際數字留到實作時對照真實裝置寬度調校。
+不需要為此加 ResizeObserver／`bind:clientWidth`。`Inspector` 是二元狀態（`activeFile !== null` 開，否則關），寬度固定 `22rem`（=352px）不會變動中的任何中間值，所以可用寬度可以直接用常數推算：
+
+```ts
+const availableWidth = $derived(Math.max(1, (innerWidth.current ?? 1000) - (activeFile !== null ? 352 : 0)));
+const layout = $derived.by(() => breakpoints.find((b) => availableWidth >= b.width)!);
+```
+
+`Inspector` 關閉時 `+page.svelte` 不會渲染任何佔位元素，`StagedList` 一定拿滿 `.body` 的全部寬度，所以上面的二元公式成立。門檻數字要重新抓，扣掉 Inspector 後的常見可用寬度，欄數上限大概落在 2~3 欄（不會到首頁的 5 欄），實際數字留到實作時對照真實裝置寬度調校。
 
 ## 卡片內容：沿用 tagger-b StagedGrid 的資料，轉譯到新的固定尺寸卡片
 

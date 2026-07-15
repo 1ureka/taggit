@@ -261,8 +261,6 @@
         ondelete={handleDeleteFile}
         onclose={handleCloseInspector}
       />
-    {:else}
-      <div class="empty-inspector">從左側選一張暫存圖片開始編輯</div>
     {/if}
   </div>
 </div>
@@ -301,13 +299,5 @@
     display: flex;
     flex: 1;
     min-height: 0;
-  }
-
-  .empty-inspector {
-    flex: 1;
-    display: grid;
-    place-items: center;
-    font: var(--font-body1);
-    color: var(--color-text-muted);
   }
 </style>
