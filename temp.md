@@ -1,86 +1,60 @@
-# StagedList 投影型別分析（分析用，尚未實作）
+# StagedList 虛擬化重寫計畫（分析用，尚未實作）
 
-## tagger-b 的 StagedGrid 到底要顯示什麼
+> 本檔取代先前「StagedEntry 投影型別分析」的內容——那份分析已經實作完成（`list/stagedEntry.ts`、`StagedList.svelte` 吃 `entries`/`onselect`），這份是下一階段：用 `$lib/virtualizer/masonry.svelte.ts` 把 `StagedList` 從簡單清單改成可虛擬化的卡片牆。**這次只是計畫，尚未動任何程式碼。**
 
-看完 `tagger-b/list/StagedGrid.svelte` + `logic/stamp.ts` + `list/Toolbar.svelte` + `list/SessionProgress.svelte`，每張卡片需要的資料是：
+## 為什麼可以用固定寬高餵給 masonry
 
-- 縮圖 `imgSrc(file, "sm")`
-- 是否為目前檢視中（`class:current`，還會被拿去做 `scrollIntoView`）
-- 是否 touched（`isTouched(draft)`）——決定要不要顯示「已編輯」標記列
-- 若 touched：ready/blocked 狀態（`isReady`/`problemOf`）決定顯示打勾還是警示圖示，圖示 title 帶 `problemOf` 文字
-- 若 touched：draft 摘要行——`rating`（★數字）、`tags.length`（幾個標籤）、`name.trim()`（引號包住的名稱）
-- 圖章模式（`stamp: Stamp | null`）是**整個 grid 層級**的狀態，不是逐卡資料：卡片只依賴這個全域旗標切換 `onclick` 要打 `onstamp(file)` 還是選取，沒有任何卡片專屬的圖章欄位（來源卡片也沒有特殊樣式）。`Toolbar`/`SessionProgress` 也只吃彙總數字（`total`/`touchedCount`/`readyCount`），不是逐卡資料。
+`$lib/virtualizer/masonry.core.ts` 的 `createMasonryLayout` 只需要 `ItemWithSize = { id, width, height }`，內部只取 `height/width` 當作「權重」去做貪婀式欄位分配，跟圖片的真實比例無關——欄寬本身是容器寬度均分出來的，`width` 欄位唯一的作用只是拿來算比例，不會真的影響渲染寬度。
 
-結論：卡片需要的 6 樣東西（imgSrc、name、rating、tags、problem、是否 touched）裡，前 5 樣**跟 `ReviewEntry` 長得很像**，只是最後的旗標不同（`ReviewEntry` 是 `checked`/`disabled`，這裡是 `touched`/`current`）。
+暫存圖片（`ImageLibrary.list()` 尚未提交的檔案）沒有資料庫紀錄，因此沒有已知寬高；為此特地量測每張圖片的實際尺寸不划算（還要考慮 meta 讀取失敗等情況）。既然現有的簡單清單本來就是不跟隨真實寬高的固定格子，改成「寫死同一組 width/height 餵給 masonry」不會讓視覺變差，反而換來虛擬化能力（可視範圍二分搜尋、只渲染看得到的卡片）。**結論：所有項目統一使用同一組固定 `width`/`height`，不做逐項差異化。**
 
-## 不抽共用型別，`stagedEntry.ts` 自己獨立一份
+## 交錯「wavy」效果：已放棄，原因與未來 TODO
 
-跟 `ReviewEntry` 長得像，但**不**抽出共用的 `DraftView`/`viewDraft()`——這大概是 tagger 路由狀態投影拼圖的最後一塊，兩份重複不算多，獨立寫反而讓 `list/` 跟 `review/` 兩個 domain 各自完整、互不牽動，之後想單獨調整某一邊的顯示規則（例如 list 的縮圖尺寸、review 的失敗訊息格式）不會不小心動到另一邊。維持 `review/reviewEntry.ts` 原樣，新增一個平級、自成一體的 `list/stagedEntry.ts`：
+原本想讓卡片矮高交錯（第一排矮高交錯、第二排反過來）製造一點瀑布流的錯落感。實際用 `createMasonryLayout` 模擬（`width=1`，`height` 在 `0.8`/`1.2` 兩個固定值之間逐項交替餵入，欄數 2~5 都測過）後發現：
 
-```ts
-// list/stagedEntry.ts（新檔，跟 review/reviewEntry.ts 平級，不共用）
-import { imgSrc } from "$lib/image/client";
-import { isTouched, problemOf, stripExt, type Draft } from "../inspector/draft";
+- `createMasonryLayout` 是**貪婪權重演算法**——每個項目丟給「目前累積權重最短的欄」，完全沒有「row」的概念，不是逐 row 對齊的版面模型。
+- 交替餵入兩種高度並不會讓畫面呈現乾淨的棋盤交錯，而是會出現同高度的項目連續分到同一欄（例如 4 欄時，某一欄實測出現連續 3 張高卡片），欄數越多這個現象越明顯。
+- 這是演算法的本質限制，不是參數沒調好——只要落點決定權完全交給貪婪最短欄邏輯，就無法保證跨欄的規律交錯。
 
-export type StagedEntry = {
-  filename: string;
-  imgSrc: string;
-  name: string;
-  rating: number;
-  tags: string[];
-  /** 不可提交的原因（null = 可提交），只有 touched 時才有意義 */
-  problem: string | null;
-  /** 是否已被使用者編輯過（有任何內容） */
-  touched: boolean;
-  /** 是否為目前檢視中的檔案 */
-  current: boolean;
-};
+**決定：這次退回全部卡片使用同一組固定寬高，不追求交錯效果。**
 
-export function buildStagedEntry(filename: string, draft: Draft, current: boolean): StagedEntry {
-  return {
-    filename,
-    imgSrc: imgSrc(filename, "sm"),
-    name: draft.name.trim() || stripExt(filename),
-    rating: draft.rating,
-    tags: draft.tags,
-    problem: problemOf(draft),
-    touched: isTouched(draft),
-    current,
-  };
-}
-```
+**未來 TODO（先記錄，之後實作 StagedList 虛擬化時要在程式碼補上對應 TODO 註解）**：如果之後還想要那種「矮高規律交錯」的視覺效果，不能靠餵不同 `height` 值給現有的 `masonry.svelte.ts`/`masonry.core.ts` 達成，因為它的貪婪權重演算法本質上不支援跨欄對齊。需要另外寫一個新的虛擬化模組——不用「丟給目前最短欄」的邏輯，而是直接以 `(row, col)` 座標決定每個位置的尺寸（本質上是一個「尺寸交錯的規則網格」，不是真正的瀑布流），但仍可比照 `masonry.core.ts` 的二分搜尋作法做可視範圍虛擬化。這是一個新模組，不是修改現有 masonry。
 
-## 一個容易漏掉的地雷：drafts 現在是延遲建立的
+## 欄數策略：比照首頁 breakpoint 陣列，但量測基準不同
 
-`+page.svelte` 這輪改過之後，`drafts[file]` 只在使用者**選取**該檔案時才會被建立（`selectFile` 裡 `drafts[file] ??= emptyDraft()`）。清單要顯示**全部** `data.stagedFiles`，但大多數檔案可能從沒被點過、`drafts[file]` 是 `undefined`。
+比照 `(home)/wall/config.ts` 的做法——用一個 `{ width, cols, p, g }` 的 breakpoint 陣列，依可用寬度找對應欄數。但**不能直接照抄首頁的數字**，原因：
 
-投影必須容忍這件事，且**不能因為算投影就順便建立 draft**（那會在一個 `$derived` 裡產生寫入副作用，違反目前整個 route 在做的「衍生值只讀不寫」原則）。所以呼叫端要這樣寫：
+- 首頁 `+page.svelte` 是用 `innerWidth.current`（`svelte/reactivity/window`）也就是**整個瀏覽器視窗寬度**去查表，因為首頁的 masonry 就是整頁版面。
+- `/tagger` 不一樣：`StagedList` 是跟 `Inspector`（固定 `22rem` = 352px）並排的側欄，可用寬度是「視窗寬度 − 22rem − 其餘版面留白」，而且 `Inspector` 是條件渲染（選取某張圖才出現）——選取前後可用寬度會跳動，這不是「使用者改變視窗大小」，`innerWidth` 完全捕捉不到。
+- 因此 `/tagger` 這裡的 breakpoint 查表基準必須是 **`StagedList` 自己容器的實際寬度**（例如透過 `bind:clientWidth` 或 ResizeObserver 量測 `masonry.viewportEl`），不是 `innerWidth.current`。門檻數字也要重新抓，考量到扣掉 Inspector 後的常見可用寬度，欄數上限大概落在 2~3 欄（不會到首頁的 5 欄），實際數字留到實作時對照真實裝置寬度調校。
 
-```ts
-const stagedEntries = $derived(
-  data.stagedFiles.map((f) => buildStagedEntry(f, drafts[f] ?? emptyDraft(), f === validCurrentFile)),
-);
-```
+## 卡片內容：沿用 tagger-b StagedGrid 的資料，轉譯到新的固定尺寸卡片
 
-`emptyDraft()` 只是拿來算顯示值，不寫回 `drafts`——只有 `selectFile` 才會真的建立。
+`stagedEntry.ts` 的 `StagedEntry` 型別（本次已實作）已經涵蓋卡片需要的全部欄位，虛擬化只是換了外層佈局容器，卡片內部資料不用重新設計：
 
-## StagedList 的新介面（提案）
+- 縮圖：`entry.imgSrc`。`pixelW`/`pixelH` 是 masonry 透過 `item.style` 套在 `<li>`（卡片外層）上的絕對定位尺寸，是**整張卡片**的框，不是圖片的框——卡片內部另外還有 touched 標記列、draft 摘要行要佔空間。做法是卡片內部用 flex column（撐滿 `<li>` 給的 `height: 100%`），`<img>` 用 `width: 100%; flex: 1; min-height: 0; object-fit: cover` 讓它自動吃掉扣除標記列／摘要行後剩下的空間，不需要在元件裡讀 `pixelW`/`pixelH` 數值——跟 tagger-b 原本用 `aspect-ratio: 1` 讓圖片自己撐滿寬度是同一種「交給 CSS 宣告式處理」的思路，只是這次剩餘空間不是固定比例，改用 `flex: 1` 吃剩餘空間。
+- 目前檢視中：`entry.current` → 外框樣式（比照 tagger-b 用 `accent` 邊框）。
+- 已編輯：`entry.touched` → 顯示標記。
+- ready/blocked：`entry.touched && entry.problem === null` 顯示打勾圖示，`entry.touched && entry.problem !== null` 顯示警示圖示，圖示 `title`/tooltip 帶 `entry.problem` 文字（比照 tagger-b 的 `IconCheckFilled`/`IconAlertCircleFilled` + `title`）。
+- draft 摘要行（僅 touched 時顯示）：`entry.rating > 0` 顯示 `★{rating}`、`entry.tags.length > 0` 顯示 `{n} 標籤`、`entry.name` 非空顯示引號包住的名稱——邏輯跟 tagger-b 一致。
 
-```ts
-type Props = {
-  entries: StagedEntry[];
-  onselect: (file: string) => void;
-  // 圖章模式是之後的事，先不列；到時會是額外兩個 grid 層級的 prop（stamp、onstamp、onexitstamp），不是投影欄位
-};
-```
+**圖章模式維持先前決定，這次不做**：grid 層級的疊層徽章、pointerdown/pointerenter 連續塗刷、Esc 離開等，等之後真的要做圖章模式時再照 tagger-b 的 `StampTool.svelte`/`stamp.ts`/`StagedGrid.svelte` 的圖章段落抄。這次的卡片設計不用預留圖章專屬欄位（跟先前 `StagedEntry` 分析的結論一致：圖章是 grid 層級的獨立 state，不是卡片投影欄位）。
 
-`isTouched` 這個 callback prop 整個消失——`touched` 已經是 `entries[i].touched`。`currentFile`/`activeFile` prop 也可以整個消失，改成讀 `entries[i].current`；如果之後要做「捲動到目前卡片」的效果（tagger-b 有這個），可以在元件內部用 `entries.find(e => e.current)?.filename` 找目標，不需要額外一個 `activeFile` prop 重複同一個資訊。
+## 架構提醒：masonry 版面配置不該跟著 drafts 一起重算
 
-## 順便看到的一個小優化空間（不是這次的重點，先記錄）
+這點是這次分析過程中發現、值得寫下來的重要細節，跟之前討論過的「`stagedEntries` 每個按鍵都整批重算」是同一個問題的延伸：
 
-`+page.svelte` 現在的 `touchedFiles = $derived(data.stagedFiles.filter((f) => drafts[f] && isTouched(drafts[f])))` 跟未來的 `stagedEntries` 其實在做重疊的判斷（isTouched）。如果先算 `stagedEntries`，`touchedFiles` 可以改成 `stagedEntries.filter((e) => e.touched).map((e) => e.filename)`，少一次獨立的 `isTouched` 呼叫迴圈。要不要做看你，不影響正確性，純粹避免重複邏輯。
+`createMasonryLayout` 只需要 `{ id, width, height }`，而這次決定 `width`/`height` 全部卡片統一固定——也就是說，**masonry 版面配置其實只依賴 `data.stagedFiles`（有哪些檔案、順序為何）跟欄數，完全不依賴 `drafts`**。如果照現在的寫法，直接把整包 `stagedEntries`（`$derived`，內含 `touched`/`problem`/`name`/`rating`/`tags`，這些每次編輯任何一張的草稿都會整包重新 `.map`）拿去餵給 masonry 的 `items`，會導致「使用者打一個字」不只重算 1000 筆 `StagedEntry`，還會**額外觸發一次 masonry 的貪婪權重版面計算**（`O(n × columns)`），完全是白工——因為版面配置根本不應該因為打字而改變。
+
+實作時建議把兩件事拆開：
+
+1. `layoutItems`：只依賴 `data.stagedFiles` 跟欄數的 `$derived`，只提供 `{ id: filename, width, height }` 給 `Masonry`，只有在暫存清單本身變動（新增/刪除/重新整理）時才重算，編輯草稿不會碰到它。
+2. 卡片實際顯示內容：不要在父層 `+page.svelte` 用一個大 `.map` 整批算好 `StagedEntry[]` 再傳給子元件，改成每張卡片自己的元件內部用 `$derived` 直接讀 `drafts[file]` 算自己的 `StagedEntry`——這樣編輯某張圖的草稿，只有那一張卡片自己的 `$derived` 會重跑，其餘卡片完全不受影響。
+
+這個拆分同時解決了「masonry 版面被無關的編輯觸發重算」跟先前討論過的「每個按鍵都要重掃全部暫存張數」兩個問題，是同一次重構可以一起做掉的。`touchedCount`/`readyCount`/`reviewEntries` 這類彙總值本質上還是要掃過所有卡片才能得到答案，這件事不受這次拆分影響，維持現狀（掃描量是 touched 張數而不是總數，量級本來就比較小）。
 
 ## 這次不動的部分
 
-- 圖章模式（`stamp`/`StampTool`/`stamp.ts`）本來就不需要投影欄位，維持 grid 層級的獨立 state，之後直接照 tagger-b 抄過來即可。
-- `Toolbar`/`SessionProgress` 吃彙總數字（`total`/`touchedCount`/`readyCount`），不受這次投影變動影響，`touchedCount` 可以從 `touchedFiles.length` 或 `stagedEntries.filter(e=>e.touched).length` 算，`readyCount` 目前专案還沒有「ready」概念（`disabled` 是 review 專用的，list 端目前只需要 touched/problem），要顯示的話用 `stagedEntries.filter(e => e.touched && e.problem === null).length`。
+- 圖章模式（`stamp`/`StampTool`/`stamp.ts`）：維持先前決定，之後照抄 tagger-b。
+- `stagedEntry.ts`／`buildStagedEntry()`：本次已完成的投影邏輯不變，虛擬化只是換外層容器與拆分卡片元件的責任邊界，不改變 `StagedEntry` 的欄位定義。
+- 交錯 wavy 效果：明確放棄，改為固定同寬高；未來若要做，需要一個新的、非貪婪權重的虛擬化模組（見上方 TODO 段落），不是這次的範圍。
