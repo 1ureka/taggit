@@ -29,7 +29,7 @@
   let {
     fileCount,
     activeIndex,
-    activeFile: file,
+    activeFile,
     draft = $bindable(),
     pending,
     onclear,
@@ -39,12 +39,12 @@
 </script>
 
 <aside>
-  <InspectorHeader {file} {fileCount} {activeIndex} {onclose} />
-  <ImageCanvas resetKey={file} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
-    <img src={imgSrc(file, "sm")} alt={file} draggable="false" />
+  <InspectorHeader {activeFile} {fileCount} {activeIndex} {onclose} />
+  <ImageCanvas resetKey={activeFile} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
+    <img src={imgSrc(activeFile, "sm")} alt={activeFile} draggable="false" />
   </ImageCanvas>
   <div>
-    <InspectorFields {file} bind:draft />
+    <InspectorFields {activeFile} bind:draft />
     <InspectorFooter {pending} {onclear} {ondelete} />
   </div>
 </aside>

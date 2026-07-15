@@ -5,7 +5,7 @@
   import TagInput from "$lib/widgets/TagInput.svelte";
   import { stripExt, problemOf, type Draft } from "./draft";
 
-  let { file, draft = $bindable() }: { file: string; draft: Draft } = $props();
+  let { activeFile: file, draft = $bindable() }: { activeFile: string; draft: Draft } = $props();
 
   const id = $props.id();
   const problem = $derived(problemOf(draft));

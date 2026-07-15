@@ -6,7 +6,7 @@
 
   type Props = {
     /** 目前正在編輯的檔案的檔案名稱 */
-    file: string;
+    activeFile: string;
     /** 目前正在編輯的檔案的指標 */
     activeIndex: number;
     /** 暫存檔案的總數量 */
@@ -15,11 +15,11 @@
     onclose: () => void;
   };
 
-  let { file, activeIndex, fileCount, onclose }: Props = $props();
+  let { activeFile, activeIndex, fileCount, onclose }: Props = $props();
 </script>
 
 <header>
-  <h3 class="ellipsis" title={file}>{file}</h3>
+  <h3 class="ellipsis" title={activeFile}>{activeFile}</h3>
   <Chip variant="outlined" style="font: var(--font-caption);">{`${activeIndex} / ${fileCount}`}</Chip>
   <Button
     variant="ghost"
