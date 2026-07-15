@@ -8,9 +8,11 @@
     isTouched: (file: string) => boolean;
     /** 當前正在編輯草稿的暫存檔案 */
     currentFile: string | null;
+    /** 點擊某張暫存檔案 */
+    onselect: (file: string) => void;
   };
 
-  let { files, isTouched, currentFile = $bindable(null) }: Props = $props();
+  let { files, isTouched, currentFile, onselect }: Props = $props();
 </script>
 
 <!-- TODO: 待重寫 (UI 上，資料留不動) -->
@@ -18,7 +20,7 @@
 <ul class="staged-list">
   {#each files as file (file)}
     <li>
-      <button type="button" class:active={file === currentFile} onclick={() => (currentFile = file)}>
+      <button type="button" class:active={file === currentFile} onclick={() => onselect(file)}>
         <span class="name ellipsis">{file}</span>
         {#if isTouched(file)}
           <Chip variant="outlined" style="font: var(--font-caption); flex-shrink: 0;">已編輯</Chip>{/if}

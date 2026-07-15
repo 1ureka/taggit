@@ -4,27 +4,26 @@
   import ReviewImpact from "./ReviewImpact.svelte";
 
   type Props = {
-    total: number;
-    checked: number;
+    checkedCount: number;
     newTags: string[];
     pending: boolean;
     oncancel: () => void;
     onsubmit: () => void;
   };
 
-  let { total, checked, newTags, pending, oncancel, onsubmit }: Props = $props();
+  let { checkedCount, newTags, pending, oncancel, onsubmit }: Props = $props();
+
+  const cancelStatus = $derived(pending ? "disabled" : undefined);
+  const submitStatus = $derived(pending ? "pending" : checkedCount === 0 ? "disabled" : undefined);
 </script>
 
 <footer>
-  {#if total > 0}
-    <ReviewImpact {checked} tags={newTags} />
-  {/if}
-
+  <ReviewImpact {checkedCount} tags={newTags} />
   <div>
-    <Button variant="ghost" status={pending ? "disabled" : undefined} onclick={oncancel}>取消</Button>
-    <Button variant="primary" status={pending ? "pending" : checked === 0 ? "disabled" : undefined} onclick={onsubmit}>
+    <Button variant="ghost" status={cancelStatus} onclick={oncancel}>取消</Button>
+    <Button variant="primary" status={submitStatus} onclick={onsubmit}>
       <IconCheck size={16} />
-      <span>提交 {checked} 張</span>
+      <span>提交 {checkedCount} 張</span>
     </Button>
   </div>
 </footer>

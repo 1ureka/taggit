@@ -2,7 +2,7 @@
   import Chip from "$lib/components/display/Chip.svelte";
   import { IconInfoCircleFilled } from "$lib/icons";
 
-  let { checked, tags }: { checked: number; tags: string[] } = $props();
+  let { checkedCount, tags }: { checkedCount: number; tags: string[] } = $props();
 </script>
 
 {#snippet tag(t: string)}
@@ -16,7 +16,7 @@
 
 <div>
   <IconInfoCircleFilled size={16} />
-  {#if checked === 0}
+  {#if checkedCount === 0}
     <span>尚未勾選任何項目。</span>
   {:else if tags.length === 0}
     <span>此次變動不會產生新標籤。</span>

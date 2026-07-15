@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteSet } from "svelte/reactivity";
   import type { ReviewEntry } from "./ReviewModal.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
@@ -7,10 +6,12 @@
   import { IconAlertCircleFilled } from "$lib/icons";
 
   type Props = {
+    /** 可勾選的數量 */
+    checkableCount: number;
+    /** 已勾選的數量 */
+    checkedCount: number;
     /** 所有紀錄 */
     entries: ReviewEntry[];
-    /** 勾選的紀錄 */
-    checked: SvelteSet<string>;
     /** 點擊紀錄名稱：關閉本 modal 並繼續編輯該張 */
     onedit: (filename: string) => void;
     /** 點擊紀錄圖片：開啟大圖預覽 */
@@ -19,17 +20,15 @@
     ontoggle: (filename: string) => void;
     /** 點擊全選勾選框 */
     ontoggleall: () => void;
-    /** 某紀錄是否可勾選 */
-    isCheckable: (entry: ReviewEntry) => boolean;
-    /** 某紀錄是否提交失敗與提交失敗的原因 */
-    isFailure: (entry: ReviewEntry) => string;
   };
 
-  let { entries, checked, ontoggle, ontoggleall, onedit, onpreview, isCheckable, isFailure }: Props = $props();
+  let { checkableCount, checkedCount, entries, ontoggle, ontoggleall, onedit, onpreview }: Props = $props();
 
-  const eligible = $derived(entries.filter(isCheckable));
-  const allSelected = $derived(eligible.length > 0 && eligible.every((e) => checked.has(e.filename)));
-  const someSelected = $derived(eligible.some((e) => checked.has(e.filename)));
+  const bulkSelectionState = $derived.by(() => {
+    if (checkableCount === 0 || checkedCount === 0) return "unchecked";
+    if (checkableCount === checkedCount) return "checked";
+    return "indeterminate";
+  });
 </script>
 
 {#snippet thumbnail({ filename, imgSrc }: ReviewEntry)}
@@ -61,24 +60,21 @@
 <ul>
   <li class="select-all">
     <Checkbox
-      checked={allSelected}
-      indeterminate={someSelected && !allSelected}
-      status={eligible.length === 0 ? "disabled" : "default"}
+      checked={bulkSelectionState === "checked"}
+      indeterminate={bulkSelectionState === "indeterminate"}
+      status={checkableCount === 0 ? "disabled" : "default"}
       onchange={ontoggleall}
       aria-label="全選可提交的項目"
     />
     <span>全選</span>
-    <span>{checked.size} / {eligible.length} 可提交紀錄已選取</span>
+    <span>{entries.filter((e) => e.checked).length} / {checkableCount} 可提交紀錄已選取</span>
   </li>
 
   {#each entries as entry (entry.filename)}
-    {@const included = checked.has(entry.filename)}
-    {@const failure = isFailure(entry)}
-
-    <li class:excluded={!included}>
+    <li class:excluded={!entry.checked}>
       <Checkbox
-        checked={included}
-        status={isCheckable(entry) ? "default" : "disabled"}
+        checked={entry.checked}
+        status={entry.disabled ? "disabled" : "default"}
         onchange={() => ontoggle(entry.filename)}
         aria-label={`包含 ${entry.filename}`}
       />
@@ -94,8 +90,6 @@
 
         {#if entry.problem}
           <span class="problem"><IconAlertCircleFilled size={13} />{entry.problem}</span>
-        {:else if failure}
-          <span class="problem"><IconAlertCircleFilled size={13} />提交失敗：{failure}</span>
         {/if}
       </div>
     </li>
