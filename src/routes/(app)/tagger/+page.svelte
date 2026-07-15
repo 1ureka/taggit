@@ -14,8 +14,7 @@
   import Inspector from "./inspector/Inspector.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
-  import { emptyDraft, commitDrafts, type Draft } from "./inspector/draft";
-  import { buildStagedEntry } from "./list/stagedEntry";
+  import { emptyDraft, commitDrafts, isTouched, type Draft } from "./inspector/draft";
   import { buildReviewEntry, computeNewTags, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
   import { importRecords, type ImportProgress, type ImportResult } from "./header/import";
 
@@ -46,16 +45,12 @@
 
   /** 暫存圖片總數 */
   const fileCount = $derived(data.stagedFiles.length);
+  /** 被編輯過的暫存圖片 */
+  const touchedFiles = $derived(data.stagedFiles.filter((f) => drafts[f] && isTouched(drafts[f])));
   /** 目前編輯中的暫存圖片 */
   const activeFile = $derived(active !== null && data.stagedFiles.includes(active) ? active : null);
   /** 目前編輯中的暫存圖片的指標 */
   const activeIndex = $derived(activeFile !== null ? data.stagedFiles.indexOf(activeFile) + 1 : 0);
-  /** 暫存圖片清單 */
-  const stagedEntries = $derived.by(() => {
-    return data.stagedFiles.map((f) => buildStagedEntry(f, drafts[f] ?? emptyDraft(), f === activeFile));
-  });
-  /** 被編輯過的暫存圖片 */
-  const touchedFiles = $derived(stagedEntries.filter((e) => e.touched).map((e) => e.filename));
   /** 審查清單 */
   const reviewEntries = $derived.by(() => {
     return touchedFiles.map((f) => buildReviewEntry(f, drafts[f], checkedFiles.has(f), pending, failures[f]));
@@ -248,7 +243,7 @@
   />
 
   <div class="body">
-    <StagedList entries={stagedEntries} onselect={handleSelectFile} />
+    <StagedList files={data.stagedFiles} {drafts} {activeFile} onselect={handleSelectFile} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector
