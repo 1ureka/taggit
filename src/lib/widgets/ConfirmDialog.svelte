@@ -62,6 +62,7 @@
     font: var(--font-body1);
     color: var(--color-text-muted);
     white-space: pre-line;
+    overflow-wrap: anywhere;
   }
 
   footer {

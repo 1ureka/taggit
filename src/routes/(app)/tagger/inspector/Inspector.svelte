@@ -20,11 +20,22 @@
     pending: boolean;
     /** 點擊清空按紐 */
     onclear: () => void;
+    /** 點擊刪除按紐（含確認流程） */
+    ondelete: () => void;
     /** 點擊關閉面板按紐 (退出編輯該張) */
     onclose: () => void;
   };
 
-  let { fileCount, activeIndex, activeFile: file, draft = $bindable(), pending, onclear, onclose }: Props = $props();
+  let {
+    fileCount,
+    activeIndex,
+    activeFile: file,
+    draft = $bindable(),
+    pending,
+    onclear,
+    ondelete,
+    onclose,
+  }: Props = $props();
 </script>
 
 <aside>
@@ -34,7 +45,7 @@
   </ImageCanvas>
   <div>
     <InspectorFields {file} bind:draft />
-    <InspectorFooter {file} {pending} {onclear} />
+    <InspectorFooter {pending} {onclear} {ondelete} />
   </div>
 </aside>
 

@@ -1,28 +1,25 @@
 <script lang="ts">
   import Chip from "$lib/components/display/Chip.svelte";
+  import type { StagedEntry } from "./stagedEntry";
 
   type Props = {
-    /** 暫存檔案列表 */
-    files: string[];
-    /** 某張暫存檔案是否已編輯過草稿 */
-    isTouched: (file: string) => boolean;
-    /** 當前正在編輯草稿的暫存檔案 */
-    activeFile: string | null;
+    /** 暫存清單 */
+    entries: StagedEntry[];
     /** 點擊某張暫存檔案 */
     onselect: (file: string) => void;
   };
 
-  let { files, isTouched, activeFile, onselect }: Props = $props();
+  let { entries, onselect }: Props = $props();
 </script>
 
-<!-- TODO: 待重寫 (UI 上，資料留不動) -->
+<!-- TODO: 待重寫為卡片式 grid 佈局（比照 tagger-b StagedGrid，含縮圖、ready/blocked 標記與圖章模式）；資料投影已就緒 -->
 
 <ul class="staged-list">
-  {#each files as file (file)}
+  {#each entries as entry (entry.filename)}
     <li>
-      <button type="button" class:active={file === activeFile} onclick={() => onselect(file)}>
-        <span class="name ellipsis">{file}</span>
-        {#if isTouched(file)}
+      <button type="button" class:active={entry.current} onclick={() => onselect(entry.filename)}>
+        <span class="name ellipsis">{entry.filename}</span>
+        {#if entry.touched}
           <Chip variant="outlined" style="font: var(--font-caption); flex-shrink: 0;">已編輯</Chip>
         {/if}
       </button>

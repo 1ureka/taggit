@@ -3,8 +3,10 @@
   import { invalidateAll } from "$app/navigation";
   import type { PageData } from "./$types";
 
+  import { api } from "$lib/utils/request";
   import { formatError, isRecord } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
+  import { requestConfirm } from "$lib/widgets/confirm-events";
 
   import Toolbar from "./header/Toolbar.svelte";
   import ImportModal from "./header/ImportModal.svelte";
@@ -12,8 +14,9 @@
   import Inspector from "./inspector/Inspector.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
-  import { emptyDraft, isTouched, commitDrafts, type Draft } from "./inspector/draft";
-  import { buildEntry, computeNewTags, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
+  import { emptyDraft, commitDrafts, type Draft } from "./inspector/draft";
+  import { buildStagedEntry } from "./list/stagedEntry";
+  import { buildReviewEntry, computeNewTags, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
   import { importRecords, type ImportProgress, type ImportResult } from "./header/import";
 
   // ---
@@ -43,15 +46,19 @@
 
   /** 暫存圖片總數 */
   const fileCount = $derived(data.stagedFiles.length);
-  /** 被編輯過的暫存圖片 */
-  const touchedFiles = $derived(data.stagedFiles.filter((f) => drafts[f] && isTouched(drafts[f])));
   /** 目前編輯中的暫存圖片 */
   const activeFile = $derived(active !== null && data.stagedFiles.includes(active) ? active : null);
   /** 目前編輯中的暫存圖片的指標 */
   const activeIndex = $derived(activeFile !== null ? data.stagedFiles.indexOf(activeFile) + 1 : 0);
+  /** 暫存圖片清單 */
+  const stagedEntries = $derived.by(() => {
+    return data.stagedFiles.map((f) => buildStagedEntry(f, drafts[f] ?? emptyDraft(), f === activeFile));
+  });
+  /** 被編輯過的暫存圖片 */
+  const touchedFiles = $derived(stagedEntries.filter((e) => e.touched).map((e) => e.filename));
   /** 審查清單 */
   const reviewEntries = $derived.by(() => {
-    return touchedFiles.map((f) => buildEntry(f, drafts[f], checkedFiles.has(f), pending, failures[f]));
+    return touchedFiles.map((f) => buildReviewEntry(f, drafts[f], checkedFiles.has(f), pending, failures[f]));
   });
   /** 提交後會新增的標籤 */
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
@@ -173,6 +180,34 @@
     drafts[activeFile] = emptyDraft();
   };
 
+  const handleDeleteFile = async () => {
+    if (activeFile === null || pending) return;
+    const file = activeFile;
+
+    const msg = `確定要永久刪除 ${file}？此操作無法復原。`;
+    if (!(await requestConfirm(msg, { title: "永久刪除", action: "永久刪除" }))) return;
+
+    const idx = data.stagedFiles.indexOf(file);
+    const next = data.stagedFiles[idx + 1] ?? data.stagedFiles[idx - 1] ?? null;
+
+    pending = true;
+    try {
+      const res = await api.del(`/api/staged/${encodeURIComponent(file)}`);
+      if (!res.ok) {
+        addToast({ message: "刪除失敗" + (res.error ? `: ${res.error}` : ""), variant: "error" });
+        return;
+      }
+
+      delete drafts[file];
+      setActiveFile(next);
+      addToast({ message: `已永久刪除：${file}`, variant: "info" });
+
+      await invalidateAll();
+    } finally {
+      pending = false;
+    }
+  };
+
   const handleCloseInspector = () => {
     setActiveFile(null);
   };
@@ -181,6 +216,19 @@
 
   const handleSelectFile = (file: string) => {
     setActiveFile(file);
+  };
+
+  // ---
+
+  const handleRefresh = async () => {
+    if (pending) return;
+    pending = true;
+    try {
+      await invalidateAll();
+      addToast({ message: "暫存列表已更新", variant: "success" });
+    } finally {
+      pending = false;
+    }
   };
 </script>
 
@@ -194,17 +242,13 @@
     touchedCount={touchedFiles.length}
     {readyCount}
     {pending}
+    onrefresh={handleRefresh}
     onreview={handleOpenReview}
     onimport={handleOpenImport}
   />
 
   <div class="body">
-    <StagedList
-      files={data.stagedFiles}
-      isTouched={(f) => touchedFiles.includes(f)}
-      {activeFile}
-      onselect={handleSelectFile}
-    />
+    <StagedList entries={stagedEntries} onselect={handleSelectFile} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector
@@ -214,6 +258,7 @@
         {fileCount}
         {pending}
         onclear={handleClearDraft}
+        ondelete={handleDeleteFile}
         onclose={handleCloseInspector}
       />
     {:else}

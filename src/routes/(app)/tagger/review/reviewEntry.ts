@@ -22,7 +22,7 @@ export type ReviewEntry = {
 };
 
 /** 把一張暫存圖片的 draft 與外部旗標（勾選、上次失敗原因、是否處理中）拼成一列審查紀錄 */
-export function buildEntry(
+export function buildReviewEntry(
   filename: string,
   draft: Draft,
   checked: boolean,
