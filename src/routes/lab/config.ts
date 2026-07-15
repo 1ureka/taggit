@@ -160,7 +160,8 @@ export const showcaseSections: { category: ShowcaseCategory; cards: ShowcaseCard
         slug: "image-canvas",
         component: "ImageCanvas",
         label: "Zoom & pan, any content",
-        blurb: "Cursor-anchored zoom, rubber-band pan bounds — the content is just a snippet, images are the common case.",
+        blurb:
+          "Cursor-anchored zoom, rubber-band pan bounds — the content is just a snippet, images are the common case.",
       },
     ],
   },
@@ -171,13 +172,8 @@ export const showcaseSections: { category: ShowcaseCategory; cards: ShowcaseCard
         slug: "confirm-dialog",
         component: "ConfirmDialog",
         label: "Promise-based confirm",
-        blurb: "A global singleton mounted once in the shell — await requestConfirm() from anywhere and get a boolean back.",
-      },
-      {
-        slug: "blur-image",
-        component: "BlurImage",
-        label: "Blurhash placeholder",
-        blurb: "With a blurhash it remounts to show the placeholder; without one it keeps the last frame and dims while loading.",
+        blurb:
+          "A global singleton mounted once in the shell — await requestConfirm() from anywhere and get a boolean back.",
       },
     ],
   },
