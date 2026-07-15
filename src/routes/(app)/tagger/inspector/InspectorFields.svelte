@@ -3,7 +3,7 @@
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagInput from "$lib/widgets/TagInput.svelte";
-  import { stripExt, problemOf, type Draft } from "../logic/draft";
+  import { stripExt, problemOf, type Draft } from "./draft";
 
   let { file, draft = $bindable() }: { file: string; draft: Draft } = $props();
 

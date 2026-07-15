@@ -1,3 +1,5 @@
+import { api } from "$lib/utils/request";
+
 /** 每張暫存圖片的本地暫存（未送出的修改） */
 export type Draft = {
   /** 圖片名稱，留空代表沿用檔名 */
@@ -40,4 +42,30 @@ export function isReady(d: Draft): boolean {
 /** 去掉副檔名的檔名（未命名時的生效名稱） */
 export function stripExt(filename: string): string {
   return filename.replace(/\.[^.]+$/, "");
+}
+
+/** 批次提交端點的回傳結果 */
+type BatchItemResult = { filename: string; ok: boolean; error?: string };
+
+/**
+ * 批次提交暫存圖片。
+ * 回傳失敗項目的 `filename -> 錯誤訊息` 對映（全部成功時為空）。
+ * 傳輸層錯誤直接 throw。
+ */
+export async function commitDrafts(entries: { filename: string; draft: Draft }[]): Promise<Map<string, string>> {
+  const items = entries.map(({ filename, draft }) => ({
+    filename,
+    tags: draft.tags,
+    rating: draft.rating,
+    ...(draft.name.trim() ? { name: draft.name.trim() } : {}),
+  }));
+
+  const res = await api.post<{ results: BatchItemResult[] }>("/api/proto/staged-batch", { items });
+  if (!res.ok || !res.data) throw new Error(res.error || "提交失敗");
+
+  const failures = new Map<string, string>();
+  for (const r of res.data.results) {
+    if (!r.ok) failures.set(r.filename, r.error ?? "未知錯誤");
+  }
+  return failures;
 }

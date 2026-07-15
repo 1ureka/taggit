@@ -1,25 +1,27 @@
 <script lang="ts">
-  // TODO: 待完全刪除後完全重寫
-
   import Chip from "$lib/components/display/Chip.svelte";
-  import { isTouched, type Draft } from "../logic/draft";
 
   type Props = {
+    /** 暫存檔案列表 */
     files: string[];
-    drafts: Record<string, Draft>;
+    /** 某張暫存檔案是否已編輯過草稿 */
+    isTouched: (file: string) => boolean;
+    /** 當前正在編輯草稿的暫存檔案 */
     currentFile: string | null;
   };
 
-  let { files, drafts, currentFile = $bindable(null) }: Props = $props();
+  let { files, isTouched, currentFile = $bindable(null) }: Props = $props();
 </script>
+
+<!-- TODO: 待重寫 (UI 上，資料留不動) -->
 
 <ul class="staged-list">
   {#each files as file (file)}
-    {@const touched = drafts[file] !== undefined && isTouched(drafts[file])}
     <li>
       <button type="button" class:active={file === currentFile} onclick={() => (currentFile = file)}>
         <span class="name ellipsis">{file}</span>
-        {#if touched}<Chip variant="outlined" style="font: var(--font-caption); flex-shrink: 0;">已編輯</Chip>{/if}
+        {#if isTouched(file)}
+          <Chip variant="outlined" style="font: var(--font-caption); flex-shrink: 0;">已編輯</Chip>{/if}
       </button>
     </li>
   {:else}

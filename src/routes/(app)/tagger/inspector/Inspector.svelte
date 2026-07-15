@@ -2,7 +2,7 @@
   import { imgSrc } from "$lib/image/client";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
 
-  import type { Draft } from "../logic/draft";
+  import type { Draft } from "./draft";
   import InspectorHeader from "./InspectorHeader.svelte";
   import InspectorFields from "./InspectorFields.svelte";
   import InspectorFooter from "./InspectorFooter.svelte";
