@@ -1,22 +1,26 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
+  import SessionProgress from "./SessionProgress.svelte";
 
   type Props = {
+    /** 暫存區圖片總數 */
+    fileCount: number;
     /** 有本地修改、可送去審查的張數 */
-    reviewCount: number;
+    touchedCount: number;
+    /** 可提交的張數 */
+    readyCount: number;
     /** 前往審查流程時的處理函式 */
     onreview: () => void;
   };
 
-  let { reviewCount, onreview }: Props = $props();
+  let { fileCount, touchedCount, readyCount, onreview }: Props = $props();
 </script>
 
 <div class="toolbar">
-  <!-- TODO: SessionProgress 佔位，之後補上今天已提交張數等統計 -->
-  <div class="progress-slot"></div>
+  <SessionProgress {fileCount} {touchedCount} {readyCount} />
 
-  <Button variant="primary" status={reviewCount === 0 ? "disabled" : undefined} onclick={onreview}>
-    檢視待提交的變更 ({reviewCount})
+  <Button variant="primary" status={touchedCount === 0 ? "disabled" : undefined} onclick={onreview}>
+    檢視待提交的變更 ({touchedCount})
   </Button>
 </div>
 
@@ -28,10 +32,5 @@
     gap: 1rem;
     padding: 0.5rem 1rem;
     border-bottom: var(--border-style);
-  }
-
-  .progress-slot {
-    flex: 1;
-    min-width: 0;
   }
 </style>

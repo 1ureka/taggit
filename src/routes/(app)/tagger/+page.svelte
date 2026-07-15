@@ -47,6 +47,8 @@
   });
   /** 提交後會新增的標籤 */
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
+  /** 被編輯過且可提交的暫存圖片 */
+  const readyCount = $derived(reviewEntries.filter((e) => e.problem === null).length);
 
   // ---
 
@@ -136,7 +138,7 @@
 </svelte:head>
 
 <div class="page">
-  <Toolbar reviewCount={touchedFiles.length} onreview={handleOpenReview} />
+  <Toolbar {fileCount} touchedCount={touchedFiles.length} {readyCount} onreview={handleOpenReview} />
 
   <div class="body">
     <StagedList
