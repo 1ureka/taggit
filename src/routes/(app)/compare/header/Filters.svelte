@@ -1,27 +1,53 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { ImageQuery, IMAGE_SORTS } from "$lib/query-spec";
-
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
   import FilterPopover from "./FilterPopover.svelte";
   import FilterButton from "./FilterButton.svelte";
 
-  let { onapply }: { onapply: (query: ImageQuery) => void } = $props();
+  let { onchange }: { onchange: (query: ImageQuery) => void } = $props();
 
   const id = $props.id();
 
   let query = $derived(ImageQuery.fromSearchParams(page.url.searchParams));
-  let filterOpen = $state(false);
-  let filterAnchor = $state<HTMLElement>();
-
-  const apply = () => onapply(new ImageQuery(query.where, query.list));
+  let menuOpen = $state(false);
+  let menuAnchor = $state<HTMLElement>();
 
   const sortOptions = [...IMAGE_SORTS];
   const sortLabels: Record<string, string> = { committedAt: "時間", rating: "評分", name: "名稱", random: "隨機" };
-
   const orderOptions = ["desc", "asc"] as const;
   const orderLabels: Record<string, string> = { desc: "降冪", asc: "升冪" };
+
+  // ---
+
+  const handleToggleMenu = () => {
+    menuOpen = !menuOpen;
+  };
+
+  const handleCloseMenu = () => {
+    menuOpen = false;
+  };
+
+  const handleSearch = (search: string) => {
+    onchange(new ImageQuery(query.where.with({ search }), query.list));
+  };
+
+  const handleSortChange = (key: string) => {
+    if (key === "committedAt" || key === "rating" || key === "name" || key === "random") {
+      onchange(new ImageQuery(query.where, query.list.with({ sort: key })));
+    }
+  };
+
+  const handleOrderChange = (key: string) => {
+    if (key === "desc" || key === "asc") {
+      onchange(new ImageQuery(query.where, query.list.with({ order: key })));
+    }
+  };
+
+  const handleFilterChange = (query: ImageQuery) => {
+    onchange(query);
+  };
 </script>
 
 {#snippet sortOption(key: string)}{sortLabels[key] ?? key}{/snippet}
@@ -30,11 +56,11 @@
 <div class="filters">
   <div class="search">
     <SearchInput
-      bind:value={query.where.search}
       label="搜尋名稱"
       labelHidden
       placeholder="搜尋名稱…"
-      onsearch={() => apply()}
+      value={query.where.search}
+      onsearch={handleSearch}
     />
   </div>
 
@@ -43,24 +69,30 @@
     aria-label="排序欄位"
     options={sortOptions}
     option={sortOption}
-    bind:value={query.list.sort}
-    onchange={() => apply()}
+    value={query.list.sort}
+    onchange={handleSortChange}
   />
   <Select
     id="{id}-order"
     aria-label="排序方向"
     options={orderOptions}
     option={orderOption}
-    bind:value={query.list.order}
-    onchange={() => apply()}
+    value={query.list.order}
+    onchange={handleOrderChange}
     status={query.list.sort === "random" ? "disabled" : "default"}
   />
 
-  <span bind:this={filterAnchor}>
-    <FilterButton aria-expanded={filterOpen} onclick={() => (filterOpen = !filterOpen)} />
+  <span bind:this={menuAnchor}>
+    <FilterButton aria-expanded={menuOpen} onclick={handleToggleMenu} />
   </span>
 
-  <FilterPopover bind:open={filterOpen} reference={filterAnchor} bind:query onchange={() => apply()} />
+  <FilterPopover
+    open={menuOpen}
+    reference={menuAnchor}
+    {query}
+    onchange={handleFilterChange}
+    onclose={handleCloseMenu}
+  />
 </div>
 
 <style>

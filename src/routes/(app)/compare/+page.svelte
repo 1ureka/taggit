@@ -7,11 +7,9 @@
   import { api } from "$lib/utils/request";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
-  import InverseRadius from "$lib/widgets/InverseRadius.svelte";
   import Toolbar from "./header/Toolbar.svelte";
-  import List from "./list/List.svelte";
+  import Panel from "./list/Panel.svelte";
   import Cards from "./cards/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -111,133 +109,24 @@
       pending = false;
     }
   };
-
-  // ─── 左面板開關（與主頁同一套 --left-panel-width 模式，跨頁共用開關狀態）───
-
-  $effect(() => {
-    if (window.innerWidth < 600) {
-      document.documentElement.style.setProperty("--left-panel-width", "0px");
-    }
-  });
-
-  const handleTogglePanel = () => {
-    const root = document.documentElement;
-    const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
-
-    if (!property.trim()) {
-      root.style.setProperty("--left-panel-width", "0px");
-    } else {
-      root.style.removeProperty("--left-panel-width");
-    }
-  };
 </script>
 
 <svelte:head>
   <title>Compare</title>
 </svelte:head>
 
-<div class="page slide-up">
-  <Toolbar {pending} onapply={applyQuery} onshuffle={shuffle} onrefresh={handleRefresh} />
-
-  <div class="body">
-    <div class="left-panel-spacer"></div>
-
+<div>
+  <Toolbar {pending} onquery={applyQuery} onshuffle={shuffle} onrefresh={handleRefresh} />
+  <Panel items={data.items} total={data.total} {pinnedIds} ontoggle={togglePin}>
     <Cards {pinnedRecords} {pending} onunpin={togglePin} onrevert={handleRevert} />
-
-    <aside class="left-panel">
-      <List items={data.items} total={data.total} {pinnedIds} ontoggle={togglePin} />
-
-      <button
-        type="button"
-        aria-label="開合圖庫列表"
-        {@attach tooltip({ content: "開合圖庫列表", placement: "right" })}
-        onclick={handleTogglePanel}
-      >
-        <InverseRadius corner="bottom-left" size="16px" />
-      </button>
-    </aside>
-  </div>
+  </Panel>
 </div>
 
 <style>
-  .page {
+  div {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
-  }
-
-  .body {
-    position: relative;
-    display: flex;
-    align-items: stretch;
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* ─── 左面板（與主頁同一套 spacer + 絕對定位 + CSS 變數模式）─── */
-
-  div.left-panel-spacer {
-    width: var(--left-panel-width, 280px);
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    @media (max-width: 600px) {
-      width: 0px;
-    }
-  }
-
-  aside.left-panel {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    overflow: visible;
-    background: var(--color-bg-card);
-    border-right: var(--border-style);
-    width: 280px;
-    transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    @media (max-width: 600px) {
-      width: calc(100% - 32px);
-      transform: translateX(calc(-100% + var(--left-panel-width, 100%)));
-    }
-  }
-
-  aside.left-panel > button {
-    position: absolute;
-    overflow: visible;
-    top: 0;
-    left: 100%;
-    width: 32px;
-    height: 100px;
-    background-color: var(--color-bg-card);
-    border-bottom-right-radius: 16px;
-    border: var(--border-style);
-    border-top: 0px;
-    border-left: 0px;
-
-    display: grid;
-    place-items: center;
-
-    &::after {
-      content: "";
-      display: block;
-      width: 20%;
-      height: 60%;
-      background: var(--color-border);
-      border-radius: 999px;
-      transition:
-        background 0.15s,
-        transform 0.15s;
-    }
-
-    &:hover::after {
-      background: var(--color-border-hover);
-      scale: 1.05;
-    }
-
-    &:active::after {
-      scale: 0.95;
-    }
   }
 </style>

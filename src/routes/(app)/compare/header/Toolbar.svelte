@@ -6,19 +6,19 @@
   type Props = {
     /** 全頁共用的操作鎖 */
     pending: boolean;
-    /** 套用查詢：由頁面寫回 URL（保留 pinned）並重跑 load */
-    onapply: (query: ImageQuery) => void;
-    /** 隨機抽選 N 張 */
+    /** 查詢值物件改變事件 */
+    onquery: (query: ImageQuery) => void;
+    /** 隨機抽選事件 */
     onshuffle: (count: number) => void;
-    /** 重新整理列表 */
+    /** 重新整理事件 */
     onrefresh: () => void;
   };
 
-  let { pending, onapply, onshuffle, onrefresh }: Props = $props();
+  let { pending, onquery, onshuffle, onrefresh }: Props = $props();
 </script>
 
 <div>
-  <Filters {onapply} />
+  <Filters onchange={onquery} />
   <Actions {pending} {onshuffle} {onrefresh} />
 </div>
 

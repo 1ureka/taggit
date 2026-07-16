@@ -4,13 +4,13 @@
   import ListItems from "./ListItems.svelte";
 
   type Props = {
-    /** 當前篩選結果（列表項） */
+    /** 篩選結果列表 */
     items: ImageWithId[];
     /** 篩選結果總數 */
     total: number;
     /** 已釘選的圖片 ids */
     pinnedIds: string[];
-    /** 點擊列表項：切換釘選 */
+    /** 切換釘選事件 */
     ontoggle: (id: string) => void;
   };
 
