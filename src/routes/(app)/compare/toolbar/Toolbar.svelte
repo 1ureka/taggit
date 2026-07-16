@@ -2,12 +2,13 @@
   import { page } from "$app/state";
   import { ImageQuery, ImageWhere, ListOptions, IMAGE_SORTS, type ImageSort } from "$lib/query-spec";
 
-  import { IconArrowsShuffle, IconFilter, IconReload } from "$lib/icons";
+  import { IconArrowsShuffle, IconReload } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import FilterPopover from "./FilterPopover.svelte";
+  import FilterButton from "./FilterButton.svelte";
 
   type Props = {
     /** 全頁共用的操作鎖 */
@@ -37,13 +38,6 @@
 
   /** 標籤分面查詢的 scope：當前 URL 的圖片篩選條件 */
   const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
-
-  /** 作用中的進階條件數（以 URL 解析值為準） */
-  const advancedCount = $derived(
-    (query.where.includedTags.length > 0 ? 1 : 0) +
-      (query.where.excludedTags.length > 0 ? 1 : 0) +
-      (query.where.rating !== undefined ? 1 : 0),
-  );
 
   // ---
 
@@ -111,18 +105,7 @@
     />
 
     <span bind:this={filterAnchor}>
-      <Button
-        variant="outlined"
-        aria-expanded={filterOpen}
-        aria-label="進階篩選"
-        onclick={() => (filterOpen = !filterOpen)}
-      >
-        <IconFilter size={16} />
-        <span>篩選</span>
-        {#if advancedCount > 0}
-          <span class="badge">{advancedCount}</span>
-        {/if}
-      </Button>
+      <FilterButton aria-expanded={filterOpen} onclick={() => (filterOpen = !filterOpen)} />
     </span>
   </div>
 
@@ -184,19 +167,5 @@
 
   .search {
     width: clamp(8rem, 24vw, 16rem);
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.125rem;
-    height: 1.125rem;
-    padding: 0 0.25rem;
-    font: var(--font-caption);
-    font-family: var(--font-family-mono);
-    color: var(--color-bg);
-    background: var(--color-text);
-    border-radius: 9999px;
   }
 </style>
