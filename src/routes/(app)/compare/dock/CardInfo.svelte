@@ -49,8 +49,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
-    padding: 1.5rem;
+    padding: 0.25rem;
     padding-top: 0.75rem;
+    padding-bottom: 1.5rem;
   }
 
   div.info > div {
