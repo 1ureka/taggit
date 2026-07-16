@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from "$app/state";
+  import { ImageWhere } from "$lib/query-spec";
   import Popover from "$lib/components/floating/Popover.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import TagInput from "$lib/widgets/TagInput.svelte";
@@ -16,8 +18,6 @@
     ratingKey: string | undefined;
     /** 評等比較運算 key（雙向綁定） */
     ratingOpKey: string | undefined;
-    /** 標籤分面查詢的 scope */
-    facetScope: string;
     /** 任一欄位變動即套用 */
     onchange: () => void;
   };
@@ -29,11 +29,11 @@
     excludedTags = $bindable(),
     ratingKey = $bindable(),
     ratingOpKey = $bindable(),
-    facetScope,
     onchange,
   }: Props = $props();
 
   const id = $props.id();
+  const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
 
   let panelRef = $state<HTMLDivElement>();
 

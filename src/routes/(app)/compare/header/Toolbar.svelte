@@ -2,13 +2,11 @@
   import { page } from "$app/state";
   import { ImageQuery, ImageWhere, ListOptions, IMAGE_SORTS, type ImageSort } from "$lib/query-spec";
 
-  import { IconArrowsShuffle, IconReload } from "$lib/icons";
-  import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import FilterPopover from "./FilterPopover.svelte";
   import FilterButton from "./FilterButton.svelte";
+  import Actions from "./Actions.svelte";
 
   type Props = {
     /** 全頁共用的操作鎖 */
@@ -35,9 +33,6 @@
   let ratingOpKey = $derived<string | undefined>(query.where.ratingOp);
   let sortKey = $derived<string | undefined>(query.list.sort);
   let orderKey = $derived<string | undefined>(query.list.order);
-
-  /** 標籤分面查詢的 scope：當前 URL 的圖片篩選條件 */
-  const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
 
   // ---
 
@@ -67,9 +62,6 @@
   const orderOptions = ["desc", "asc"];
   const orderLabels: Record<string, string> = { desc: "降冪", asc: "升冪" };
 
-  const shuffleOptions = ["2", "3", "4", "6"];
-  let shuffleKey = $state<string | undefined>("2");
-
   // ---
 
   let filterOpen = $state(false);
@@ -78,7 +70,6 @@
 
 {#snippet sortOption(key: string)}{sortLabels[key] ?? key}{/snippet}
 {#snippet orderOption(key: string)}{orderLabels[key] ?? key}{/snippet}
-{#snippet shuffleOption(key: string)}{`抽 ${key} 張`}{/snippet}
 
 <div class="toolbar">
   <div class="filters">
@@ -109,31 +100,7 @@
     </span>
   </div>
 
-  <div class="actions">
-    <Button
-      variant="ghost"
-      padding="icon"
-      aria-label="重新整理"
-      status={pending ? "pending" : undefined}
-      onclick={onrefresh}
-      {@attach tooltip({ content: "重新整理" })}
-    >
-      <IconReload size={16} />
-    </Button>
-
-    <Select
-      id="{id}-shuffle-count"
-      aria-label="抽選張數"
-      options={shuffleOptions}
-      option={shuffleOption}
-      bind:value={shuffleKey}
-      matchWidth={false}
-    />
-    <Button variant="primary" onclick={() => onshuffle(Number(shuffleKey ?? "2"))}>
-      <IconArrowsShuffle size={16} />
-      <span>隨機抽選</span>
-    </Button>
-  </div>
+  <Actions {pending} {onshuffle} {onrefresh} />
 </div>
 
 <FilterPopover
@@ -143,7 +110,6 @@
   bind:excludedTags
   bind:ratingKey
   bind:ratingOpKey
-  {facetScope}
   onchange={() => apply()}
 />
 
@@ -158,8 +124,7 @@
     border-bottom: var(--border-style);
   }
 
-  .filters,
-  .actions {
+  .filters {
     display: flex;
     align-items: center;
     gap: 0.5rem;
