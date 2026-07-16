@@ -1,7 +1,7 @@
 <script lang="ts">
   import { imgSrc } from "$lib/image/client";
-  import { IconCheckFilled, IconAlertCircleFilled } from "$lib/icons";
   import { emptyDraft, isTouched, problemOf, type Draft } from "../inspector/draft";
+  import StagedCardInfo from "./StagedCardInfo.svelte";
 
   type Props = {
     /** 暫存圖片的檔名 */
@@ -23,27 +23,7 @@
 
 <button type="button" class:active={filename === activeFile} onclick={() => onselect(filename)}>
   <img src={imgSrc(filename, "sm")} alt={filename} loading="lazy" />
-
-  <div class="info">
-    <span class="name ellipsis">{filename}</span>
-    {#if touched}
-      <span class="mark" title={problem ?? "可提交"}>
-        {#if problem === null}
-          <IconCheckFilled size={14} color="var(--color-success)" />
-        {:else}
-          <IconAlertCircleFilled size={14} color="var(--color-warning)" />
-        {/if}
-      </span>
-    {/if}
-  </div>
-
-  {#if touched}
-    <div class="draft">
-      {#if draft.rating > 0}<span>★{draft.rating}</span>{/if}
-      {#if draft.tags.length > 0}<span>{draft.tags.length} 標籤</span>{/if}
-      {#if draft.name}<span class="ellipsis">「{draft.name.trim()}」</span>{/if}
-    </div>
-  {/if}
+  <StagedCardInfo {filename} {touched} {problem} name={draft.name} rating={draft.rating} tagCount={draft.tags.length} />
 </button>
 
 <style>
@@ -80,38 +60,5 @@
     min-height: 0;
     object-fit: cover;
     background: var(--color-bg);
-  }
-
-  .info {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem;
-
-    & > .name {
-      flex: 1;
-      min-width: 0;
-      font: var(--font-caption);
-      color: var(--color-text-muted);
-    }
-
-    & > .mark {
-      display: inline-flex;
-      flex-shrink: 0;
-    }
-  }
-
-  .draft {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-    padding: 0 0.5rem 0.375rem;
-    font: var(--font-caption);
-    color: var(--color-text-muted);
-
-    & > span:not(:nth-of-type(3)) {
-      flex-shrink: 0;
-    }
   }
 </style>
