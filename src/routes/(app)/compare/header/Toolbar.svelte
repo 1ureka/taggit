@@ -29,7 +29,8 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem 1rem;
-    padding: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 3rem;
     border-bottom: var(--border-style);
   }
 </style>

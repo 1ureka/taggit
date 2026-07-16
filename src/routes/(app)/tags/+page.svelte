@@ -369,12 +369,7 @@
       >
         <IconReload size={16} />
       </Button>
-      <ButtonLink
-        variant="outlined"
-        href="/tags/cleanup"
-        status="disabled"
-        title="清理助手（尚未遷移）"
-      >
+      <ButtonLink variant="outlined" href="/tags/cleanup" status="disabled" title="清理助手（尚未遷移）">
         <span>清理工具</span>
         <IconArrowRight size={16} />
       </ButtonLink>
@@ -497,7 +492,8 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem 1rem;
-    padding: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 3rem;
     border-bottom: var(--border-style);
   }
 

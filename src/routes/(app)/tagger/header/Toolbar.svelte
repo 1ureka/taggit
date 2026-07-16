@@ -54,7 +54,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 3rem;
     border-bottom: var(--border-style);
   }
 
