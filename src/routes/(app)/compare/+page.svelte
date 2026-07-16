@@ -12,7 +12,7 @@
   import InverseRadius from "./list/InverseRadius.svelte";
   import Toolbar from "./header/Toolbar.svelte";
   import List from "./list/List.svelte";
-  import Cards from "./dock/Cards.svelte";
+  import Cards from "./cards/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 

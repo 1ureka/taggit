@@ -10,7 +10,7 @@
 
   import Toolbar from "./header/Toolbar.svelte";
   import ImportModal from "./header/ImportModal.svelte";
-  import StagedGrid from "./wall/StagedGrid.svelte";
+  import Cards from "./cards/Cards.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import Lightbox from "./inspector/Lightbox.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
@@ -295,7 +295,7 @@
   />
 
   <div class="body">
-    <StagedGrid stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleOpenInspector} />
+    <Cards stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleOpenInspector} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector

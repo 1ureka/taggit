@@ -1,7 +1,7 @@
 <script lang="ts">
   import { imgSrc } from "$lib/image/client";
   import { emptyDraft, isTouched, problemOf, type Draft } from "../inspector/draft";
-  import StagedCardInfo from "./StagedCardInfo.svelte";
+  import StagedCardInfo from "./CardInfo.svelte";
 
   type Props = {
     /** 暫存圖片的檔名 */
