@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SvelteSet } from "svelte/reactivity";
-  import { invalidateAll } from "$app/navigation";
+  import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
   import { api } from "$lib/utils/request";
@@ -12,6 +12,7 @@
   import ImportModal from "./header/ImportModal.svelte";
   import StagedGrid from "./wall/StagedGrid.svelte";
   import Inspector from "./inspector/Inspector.svelte";
+  import Lightbox from "./inspector/Lightbox.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
   import { emptyDraft, commitDrafts, isTouched, type Draft } from "./inspector/draft";
@@ -38,6 +39,8 @@
   let importProgress = $state<ImportProgress | null>(null);
   /** 上一次匯入完成後的結果摘要 */
   let importResult = $state<ImportResult | null>(null);
+  /** 大圖預覽中的檔名，使用者的原始意圖，不主動清除 */
+  let lightboxFile = $state<string | null>(null);
   /** 目前審查清單的勾選狀態，使用者的原始意圖，不主動清除 */
   const checkedFiles = new SvelteSet<string>();
 
@@ -59,12 +62,26 @@
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
   /** 被編輯過且可提交的暫存圖片 */
   const readyCount = $derived(reviewEntries.filter((e) => e.problem === null).length);
+  /** 目前全螢幕預覽中的暫存圖片 */
+  const lightbox = $derived.by(() => {
+    if (lightboxFile === null) return null;
+    const index = data.stagedFiles.indexOf(lightboxFile);
+    if (index < 0) return null;
+    return { filename: data.stagedFiles[index], index };
+  });
 
   // ---
 
   const setActiveFile = (file: string | null) => {
     if (file !== null) drafts[file] ??= emptyDraft();
     active = file;
+  };
+
+  const navigateLightbox = (delta: number) => {
+    if (!lightbox || lightbox.index < 0) return;
+    const files = data.stagedFiles;
+    const next = Math.min(files.length - 1, Math.max(0, lightbox.index + delta));
+    lightboxFile = files[next];
   };
 
   // ---
@@ -99,26 +116,38 @@
 
   // ---
 
-  const handleOpenReview = () => {
+  const handleReviewOpen = () => {
     failures = {};
     reviewOpen = true;
   };
 
-  const handleToggleReview = (filename: string) => {
+  const handleReviewToggle = (filename: string) => {
     toggleEntry(checkedFiles, filename);
   };
 
-  const handleToggleAllReview = () => {
+  const handleReviewToggleAll = () => {
     toggleAllEntries(checkedFiles, reviewEntries);
   };
 
-  const handleEditFromReview = (filename: string) => {
+  const handleReviewEdit = (filename: string) => {
     reviewOpen = false;
     setActiveFile(filename);
   };
 
-  const handlePreviewFromReview = (filename: string) => {
-    addToast({ message: `（尚未實作）大圖預覽：${filename}`, variant: "info" });
+  const handleLightboxOpen = (filename?: string) => {
+    lightboxFile = filename ?? activeFile;
+  };
+
+  const handleLightboxClose = () => {
+    lightboxFile = null;
+  };
+
+  const handleLightboxPrev = () => {
+    navigateLightbox(-1);
+  };
+
+  const handleLightboxNext = () => {
+    navigateLightbox(1);
   };
 
   const handleReviewClose = () => {
@@ -207,9 +236,7 @@
     setActiveFile(null);
   };
 
-  // ---
-
-  const handleSelectFile = (file: string) => {
+  const handleOpenInspector = (file: string) => {
     setActiveFile(file);
   };
 
@@ -219,13 +246,38 @@
     if (pending) return;
     pending = true;
     try {
+      await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
       await invalidateAll();
       addToast({ message: "暫存列表已更新", variant: "success" });
     } finally {
       pending = false;
     }
   };
+
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (touchedFiles.length > 0) e.preventDefault();
+  };
+
+  beforeNavigate((nav) => {
+    if (nav.type === "leave") return;
+    if (touchedFiles.length === 0) return;
+
+    nav.cancel();
+
+    const to = nav.to; // 型別收窄
+    if (!to) return;
+
+    const msg = `還有 ${touchedFiles.length} 張圖片的暫存尚未提交，離開將會遺失這些修改。確定要離開？`;
+    requestConfirm(msg, { title: "尚未提交的變更", action: "離開" }).then((confirmed) => {
+      if (!confirmed) return;
+
+      drafts = {};
+      goto(to.url.href);
+    });
+  });
 </script>
+
+<svelte:window onbeforeunload={handleBeforeUnload} />
 
 <svelte:head>
   <title>Tagger</title>
@@ -238,12 +290,12 @@
     {readyCount}
     {pending}
     onrefresh={handleRefresh}
-    onreview={handleOpenReview}
+    onreview={handleReviewOpen}
     onimport={handleOpenImport}
   />
 
   <div class="body">
-    <StagedGrid stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleSelectFile} />
+    <StagedGrid stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleOpenInspector} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector
@@ -255,6 +307,7 @@
         onclear={handleClearDraft}
         ondelete={handleDeleteFile}
         onclose={handleCloseInspector}
+        onexpand={handleLightboxOpen}
       />
     {/if}
   </div>
@@ -265,12 +318,12 @@
   entries={reviewEntries}
   {newTags}
   {pending}
-  onclose={handleReviewClose}
   onsubmit={handleSubmit}
-  onedit={handleEditFromReview}
-  onpreview={handlePreviewFromReview}
-  ontoggle={handleToggleReview}
-  ontoggleall={handleToggleAllReview}
+  onclose={handleReviewClose}
+  onedit={handleReviewEdit}
+  ontoggle={handleReviewToggle}
+  ontoggleall={handleReviewToggleAll}
+  onpreview={handleLightboxOpen}
 />
 
 <ImportModal
@@ -280,6 +333,14 @@
   result={importResult}
   onclose={handleImportClose}
   onimport={handleImportFile}
+/>
+
+<Lightbox
+  image={lightbox}
+  total={fileCount}
+  onclose={handleLightboxClose}
+  onprev={handleLightboxPrev}
+  onnext={handleLightboxNext}
 />
 
 <style>
