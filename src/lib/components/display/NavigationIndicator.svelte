@@ -1,24 +1,19 @@
 <script lang="ts">
-  import { beforeNavigate, afterNavigate } from "$app/navigation";
+  import { untrack } from "svelte";
+  import { navigating } from "$app/state";
 
   type Phase = "idle" | "loading" | "completing";
   let phase: Phase = $state("idle");
-  let timeout: ReturnType<typeof setTimeout>;
 
-  beforeNavigate(() => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      phase = "loading";
-    }, 100);
-  });
-
-  afterNavigate(() => {
-    clearTimeout(timeout);
-    if (phase === "loading") {
-      phase = "completing";
-    } else {
-      phase = "idle";
-    }
+  $effect(() => {
+    const inProgress = navigating.type !== null;
+    untrack(() => {
+      if (inProgress) {
+        phase = "loading";
+      } else if (phase === "loading") {
+        phase = "completing";
+      }
+    });
   });
 
   function onanimationend() {
@@ -56,7 +51,7 @@
   }
 
   .navigation-indicator.completing {
-    animation: nav-fade-out 450ms ease 80ms forwards;
+    animation: nav-fade-out 450ms ease 200ms forwards;
   }
 
   .bar {
