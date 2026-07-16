@@ -5,7 +5,7 @@
  * 來自 `POST /api/proto/tags-preview`（見 `./api.ts`），在此與本地變更集拼成審查條目。
  */
 
-import type { TagProjection } from "$lib/query";
+import type { ChangesetPreview } from "$lib/query-spec";
 
 /** 標籤放上畫布當下的快照（不依賴全量字典；count/hidden 可能過期，送出時以後端現實為準） */
 export type TagSnapshot = {
@@ -34,7 +34,11 @@ export type TagChangeset = {
 };
 
 /** 由畫布狀態推導變更集 */
-export function changesetFromBoard(groups: MergeGroup[], deleteList: TagSnapshot[], toggleList: TagSnapshot[]): TagChangeset {
+export function changesetFromBoard(
+  groups: MergeGroup[],
+  deleteList: TagSnapshot[],
+  toggleList: TagSnapshot[],
+): TagChangeset {
   const cs: TagChangeset = { renames: {}, deletes: [], hidden: {} };
   for (const g of groups) {
     const canonical = g.canonical.trim();
@@ -90,7 +94,7 @@ export type ChangeEntry = {
 export function changesetEntries(
   cs: TagChangeset,
   snapshotOf: (name: string) => TagSnapshot | undefined,
-  projection: TagProjection | null,
+  projection: ChangesetPreview | null,
 ): ChangeEntry[] {
   const deletes = new Set(cs.deletes);
   const renameTargets = new Map<string, number>();

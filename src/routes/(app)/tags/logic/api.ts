@@ -4,11 +4,11 @@
  */
 
 import { api } from "$lib/utils/request";
-import type { TagProjection } from "$lib/query";
+import type { Changeset, ChangesetPreview } from "$lib/query-spec";
 import { renameKey, deleteKey, hiddenKey, type TagChangeset } from "./changeset";
 
 /** 變更集轉為 tags-preview / tags-batch 共用的 body 形狀 */
-function toPayload(cs: TagChangeset, included?: Set<string>) {
+function toPayload(cs: TagChangeset, included?: Set<string>): Changeset {
   const want = (key: string) => included === undefined || included.has(key);
   return {
     deletes: cs.deletes.filter((n) => want(deleteKey(n))),
@@ -22,8 +22,8 @@ function toPayload(cs: TagChangeset, included?: Set<string>) {
 }
 
 /** 取得變更集的套用前預覽。傳輸層錯誤直接 throw。 */
-export async function fetchProjection(cs: TagChangeset): Promise<TagProjection> {
-  const res = await api.post<TagProjection>("/api/proto/tags-preview", toPayload(cs));
+export async function fetchProjection(cs: TagChangeset): Promise<ChangesetPreview> {
+  const res = await api.post<ChangesetPreview>("/api/proto/tags-preview", toPayload(cs));
   if (!res.ok || !res.data) throw new Error(res.error || "預覽失敗");
   return res.data;
 }

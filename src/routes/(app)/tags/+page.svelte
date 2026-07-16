@@ -2,9 +2,8 @@
   import { SvelteMap, SvelteSet } from "svelte/reactivity";
   import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
-  import type { TagProjection } from "$lib/query";
 
-  import { ImageWhere } from "$lib/query-spec";
+  import { ImageWhere, type ChangesetPreview } from "$lib/query-spec";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
@@ -188,7 +187,7 @@
 
   // ─── 變更集預估：畫布變動去抖後查 tags-preview，審查 modal 開啟時再查一次 ───
 
-  let projection = $state<TagProjection | null>(null);
+  let projection = $state<ChangesetPreview | null>(null);
   let projectionPending = $state(false);
   let previewSeq = 0;
   let previewTimer: ReturnType<typeof setTimeout>;

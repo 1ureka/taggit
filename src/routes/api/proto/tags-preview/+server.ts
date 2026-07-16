@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { Database } from "$lib/database";
-import { projectChangeset } from "$lib/query";
+import { Query } from "$lib/query";
 
 import { isRecord } from "$lib/utils/shared";
 import { parseBody } from "$lib/utils/server";
@@ -22,20 +22,21 @@ export const POST: RequestHandler = async ({ request }) => {
   const [body, parseErr] = await parseBody(request);
   if (parseErr) return parseErr;
 
-  const deletes = (Array.isArray(body.deletes) ? body.deletes : []).filter(
-    (x): x is string => typeof x === "string",
-  );
+  const deletes = (Array.isArray(body.deletes) ? body.deletes : []).filter((x): x is string => typeof x === "string");
   const renames = (Array.isArray(body.renames) ? body.renames : [])
     .filter((x): x is Record<string, unknown> => isRecord(x) && typeof x.from === "string" && typeof x.to === "string")
     .map((x) => ({ from: x.from as string, to: x.to as string }));
   const hidden = (Array.isArray(body.hidden) ? body.hidden : [])
-    .filter((x): x is Record<string, unknown> => isRecord(x) && typeof x.name === "string" && typeof x.hidden === "boolean")
+    .filter(
+      (x): x is Record<string, unknown> => isRecord(x) && typeof x.name === "string" && typeof x.hidden === "boolean",
+    )
     .map((x) => ({ name: x.name as string, hidden: x.hidden as boolean }));
 
   if (deletes.length + renames.length + hidden.length === 0) {
     return json({ ok: false, error: "變更集為空" }, { status: 400 });
   }
 
-  const projection = projectChangeset(Database.requireLoaded(), { deletes, renames, hidden });
+  const query = new Query(Database.requireLoaded());
+  const projection = query.changeset({ deletes, renames, hidden });
   return json({ ok: true, data: projection });
 };

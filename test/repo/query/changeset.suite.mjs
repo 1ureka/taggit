@@ -1,11 +1,12 @@
 /**
- * @file projection.suite.mjs
- * 標籤變更集預覽（projectChangeset）：逐標籤現況（exists/count/hidden、meta-only 標籤）、
+ * @file changeset.suite.mjs
+ * 標籤變更集預覽（Query.changeset）：逐標籤現況（exists/count/hidden、meta-only 標籤）、
  * 合併預估（位圖聯集：既存目標、全新目標、多來源同目標）、刪除清空統計
  * （emptiedBy / emptiedTotal），以及純讀取保證（不改動 db 的真相與索引）。
+ * 契約見 src/lib/query-spec/changeset.ts，執行器見 src/lib/query/changeset.ts。
  */
 
-export const name = "tag projection (changeset preview)";
+export const name = "tag changeset preview (Query.changeset)";
 
 /**
  * fixture：
@@ -22,13 +23,14 @@ function seed(h) {
 }
 
 export async function run(t, h) {
-  const { projectChangeset, Query } = h.modules;
+  const { Query } = h.modules;
 
   const db = seed(h);
+  const q = new Query(db);
 
   // ── 合併到既存目標：cats -> cat，聯集 i1,i2,i3 = 3 ──
   {
-    const p = projectChangeset(db, { deletes: [], renames: [{ from: "cats", to: "cat" }], hidden: [] });
+    const p = q.changeset({ deletes: [], renames: [{ from: "cats", to: "cat" }], hidden: [] });
     t.eq("合併後張數 = 位圖聯集大小", p.mergedCounts["cat"], 3);
     t.eq("來源現況 count", p.tags["cats"], { exists: true, count: 2, hidden: false });
     t.eq("目標現況 count", p.tags["cat"], { exists: true, count: 2, hidden: false });
@@ -36,14 +38,14 @@ export async function run(t, h) {
 
   // ── rename 到全新名稱：目標不存在，張數 = 來源使用數 ──
   {
-    const p = projectChangeset(db, { deletes: [], renames: [{ from: "dog", to: "doggo" }], hidden: [] });
+    const p = q.changeset({ deletes: [], renames: [{ from: "dog", to: "doggo" }], hidden: [] });
     t.eq("改名到新名稱的張數", p.mergedCounts["doggo"], 1);
     t.eq("全新目標 exists=false", p.tags["doggo"].exists, false);
   }
 
   // ── 多來源指向同一（全新）目標：cat ∪ cats = i1,i2,i3 = 3 ──
   {
-    const p = projectChangeset(db, {
+    const p = q.changeset({
       deletes: [],
       renames: [
         { from: "cat", to: "pet" },
@@ -56,7 +58,7 @@ export async function run(t, h) {
 
   // ── 刪除清空統計：刪 cat+cats → i2(cats)、i3(cat,cats) 全滅；i1 因 cute 倖存 ──
   {
-    const p = projectChangeset(db, { deletes: ["cat", "cats"], renames: [], hidden: [] });
+    const p = q.changeset({ deletes: ["cat", "cats"], renames: [], hidden: [] });
     t.eq("emptiedTotal（i2、i3）", p.emptiedTotal, 2);
     t.eq("emptiedBy cat（僅 i3）", p.emptiedBy["cat"], 1);
     t.eq("emptiedBy cats（i2、i3）", p.emptiedBy["cats"], 2);
@@ -64,7 +66,7 @@ export async function run(t, h) {
 
   // ── 單刪不足以清空時統計為 0 ──
   {
-    const p = projectChangeset(db, { deletes: ["cute"], renames: [], hidden: [] });
+    const p = q.changeset({ deletes: ["cute"], renames: [], hidden: [] });
     t.eq("cute 不會清空任何圖片（i1 還有 cat）", p.emptiedBy["cute"], 0);
     t.eq("emptiedTotal 0", p.emptiedTotal, 0);
   }
@@ -72,7 +74,7 @@ export async function run(t, h) {
   // ── hidden 現況與 meta-only / 不存在標籤 ──
   {
     db.setTagMeta("ghost", { hidden: true });
-    const p = projectChangeset(db, {
+    const p = q.changeset({
       deletes: [],
       renames: [],
       hidden: [
@@ -87,7 +89,7 @@ export async function run(t, h) {
 
   // ── 純讀取保證：預覽不得改動真相與索引（orInPlace 必須從 clone 起算）──
   {
-    projectChangeset(db, {
+    q.changeset({
       deletes: ["cat"],
       renames: [
         { from: "cats", to: "cat" },
@@ -95,7 +97,6 @@ export async function run(t, h) {
       ],
       hidden: [{ name: "cute", hidden: true }],
     });
-    const q = new Query(db);
     t.eq("圖片紀錄未被改動", q.getImage("i2").tags, ["cats"]);
     t.eq("位圖索引未被改動 cat", db.tagCount("cat"), 2);
     t.eq("位圖索引未被改動 cats", db.tagCount("cats"), 2);

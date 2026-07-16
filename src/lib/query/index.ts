@@ -4,25 +4,27 @@
  */
 
 import type { Database, ImageWithId, Tag } from "$lib/database";
-import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/query-spec";
+import type { ImageQuery, TagFacetQuery, TagQuery, Changeset, ChangesetPreview } from "$lib/query-spec";
 
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";
 import { TagEngine } from "./tags";
+import { ChangesetEngine } from "./changeset";
 import type { QueryResult } from "./result";
 
 export type { QueryResult } from "./result";
-export { projectChangeset, type TagChangesetSpec, type TagStatus, type TagProjection } from "./projection";
 
 export class Query {
   private imageEngine: ImageEngine;
   private tagEngine: TagEngine;
+  private changesetEngine: ChangesetEngine;
 
   /** 建構時注入 db ，並造出共用 ScopeResolver 待命 */
   constructor(private db: Database) {
     const scope = new ScopeResolver(db);
     this.imageEngine = new ImageEngine(db, scope);
     this.tagEngine = new TagEngine(db, scope);
+    this.changesetEngine = new ChangesetEngine(db);
   }
 
   /** 執行圖片紀錄查詢 */
@@ -38,6 +40,11 @@ export class Query {
   /** 執行分面標籤列表查詢 */
   facets(q: TagFacetQuery): QueryResult<Tag> {
     return this.tagEngine.runFacet(q);
+  }
+
+  /** 查詢變更集的套用預覽 */
+  changeset(spec: Changeset): ChangesetPreview {
+    return this.changesetEngine.preview(spec);
   }
 
   /** 查詢單張圖片（含 id），找不到回 `null`。 */
