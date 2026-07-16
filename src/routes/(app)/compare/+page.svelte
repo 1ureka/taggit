@@ -68,6 +68,7 @@
 
   const applyQuery = (query: ImageQuery) => {
     const params = query.toSearchParams(page.url.searchParams);
+    // COMMENT: 這是為甚麼? toSearchParams 不是本來就不會動 query 以外的 param 嗎?
     if (pinnedIds.length > 0) params.set("pinned", pinnedIds.join(","));
     else params.delete("pinned");
     const qs = params.toString();

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { ImageWhere } from "$lib/query-spec";
+  import { ImageQuery, ImageWhere } from "$lib/query-spec";
   import Popover from "$lib/components/floating/Popover.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import TagInput from "$lib/widgets/TagInput.svelte";
@@ -10,27 +10,13 @@
     open: boolean;
     /** 定位錨點（toolbar 的篩選按鈕） */
     reference: HTMLElement | undefined;
-    /** 包含的標籤（雙向綁定） */
-    includedTags: string[];
-    /** 排除的標籤（雙向綁定） */
-    excludedTags: string[];
-    /** 評等值 key（"all" | "1"~"5"，雙向綁定） */
-    ratingKey: string | undefined;
-    /** 評等比較運算 key（雙向綁定） */
-    ratingOpKey: string | undefined;
+    /** 當前的查詢值物件 */
+    query: ImageQuery;
     /** 任一欄位變動即套用 */
     onchange: () => void;
   };
 
-  let {
-    open = $bindable(false),
-    reference,
-    includedTags = $bindable(),
-    excludedTags = $bindable(),
-    ratingKey = $bindable(),
-    ratingOpKey = $bindable(),
-    onchange,
-  }: Props = $props();
+  let { open = $bindable(false), reference, query = $bindable(), onchange }: Props = $props();
 
   const id = $props.id();
   const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
@@ -38,7 +24,13 @@
   let panelRef = $state<HTMLDivElement>();
 
   const ratingOptions = ["all", "1", "2", "3", "4", "5"];
-  const ratingOpOptions = ["gte", "lte", "eq"];
+  const rating = $derived(query.where.rating ? String(query.where.rating) : "all");
+  const handleRatingChange = (key: string) => {
+    key === "all" ? (query.where.rating = undefined) : (query.where.rating = Number(key));
+    onchange();
+  };
+
+  const ratingOpOptions = ["gte", "lte", "eq"] as const;
   const ratingOpLabels: Record<string, string> = { gte: "≥", lte: "≤", eq: "=" };
 
   // ---
@@ -66,11 +58,21 @@
 <Popover {open} {reference} placement="bottom-start" offset={8}>
   <div bind:this={panelRef} class="panel">
     <div class="field">
-      <TagInput bind:tags={includedTags} scope={facetScope} label="包含的標籤" onchange={() => onchange()} />
+      <TagInput
+        bind:tags={query.where.includedTags}
+        scope={facetScope}
+        label="包含的標籤"
+        onchange={() => onchange()}
+      />
     </div>
 
     <div class="field">
-      <TagInput bind:tags={excludedTags} scope={facetScope} label="排除的標籤" onchange={() => onchange()} />
+      <TagInput
+        bind:tags={query.where.excludedTags}
+        scope={facetScope}
+        label="排除的標籤"
+        onchange={() => onchange()}
+      />
     </div>
 
     <div class="field">
@@ -81,7 +83,7 @@
           aria-label="評等比較運算"
           options={ratingOpOptions}
           option={ratingOpOption}
-          bind:value={ratingOpKey}
+          bind:value={query.where.ratingOp}
           onchange={() => onchange()}
         />
         <Select
@@ -89,8 +91,8 @@
           aria-label="評等"
           options={ratingOptions}
           option={ratingOption}
-          bind:value={ratingKey}
-          onchange={() => onchange()}
+          value={rating}
+          onchange={handleRatingChange}
         />
       </div>
     </div>

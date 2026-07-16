@@ -21,7 +21,9 @@
   let shuffleKey = $state<string | undefined>("2");
 </script>
 
-{#snippet shuffleOption(key: string)}{`抽 ${key} 張`}{/snippet}
+{#snippet shuffleOption(key: string)}
+  <span style="display: block; width: 100%; text-align: center;"> {`抽 ${key} 張`}</span>
+{/snippet}
 
 <div>
   <Button
@@ -41,7 +43,6 @@
     options={shuffleOptions}
     option={shuffleOption}
     bind:value={shuffleKey}
-    matchWidth={false}
   />
 
   <Button variant="primary" onclick={() => onshuffle(Number(shuffleKey ?? "2"))}>
