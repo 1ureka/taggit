@@ -9,7 +9,7 @@
   import { requestConfirm } from "$lib/widgets/confirm-events";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
-  import InverseRadius from "./list/InverseRadius.svelte";
+  import InverseRadius from "$lib/widgets/InverseRadius.svelte";
   import Toolbar from "./header/Toolbar.svelte";
   import List from "./list/List.svelte";
   import Cards from "./cards/Cards.svelte";
