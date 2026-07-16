@@ -33,19 +33,10 @@
     width: 100%;
     height: 100%;
     border: var(--border-style);
-    border-radius: var(--border-radius);
-    background: var(--color-bg-card);
+    border-radius: calc(var(--border-radius) * 1.5);
     overflow: hidden;
     text-align: left;
     transition: all 0.15s ease;
-
-    &:hover {
-      border-color: var(--color-border-hover);
-    }
-
-    &.active {
-      border-color: var(--color-accent);
-    }
 
     &:active {
       transition: all 0.03s ease;
@@ -60,5 +51,33 @@
     min-height: 0;
     object-fit: cover;
     background: var(--color-bg);
+    transition: border-radius 0.15s ease;
+  }
+
+  button {
+    background-color: transparent;
+    border-color: transparent;
+
+    & img {
+      border-radius: var(--border-radius);
+    }
+  }
+
+  button:hover {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
+
+    & img {
+      border-radius: 0px;
+    }
+  }
+
+  button.active {
+    background-color: hsl(from var(--color-accent) h s l / 0.15);
+    border-color: hsl(from var(--color-accent) h s l / 0.35);
+
+    & img {
+      border-radius: 0px;
+    }
   }
 </style>
