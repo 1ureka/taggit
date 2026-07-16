@@ -12,6 +12,7 @@ import { TagEngine } from "./tags";
 import type { QueryResult } from "./result";
 
 export type { QueryResult } from "./result";
+export { projectChangeset, type TagChangesetSpec, type TagStatus, type TagProjection } from "./projection";
 
 export class Query {
   private imageEngine: ImageEngine;
