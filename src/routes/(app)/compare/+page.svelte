@@ -12,7 +12,7 @@
   import Toolbar from "./toolbar/Toolbar.svelte";
   import CompareList from "./list/CompareList.svelte";
   import InverseRadius from "./list/InverseRadius.svelte";
-  import CompareCard from "./dock/CompareCard.svelte";
+  import Cards from "./dock/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -74,14 +74,6 @@
     goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
   };
 
-  /** 前往 editor 的連結，帶上當下的篩選參數，使 editor 的統一查詢與此處一致 */
-  const editorHref = (id: string) => {
-    const params = new URLSearchParams(page.url.searchParams);
-    params.delete("pinned");
-    params.set("currentId", id);
-    return `/editor?${params.toString()}`;
-  };
-
   // ─── 伺服器操作 ───
 
   const handleRefresh = async () => {
@@ -96,7 +88,7 @@
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleRevert = async (id: string) => {
     if (pending) return;
 
     const msg = `確定要取消提交 ${id}？\n此操作會刪除圖片的名稱、評等與標籤，圖片本身則回到暫存區。`;
@@ -149,24 +141,7 @@
   <div class="body">
     <div class="left-panel-spacer"></div>
 
-    <div class="dock" class:empty={pinnedRecords.length === 0}>
-      {#if pinnedRecords.length === 0}
-        <div class="dock-empty">
-          <p>按「隨機抽選」抽 N 張並排比較，也可以從左側列表釘選</p>
-          <p class="hint">修改與刪除經由每張卡片底部的按鈕前往，比較本身不會改動任何資料</p>
-        </div>
-      {:else}
-        {#each pinnedRecords as record (record.id)}
-          <CompareCard
-            {record}
-            editorHref={editorHref(record.id)}
-            {pending}
-            onunpin={() => togglePin(record.id)}
-            ondelete={() => handleDelete(record.id)}
-          />
-        {/each}
-      {/if}
-    </div>
+    <Cards {pinnedRecords} {pending} onunpin={togglePin} onrevert={handleRevert} />
 
     <aside class="left-panel">
       <CompareList items={data.items} total={data.total} {pinnedIds} ontoggle={togglePin} />
@@ -197,39 +172,6 @@
     align-items: stretch;
     flex: 1;
     min-height: 0;
-  }
-
-  /* ─── 畫布 ─── */
-
-  .dock {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-
-    &.empty {
-      align-items: center;
-      justify-content: center;
-    }
-  }
-
-  .dock-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-
-    & > p {
-      font: var(--font-body1);
-      color: var(--color-text-muted);
-    }
-
-    & > .hint {
-      font: var(--font-caption);
-    }
   }
 
   /* ─── 左面板（與主頁同一套 spacer + 絕對定位 + CSS 變數模式）─── */
