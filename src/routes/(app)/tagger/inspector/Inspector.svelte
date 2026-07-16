@@ -1,6 +1,9 @@
 <script lang="ts">
   import { imgSrc } from "$lib/image/client";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import { IconMaximize } from "$lib/icons";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
+  import Button from "$lib/components/actions/Button.svelte";
 
   import type { Draft } from "./draft";
   import InspectorHeader from "./InspectorHeader.svelte";
@@ -24,6 +27,8 @@
     ondelete: () => void;
     /** 點擊關閉面板按紐 (退出編輯該張) */
     onclose: () => void;
+    /** 點擊全螢幕預覽按紐 */
+    onexpand: () => void;
   };
 
   let {
@@ -35,15 +40,30 @@
     onclear,
     ondelete,
     onclose,
+    onexpand,
   }: Props = $props();
 </script>
 
 <aside>
   <InspectorHeader {activeFile} {fileCount} {activeIndex} {onclose} />
-  <ImageCanvas resetKey={activeFile} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
-    <img src={imgSrc(activeFile, "sm")} alt={activeFile} draggable="false" />
-  </ImageCanvas>
-  <div>
+
+  <div class="preview">
+    <ImageCanvas resetKey={activeFile} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
+      <img src={imgSrc(activeFile, "sm")} alt={activeFile} draggable="false" />
+    </ImageCanvas>
+    <Button
+      variant="outlined"
+      padding="icon"
+      aria-label="全螢幕預覽"
+      onclick={() => onexpand()}
+      {@attach tooltip({ content: "全螢幕預覽" })}
+      style="position: absolute; right: 0.5rem; bottom: 0.5rem;"
+    >
+      <IconMaximize size={16} />
+    </Button>
+  </div>
+
+  <div class="fields">
     <InspectorFields {activeFile} bind:draft />
     <InspectorFooter {pending} {onclear} {ondelete} />
   </div>
@@ -59,7 +79,12 @@
     border-left: var(--border-style);
   }
 
-  div {
+  div.preview {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  div.fields {
     display: flex;
     flex-direction: column;
     flex: 1;
