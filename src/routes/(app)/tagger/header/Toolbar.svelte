@@ -13,11 +13,11 @@
     readyCount: number;
     /** 全頁共用的操作鎖 */
     pending: boolean;
-    /** 重新整理列表的處理函式 */
+    /** 重新整理事件 */
     onrefresh: () => void;
-    /** 前往審查流程時的處理函式 */
+    /** 前往審查流程事件 */
     onreview: () => void;
-    /** 開啟匯入對話框的處理函式 */
+    /** 開啟匯入對話框事件 */
     onimport: () => void;
   };
 

@@ -16,7 +16,7 @@
     pending: boolean;
     /** 關閉對話框事件 */
     onclose: () => void;
-    /** 提交事件 */
+    /** 點擊提交事件 */
     onsubmit: () => void;
     /** 點擊紀錄名稱事件 */
     onedit: (filename: string) => void;

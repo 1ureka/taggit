@@ -12,13 +12,13 @@
     checkedCount: number;
     /** 所有紀錄 */
     entries: ReviewEntry[];
-    /** 點擊紀錄名稱：關閉本 modal 並繼續編輯該張 */
+    /** 點擊紀錄名稱事件 */
     onedit: (filename: string) => void;
-    /** 點擊紀錄圖片：開啟大圖預覽 */
+    /** 點擊紀錄圖片事件 */
     onpreview: (filename: string) => void;
-    /** 點擊紀錄勾選框 */
+    /** 點擊紀錄勾選框事件 */
     ontoggle: (filename: string) => void;
-    /** 點擊全選勾選框 */
+    /** 點擊全選勾選框事件 */
     ontoggleall: () => void;
   };
 
