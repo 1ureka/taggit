@@ -9,9 +9,9 @@
   import { requestConfirm } from "$lib/widgets/confirm-events";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
-  import Toolbar from "./toolbar/Toolbar.svelte";
-  import CompareList from "./list/CompareList.svelte";
   import InverseRadius from "./list/InverseRadius.svelte";
+  import Toolbar from "./toolbar/Toolbar.svelte";
+  import List from "./list/List.svelte";
   import Cards from "./dock/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -144,7 +144,7 @@
     <Cards {pinnedRecords} {pending} onunpin={togglePin} onrevert={handleRevert} />
 
     <aside class="left-panel">
-      <CompareList items={data.items} total={data.total} {pinnedIds} ontoggle={togglePin} />
+      <List items={data.items} total={data.total} {pinnedIds} ontoggle={togglePin} />
 
       <button
         type="button"
