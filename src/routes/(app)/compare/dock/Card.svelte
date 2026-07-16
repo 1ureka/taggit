@@ -17,12 +17,15 @@
   };
 
   let { record, pending, onunpin, onrevert }: Props = $props();
+
+  const canvasStyle =
+    "flex: 1; min-height: 0px; background: var(--color-bg); border: var(--border-style); border-radius: calc(var(--border-radius) * 1.5); background: var(--color-bg-card);";
 </script>
 
 <section aria-label={`${record.name} 的資訊卡片`}>
   <CardHeader {record} {onunpin} />
 
-  <ImageCanvas resetKey={record.id} style="flex: 1; min-height: 0px; background: var(--color-bg);">
+  <ImageCanvas resetKey={record.id} style={canvasStyle}>
     <img src={imgSrc(record.id, "xl")} alt={record.name} draggable="false" />
   </ImageCanvas>
 
@@ -35,9 +38,6 @@
     min-width: 320px;
     display: flex;
     flex-direction: column;
-    background: var(--color-bg-card);
-    border: var(--border-style);
-    border-radius: calc(var(--border-radius) * 2);
     overflow: hidden;
   }
 

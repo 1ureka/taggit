@@ -32,7 +32,7 @@
   <TagChips tags={record.tags} nowrap />
 
   <div>
-    <ButtonLink variant="primary" {href}>
+    <ButtonLink variant="outlined" {href}>
       <IconEditFilled size={16} />
       <span>編輯</span>
     </ButtonLink>
@@ -49,8 +49,8 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
-    padding: 0.75rem;
-    border-top: var(--border-style);
+    padding: 1.5rem;
+    padding-top: 0.75rem;
   }
 
   div.info > div {
@@ -58,6 +58,5 @@
     grid-template-columns: 1fr 1fr;
     width: 100%;
     gap: 0.5rem;
-    margin-top: 0.5rem;
   }
 </style>

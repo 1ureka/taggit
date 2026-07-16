@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/database";
-  import CompareCard from "./Card.svelte";
+  import Card from "./Card.svelte";
 
   type Props = {
     /** 目前釘選中的圖片 */
@@ -24,7 +24,7 @@
     </div>
   {:else}
     {#each pinnedRecords as record (record.id)}
-      <CompareCard {record} {pending} onunpin={() => onunpin(record.id)} onrevert={() => onrevert(record.id)} />
+      <Card {record} {pending} onunpin={() => onunpin(record.id)} onrevert={() => onrevert(record.id)} />
     {/each}
   {/if}
 </div>

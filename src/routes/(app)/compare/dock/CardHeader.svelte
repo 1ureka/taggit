@@ -26,9 +26,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.375rem;
-    padding-left: 0.75rem;
-    border-bottom: var(--border-style);
+    padding: 0.375rem 1.5rem;
   }
 
   header > h3 {
