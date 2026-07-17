@@ -3,8 +3,9 @@
   import Modal from "$lib/components/floating/Modal.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
-  import CircularProgress from "$lib/components/display/CircularProgress.svelte";
   import type { ChangeEntry } from "../logic/changeset";
+  import ReviewHeader from "./ReviewHeader.svelte";
+  import ReviewFooter from "./ReviewFooter.svelte";
 
   /** 審查條目加上勾選與失敗狀態（由頁面組好） */
   type ReviewEntry = ChangeEntry & {
@@ -54,15 +55,7 @@
 </script>
 
 <Modal {open} {onclose} aria-label="檢視待送出的標籤變更" containerProps={{ style: containerStyle }}>
-  <header>
-    <h2>檢視待送出的標籤變更</h2>
-    <p>
-      勾選要套用的操作後送出；刪除與合併會改動所有相關圖片，送出前請確認預估數字。
-      {#if previewPending}
-        <span class="preview-pending"><CircularProgress size="0.75rem" />正在更新預估…</span>
-      {/if}
-    </p>
-  </header>
+  <ReviewHeader {previewPending} />
 
   {#if entries.length === 0}
     <p class="empty">目前沒有任何未送出的標籤操作。</p>
@@ -143,43 +136,10 @@
     </ul>
   {/if}
 
-  <footer>
-    <Button variant="ghost" status={pending ? "disabled" : undefined} onclick={onclose}>取消</Button>
-    <Button
-      variant="primary"
-      status={pending ? "pending" : checkedCount === 0 ? "disabled" : undefined}
-      onclick={onsubmit}
-    >
-      送出 {checkedCount} 筆操作
-    </Button>
-  </footer>
+  <ReviewFooter checked={checkedCount} {pending} {onclose} {onsubmit} />
 </Modal>
 
 <style>
-  header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 1rem 1rem 0.5rem;
-
-    & > h2 {
-      font: var(--font-title2);
-      font-weight: 600;
-    }
-
-    & > p {
-      font: var(--font-caption);
-      color: var(--color-text-muted);
-    }
-  }
-
-  .preview-pending {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-left: 0.375rem;
-  }
-
   .empty {
     font: var(--font-body1);
     color: var(--color-text-muted);
@@ -290,14 +250,5 @@
     gap: 0.25rem;
     font: var(--font-caption);
     color: var(--color-warning);
-  }
-
-  /* ─── 底部 ─── */
-
-  footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem 1rem;
   }
 </style>
