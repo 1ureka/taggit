@@ -3,16 +3,12 @@
   import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import { ImageWhere, type ChangesetPreview } from "$lib/query-spec";
+  import { ImageWhere, TagQuery, type ChangesetPreview } from "$lib/query-spec";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
-  import { IconReload, IconArrowRight } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import Chip from "$lib/components/display/Chip.svelte";
 
   import TagPool from "./pool/TagPool.svelte";
   import { clearPreviews } from "./pool/previews";
@@ -28,6 +24,7 @@
     type TagSnapshot,
     type MergeGroup,
   } from "./logic/changeset";
+  import Toolbar from "./header/Toolbar.svelte";
 
   // ---
 
@@ -35,6 +32,8 @@
 
   /** 是否正在進行處理（送出 / 重新整理） */
   let pending = $state(false);
+  /** 工具列的查詢值物件；TagPool 尚未重寫，暫不消費此狀態 */
+  let query = $state(new TagQuery());
   /** 審查對話框是否打開 */
   let reviewOpen = $state(false);
   /** 送出後的失敗匯總（key -> 錯誤訊息） */
@@ -144,6 +143,10 @@
     const snaps = [...selected.values()];
     selected.clear();
     return snaps;
+  };
+
+  const clearSelection = () => {
+    selected.clear();
   };
 
   // ─── 拖放（拖曳狀態純前端；拖入的那顆若在選取集合內，整批一起帶過去）───
@@ -342,43 +345,19 @@
 </svelte:head>
 
 <div class="page">
-  <div class="toolbar">
-    <div class="info">
-      <h2>標籤整理</h2>
-      <Chip variant="outlined">{data.total} 標籤</Chip>
-      {#if selected.size > 0}
-        <Chip variant="outlined">{selected.size} 已選取</Chip>
-      {/if}
-      {#if pendingCount > 0}
-        <Chip variant="outlined" style="color: var(--color-warning);">{pendingCount} 筆待送出</Chip>
-      {/if}
-    </div>
-
-    <div class="actions">
-      {#if selected.size > 0}
-        <Button variant="ghost" onclick={() => selected.clear()}>清空選取（{selected.size}）</Button>
-      {/if}
-      <Button
-        variant="ghost"
-        padding="icon"
-        aria-label="重新整理"
-        status={pending ? "pending" : undefined}
-        onclick={handleRefresh}
-        {@attach tooltip({ content: "重新整理" })}
-      >
-        <IconReload size={16} />
-      </Button>
-      <ButtonLink variant="outlined" href="/tags/cleanup" status="disabled" title="清理助手（尚未遷移）">
-        <span>清理工具</span>
-        <IconArrowRight size={16} />
-      </ButtonLink>
-      <Button variant="primary" status={pendingCount === 0 ? "disabled" : undefined} onclick={handleReviewOpen}>
-        檢視變更（{pendingCount}）
-      </Button>
-    </div>
-  </div>
+  <Toolbar
+    {pending}
+    {query}
+    selectedCount={selected.size}
+    touchedCount={pendingCount}
+    onquery={(q) => (query = q)}
+    onclear={clearSelection}
+    onrefresh={handleRefresh}
+    onreview={handleReviewOpen}
+  />
 
   <div class="body">
+    <!-- COMMENT: 為何需要 key? -->
     {#key poolEpoch}
       <TagPool
         firstPage={data.firstPage}
@@ -481,37 +460,6 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
-  }
-
-  /* ─── toolbar ─── */
-
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-    padding: 0px 1rem;
-    height: 3rem;
-    border-bottom: var(--border-style);
-  }
-
-  .info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-
-    & > h2 {
-      font: var(--font-body1);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-  }
-
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   /* ─── 主體 ─── */

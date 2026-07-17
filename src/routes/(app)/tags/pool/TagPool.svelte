@@ -5,9 +5,7 @@
   import { addToast } from "$lib/components/floating/toast-events";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
-  import { IconSearch, IconAlertTriangleFilled, IconEyeOff } from "$lib/icons";
-  import TextInput from "$lib/components/inputs/TextInput.svelte";
-  import Select from "$lib/components/inputs/Select.svelte";
+  import { IconAlertTriangleFilled, IconEyeOff } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
 
   import { PAGE_SIZE, fetchPool, type PoolQuery } from "./pool";
@@ -50,8 +48,6 @@
     onpooldrop,
   }: Props = $props();
 
-  const id = $props.id();
-
   const toSnapshot = (tag: Tag): TagSnapshot => ({ name: tag.name, count: tag.count, hidden: tag.meta.hidden });
 
   // ─── 伺服器分頁：控制項變動（回第 1 頁）與翻頁都是 client fetch ───
@@ -70,11 +66,6 @@
   const pageCount = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
 
   let requestSeq = 0;
-  let searchTimer: ReturnType<typeof setTimeout>;
-
-  $effect(() => {
-    return () => clearTimeout(searchTimer);
-  });
 
   const currentQuery = (page: number): PoolQuery => ({
     search,
@@ -100,13 +91,6 @@
       if (seq === requestSeq) fetching = false;
     }
   }
-
-  /** 搜尋輸入去抖；排序/顯隱變動即查；任何條件變動一律回到第 1 頁 */
-  const handleSearchInput = () => {
-    requestSeq++; // 遞增序號讓在途回應立即失效
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => run(1), 250);
-  };
 
   // ─── 懸停預覽：hover 去抖後才查，快取由 previews.ts 管理 ───
 
@@ -139,9 +123,6 @@
     return `${tag.name}（${tag.count} 張）${state ? `— ${state}` : "— 拖到右側分堆，或點選後用按鈕加入"}`;
   };
 </script>
-
-{#snippet sortOption(key: string)}{key === "count" ? "使用數" : "名稱"}{/snippet}
-{#snippet hiddenOption(key: string)}{key === "all" ? "全部" : key === "hidden" ? "僅隱藏" : "僅可見"}{/snippet}
 
 {#snippet loadingDisplay()}
   <div class="thumbs">
@@ -187,41 +168,6 @@
   ondragleave={onpooldragleave}
   ondrop={onpooldrop}
 >
-  <div class="controls">
-    <TextInput
-      label="搜尋標籤"
-      labelHidden
-      placeholder="搜尋標籤…"
-      autocomplete="off"
-      bind:value={search}
-      oninput={handleSearchInput}
-      style="width: 100%"
-    >
-      {#snippet adornmentLeft()}
-        <span class="search-icon"><IconSearch size={18} /></span>
-      {/snippet}
-    </TextInput>
-
-    <Select
-      id="{id}-sort"
-      aria-label="排序"
-      options={["count", "name"]}
-      option={sortOption}
-      bind:value={sortKey}
-      onchange={() => run(1)}
-      matchWidth={false}
-    />
-    <Select
-      id="{id}-hidden"
-      aria-label="顯隱篩選"
-      options={["all", "hidden", "visible"]}
-      option={hiddenOption}
-      bind:value={hiddenKey}
-      onchange={() => run(1)}
-      matchWidth={false}
-    />
-  </div>
-
   <div class="chips" bind:this={scrollerEl} class:fetching>
     {#each tags as tag (tag.name)}
       {@const placed = placement.get(tag.name)}
@@ -255,11 +201,7 @@
   </div>
 
   <div class="pagination">
-    <Button
-      variant="ghost"
-      status={pageNum <= 1 || fetching ? "disabled" : undefined}
-      onclick={() => run(pageNum - 1)}
-    >
+    <Button variant="ghost" status={pageNum <= 1 || fetching ? "disabled" : undefined} onclick={() => run(pageNum - 1)}>
       上一頁
     </Button>
     <span class="page-indicator">第 {pageNum} / {pageCount} 頁 · 共 {total} 個</span>
@@ -285,27 +227,6 @@
     &.dropping {
       background: var(--color-bg-hover);
     }
-  }
-
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-bottom: var(--border-style);
-
-    & > :global(:first-child) {
-      flex: 1;
-      min-width: 8rem;
-      max-width: 16rem;
-    }
-  }
-
-  .search-icon {
-    display: flex;
-    align-items: center;
-    padding-left: 0.75rem;
-    color: var(--color-text-muted);
   }
 
   /* ─── chip 流（100/頁，分頁取代虛擬化）─── */
