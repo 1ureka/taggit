@@ -10,9 +10,9 @@
     record: ImageWithId;
     /** 全頁共用的操作鎖 */
     pending: boolean;
-    /** 取消釘選（自畫布移除） */
+    /** 取消釘選事件 */
     onunpin: () => void;
-    /** 取消提交（退回暫存區） */
+    /** 取消提交事件 */
     onrevert: () => void;
   };
 

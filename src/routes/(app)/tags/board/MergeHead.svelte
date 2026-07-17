@@ -60,12 +60,11 @@
       maxlength={50}
       bind:value={active}
       {oninput}
-      // TODO: 這裡應該改用 helperText，請參考 `src\routes\lab\(showcase)\(inputs)\type-field\+page` use case
-      title="合併後的名稱（點成員上的星星可直接指定）"
       style="flex: 1; min-width: 0;"
+      {@attach tooltip({ content: "合併後的名稱", placement: "left" })}
     />
 
-    <span>
+    <span class="count">
       → {count ?? "…"} 張
     </span>
   </div>
@@ -100,7 +99,7 @@
     gap: 0.5rem;
   }
 
-  span {
+  span.count {
     flex-shrink: 0;
     font: var(--font-body2);
     font-family: var(--font-family-mono);
