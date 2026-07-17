@@ -14,8 +14,8 @@
   status={disabled ? "disabled" : undefined}
   target="_blank"
   rel="noopener"
-  aria-label="以這些標籤查詢圖片（新分頁）"
-  {@attach tooltip({ content: "以這些標籤查詢圖片（新分頁）" })}
+  aria-label="查詢使用這些標籤的圖片"
+  {@attach tooltip({ content: "查詢使用這些標籤的圖片" })}
 >
-  <IconExternalLink size={14} />
+  <IconExternalLink size={16} />
 </ButtonLink>

@@ -8,8 +8,6 @@
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
 
-  import Button from "$lib/components/actions/Button.svelte";
-
   import TagPool from "./pool/TagPool.svelte";
   import { clearPreviews } from "./pool/previews";
   import MergeGroupCard from "./board/MergeGroup.svelte";
@@ -25,6 +23,7 @@
     type MergeGroup,
   } from "./logic/changeset";
   import Toolbar from "./header/Toolbar.svelte";
+  import CreateGroup from "./board/CreateGroup.svelte";
 
   // ---
 
@@ -359,30 +358,19 @@
     />
 
     <aside class="board">
-      <div
-        class="new-group"
-        class:dropping={dragOverZone === "new-group"}
-        role="group"
-        aria-label="新合併堆"
+      <CreateGroup
+        dropping={dragOverZone === "new-group"}
+        selected={selected.size}
         ondragover={(e) => allowDrop(e, "new-group")}
         ondragleave={() => leaveDropZone("new-group")}
         ondrop={(e) => handleDrop(e, "new-group")}
-      >
-        <p>拖曳到這裡建立<b>合併堆</b></p>
-        <Button
-          variant="outlined"
-          status={selected.size === 0 ? "disabled" : undefined}
-          onclick={() => createGroup(takeSelection())}
-        >
-          把選取的 {selected.size} 個變成一堆
-        </Button>
-      </div>
+        oncreate={() => createGroup(takeSelection())}
+      />
 
       {#each groups as group (group.id)}
         <MergeGroupCard
           {group}
           mergedCount={projection?.mergedCounts[group.canonical.trim()]}
-          previewPending={projectionPending}
           dropping={dragOverZone === `group:${group.id}`}
           selectedCount={selected.size}
           ondragover={(e) => allowDrop(e, `group:${group.id}`)}
@@ -467,26 +455,6 @@
 
     @media (max-width: 600px) {
       width: 16rem;
-    }
-  }
-
-  .new-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem 0.625rem;
-    text-align: center;
-    border: 1.5px dashed var(--color-border);
-    border-radius: calc(var(--border-radius) * 1.5);
-    background: var(--color-bg);
-    font: var(--font-body2);
-    color: var(--color-text-muted);
-    transition: all 0.15s ease;
-
-    &.dropping {
-      border-color: var(--color-info);
-      background: var(--color-bg-hover);
     }
   }
 </style>

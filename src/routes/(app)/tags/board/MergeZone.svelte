@@ -28,8 +28,8 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.625rem;
+    gap: 1rem;
+    padding: 0.75rem;
     border: var(--border-style);
     border-radius: calc(var(--border-radius) * 1.5);
     transition: all 0.15s ease;
@@ -41,7 +41,7 @@
 
     &.dropping {
       border-color: var(--color-info);
-      background-color: hsl(from var(--color-info) h s l / 0.25);
+      background-color: hsl(from var(--color-info) h s l / 0.15);
     }
   }
 </style>

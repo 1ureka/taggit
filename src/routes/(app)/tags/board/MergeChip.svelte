@@ -35,8 +35,8 @@
     align-items: center;
     gap: 0.25rem;
     max-width: 100%;
-    padding: 0.125rem 0.375rem;
-    font: var(--font-caption);
+    padding: 0.1875rem 0.625rem;
+    font: var(--font-body2);
     color: var(--color-text-muted);
     background: var(--color-bg-card);
     border: var(--border-style);
