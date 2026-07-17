@@ -19,8 +19,7 @@
 <div class="dock">
   {#if pinnedRecords.length === 0}
     <div class="empty">
-      <p>按「隨機抽選」抽 N 張並排比較，也可以從左側列表釘選</p>
-      <p>修改與刪除經由每張卡片底部的按鈕前往，比較本身不會改動任何資料</p>
+      <p>按「隨機抽選」抽 N 張並排比較，或者從左側列表釘選</p>
     </div>
   {:else}
     {#each pinnedRecords as record (record.id)}
