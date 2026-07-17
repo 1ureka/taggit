@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { IconX, IconExternalLink } from "$lib/icons";
+  import { IconX } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import type { TagSnapshot } from "../logic/changeset";
+  import GroupLink from "./GroupLink.svelte";
 
   type Props = {
     /** 區塊種類：刪除區 / 顯隱切換區 */
@@ -14,8 +13,6 @@
     dropping: boolean;
     /** 已選取的標籤數（點選備援按鈕用） */
     selectedCount: number;
-    /** 以區塊內全部標籤 AND 查詢回主頁的連結 */
-    externalHref: string;
     /** 拖放目標事件 */
     ondragover: (e: DragEvent) => void;
     ondragleave: () => void;
@@ -26,23 +23,11 @@
     onremove: (name: string) => void;
   };
 
-  let {
-    kind,
-    items,
-    dropping,
-    selectedCount,
-    externalHref,
-    ondragover,
-    ondragleave,
-    ondrop,
-    onaddselected,
-    onremove,
-  }: Props = $props();
+  let { kind, items, dropping, selectedCount, ondragover, ondragleave, ondrop, onaddselected, onremove }: Props =
+    $props();
 
   const label = $derived(kind === "delete" ? "刪除區" : "顯隱切換區");
-  const description = $derived(
-    kind === "delete" ? "拖進來的標籤會自所有圖片移除" : "可見的變隱藏、隱藏的恢復可見",
-  );
+  const description = $derived(kind === "delete" ? "拖進來的標籤會自所有圖片移除" : "可見的變隱藏、隱藏的恢復可見");
 </script>
 
 <div
@@ -58,18 +43,9 @@
 >
   <div class="head">
     <p><b>{label}</b>——{description}</p>
-    <ButtonLink
-      variant="ghost"
-      padding="icon"
-      href={externalHref}
-      target="_blank"
-      rel="noopener"
-      status={items.length === 0 ? "disabled" : undefined}
-      aria-label="以這些標籤 AND 查詢（新分頁）"
-      {@attach tooltip({ content: "以這些標籤 AND 查詢（新分頁）" })}
-    >
-      <IconExternalLink size={14} />
-    </ButtonLink>
+
+    <GroupLink names={items.map((v) => v.name)} disabled={items.length < 1} />
+
     <Button variant="ghost" status={selectedCount === 0 ? "disabled" : undefined} onclick={onaddselected}>
       加入選取
     </Button>

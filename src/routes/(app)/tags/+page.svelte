@@ -3,7 +3,7 @@
   import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import { ImageWhere, type ChangesetPreview } from "$lib/query-spec";
+  import { type ChangesetPreview } from "$lib/query-spec";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
@@ -300,11 +300,6 @@
     }
   };
 
-  // ─── 導航輔助 ───
-
-  /** 以指定標籤 AND 查詢回主頁的連結（hidden 標籤因 includedTags 豁免不會被遮蔽） */
-  const externalHref = (names: string[]) => `/?${new ImageWhere({ includedTags: names }).toSearchParams()}`;
-
   // ─── 離開防護 ───
 
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -390,7 +385,6 @@
           previewPending={projectionPending}
           dropping={dragOverZone === `group:${group.id}`}
           selectedCount={selected.size}
-          externalHref={externalHref(group.members.map((m) => m.name))}
           ondragover={(e) => allowDrop(e, `group:${group.id}`)}
           ondragleave={() => leaveDropZone(`group:${group.id}`)}
           ondrop={(e) => handleDrop(e, `group:${group.id}`)}
@@ -407,7 +401,6 @@
         items={deleteList}
         dropping={dragOverZone === "delete"}
         selectedCount={selected.size}
-        externalHref={externalHref(deleteList.map((s) => s.name))}
         ondragover={(e) => allowDrop(e, "delete")}
         ondragleave={() => leaveDropZone("delete")}
         ondrop={(e) => handleDrop(e, "delete")}
@@ -420,7 +413,6 @@
         items={toggleList}
         dropping={dragOverZone === "toggle"}
         selectedCount={selected.size}
-        externalHref={externalHref(toggleList.map((s) => s.name))}
         ondragover={(e) => allowDrop(e, "toggle")}
         ondragleave={() => leaveDropZone("toggle")}
         ondrop={(e) => handleDrop(e, "toggle")}
