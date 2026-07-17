@@ -2,7 +2,7 @@
   import type { ImageWithId, Tag } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconEyeOff } from "$lib/icons";
-  import { HOVER_DEBOUNCE, previewCache, requestPreview } from "../pool/previews";
+  import { previewCache, requestPreview } from "../pool/previews";
 
   let { tag }: { tag: Tag } = $props();
 
@@ -11,7 +11,7 @@
 
   $effect(() => {
     if (tag.count === 0) return;
-    hoverTimer = setTimeout(() => requestPreview(tag.name), HOVER_DEBOUNCE);
+    hoverTimer = setTimeout(() => requestPreview(tag.name), 150);
     return () => clearTimeout(hoverTimer);
   });
 </script>
@@ -28,7 +28,7 @@
 
 {#snippet loadingDisplay()}
   <div class="thumbs">
-    {#each { length: tag.count }, i (i)}
+    {#each { length: Math.min(tag.count, 4) }, i (i)}
       <div class="thumb placeholder"></div>
     {/each}
   </div>

@@ -9,8 +9,13 @@
   import { IconAlertTriangleFilled, IconEyeOff } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
 
-  import { PREVIEW_COUNT, HOVER_DEBOUNCE, previewCache, requestPreview } from "./previews";
+  import { previewCache, requestPreview } from "./previews";
   import type { TagSnapshot } from "../logic/changeset";
+
+  /** 即將棄用 */
+  const PREVIEW_COUNT = 4;
+  /** 即將棄用 */
+  const HOVER_DEBOUNCE = 150;
 
   type Props = {
     /** 當頁的標籤（隨 URL 查詢參數由 load 提供） */

@@ -9,13 +9,9 @@ import { api } from "$lib/utils/request";
 import { ImageQuery, ImageWhere, ListOptions, type ImageSort } from "$lib/query-spec";
 import type { ImageWithId } from "$lib/database";
 
-export const PREVIEW_COUNT = 4;
-
-/** hover 到實際發查詢的去抖時間；滑過一整排 chip 不會噴請求 */
-export const HOVER_DEBOUNCE = 150;
-
 type CacheEntry = "loading" | ImageWithId[];
 
+// TODO: 不該這樣寫，太危險
 /** 模組層級的響應式快取：tooltip snippet 直接讀，載入完成自動更新畫面 */
 export const previewCache = new SvelteMap<string, CacheEntry>();
 
@@ -31,7 +27,7 @@ export async function requestPreview(tag: string): Promise<void> {
 
   const query = new ImageQuery(
     new ImageWhere({ includedTags: [tag] }),
-    new ListOptions<ImageSort>({ sort: "rating", order: "desc", limit: PREVIEW_COUNT }),
+    new ListOptions<ImageSort>({ sort: "rating", order: "desc", limit: 4 }),
   );
 
   const res = await api.get<{ items: ImageWithId[]; total: number }>(
