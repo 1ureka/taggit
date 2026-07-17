@@ -28,7 +28,7 @@
 <div class="head">
   <div>
     <div>
-      <p>合併區</p>
+      <p><b>合併區</b></p>
       <GroupLink names={tags} />
     </div>
 
