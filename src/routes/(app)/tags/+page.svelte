@@ -3,27 +3,25 @@
   import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
+  import type { Tag } from "$lib/database";
   import { type ChangesetPreview } from "$lib/query-spec";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
 
-  import TagPool from "./pool/TagPool.svelte";
+  import Pool from "./chips/Pool.svelte";
   import { clearPreviews } from "./pool/previews";
-  import MergeGroupCard from "./board/MergeGroup.svelte";
-  import Zone from "./board/Zone.svelte";
+  import ZoneContainer from "./zone/ZoneContainer.svelte";
+  import ZoneHeader from "./zone/ZoneHeader.svelte";
+  import ZoneBodyCreate from "./zone/ZoneBodyCreate.svelte";
+  import ZoneBodyGroup from "./zone/ZoneBodyGroup.svelte";
+  import ZoneBodyDelete from "./zone/ZoneBodyDelete.svelte";
+  import ZoneBodyHidden from "./zone/ZoneBodyHidden.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
   import { fetchProjection, submitChangeset } from "./logic/api";
-  import {
-    changesetFromBoard,
-    changesetSize,
-    changesetEntries,
-    type TagSnapshot,
-    type MergeGroup,
-  } from "./logic/changeset";
+  import { changesetFromBoard, changesetSize, changesetEntries, type MergeGroup } from "./logic/changeset";
   import Toolbar from "./header/Toolbar.svelte";
-  import CreateGroup from "./board/CreateGroup.svelte";
 
   // ---
 
@@ -38,31 +36,33 @@
   /** 目前審查清單的勾選 keys，使用者的原始意圖，不主動清除 */
   const checkedKeys = new SvelteSet<string>();
 
-  // ─── 畫布狀態（畫布即變更集的空間化呈現；標籤攜帶放入當下的快照）───
+  // ─── 畫布狀態（畫布即變更集的空間化呈現；標籤直接以 Tag 存放，送出前才轉成變更集）───
 
   let groups = $state<MergeGroup[]>([]);
-  let deleteList = $state<TagSnapshot[]>([]);
-  let toggleList = $state<TagSnapshot[]>([]);
+  let deleteList = $state<Tag[]>([]);
+  let toggleList = $state<Tag[]>([]);
   let groupSeq = 1;
 
   const changeset = $derived(changesetFromBoard(groups, deleteList, toggleList));
   const pendingCount = $derived(changesetSize(changeset));
 
-  /** 每個標籤目前被擺在哪裡（每個標籤同時只能在一個位置） */
-  const placement = $derived.by(() => {
-    const m = new Map<string, string>();
-    for (const g of groups) for (const member of g.members) m.set(member.name, `group:${g.id}`);
-    for (const s of deleteList) m.set(s.name, "delete");
-    for (const s of toggleList) m.set(s.name, "toggle");
+  type ChipStatus = "idle" | "group" | "delete" | "hidden";
+
+  /** chip 池呈現用的狀態查找表（同一標籤同時只會在畫布上的一個位置） */
+  const status = $derived.by(() => {
+    const m = new Map<string, ChipStatus>();
+    for (const g of groups) for (const member of g.members) m.set(member.name, "group");
+    for (const t of deleteList) m.set(t.name, "delete");
+    for (const t of toggleList) m.set(t.name, "hidden");
     return m;
   });
 
-  /** 畫布上每個標籤的快照（審查條目的 count 後備值） */
-  const snapshotByName = $derived.by(() => {
-    const m = new Map<string, TagSnapshot>();
+  /** 畫布上每個標籤目前的 Tag（審查條目的 count 後備值） */
+  const tagByName = $derived.by(() => {
+    const m = new Map<string, Tag>();
     for (const g of groups) for (const member of g.members) m.set(member.name, member);
-    for (const s of deleteList) m.set(s.name, s);
-    for (const s of toggleList) m.set(s.name, s);
+    for (const t of deleteList) m.set(t.name, t);
+    for (const t of toggleList) m.set(t.name, t);
     return m;
   });
 
@@ -70,41 +70,51 @@
   const detachFromBoard = (name: string) => {
     for (const g of groups) g.members = g.members.filter((m) => m.name !== name);
     groups = groups.filter((g) => g.members.length > 0);
-    deleteList = deleteList.filter((s) => s.name !== name);
-    toggleList = toggleList.filter((s) => s.name !== name);
+    deleteList = deleteList.filter((t) => t.name !== name);
+    toggleList = toggleList.filter((t) => t.name !== name);
     schedulePreview();
   };
 
-  const createGroup = (snaps: TagSnapshot[]) => {
-    if (snaps.length === 0) return;
-    for (const s of snaps) detachFromBoard(s.name);
+  const createGroup = (tags: Tag[]) => {
+    if (tags.length === 0) return;
+    for (const t of tags) detachFromBoard(t.name);
     // 代表名預設取使用數最高的成員
-    const canonical = snaps.toSorted((a, b) => b.count - a.count)[0].name;
-    groups.push({ id: groupSeq++, canonical, members: [...snaps] });
+    const canonical = tags.toSorted((a, b) => b.count - a.count)[0].name;
+    groups.push({ id: groupSeq++, canonical, members: [...tags] });
     schedulePreview();
   };
 
-  const addToGroup = (groupId: number, snaps: TagSnapshot[]) => {
-    for (const s of snaps) {
-      detachFromBoard(s.name);
+  const addToGroup = (groupId: number, tags: Tag[]) => {
+    for (const t of tags) {
+      detachFromBoard(t.name);
       const g = groups.find((x) => x.id === groupId);
       if (!g) break; // 目標堆因 detach 清空而消失
-      if (!g.members.some((m) => m.name === s.name)) g.members.push(s);
+      if (!g.members.some((m) => m.name === t.name)) g.members.push(t);
     }
     schedulePreview();
   };
 
-  const addToZone = (zone: "delete" | "toggle", snaps: TagSnapshot[]) => {
-    for (const s of snaps) {
-      detachFromBoard(s.name);
-      if (zone === "delete") deleteList.push(s);
-      else toggleList.push(s);
+  const addToZone = (zone: "delete" | "toggle", tags: Tag[]) => {
+    for (const t of tags) {
+      detachFromBoard(t.name);
+      if (zone === "delete") deleteList.push(t);
+      else toggleList.push(t);
     }
     schedulePreview();
   };
 
   const dissolveGroup = (groupId: number) => {
     groups = groups.filter((g) => g.id !== groupId);
+    schedulePreview();
+  };
+
+  const clearDeleteList = () => {
+    deleteList = [];
+    schedulePreview();
+  };
+
+  const clearToggleList = () => {
+    toggleList = [];
     schedulePreview();
   };
 
@@ -120,24 +130,24 @@
     const kind = key.slice(0, sep);
     const name = key.slice(sep + 1);
     if (kind === "rename" || kind === "delete") detachFromBoard(name);
-    else if (kind === "hidden") toggleList = toggleList.filter((s) => s.name !== name);
+    else if (kind === "hidden") toggleList = toggleList.filter((t) => t.name !== name);
     checkedKeys.delete(key);
   };
 
   // ─── 選取（點擊備援，不用拖也能操作；快照在選取當下捕捉）───
 
-  const selected = new SvelteMap<string, TagSnapshot>();
+  const selected = new SvelteMap<string, Tag>();
   const selectedNames = $derived(new Set(selected.keys()));
 
-  const toggleSelect = (snap: TagSnapshot) => {
-    if (selected.has(snap.name)) selected.delete(snap.name);
-    else selected.set(snap.name, snap);
+  const toggleSelect = (tag: Tag) => {
+    if (selected.has(tag.name)) selected.delete(tag.name);
+    else selected.set(tag.name, tag);
   };
 
-  const takeSelection = (): TagSnapshot[] => {
-    const snaps = [...selected.values()];
+  const takeSelection = (): Tag[] => {
+    const tags = [...selected.values()];
     selected.clear();
-    return snaps;
+    return tags;
   };
 
   const clearSelection = () => {
@@ -146,11 +156,11 @@
 
   // ─── 拖放（拖曳狀態純前端；拖入的那顆若在選取集合內，整批一起帶過去）───
 
-  let dragging = $state<TagSnapshot | null>(null);
+  let dragging = $state<Tag | null>(null);
   let dragOverZone = $state<string | null>(null);
 
-  const handleDragStart = (snap: TagSnapshot) => {
-    dragging = snap;
+  const handleDragStart = (tag: Tag) => {
+    dragging = tag;
   };
 
   const handleDragEnd = () => {
@@ -172,15 +182,15 @@
     dragOverZone = null;
     if (!dragging) return;
 
-    const snaps = selected.has(dragging.name) ? [...selected.values()] : [dragging];
+    const tags = selected.has(dragging.name) ? [...selected.values()] : [dragging];
     selected.clear();
     dragging = null;
 
-    if (target === "new-group") createGroup(snaps);
-    else if (target === "delete") addToZone("delete", snaps);
-    else if (target === "toggle") addToZone("toggle", snaps);
-    else if (target === "pool") for (const s of snaps) detachFromBoard(s.name);
-    else if (target.startsWith("group:")) addToGroup(Number(target.slice(6)), snaps);
+    if (target === "new-group") createGroup(tags);
+    else if (target === "delete") addToZone("delete", tags);
+    else if (target === "toggle") addToZone("toggle", tags);
+    else if (target === "pool") for (const t of tags) detachFromBoard(t.name);
+    else if (target.startsWith("group:")) addToGroup(Number(target.slice(6)), tags);
   };
 
   // ─── 變更集預估：畫布變動去抖後查 tags-preview，審查 modal 開啟時再查一次 ───
@@ -225,7 +235,7 @@
   // ─── 審查與送出 ───
 
   const reviewEntries = $derived.by(() => {
-    const base = changesetEntries(changeset, (name) => snapshotByName.get(name), projection);
+    const base = changesetEntries(changeset, (name) => tagByName.get(name), projection);
     return base.map((e) => ({
       ...e,
       checked: checkedKeys.has(e.key) && e.problem === null,
@@ -236,7 +246,7 @@
   const handleReviewOpen = () => {
     failures = {};
     checkedKeys.clear();
-    for (const e of changesetEntries(changeset, (name) => snapshotByName.get(name), projection)) {
+    for (const e of changesetEntries(changeset, (name) => tagByName.get(name), projection)) {
       if (e.problem === null) checkedKeys.add(e.key);
     }
     clearTimeout(previewTimer);
@@ -343,70 +353,95 @@
   />
 
   <div class="body">
-    <TagPool
+    <Pool
       items={data.items}
       total={data.total}
-      {placement}
-      {selectedNames}
+      {status}
+      selected={selectedNames}
       dropping={dragOverZone === "pool"}
-      ontoggleselect={toggleSelect}
+      ontoggle={toggleSelect}
       ondragstart={handleDragStart}
       ondragend={handleDragEnd}
-      onpooldragover={(e) => allowDrop(e, "pool")}
-      onpooldragleave={() => leaveDropZone("pool")}
-      onpooldrop={(e) => handleDrop(e, "pool")}
+      ondragover={(e) => allowDrop(e, "pool")}
+      ondragleave={() => leaveDropZone("pool")}
+      ondrop={(e) => handleDrop(e, "pool")}
     />
 
     <aside class="board">
-      <CreateGroup
+      <ZoneContainer
+        variant="create"
+        aria-label="新合併堆"
         dropping={dragOverZone === "new-group"}
-        selected={selected.size}
         ondragover={(e) => allowDrop(e, "new-group")}
         ondragleave={() => leaveDropZone("new-group")}
         ondrop={(e) => handleDrop(e, "new-group")}
-        oncreate={() => createGroup(takeSelection())}
-      />
+        style="align-items: center; padding: 1rem 0.75rem;"
+      >
+        <ZoneBodyCreate selected={selected.size} oncreate={() => createGroup(takeSelection())} />
+      </ZoneContainer>
 
       {#each groups as group (group.id)}
-        <MergeGroupCard
-          {group}
-          mergedCount={projection?.mergedCounts[group.canonical.trim()]}
+        <ZoneContainer
+          variant="group"
+          aria-label={`合併堆 ${group.canonical.trim()}`}
           dropping={dragOverZone === `group:${group.id}`}
-          selectedCount={selected.size}
           ondragover={(e) => allowDrop(e, `group:${group.id}`)}
           ondragleave={() => leaveDropZone(`group:${group.id}`)}
           ondrop={(e) => handleDrop(e, `group:${group.id}`)}
-          onaddselected={() => addToGroup(group.id, takeSelection())}
-          ondissolve={() => dissolveGroup(group.id)}
-          onsetcanonical={(name) => setCanonical(group.id, name)}
-          onremovemember={(name) => detachFromBoard(name)}
-          oncanonicalinput={schedulePreview}
-        />
+        >
+          <ZoneHeader
+            selected={selected.size}
+            label="合併組"
+            tags={group.members.map((m) => m.name)}
+            onadd={() => addToGroup(group.id, takeSelection())}
+            ondissolve={() => dissolveGroup(group.id)}
+          />
+          <ZoneBodyGroup
+            tags={group.members}
+            bind:rename={group.canonical}
+            count={projection?.mergedCounts[group.canonical.trim()]}
+            onactive={(name) => setCanonical(group.id, name)}
+            onremove={(name) => detachFromBoard(name)}
+            onrename={schedulePreview}
+          />
+        </ZoneContainer>
       {/each}
 
-      <Zone
-        kind="delete"
-        items={deleteList}
+      <ZoneContainer
+        variant="delete"
+        aria-label="刪除區"
         dropping={dragOverZone === "delete"}
-        selectedCount={selected.size}
         ondragover={(e) => allowDrop(e, "delete")}
         ondragleave={() => leaveDropZone("delete")}
         ondrop={(e) => handleDrop(e, "delete")}
-        onaddselected={() => addToZone("delete", takeSelection())}
-        onremove={(name) => detachFromBoard(name)}
-      />
+      >
+        <ZoneHeader
+          selected={selected.size}
+          label="刪除區"
+          tags={deleteList.map((t) => t.name)}
+          onadd={() => addToZone("delete", takeSelection())}
+          ondissolve={clearDeleteList}
+        />
+        <ZoneBodyDelete tags={deleteList} onremove={(name) => detachFromBoard(name)} />
+      </ZoneContainer>
 
-      <Zone
-        kind="toggle"
-        items={toggleList}
+      <ZoneContainer
+        variant="hidden"
+        aria-label="切換隱藏區"
         dropping={dragOverZone === "toggle"}
-        selectedCount={selected.size}
         ondragover={(e) => allowDrop(e, "toggle")}
         ondragleave={() => leaveDropZone("toggle")}
         ondrop={(e) => handleDrop(e, "toggle")}
-        onaddselected={() => addToZone("toggle", takeSelection())}
-        onremove={(name) => detachFromBoard(name)}
-      />
+      >
+        <ZoneHeader
+          selected={selected.size}
+          label="切換隱藏區"
+          tags={toggleList.map((t) => t.name)}
+          onadd={() => addToZone("toggle", takeSelection())}
+          ondissolve={clearToggleList}
+        />
+        <ZoneBodyHidden tags={toggleList} onremove={(name) => detachFromBoard(name)} />
+      </ZoneContainer>
     </aside>
   </div>
 </div>

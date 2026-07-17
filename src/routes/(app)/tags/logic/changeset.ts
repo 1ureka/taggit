@@ -5,20 +5,14 @@
  * 來自 `POST /api/proto/tags-preview`（見 `./api.ts`），在此與本地變更集拼成審查條目。
  */
 
+import type { Tag } from "$lib/database";
 import type { ChangesetPreview } from "$lib/query-spec";
-
-/** 標籤放上畫布當下的快照（不依賴全量字典；count/hidden 可能過期，送出時以後端現實為準） */
-export type TagSnapshot = {
-  name: string;
-  count: number;
-  hidden: boolean;
-};
 
 /** 合併堆：members 全部改名為 canonical（canonical 自身除外） */
 export type MergeGroup = {
   id: number;
   canonical: string;
-  members: TagSnapshot[];
+  members: Tag[];
 };
 
 /**
@@ -34,18 +28,14 @@ export type TagChangeset = {
 };
 
 /** 由畫布狀態推導變更集 */
-export function changesetFromBoard(
-  groups: MergeGroup[],
-  deleteList: TagSnapshot[],
-  toggleList: TagSnapshot[],
-): TagChangeset {
+export function changesetFromBoard(groups: MergeGroup[], deleteList: Tag[], toggleList: Tag[]): TagChangeset {
   const cs: TagChangeset = { renames: {}, deletes: [], hidden: {} };
   for (const g of groups) {
     const canonical = g.canonical.trim();
     for (const m of g.members) if (m.name !== canonical) cs.renames[m.name] = canonical;
   }
-  cs.deletes = deleteList.map((s) => s.name);
-  for (const s of toggleList) cs.hidden[s.name] = !s.hidden;
+  cs.deletes = deleteList.map((t) => t.name);
+  for (const t of toggleList) cs.hidden[t.name] = !t.meta.hidden;
   return cs;
 }
 
@@ -73,7 +63,7 @@ export type ChangeEntry = {
   kind: "rename" | "delete" | "hidden";
   /** 操作對象（rename 時為 from） */
   name: string;
-  /** 對象的使用數（有預覽時為最新值，否則為快照值） */
+  /** 對象的使用數（有預覽時為最新值，否則為畫布上的 Tag 值） */
   count: number;
   /** rename 目標 */
   to?: string;
@@ -93,7 +83,7 @@ export type ChangeEntry = {
  */
 export function changesetEntries(
   cs: TagChangeset,
-  snapshotOf: (name: string) => TagSnapshot | undefined,
+  tagOf: (name: string) => Tag | undefined,
   projection: ChangesetPreview | null,
 ): ChangeEntry[] {
   const deletes = new Set(cs.deletes);
@@ -101,7 +91,7 @@ export function changesetEntries(
   for (const to of Object.values(cs.renames)) renameTargets.set(to, (renameTargets.get(to) ?? 0) + 1);
 
   const status = (name: string) => projection?.tags[name];
-  const countOf = (name: string) => status(name)?.count ?? snapshotOf(name)?.count ?? 0;
+  const countOf = (name: string) => status(name)?.count ?? tagOf(name)?.count ?? 0;
 
   const entries: ChangeEntry[] = [];
 
