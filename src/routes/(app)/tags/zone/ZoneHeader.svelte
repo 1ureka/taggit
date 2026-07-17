@@ -29,7 +29,7 @@
       variant="ghost"
       padding="icon"
       href={`/?${new ImageWhere({ includedTags: tags }).toSearchParams()}`}
-      status={selected < 1 ? "disabled" : undefined}
+      status={tags.length < 1 ? "disabled" : undefined}
       target="_blank"
       rel="noopener"
       aria-label="查詢使用這些標籤的圖片"
@@ -70,5 +70,6 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    align-self: stretch;
   }
 </style>

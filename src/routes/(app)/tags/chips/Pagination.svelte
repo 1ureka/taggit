@@ -10,8 +10,8 @@
   const currentPage = $derived(query.list.page);
   const totalPages = $derived(Math.max(1, Math.ceil(total / 100)));
 
-  const disabledPrev = $derived(navigating || currentPage <= 1);
-  const disabledNext = $derived(navigating || currentPage >= totalPages);
+  const disabledPrev = $derived(navigating.to || currentPage <= 1);
+  const disabledNext = $derived(navigating.to || currentPage >= totalPages);
 
   const gotoPage = (p: number) => {
     const q = query.with({ list: query.list.with({ page: p }) });

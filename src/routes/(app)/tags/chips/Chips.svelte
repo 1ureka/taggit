@@ -44,6 +44,7 @@
 
 <style>
   div {
+    position: relative;
     flex: 1;
     display: flex;
     flex-wrap: wrap;
@@ -55,6 +56,11 @@
   }
 
   p {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     font: var(--font-body2);
     color: var(--color-text-muted);
   }

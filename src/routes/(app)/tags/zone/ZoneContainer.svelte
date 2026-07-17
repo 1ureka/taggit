@@ -61,18 +61,18 @@
 
   div.delete {
     border-style: dashed;
-    border-color: var(--color-border);
+    border-color: hsl(from var(--color-error) h s l / 0.45);
     background-color: var(--color-bg);
 
     &.dropping {
-      border-color: var(--color-destructive);
-      background-color: hsl(from var(--color-destructive) h s l / 0.15);
+      border-color: var(--color-error);
+      background-color: hsl(from var(--color-error) h s l / 0.15);
     }
   }
 
   div.hidden {
     border-style: dashed;
-    border-color: var(--color-border);
+    border-color: hsl(from var(--color-warning) h s l / 0.45);
     background-color: var(--color-bg);
 
     &.dropping {

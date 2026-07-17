@@ -41,7 +41,7 @@
 
 {#snippet chip({ name, count }: Tag)}
   {@const active = rename === name}
-  {@const defaultStyle = "background: var(--color-bg-card); transition: all 0.15s ease;"}
+  {@const defaultStyle = "background: var(--color-bg-card); padding: 0.1875rem; transition: all 0.15s ease;"}
   {@const activeBorder = "border-color: hsl(from var(--color-accent) h s l / 0.6);"}
   {@const activeBackground = "background: hsl(from var(--color-accent) h s l / 0.15);"}
   {@const style = active ? defaultStyle + activeBorder + activeBackground : defaultStyle}
@@ -75,7 +75,10 @@
 
 <style>
   div.rename {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    align-self: stretch;
     gap: 0.5rem;
     margin-top: 0.5rem;
     margin-bottom: 1rem;
@@ -98,6 +101,8 @@
   span.chip-action {
     height: 0px;
     overflow: visible;
+    display: flex;
+    align-items: center;
   }
 
   span.chip-action > button {

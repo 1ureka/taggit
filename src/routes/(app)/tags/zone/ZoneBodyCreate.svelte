@@ -21,3 +21,11 @@
 >
   從選取中建立
 </Button>
+
+<style>
+  p {
+    font: var(--font-body2);
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+</style>
