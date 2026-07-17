@@ -18,9 +18,16 @@
   };
 
   let { items, status, selected, ontoggle, ondragstart, ondragend }: Props = $props();
+
+  let scrollerEl = $state<HTMLElement>();
+
+  $effect(() => {
+    items; // 換頁/篩選後資料一到就捲回頂端
+    scrollerEl?.scrollTo({ top: 0 });
+  });
 </script>
 
-<div>
+<div bind:this={scrollerEl}>
   {#each items as tag (tag.name)}
     <Chip
       {tag}
@@ -38,13 +45,13 @@
 <style>
   div {
     flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 0.75rem;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
     gap: 0.375rem;
+    padding: 0.75rem;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   p {
