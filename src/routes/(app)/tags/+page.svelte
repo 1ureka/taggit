@@ -10,7 +10,7 @@
   import { requestConfirm } from "$lib/widgets/confirm-events";
 
   import Pool from "./chips/Pool.svelte";
-  import { clearPreviews } from "./pool/previews";
+  import { clearPreviews } from "./chips/previews";
   import ZoneContainer from "./zone/ZoneContainer.svelte";
   import ZoneHeader from "./zone/ZoneHeader.svelte";
   import ZoneBodyCreate from "./zone/ZoneBodyCreate.svelte";

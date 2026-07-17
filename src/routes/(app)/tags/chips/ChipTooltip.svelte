@@ -2,7 +2,7 @@
   import type { ImageWithId, Tag } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconEyeOff } from "$lib/icons";
-  import { previewCache, requestPreview } from "../pool/previews";
+  import { previewCache, requestPreview } from "./previews";
 
   let { tag }: { tag: Tag } = $props();
 
