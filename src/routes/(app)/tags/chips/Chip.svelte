@@ -27,20 +27,13 @@
     delete: "已排入刪除區",
     hidden: "已排入隱藏切換區",
   };
-
-  const className = $derived({
-    selected,
-    group: status === "group",
-    delete: status === "delete",
-    hidden: status === "hidden",
-  });
 </script>
 
 {#snippet detail()}<ChipTooltip {tag} />{/snippet}
 
 <button
   type="button"
-  class={className}
+  class={{ selected, [status]: true }}
   draggable="true"
   aria-pressed={selected}
   title={`${tag.name} ${titleMap[status]}`}
@@ -77,7 +70,6 @@
     }
   }
 
-  /* TODO: 之後改成 button {...}, button.group {...} 矩陣 */
   button {
     background-color: transparent;
     border-color: var(--color-border);
@@ -88,24 +80,77 @@
     }
 
     &.selected {
-      background-color: var(--color-bg-active);
-      border-color: var(--color-info);
+      background-color: var(--color-bg-hover);
+      border-color: hsl(from var(--color-text) h s l / 0.5);
       color: var(--color-text);
+
+      &:hover {
+        background-color: var(--color-bg-active);
+        border-color: hsl(from var(--color-text) h s l / 0.75);
+      }
+    }
+  }
+
+  button.group {
+    background-color: hsl(from var(--color-accent) h s l / 0.15);
+    border-color: hsl(from var(--color-accent) h s l / 0.5);
+
+    &:hover {
+      background-color: hsl(from var(--color-accent) h s l / 0.3);
+      border-color: hsl(from var(--color-accent) h s l / 0.75);
     }
 
-    &.group {
-      border-color: hsl(from var(--color-info) h s l / 0.6);
-      opacity: 0.65;
+    &.selected {
+      background-color: hsl(from var(--color-accent) h s l / 0.3);
+      border-color: hsl(from var(--color-accent) h s l / 0.75);
+      color: var(--color-accent);
+
+      &:hover {
+        background-color: hsl(from var(--color-accent) h s l / 0.45);
+        border-color: hsl(from var(--color-accent) h s l / 0.85);
+      }
+    }
+  }
+
+  button.delete {
+    background-color: hsl(from var(--color-error) h s l / 0.15);
+    border-color: hsl(from var(--color-error) h s l / 0.5);
+
+    &:hover {
+      background-color: hsl(from var(--color-error) h s l / 0.3);
+      border-color: hsl(from var(--color-error) h s l / 0.75);
     }
 
-    &.delete {
-      border-color: hsl(from var(--color-error) h s l / 0.6);
-      opacity: 0.65;
+    &.selected {
+      background-color: hsl(from var(--color-error) h s l / 0.3);
+      border-color: hsl(from var(--color-error) h s l / 0.75);
+      color: var(--color-error);
+
+      &:hover {
+        background-color: hsl(from var(--color-error) h s l / 0.45);
+        border-color: hsl(from var(--color-error) h s l / 0.85);
+      }
+    }
+  }
+
+  button.hidden {
+    background-color: hsl(from var(--color-warning) h s l / 0.15);
+    border-color: hsl(from var(--color-warning) h s l / 0.5);
+
+    &:hover {
+      background-color: hsl(from var(--color-warning) h s l / 0.3);
+      border-color: hsl(from var(--color-warning) h s l / 0.75);
     }
 
-    &.hidden {
-      border-color: hsl(from var(--color-warning) h s l / 0.6);
-      opacity: 0.65;
+    &.selected {
+      background-color: hsl(from var(--color-warning) h s l / 0.3);
+      border-color: hsl(from var(--color-warning) h s l / 0.75);
+      color: var(--color-warning);
+
+      &:hover {
+        background-color: hsl(from var(--color-warning) h s l / 0.45);
+        border-color: hsl(from var(--color-warning) h s l / 0.85);
+      }
     }
   }
 

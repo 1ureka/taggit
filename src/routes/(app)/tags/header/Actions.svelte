@@ -36,7 +36,7 @@
   </ButtonLink>
 
   <Button variant="primary" status={touchedCount === 0 ? "disabled" : undefined} onclick={onreview}>
-    檢視變更（{touchedCount}）
+    檢視變更 ({touchedCount})
   </Button>
 </div>
 
