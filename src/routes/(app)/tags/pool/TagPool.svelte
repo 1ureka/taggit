@@ -1,22 +1,22 @@
 <script lang="ts">
+  import { page, navigating } from "$app/state";
+  import { goto } from "$app/navigation";
   import type { Tag } from "$lib/database";
+  import { TagQuery } from "$lib/query-spec";
   import { imgSrc } from "$lib/image/client";
-  import { formatError } from "$lib/utils/shared";
-  import { addToast } from "$lib/components/floating/toast-events";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
   import { IconAlertTriangleFilled, IconEyeOff } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
 
-  import { PAGE_SIZE, fetchPool, type PoolQuery } from "./pool";
   import { PREVIEW_COUNT, HOVER_DEBOUNCE, previewCache, requestPreview } from "./previews";
   import type { TagSnapshot } from "../logic/changeset";
 
   type Props = {
-    /** load 回傳的第 1 頁（預設查詢）；重掛（{#key}）時作為初始資料 */
-    firstPage: Tag[];
-    /** 預設查詢的標籤總數 */
-    firstTotal: number;
+    /** 當頁的標籤（隨 URL 查詢參數由 load 提供） */
+    items: Tag[];
+    /** 目前查詢條件下的標籤總數 */
+    total: number;
     /** 每個標籤目前被擺在畫布哪裡（`group:<id>` / `delete` / `toggle`） */
     placement: Map<string, string>;
     /** 已選取的標籤名 */
@@ -35,8 +35,8 @@
   };
 
   let {
-    firstPage,
-    firstTotal,
+    items,
+    total,
     placement,
     selectedNames,
     dropping,
@@ -50,47 +50,25 @@
 
   const toSnapshot = (tag: Tag): TagSnapshot => ({ name: tag.name, count: tag.count, hidden: tag.meta.hidden });
 
-  // ─── 伺服器分頁：控制項變動（回第 1 頁）與翻頁都是 client fetch ───
+  // ─── 分頁：query 由 URL 驅動（Toolbar 的搜尋/排序/篩選同一套契約），翻頁直接 goto ───
 
-  let tags = $derived(firstPage);
-  let total = $derived(firstTotal);
-  let pageNum = $state(1);
-  let fetching = $state(false);
-
-  let search = $state("");
-  let sortKey = $state<string | undefined>("count");
-  let hiddenKey = $state<string | undefined>("all");
+  const query = $derived(TagQuery.fromSearchParams(page.url.searchParams));
+  const pageNum = $derived(query.list.page);
+  const pageCount = $derived(Math.max(1, Math.ceil(total / 100)));
+  const navPending = $derived(!!navigating.to);
 
   let scrollerEl = $state<HTMLElement>();
 
-  const pageCount = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
-
-  let requestSeq = 0;
-
-  const currentQuery = (page: number): PoolQuery => ({
-    search,
-    sort: (sortKey ?? "count") as PoolQuery["sort"],
-    hidden: (hiddenKey ?? "all") as PoolQuery["hidden"],
-    page,
+  $effect(() => {
+    items; // 換頁/篩選後資料一到就捲回頂端
+    scrollerEl?.scrollTo({ top: 0 });
   });
 
-  /** 查詢一頁；過期回應以序號丟棄 */
-  async function run(page: number) {
-    const seq = ++requestSeq;
-    fetching = true;
-    try {
-      const result = await fetchPool(currentQuery(page));
-      if (seq !== requestSeq) return;
-      tags = result.items;
-      total = result.total;
-      pageNum = page;
-      scrollerEl?.scrollTo({ top: 0 });
-    } catch (e) {
-      if (seq === requestSeq) addToast({ message: formatError(e), variant: "error" });
-    } finally {
-      if (seq === requestSeq) fetching = false;
-    }
-  }
+  const gotoPage = (p: number) => {
+    const q = query.with({ list: query.list.with({ page: p }) });
+    const qs = q.toSearchParams(new URLSearchParams(location.search)).toString();
+    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+  };
 
   // ─── 懸停預覽：hover 去抖後才查，快取由 previews.ts 管理 ───
 
@@ -168,8 +146,8 @@
   ondragleave={onpooldragleave}
   ondrop={onpooldrop}
 >
-  <div class="chips" bind:this={scrollerEl} class:fetching>
-    {#each tags as tag (tag.name)}
+  <div class="chips" bind:this={scrollerEl} class:fetching={navPending}>
+    {#each items as tag (tag.name)}
       {@const placed = placement.get(tag.name)}
       <button
         type="button"
@@ -201,14 +179,18 @@
   </div>
 
   <div class="pagination">
-    <Button variant="ghost" status={pageNum <= 1 || fetching ? "disabled" : undefined} onclick={() => run(pageNum - 1)}>
+    <Button
+      variant="ghost"
+      status={pageNum <= 1 || navPending ? "disabled" : undefined}
+      onclick={() => gotoPage(pageNum - 1)}
+    >
       上一頁
     </Button>
     <span class="page-indicator">第 {pageNum} / {pageCount} 頁 · 共 {total} 個</span>
     <Button
       variant="ghost"
-      status={pageNum >= pageCount || fetching ? "disabled" : undefined}
-      onclick={() => run(pageNum + 1)}
+      status={pageNum >= pageCount || navPending ? "disabled" : undefined}
+      onclick={() => gotoPage(pageNum + 1)}
     >
       下一頁
     </Button>

@@ -1,19 +1,17 @@
 <script lang="ts">
-  import type { TagQuery } from "$lib/query-spec";
+  import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import { TagQuery } from "$lib/query-spec";
   import Actions from "./Actions.svelte";
   import Filters from "./Filters.svelte";
 
   type Props = {
     /** 全局共用的操作鎖 */
     pending: boolean;
-    /** 目前的查詢值物件 */
-    query: TagQuery;
     /** 目前選取的標籤數量 */
     selectedCount: number;
     /** 可審查的標籤數量 */
     touchedCount: number;
-    /** 查詢參數改變事件 */
-    onquery: (query: TagQuery) => void;
     /** 點擊清空選取事件 */
     onclear: () => void;
     /** 點擊重新整理事件 */
@@ -22,11 +20,18 @@
     onreview: () => void;
   };
 
-  let { pending, query, selectedCount, touchedCount, onquery, onclear, onrefresh, onreview }: Props = $props();
+  let { pending, selectedCount, touchedCount, onclear, onrefresh, onreview }: Props = $props();
+
+  const query = $derived(TagQuery.fromSearchParams(page.url.searchParams));
+
+  const handleQuery = (q: TagQuery) => {
+    const qs = q.toSearchParams(new URLSearchParams(location.search)).toString();
+    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+  };
 </script>
 
 <div>
-  <Filters {query} {selectedCount} onchange={onquery} {onclear} />
+  <Filters {query} {selectedCount} onchange={handleQuery} {onclear} />
   <Actions {pending} {touchedCount} {onrefresh} {onreview} />
 </div>
 

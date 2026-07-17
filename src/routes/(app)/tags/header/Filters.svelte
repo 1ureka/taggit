@@ -70,7 +70,6 @@
     option={hiddenOption}
     value={query.where.hidden === undefined ? "all" : query.where.hidden ? "hidden" : "visible"}
     onchange={handleFilterChange}
-    matchWidth={false}
   />
 
   {#if selectedCount > 0}

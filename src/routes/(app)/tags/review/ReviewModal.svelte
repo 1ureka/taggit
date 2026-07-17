@@ -33,8 +33,7 @@
     ondiscard: (key: string) => void;
   };
 
-  let { open, entries, pending, previewPending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props =
-    $props();
+  let { open, entries, pending, previewPending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props = $props();
 
   const checkedCount = $derived(entries.filter((e) => e.checked).length);
   const checkableCount = $derived(entries.filter((e) => e.problem === null).length);
@@ -206,7 +205,7 @@
     gap: 0.625rem;
     padding: 0.375rem 0px;
 
-    &.excluded > :global(*) {
+    &.excluded > * {
       opacity: 0.5;
     }
   }

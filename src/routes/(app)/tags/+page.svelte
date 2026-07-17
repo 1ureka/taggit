@@ -3,7 +3,7 @@
   import { invalidateAll, beforeNavigate, goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import { ImageWhere, TagQuery, type ChangesetPreview } from "$lib/query-spec";
+  import { ImageWhere, type ChangesetPreview } from "$lib/query-spec";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
@@ -32,16 +32,12 @@
 
   /** 是否正在進行處理（送出 / 重新整理） */
   let pending = $state(false);
-  /** 工具列的查詢值物件；TagPool 尚未重寫，暫不消費此狀態 */
-  let query = $state(new TagQuery());
   /** 審查對話框是否打開 */
   let reviewOpen = $state(false);
   /** 送出後的失敗匯總（key -> 錯誤訊息） */
   let failures = $state<Record<string, string>>({});
   /** 目前審查清單的勾選 keys，使用者的原始意圖，不主動清除 */
   const checkedKeys = new SvelteSet<string>();
-  /** 標籤池的重掛世代：重整/送出後 +1，讓池回到第 1 頁與預設控制項 */
-  let poolEpoch = $state(0);
 
   // ─── 畫布狀態（畫布即變更集的空間化呈現；標籤攜帶放入當下的快照）───
 
@@ -282,7 +278,6 @@
 
       clearPreviews(); // 標籤內容已變，懸停預覽快取失效
       await invalidateAll();
-      poolEpoch++;
     } catch (e) {
       addToast({ message: formatError(e), variant: "error" });
     } finally {
@@ -299,7 +294,6 @@
       await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
       clearPreviews();
       await invalidateAll();
-      poolEpoch++;
       addToast({ message: "標籤列表已更新", variant: "success" });
     } finally {
       pending = false;
@@ -347,32 +341,27 @@
 <div class="page">
   <Toolbar
     {pending}
-    {query}
     selectedCount={selected.size}
     touchedCount={pendingCount}
-    onquery={(q) => (query = q)}
     onclear={clearSelection}
     onrefresh={handleRefresh}
     onreview={handleReviewOpen}
   />
 
   <div class="body">
-    <!-- COMMENT: 為何需要 key? -->
-    {#key poolEpoch}
-      <TagPool
-        firstPage={data.firstPage}
-        firstTotal={data.total}
-        {placement}
-        {selectedNames}
-        dropping={dragOverZone === "pool"}
-        ontoggleselect={toggleSelect}
-        ondragstart={handleDragStart}
-        ondragend={handleDragEnd}
-        onpooldragover={(e) => allowDrop(e, "pool")}
-        onpooldragleave={() => leaveDropZone("pool")}
-        onpooldrop={(e) => handleDrop(e, "pool")}
-      />
-    {/key}
+    <TagPool
+      items={data.items}
+      total={data.total}
+      {placement}
+      {selectedNames}
+      dropping={dragOverZone === "pool"}
+      ontoggleselect={toggleSelect}
+      ondragstart={handleDragStart}
+      ondragend={handleDragEnd}
+      onpooldragover={(e) => allowDrop(e, "pool")}
+      onpooldragleave={() => leaveDropZone("pool")}
+      onpooldrop={(e) => handleDrop(e, "pool")}
+    />
 
     <aside class="board">
       <div
