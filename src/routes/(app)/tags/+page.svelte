@@ -319,6 +319,7 @@
   <Toolbar
     {pending}
     selectedCount={selected.size}
+    // TODO: 錯誤，是 touchedCount 而不是 readyCount
     touchedCount={pendingCount}
     onclear={clearSelection}
     onrefresh={handleRefresh}

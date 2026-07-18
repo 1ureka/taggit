@@ -61,7 +61,7 @@
   /** 提交後會新增的標籤 */
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
   /** 被編輯過且可提交的暫存圖片 */
-  const readyCount = $derived(reviewEntries.filter((e) => e.problem === null).length);
+  const readyCount = $derived(reviewEntries.filter((e) => !e.disabled).length);
   /** 目前全螢幕預覽中的暫存圖片 */
   const lightbox = $derived.by(() => {
     if (lightboxFile === null) return null;
