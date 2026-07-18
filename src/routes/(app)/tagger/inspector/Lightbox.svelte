@@ -27,7 +27,8 @@
 
 <Modal open={image !== null} {onclose} aria-label="圖片大圖預覽" containerProps={{ style: containerStyle }}>
   {#if image !== null}
-    {@const { filename, index } = image}
+    {@const filename = image.filename}
+    {@const index = image.index + 1}
     <header>
       <span class="ellipsis" title={filename}>{filename}</span>
       <Chip variant="outlined" style="font: var(--font-caption);">{`${index} / ${total}`}</Chip>
