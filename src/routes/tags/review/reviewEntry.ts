@@ -80,7 +80,6 @@ export function buildReviewEntries(
   hiddenList: Tag[],
   checkedTags: Set<string>,
   failures: Record<string, string>,
-  pending: boolean,
 ): ReviewEntry[] {
   const groupList = [...groups];
   const deletes = new Set(deleteList.map((t) => t.name));
@@ -88,11 +87,11 @@ export function buildReviewEntries(
     groupList.flatMap((g) => g.members.filter((m) => m.name !== g.canonical.trim()).map((m) => m.name)),
   );
 
-  /** 併入上次送出失敗的原因，並依最終問題與 pending 推導可勾選／勾選狀態 */
+  /** 併入上次送出失敗的原因，並依最終問題推導可勾選／勾選狀態 */
   const finish = (name: string, problem: string | null) => {
     const failure = failures[name];
     const finalProblem = problem ?? (failure ? `送出失敗：${failure}` : null);
-    const checkable = finalProblem === null && !pending;
+    const checkable = finalProblem === null;
     return { problem: finalProblem, checkable, checked: checkable && checkedTags.has(name) };
   };
 

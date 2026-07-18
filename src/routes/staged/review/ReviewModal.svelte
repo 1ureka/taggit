@@ -32,7 +32,7 @@
     $props();
 
   const checkedCount = $derived(entries.filter((e) => e.checked).length);
-  const checkableCount = $derived(entries.filter((e) => !e.disabled).length);
+  const checkableCount = $derived(entries.filter((e) => e.checkable).length);
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
 
@@ -42,7 +42,7 @@
   {#if entries.length === 0}
     <p>目前沒有任何暫存的變更。</p>
   {:else}
-    <ReviewList {checkedCount} {checkableCount} {entries} {onedit} {onpreview} {ontoggle} {ontoggleall} />
+    <ReviewList {checkedCount} {checkableCount} {entries} {pending} {onedit} {onpreview} {ontoggle} {ontoggleall} />
   {/if}
 
   <ReviewFooter {checkedCount} {newTags} {pending} oncancel={onclose} {onsubmit} />

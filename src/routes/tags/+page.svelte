@@ -62,7 +62,7 @@
 
   /** 目前的審查清單 */
   const reviewEntries = $derived(
-    buildReviewEntries(groups.values(), deleteList, hiddenList, checkedTags, failures, pending),
+    buildReviewEntries(groups.values(), deleteList, hiddenList, checkedTags, failures),
   );
 
   // ---

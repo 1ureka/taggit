@@ -17,16 +17,15 @@ export type ReviewEntry = {
   problem: string | null;
   /** 是否已被勾選 */
   checked: boolean;
-  /** 是否不可勾選 */
-  disabled: boolean;
+  /** 是否可勾選 */
+  checkable: boolean;
 };
 
-/** 把一張暫存圖片的 draft 與外部旗標（勾選、上次失敗原因、是否處理中）拼成一列審查紀錄 */
+/** 把一張暫存圖片的 draft 與外部旗標（勾選、上次失敗原因）拼成一列審查紀錄 */
 export function buildReviewEntry(
   filename: string,
   draft: Draft,
   checked: boolean,
-  pending: boolean,
   failure?: string,
 ): ReviewEntry {
   const problem = problemOf(draft);
@@ -39,7 +38,7 @@ export function buildReviewEntry(
     tags: draft.tags,
     problem: problem ?? (failure ? `提交失敗：${failure}` : null),
     checked: problem === null && checked,
-    disabled: problem !== null || pending,
+    checkable: problem === null,
   };
 }
 
@@ -67,7 +66,7 @@ export function toggleEntry(checkedFiles: Set<string>, filename: string): void {
 
 /** 全選／全不選目前可勾選的項目（直接操作外部傳入的集合） */
 export function toggleAllEntries(checkedFiles: Set<string>, entries: ReviewEntry[]): void {
-  const eligible = entries.filter((e) => !e.disabled);
+  const eligible = entries.filter((e) => e.checkable);
   const allSelected = eligible.length > 0 && eligible.every((e) => e.checked);
   for (const e of eligible) {
     if (allSelected) checkedFiles.delete(e.filename);

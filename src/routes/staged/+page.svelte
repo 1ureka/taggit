@@ -56,12 +56,12 @@
   const activeIndex = $derived(activeFile !== null ? data.stagedFiles.indexOf(activeFile) + 1 : 0);
   /** 審查清單 */
   const reviewEntries = $derived.by(() => {
-    return touchedFiles.map((f) => buildReviewEntry(f, drafts[f], checkedFiles.has(f), pending, failures[f]));
+    return touchedFiles.map((f) => buildReviewEntry(f, drafts[f], checkedFiles.has(f), failures[f]));
   });
   /** 提交後會新增的標籤 */
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
   /** 被編輯過且可提交的暫存圖片 */
-  const readyCount = $derived(reviewEntries.filter((e) => !e.disabled).length);
+  const readyCount = $derived(reviewEntries.filter((e) => e.checkable).length);
   /** 目前全螢幕預覽中的暫存圖片 */
   const lightbox = $derived.by(() => {
     if (lightboxFile === null) return null;
@@ -86,7 +86,7 @@
 
   // ---
 
-  const handleSubmit = async () => {
+  const handleReviewSubmit = async () => {
     const filenames = reviewEntries.filter((e) => e.checked).map((e) => e.filename);
     if (filenames.length === 0 || pending) return;
 
@@ -113,8 +113,6 @@
       pending = false;
     }
   };
-
-  // ---
 
   const handleReviewOpen = () => {
     failures = {};
@@ -318,7 +316,7 @@
   entries={reviewEntries}
   {newTags}
   {pending}
-  onsubmit={handleSubmit}
+  onsubmit={handleReviewSubmit}
   onclose={handleReviewClose}
   onedit={handleReviewEdit}
   ontoggle={handleReviewToggle}
