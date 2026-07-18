@@ -1,29 +1,18 @@
 <script lang="ts">
-  import type { ImageWithId } from "$lib/database";
+  import { getPinnedContext } from "../logic/pinned.svelte";
   import Card from "./Card.svelte";
 
-  type Props = {
-    /** 目前釘選中的圖片 */
-    pinnedRecords: ImageWithId[];
-    /** 目前是否正有工作處理中 */
-    pending: boolean;
-    /** 圖片取消釘選事件 */
-    onunpin: (id: string) => void;
-    /** 圖片退回事件 */
-    onrevert: (id: string) => void;
-  };
-
-  let { pinnedRecords, pending, onunpin, onrevert }: Props = $props();
+  const pinned = getPinnedContext();
 </script>
 
 <div class="dock">
-  {#if pinnedRecords.length === 0}
+  {#if pinned.records.length === 0}
     <div class="empty">
       <p>按「隨機抽選」抽 N 張並排比較，或者從左側列表釘選</p>
     </div>
   {:else}
-    {#each pinnedRecords as record (record.id)}
-      <Card {record} {pending} onunpin={() => onunpin(record.id)} onrevert={() => onrevert(record.id)} />
+    {#each pinned.records as record (record.id)}
+      <Card {record} />
     {/each}
   {/if}
 </div>

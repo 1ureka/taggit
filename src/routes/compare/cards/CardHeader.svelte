@@ -3,8 +3,11 @@
   import { IconPinnedOff } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
+  import { getPinnedContext } from "../logic/pinned.svelte";
 
-  let { record, onunpin }: { record: ImageWithId; onunpin: () => void } = $props();
+  let { record }: { record: ImageWithId } = $props();
+
+  const pinned = getPinnedContext();
 </script>
 
 <header>
@@ -14,7 +17,7 @@
     variant="ghost"
     padding="icon"
     aria-label="取消釘選 {record.id}"
-    onclick={onunpin}
+    onclick={() => pinned.handleUnpin(record.id)}
     {@attach tooltip({ content: "取消釘選" })}
   >
     <IconPinnedOff size={16} />

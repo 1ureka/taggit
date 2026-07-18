@@ -1,10 +1,12 @@
 <script lang="ts">
-  let { total }: { total: number } = $props();
+  import { getPageDataContext } from "../logic/page-data.svelte";
+
+  const pageData = getPageDataContext();
 </script>
 
 <header>
   <h2>圖庫列表</h2>
-  <p>共 {total} 張</p>
+  <p>共 {pageData.value.total} 張</p>
 </header>
 
 <style>

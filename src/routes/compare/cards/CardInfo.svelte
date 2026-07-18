@@ -7,17 +7,11 @@
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagChips from "$lib/widgets/TagChips.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
 
-  type Props = {
-    /** 卡片顯示的圖片紀錄 */
-    record: ImageWithId;
-    /** 全頁共用的操作鎖 */
-    pending: boolean;
-    /** 取消提交（退回暫存區） */
-    onrevert: () => void;
-  };
+  let { record }: { record: ImageWithId } = $props();
 
-  let { record, pending, onrevert }: Props = $props();
+  const operations = getOperationsContext();
 
   const href = $derived.by(() => {
     const params = new URLSearchParams(page.url.searchParams);
@@ -36,7 +30,11 @@
       <IconEditFilled size={16} />
       <span>編輯</span>
     </ButtonLink>
-    <Button variant="destructive" status={pending ? "pending" : undefined} onclick={onrevert}>
+    <Button
+      variant="destructive"
+      status={operations.pending ? "pending" : undefined}
+      onclick={() => operations.handleRevert(record.id)}
+    >
       <IconArrowBackUpDouble size={16} />
       <span>取消提交</span>
     </Button>

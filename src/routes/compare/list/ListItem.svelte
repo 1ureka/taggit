@@ -2,20 +2,17 @@
   import type { ImageWithId } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconPinFilled, IconPinnedOff } from "$lib/icons";
+  import { getPinnedContext } from "../logic/pinned.svelte";
 
-  type Props = {
-    /** 該項目要呈現的圖片紀錄 */
-    item: ImageWithId;
-    /** 該項目是否被釘選 */
-    pinned: boolean;
-    /** 列表項切換釘選事件 */
-    ontoggle: () => void;
-  };
+  let { item }: { item: ImageWithId } = $props();
 
-  let { item, pinned, ontoggle }: Props = $props();
+  const pinnedContext = getPinnedContext();
+  const pinned = $derived(pinnedContext.isPinned(item.id));
+
+  const handleToggle = () => pinnedContext.handleTogglePin(item.id);
 </script>
 
-<button type="button" aria-pressed={pinned} title={pinned ? "自畫布移除" : "釘選到畫布"} onclick={ontoggle}>
+<button type="button" aria-pressed={pinned} title={pinned ? "自畫布移除" : "釘選到畫布"} onclick={handleToggle}>
   <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" decoding="async" />
 
   <span class="ellipsis">{item.name}</span>

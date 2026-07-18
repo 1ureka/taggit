@@ -1,28 +1,17 @@
 <script lang="ts">
-  import type { ImageWithId } from "$lib/database";
+  import { getPageDataContext } from "../logic/page-data.svelte";
   import ListHeader from "./ListHeader.svelte";
   import ListItems from "./ListItems.svelte";
 
-  type Props = {
-    /** 篩選結果列表 */
-    items: ImageWithId[];
-    /** 篩選結果總數 */
-    total: number;
-    /** 已釘選的圖片 ids */
-    pinnedIds: string[];
-    /** 切換釘選事件 */
-    ontoggle: (id: string) => void;
-  };
-
-  let { items, total, pinnedIds, ontoggle }: Props = $props();
+  const pageData = getPageDataContext();
 </script>
 
 <div>
-  <ListHeader {total} />
-  {#if items.length === 0}
+  <ListHeader />
+  {#if pageData.value.items.length === 0}
     <p class="empty">沒有符合條件的圖片</p>
   {:else}
-    <ListItems {items} {pinnedIds} {ontoggle} />
+    <ListItems />
   {/if}
 </div>
 

@@ -3,17 +3,11 @@
   import { IconArrowsShuffle, IconReload } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getPinnedContext } from "../logic/pinned.svelte";
 
-  type Props = {
-    /** 全頁共用的操作鎖 */
-    pending: boolean;
-    /** 隨機抽選事件 */
-    onshuffle: (count: number) => void;
-    /** 重新整理事件 */
-    onrefresh: () => void;
-  };
-
-  let { pending, onshuffle, onrefresh }: Props = $props();
+  const operations = getOperationsContext();
+  const pinned = getPinnedContext();
 
   const id = $props.id();
   const shuffleOptions = ["2", "3", "4", "6"];
@@ -30,8 +24,8 @@
     variant="ghost"
     padding="icon"
     aria-label="重新整理"
-    status={pending ? "pending" : undefined}
-    onclick={onrefresh}
+    status={operations.pending ? "pending" : undefined}
+    onclick={operations.handleRefresh}
     {@attach tooltip({ content: "重新整理" })}
   >
     <IconReload size={16} />
@@ -45,7 +39,7 @@
     bind:value={shuffleKey}
   />
 
-  <Button variant="primary" onclick={() => onshuffle(Number(shuffleKey ?? "2"))}>
+  <Button variant="primary" onclick={() => pinned.handleShuffle(Number(shuffleKey ?? "2"))}>
     <IconArrowsShuffle size={16} />
     <span>隨機抽選</span>
   </Button>

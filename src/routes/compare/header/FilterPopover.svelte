@@ -1,28 +1,23 @@
 <script lang="ts">
-  import { page } from "$app/state";
-  import { ImageQuery, ImageWhere } from "$lib/query-spec";
   import Popover from "$lib/components/floating/Popover.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import TagInput from "$lib/widgets/TagInput.svelte";
+  import { getFilterContext } from "../logic/filter.svelte";
 
   type Props = {
-    /** 當前的查詢值物件 */
-    query: ImageQuery;
     /** 選單的開關狀態 */
     open: boolean;
     /** 選單的定位錨點 */
     reference: HTMLElement | undefined;
-    /** 查詢值物件改變事件 */
-    onchange: (query: ImageQuery) => void;
     /** 關閉選單事件 */
     onclose: () => void;
   };
 
-  let { open, reference, query, onchange, onclose }: Props = $props();
+  let { open, reference, onclose }: Props = $props();
+
+  const filter = getFilterContext();
 
   const id = $props.id();
-  const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
-
   let panelRef = $state<HTMLDivElement>();
 
   const ratingOptions = ["all", "1", "2", "3", "4", "5"];
@@ -30,21 +25,6 @@
   const ratingOpLabels: Record<string, string> = { gte: "≥", lte: "≤", eq: "=" };
 
   // ---
-
-  const createHandleTagsChange = (type: "includedTags" | "excludedTags") => (tags: string[]) => {
-    onchange(new ImageQuery(query.where.with({ [type]: tags }), query.list));
-  };
-
-  const handleRatingChange = (key: string) => {
-    const rating = key === "all" ? undefined : Number(key);
-    onchange(new ImageQuery(query.where.with({ rating }), query.list));
-  };
-
-  const handleRatingOpChange = (key: string) => {
-    if (key === "gte" || key === "lte" || key === "eq") {
-      onchange(new ImageQuery(query.where.with({ ratingOp: key }), query.list));
-    }
-  };
 
   function handleWindowClick(e: MouseEvent) {
     if (!open) return;
@@ -67,16 +47,16 @@
 <Popover {open} {reference} placement="bottom-start">
   <div bind:this={panelRef} class="panel">
     <TagInput
-      tags={query.where.includedTags}
-      scope={facetScope}
+      tags={filter.query.where.includedTags}
+      scope={filter.facetScope}
       label="包含的標籤"
-      onchange={createHandleTagsChange("includedTags")}
+      onchange={(tags) => filter.handleTagsChange("includedTags", tags)}
     />
     <TagInput
-      tags={query.where.excludedTags}
-      scope={facetScope}
+      tags={filter.query.where.excludedTags}
+      scope={filter.facetScope}
       label="排除的標籤"
-      onchange={createHandleTagsChange("excludedTags")}
+      onchange={(tags) => filter.handleTagsChange("excludedTags", tags)}
     />
     <div>
       <span>評等</span>
@@ -86,16 +66,16 @@
           aria-label="評等比較運算"
           options={ratingOpOptions}
           option={ratingOpOption}
-          value={query.where.ratingOp}
-          onchange={handleRatingOpChange}
+          value={filter.query.where.ratingOp}
+          onchange={filter.handleRatingOpChange}
         />
         <Select
           id="{id}-rating"
           aria-label="評等"
           options={ratingOptions}
           option={ratingOption}
-          value={query.where.rating ? String(query.where.rating) : "all"}
-          onchange={handleRatingChange}
+          value={filter.query.where.rating ? String(filter.query.where.rating) : "all"}
+          onchange={filter.handleRatingChange}
         />
       </div>
     </div>

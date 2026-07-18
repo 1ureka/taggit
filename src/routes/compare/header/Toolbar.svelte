@@ -1,22 +1,11 @@
 <script lang="ts">
   import Actions from "./Actions.svelte";
   import Filters from "./Filters.svelte";
-
-  type Props = {
-    /** 全頁共用的操作鎖 */
-    pending: boolean;
-    /** 隨機抽選事件 */
-    onshuffle: (count: number) => void;
-    /** 重新整理事件 */
-    onrefresh: () => void;
-  };
-
-  let { pending, onshuffle, onrefresh }: Props = $props();
 </script>
 
 <div>
   <Filters />
-  <Actions {pending} {onshuffle} {onrefresh} />
+  <Actions />
 </div>
 
 <style>
