@@ -269,3 +269,52 @@ export const getPageDataContext = () => getContext<{ readonly value: PageData }>
 ---
 
 ## 未來頁面的架構
+
+### 目前的樣貌
+
+- 元件樹通常只有單層（例如 `compare/cards/*.svelte`）。
+- 已經遵循「狀態 in、事件 out」，只是走 React 那種：狀態靠 prop 往下、事件靠 callback prop 往上。
+- `+page.svelte` 因為要兼任「組裝 + 往下傳遞一切」的樞紐，容易冗長；`compare` 邏輯本來就少，是目前這批裡面比較好的例子。
+- 真的需要拆邏輯時，做法是子模組自己管投影型別、純函數業務轉換、API 呼叫，獨立成一個 `<domain>.ts`，跟對應的 `*.svelte`（以及一群 `Domain*.svelte`）並排放，`+page` 把兩者一起 import 進來組裝。
+- 目前能參考「現行架構」的路由只有 `compare` 跟 `staged`；`tags` 有偏差，可以看但不能當現行架構的典型長相。
+
+### 新架構
+
+- 元件樹繼續維持單層，但每個路由多一個 `logic/` 子資料夾——除非這個頁面完全不需要任何 context（pure module 兩個條件都成立的情況）。
+- `logic/` 底下依領域拆成一個或多個 controller（一律用 class，見「一律用 Class，不用 Closure」），把狀態跟 `handle*` 方法都收進去。
+- 其他子模組回歸純粹的 `*.svelte`，不再跟著一個同名的 `.ts` 檔案配對——邏輯收斂進 `logic/`，子元件依領域分資料夾，取名可以中立（`cards/`、`chips/`），不強制跟 domain 檔名一致。
+- 子元件不再靠 prop 拿狀態、callback prop 送事件，改成直接 `getContext` 拿對應 controller，讀它曝光的狀態、呼叫它的 `handle*` 方法——「狀態 in、事件 out」的形狀不變，只是管道換了（見「元件只做『狀態 in、事件 out』的 wire」）。
+- 子元件不再需要建構一個值去符合某個 prop 型別，很多投影型別可以整個不用 export，留在 `logic/<domain>.ts` 內部。
+- `+page.svelte` 的工作收斂成：呼叫每個 `create<Domain>Context()` 一次，`load` 回來的 `data` 視需要包成 `createPageDataContext`；不再是組裝樞紐，自己也只是「狀態 in、事件 out」原則的根節點實例。
+
+### 示意檔案樹
+
+```
+routes/example/            舊
+├── +page.svelte           # 組裝 + 狀態 + handler，容易冗長
+└── widgets/
+    ├── widget.ts           # 投影型別 + 業務轉換 + API，跟元件並排
+    ├── Widget.svelte
+    └── WidgetItem.svelte
+
+routes/example/            新
+├── +page.svelte           # 只呼叫 create*Context()，不是組裝樞紐
+├── logic/
+│   └── widget.ts           # controller：狀態 + handle*，型別多半不 export
+└── widgets/
+    ├── Widget.svelte       # 純元件，getContext 拿 controller
+    └── WidgetItem.svelte
+```
+
+### 還沒真的驗證過的地方
+
+- 一個頁面會有幾個 controller、controller 之間該不該互相注入，這是第一次會被用在「同一個頁面多個 controller 並存」的情境，實際切下去大概還會冒出新的細節。
+- 子元件直接讀 context，換來的代價是沒辦法脫離 provider 單獨掛載——目前驗收方式是 dev server 走查，不是元件層級自動化測試，這個代價可以接受，但是主動接受的取捨，不是沒想到。
+
+### 給新對話的使用說明
+
+如果你是在一個新對話裡讀到這份文件、被要求依此改某個路由：
+
+- 這份文件描述的是**目標架構**，不是現狀紀錄。路由現有的程式碼多半還是「目前的樣貌」那套（React 式 prop drilling、子模組配一個同名 `.ts`），改動時不要把現有寫法的風格當參考，只能參考它的業務邏輯/行為，寫法一律照本文件。
+- 動手前先列一份清單：哪些子元件目前靠 prop 拿狀態/送事件、哪些邏輯散落在跟元件並排的 `.ts` 裡、`+page.svelte` 還兼著哪些組裝工作——全部要轉的都列出來，不要邊做邊發現。
+- 全部轉完，不要留下「部分用舊模式、部分用新模式」的過渡狀態。
