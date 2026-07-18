@@ -1,6 +1,6 @@
-# `/tagger` 頁面現況審查
+# `/staged` 頁面現況審查
 
-範圍：`src/routes/(app)/tagger/**` 及其直接呼叫的 API（`/api/proto/staged-batch`、`/api/staged/[filename]`、`/api/committed`）。
+範圍：`src/routes/(app)/staged/**` 及其直接呼叫的 API（`/api/proto/staged-batch`、`/api/staged/[filename]`、`/api/committed`）。
 判斷基準：只看目前程式碼實際會怎麼跑，不管遷移文件、規劃文件、或記憶裡記的「應該長怎樣」。
 
 ---
