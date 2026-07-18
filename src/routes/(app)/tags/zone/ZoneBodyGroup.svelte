@@ -10,17 +10,20 @@
     tags: Tag[];
     /** 合併名稱 */
     rename: string;
-    /** 合併後的預估張數 */
-    count: number | undefined;
-    /** 啟用某標籤事件 */
-    onactive: (name: string) => void;
+    /** 合併後的預估張數， `null` 表示尚無結果 */
+    mergeCount: number | null;
     /** 移除某標籤事件 */
     onremove: (name: string) => void;
-    /** 重命名輸入事件 */
-    onrename: () => void;
+    /** rename 有任何變動（打字或設為啟用）時觸發，用來排程重新查詢 */
+    onchange: () => void;
   };
 
-  let { tags, rename = $bindable(), count, onactive, onremove, onrename }: Props = $props();
+  let { tags, rename = $bindable(), mergeCount, onremove, onchange }: Props = $props();
+
+  const setActive = (name: string) => {
+    rename = name;
+    onchange();
+  };
 </script>
 
 <div class="rename">
@@ -29,13 +32,13 @@
     labelHidden
     maxlength={50}
     bind:value={rename}
-    oninput={onrename}
+    oninput={onchange}
     style="flex: 1; min-width: 0;"
     {@attach tooltip({ content: "合併後的名稱", placement: "left" })}
   />
 
   <span class="rename-count">
-    → {count ?? "…"} 張
+    → {#if mergeCount === null}<span class="skeleton" aria-label="計算中"></span>{:else}{mergeCount}{/if} 張
   </span>
 </div>
 
@@ -51,7 +54,7 @@
 
   <Chip variant="outlined" {style}>
     <span class="chip-action" class:active>
-      <button type="button" title={activeLabel} aria-label={activeLabel} onclick={() => onactive(name)}>
+      <button type="button" title={activeLabel} aria-label={activeLabel} onclick={() => setActive(name)}>
         <IconStarFilled size={14} />
       </button>
     </span>
@@ -90,6 +93,26 @@
     font-family: var(--font-family-mono);
     color: var(--color-text-muted);
     white-space: nowrap;
+  }
+
+  span.skeleton {
+    display: inline-block;
+    width: 1.5em;
+    height: 0.8em;
+    border-radius: 3px;
+    background: hsl(from currentColor h s l / 0.15);
+    vertical-align: middle;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.9;
+    }
   }
 
   div.chips {

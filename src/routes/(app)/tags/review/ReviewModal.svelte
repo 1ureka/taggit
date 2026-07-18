@@ -12,8 +12,6 @@
     entries: ReviewEntry[];
     /** 是否正在送出 */
     pending: boolean;
-    /** 預估是否更新中（開啟時會重查一次最新預估） */
-    previewPending: boolean;
     /** 關閉對話框事件 */
     onclose: () => void;
     /** 送出事件 */
@@ -26,7 +24,7 @@
     ondiscard: (key: string) => void;
   };
 
-  let { open, entries, pending, previewPending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props = $props();
+  let { open, entries, pending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props = $props();
 
   const checkedCount = $derived(entries.filter((e) => e.checked).length);
 
@@ -34,7 +32,7 @@
 </script>
 
 <Modal {open} {onclose} aria-label="檢視待送出的標籤變更" containerProps={{ style: containerStyle }}>
-  <ReviewHeader {previewPending} />
+  <ReviewHeader />
 
   {#if entries.length === 0}
     <p class="empty">目前沒有任何未送出的標籤操作。</p>

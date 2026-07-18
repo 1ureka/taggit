@@ -11,6 +11,4 @@ export { ImageQuery } from "./image-query";
 export { TagQuery } from "./tag-query";
 export { TagFacetQuery } from "./tag-facet-query";
 
-export type { Changeset, ChangesetPreview } from "./changeset";
-
 export { IMAGE_SORTS, TAG_SORTS, type ImageSort, type TagSort } from "./types";

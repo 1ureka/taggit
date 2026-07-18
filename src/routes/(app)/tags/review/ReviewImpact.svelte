@@ -20,10 +20,12 @@
     <del>{name}</del> → <ins>{mergedTo}</ins>
     <span>（{count} 張）</span>
   </span>
-{:else if kind === "merge" && mergedTo !== undefined && mergedCount !== undefined}
+{:else if kind === "merge" && mergedTo !== undefined}
   <span class="impact">
     <del>{name}</del> → <ins>{mergedTo}</ins>
-    <span>（{count} 張併入，合併後共 {mergedCount} 張）</span>
+    <span>
+      （{count} 張併入，合併後共 {mergedCount ?? "..."} 張）
+    </span>
   </span>
 {:else if kind === "delete"}
   <span class="impact">

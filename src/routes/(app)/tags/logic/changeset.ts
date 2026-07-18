@@ -11,6 +11,8 @@ export type MergeGroup = {
   id: number;
   canonical: string;
   members: Tag[];
+  /** 合併後的預估張數；null = 尚無結果（含查詢中） */
+  mergeCount: number | null;
 };
 
 /**

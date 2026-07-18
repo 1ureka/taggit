@@ -4,7 +4,7 @@
   import type { PageData } from "./$types";
 
   import type { Tag } from "$lib/database";
-  import { type ChangesetPreview } from "$lib/query-spec";
+  import { api } from "$lib/utils/request";
   import { formatError } from "$lib/utils/shared";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
@@ -19,7 +19,7 @@
   import ZoneBodyHidden from "./zone/ZoneBodyHidden.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
-  import { fetchProjection, submitChangeset } from "./logic/api";
+  import { submitChangeset } from "./logic/api";
   import { changesetFromBoard, changesetSize, type MergeGroup } from "./logic/changeset";
   import { buildReviewEntries, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
   import Toolbar from "./header/Toolbar.svelte";
@@ -58,22 +58,16 @@
     return m;
   });
 
-  /** 畫布上每個標籤目前的 Tag（審查條目的 count 後備值） */
-  const tagByName = $derived.by(() => {
-    const m = new Map<string, Tag>();
-    for (const g of groups) for (const member of g.members) m.set(member.name, member);
-    for (const t of deleteList) m.set(t.name, t);
-    for (const t of toggleList) m.set(t.name, t);
-    return m;
-  });
-
-  /** 先把標籤自畫布所有位置移除（換位置前的共用動作） */
+  /** 先把標籤自畫布所有位置移除（換位置前的共用動作）；只 reschedule 真正命中的 group */
   const detachFromBoard = (name: string) => {
-    for (const g of groups) g.members = g.members.filter((m) => m.name !== name);
+    for (const g of groups) {
+      if (!g.members.some((m) => m.name === name)) continue;
+      g.members = g.members.filter((m) => m.name !== name);
+      if (g.members.length > 0) scheduleMergeCount(g);
+    }
     groups = groups.filter((g) => g.members.length > 0);
     deleteList = deleteList.filter((t) => t.name !== name);
     toggleList = toggleList.filter((t) => t.name !== name);
-    schedulePreview();
   };
 
   const createGroup = (tags: Tag[]) => {
@@ -81,8 +75,9 @@
     for (const t of tags) detachFromBoard(t.name);
     // 代表名預設取使用數最高的成員
     const canonical = tags.toSorted((a, b) => b.count - a.count)[0].name;
-    groups.push({ id: groupSeq++, canonical, members: [...tags] });
-    schedulePreview();
+    const group: MergeGroup = { id: groupSeq++, canonical, members: [...tags], mergeCount: null };
+    groups.push(group);
+    scheduleMergeCount(group);
   };
 
   const addToGroup = (groupId: number, tags: Tag[]) => {
@@ -92,7 +87,8 @@
       if (!g) break; // 目標堆因 detach 清空而消失
       if (!g.members.some((m) => m.name === t.name)) g.members.push(t);
     }
-    schedulePreview();
+    const g = groups.find((x) => x.id === groupId);
+    if (g) scheduleMergeCount(g);
   };
 
   const addToZone = (zone: "delete" | "toggle", tags: Tag[]) => {
@@ -101,28 +97,18 @@
       if (zone === "delete") deleteList.push(t);
       else toggleList.push(t);
     }
-    schedulePreview();
   };
 
   const dissolveGroup = (groupId: number) => {
     groups = groups.filter((g) => g.id !== groupId);
-    schedulePreview();
   };
 
   const clearDeleteList = () => {
     deleteList = [];
-    schedulePreview();
   };
 
   const clearToggleList = () => {
     toggleList = [];
-    schedulePreview();
-  };
-
-  const setCanonical = (groupId: number, name: string) => {
-    const g = groups.find((x) => x.id === groupId);
-    if (g) g.canonical = name;
-    schedulePreview();
   };
 
   /** 審查 modal 的捨棄 → 映射回畫布操作 */
@@ -194,55 +180,53 @@
     else if (target.startsWith("group:")) addToGroup(Number(target.slice(6)), tags);
   };
 
-  // ─── 變更集預估：畫布變動去抖後查 tags-preview，審查 modal 開啟時再查一次 ───
+  // ─── 合併堆張數：各查各的，group 改動後 200ms debounce 才查，載入立刻歸零顯示 Skeleton ───
 
-  let projection = $state<ChangesetPreview | null>(null);
-  let projectionPending = $state(false);
-  let previewSeq = 0;
-  let previewTimer: ReturnType<typeof setTimeout>;
+  const groupTimers = new Map<number, { timer: ReturnType<typeof setTimeout>; seq: number }>();
 
   $effect(() => {
-    return () => clearTimeout(previewTimer);
+    return () => {
+      for (const { timer } of groupTimers.values()) clearTimeout(timer);
+    };
   });
 
-  const runPreview = async () => {
-    const seq = ++previewSeq;
-    const cs = changeset;
-
-    if (changesetSize(cs) === 0) {
-      projection = null;
-      projectionPending = false;
-      return;
-    }
-
-    projectionPending = true;
-    try {
-      const result = await fetchProjection(cs);
-      if (seq !== previewSeq) return;
-      projection = result;
-    } catch {
-      // 預估失敗不打擾操作：保留上一版數字，下次變動再試；真正的把關在送出時
-    } finally {
-      if (seq === previewSeq) projectionPending = false;
-    }
+  const fetchUnionCount = async (tags: string[]) => {
+    const params = new URLSearchParams({ tags: tags.join(",") });
+    const res = await api.get<{ count: number }>(`/api/proto/tags-union-count?${params}`);
+    if (!res.ok || !res.data) throw new Error(res.error || "查詢失敗");
+    return res.data.count;
   };
 
-  const schedulePreview = () => {
-    previewSeq++; // 遞增序號讓在途回應立即失效
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(runPreview, 300);
+  const scheduleMergeCount = (group: MergeGroup) => {
+    group.mergeCount = null;
+
+    const prev = groupTimers.get(group.id);
+    if (prev) clearTimeout(prev.timer);
+    const seq = (prev?.seq ?? 0) + 1;
+
+    const timer = setTimeout(async () => {
+      const tags = [group.canonical.trim(), ...group.members.map((m) => m.name)];
+      try {
+        const count = await fetchUnionCount(tags);
+        if (groupTimers.get(group.id)?.seq !== seq) return; // 在途回應已過期
+        group.mergeCount = count;
+        console.log(count); // 正確 243
+        console.log(group.mergeCount); // 正確 243
+        // TODO: 但是畫面仍是 skeleton，直到下次觸發該組的 scheduleMergeCount
+      } catch {
+        // 查詢失敗不打擾操作：維持 null（畫面顯示 Skeleton），下次變動再試
+      }
+    }, 200);
+
+    groupTimers.set(group.id, { timer, seq });
   };
 
   // ─── 審查與送出 ───
 
-  const reviewEntries = $derived(
-    buildReviewEntries(changeset, (name) => tagByName.get(name), projection, checkedKeys, failures),
-  );
+  const reviewEntries = $derived(buildReviewEntries(groups, deleteList, toggleList, checkedKeys, failures));
 
   const handleReviewOpen = () => {
     failures = {};
-    clearTimeout(previewTimer);
-    runPreview(); // 開啟當下立即取最新預估
     reviewOpen = true;
   };
 
@@ -388,10 +372,9 @@
           <ZoneBodyGroup
             tags={group.members}
             bind:rename={group.canonical}
-            count={projection?.mergedCounts[group.canonical.trim()]}
-            onactive={(name) => setCanonical(group.id, name)}
+            mergeCount={group.mergeCount}
             onremove={(name) => detachFromBoard(name)}
-            onrename={schedulePreview}
+            onchange={() => scheduleMergeCount(group)}
           />
         </ZoneContainer>
       {/each}
@@ -439,7 +422,6 @@
   open={reviewOpen}
   entries={reviewEntries}
   {pending}
-  previewPending={projectionPending}
   onclose={handleReviewClose}
   onsubmit={handleSubmit}
   ontoggle={handleReviewToggle}

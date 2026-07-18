@@ -4,12 +4,12 @@
  */
 
 import type { Database, ImageWithId, Tag } from "$lib/database";
-import type { ImageQuery, TagFacetQuery, TagQuery, Changeset, ChangesetPreview } from "$lib/query-spec";
+import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/query-spec";
 
+import { BitSet } from "$lib/database";
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";
 import { TagEngine } from "./tags";
-import { ChangesetEngine } from "./changeset";
 import type { QueryResult } from "./result";
 
 export type { QueryResult } from "./result";
@@ -17,14 +17,12 @@ export type { QueryResult } from "./result";
 export class Query {
   private imageEngine: ImageEngine;
   private tagEngine: TagEngine;
-  private changesetEngine: ChangesetEngine;
 
   /** 建構時注入 db ，並造出共用 ScopeResolver 待命 */
   constructor(private db: Database) {
     const scope = new ScopeResolver(db);
     this.imageEngine = new ImageEngine(db, scope);
     this.tagEngine = new TagEngine(db, scope);
-    this.changesetEngine = new ChangesetEngine(db);
   }
 
   /** 執行圖片紀錄查詢 */
@@ -42,9 +40,15 @@ export class Query {
     return this.tagEngine.runFacet(q);
   }
 
-  /** 查詢變更集的套用預覽 */
-  changeset(spec: Changeset): ChangesetPreview {
-    return this.changesetEngine.preview(spec);
+  /** 查詢一組標籤取聯集後的圖片張數 */
+  unionCount(tags: string[]): number {
+    let acc: BitSet | null = null;
+    for (const name of tags) {
+      const bits = this.db.tagBits(name);
+      if (!bits) continue;
+      acc = acc ? acc.orInPlace(bits) : bits.clone();
+    }
+    return acc?.size() ?? 0;
   }
 
   /** 查詢單張圖片（含 id），找不到回 `null`。 */

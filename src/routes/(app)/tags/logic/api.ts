@@ -1,14 +1,20 @@
 /**
  * @file api.ts
- * /tags 的伺服器往來：變更集預覽（tags-preview）與批次送出（tags-batch）。
+ * /tags 的伺服器往來：合併堆張數查詢（tags-union-count）與批次送出（tags-batch）。
  */
 
 import { api } from "$lib/utils/request";
-import type { Changeset, ChangesetPreview } from "$lib/query-spec";
 import { renameKey, deleteKey, hiddenKey, type TagChangeset } from "./changeset";
 
-/** 變更集轉為 tags-preview / tags-batch 共用的 body 形狀 */
-function toPayload(cs: TagChangeset, included?: Set<string>): Changeset {
+/** tags-batch 送出的 body 形狀 */
+type ChangesetPayload = {
+  deletes: string[];
+  renames: { from: string; to: string }[];
+  hidden: { name: string; hidden: boolean }[];
+};
+
+/** 變更集轉為 tags-batch 的 body 形狀 */
+function toPayload(cs: TagChangeset, included?: Set<string>): ChangesetPayload {
   const want = (key: string) => included === undefined || included.has(key);
   return {
     deletes: cs.deletes.filter((n) => want(deleteKey(n))),
@@ -19,13 +25,6 @@ function toPayload(cs: TagChangeset, included?: Set<string>): Changeset {
       .filter(([name]) => want(hiddenKey(name)))
       .map(([name, hidden]) => ({ name, hidden })),
   };
-}
-
-/** 取得變更集的套用前預覽。傳輸層錯誤直接 throw。 */
-export async function fetchProjection(cs: TagChangeset): Promise<ChangesetPreview> {
-  const res = await api.post<ChangesetPreview>("/api/proto/tags-preview", toPayload(cs));
-  if (!res.ok || !res.data) throw new Error(res.error || "預覽失敗");
-  return res.data;
 }
 
 // ---
