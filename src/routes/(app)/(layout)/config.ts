@@ -15,7 +15,7 @@ export const navItems: {
     desc: "以瀑布流、播放器、隨機抽選等多種方式探索已提交的圖片",
   },
   {
-    href: "/tagger",
+    href: "/staged",
     Icon: IconTagFilled,
     name: "新增圖片",
     desc: "審查並提交暫存的圖片",

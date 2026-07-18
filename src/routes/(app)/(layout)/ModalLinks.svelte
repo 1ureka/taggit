@@ -19,7 +19,7 @@
     const path: string = page.url.pathname;
 
     if (path === "/" || path === "/compare" || path === "/player") return "/";
-    if (path === "/tagger") return "/tagger";
+    if (path === "/staged") return "/staged";
     if (path === "/editor" || path.startsWith("/tags")) return "/editor";
     if (path === "/settings") return "/settings";
 

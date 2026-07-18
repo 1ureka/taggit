@@ -10,12 +10,12 @@
   const description = $derived.by(() => {
     if (page.error) return page.error?.message ?? "發生未知錯誤";
 
-    // TODO: 放寬為 string：/tagger、/editor 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
+    // TODO: 放寬為 string：/staged、/editor 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
     const path: string = page.url.pathname;
 
     if (path === "/") return "正在 探索圖片";
     if (path === "/compare") return "正在 比較圖片";
-    if (path === "/tagger") return "正在 審查圖片";
+    if (path === "/staged") return "正在 審查圖片";
     if (path.startsWith("/tags")) return "正在 整理標籤";
     if (path === "/settings") return "正在 調整設定";
 
