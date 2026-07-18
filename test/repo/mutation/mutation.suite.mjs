@@ -172,8 +172,7 @@ export async function run(t, h) {
     t.ok("rename 非法新名 → validation", invalid.ok === false && invalid.error.kind === "validation");
 
     const ghost = m.renameTag("ghost", "phantom");
-    t.ok("rename 不存在標籤成功", ghost.ok);
-    t.eq("rename 不存在標籤 affected 0", ghost.data.affected, 0);
+    t.ok("rename 不存在標籤 → not_found", ghost.ok === false && ghost.error.kind === "not_found");
   }
 
   // ── deleteTag：成功、last_tag 守衛、移除 metadata、不存在 ──
@@ -208,8 +207,7 @@ export async function run(t, h) {
 
     // 不存在
     const ghost = m.deleteTag("ghost");
-    t.ok("deleteTag 不存在成功", ghost.ok);
-    t.eq("deleteTag 不存在 affected 0", ghost.data.affected, 0);
+    t.ok("deleteTag 不存在 → not_found", ghost.ok === false && ghost.error.kind === "not_found");
   }
 
   // ── setTagMeta：成功 + 非法名 ──

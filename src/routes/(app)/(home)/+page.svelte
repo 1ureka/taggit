@@ -5,11 +5,11 @@
   import type { PageData } from "./$types";
 
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import { breakpoints } from "./wall/config";
+  import InverseRadius from "$lib/widgets/InverseRadius.svelte";
   import MasonryWall from "./wall/MasonryWall.svelte";
   import ExplorePanel from "./panel/ExplorePanel.svelte";
-  import InverseRadius from "./panel/InverseRadius.svelte";
   import DetailModal from "./detail/DetailModal.svelte";
+  import { breakpoints } from "./wall/config";
 
   let { data }: { data: PageData } = $props();
 

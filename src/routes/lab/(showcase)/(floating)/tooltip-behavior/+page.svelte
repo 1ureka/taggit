@@ -70,7 +70,7 @@
   .rich {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.375rem;
     font: var(--font-body1);
   }
 </style>

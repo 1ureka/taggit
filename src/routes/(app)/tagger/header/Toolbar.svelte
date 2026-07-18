@@ -13,11 +13,11 @@
     readyCount: number;
     /** 全頁共用的操作鎖 */
     pending: boolean;
-    /** 重新整理列表的處理函式 */
+    /** 重新整理事件 */
     onrefresh: () => void;
-    /** 前往審查流程時的處理函式 */
+    /** 前往審查流程事件 */
     onreview: () => void;
-    /** 開啟匯入對話框的處理函式 */
+    /** 開啟匯入對話框事件 */
     onimport: () => void;
   };
 
@@ -54,7 +54,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 3rem;
     border-bottom: var(--border-style);
   }
 

@@ -10,7 +10,7 @@
 
   import Toolbar from "./header/Toolbar.svelte";
   import ImportModal from "./header/ImportModal.svelte";
-  import StagedGrid from "./wall/StagedGrid.svelte";
+  import Cards from "./cards/Cards.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import Lightbox from "./inspector/Lightbox.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
@@ -61,7 +61,7 @@
   /** 提交後會新增的標籤 */
   const newTags = $derived(computeNewTags(reviewEntries, data.existingTagNames));
   /** 被編輯過且可提交的暫存圖片 */
-  const readyCount = $derived(reviewEntries.filter((e) => e.problem === null).length);
+  const readyCount = $derived(reviewEntries.filter((e) => !e.disabled).length);
   /** 目前全螢幕預覽中的暫存圖片 */
   const lightbox = $derived.by(() => {
     if (lightboxFile === null) return null;
@@ -295,7 +295,7 @@
   />
 
   <div class="body">
-    <StagedGrid stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleOpenInspector} />
+    <Cards stagedFiles={data.stagedFiles} {drafts} {activeFile} onselect={handleOpenInspector} />
 
     {#if activeFile !== null && drafts[activeFile]}
       <Inspector

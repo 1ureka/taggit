@@ -4,9 +4,9 @@
   type Props = {
     /** 是否正在處理中 */
     pending: boolean;
-    /** 點擊清空按紐 */
+    /** 點擊清空按紐事件 */
     onclear: () => void;
-    /** 點擊刪除按紐（含確認流程） */
+    /** 點擊刪除按紐事件 */
     ondelete: () => void;
   };
 

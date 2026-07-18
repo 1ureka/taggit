@@ -38,11 +38,11 @@ export class Mutation {
     return this.images.remove(id);
   }
 
-  renameTag(oldName: unknown, newName: unknown): Result<{ affected: number }, Validation> {
+  renameTag(oldName: unknown, newName: unknown): Result<{ affected: number }, NotFound | Validation> {
     return this.tags.rename(oldName, newName);
   }
 
-  deleteTag(name: unknown): Result<{ affected: number }, LastTag | Validation> {
+  deleteTag(name: unknown): Result<{ affected: number }, LastTag | NotFound | Validation> {
     return this.tags.delete(name);
   }
 

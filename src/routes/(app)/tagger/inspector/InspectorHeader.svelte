@@ -11,7 +11,7 @@
     activeIndex: number;
     /** 暫存檔案的總數量 */
     fileCount: number;
-    /** 點擊關閉面板按紐 */
+    /** 點擊關閉面板按紐事件 */
     onclose: () => void;
   };
 

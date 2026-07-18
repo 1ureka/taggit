@@ -47,7 +47,7 @@
     display: flex;
     flex-direction: column;
     padding: 0.5rem;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.375rem;
     gap: 0.5rem;
     min-width: 0;
   }

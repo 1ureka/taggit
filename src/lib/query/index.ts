@@ -6,6 +6,7 @@
 import type { Database, ImageWithId, Tag } from "$lib/database";
 import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/query-spec";
 
+import { BitSet } from "$lib/database";
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";
 import { TagEngine } from "./tags";
@@ -37,6 +38,17 @@ export class Query {
   /** 執行分面標籤列表查詢 */
   facets(q: TagFacetQuery): QueryResult<Tag> {
     return this.tagEngine.runFacet(q);
+  }
+
+  /** 查詢一組標籤取聯集後的圖片張數 */
+  unionCount(tags: string[]): number {
+    let acc: BitSet | null = null;
+    for (const name of tags) {
+      const bits = this.db.tagBits(name);
+      if (!bits) continue;
+      acc = acc ? acc.orInPlace(bits) : bits.clone();
+    }
+    return acc?.size() ?? 0;
   }
 
   /** 查詢單張圖片（含 id），找不到回 `null`。 */

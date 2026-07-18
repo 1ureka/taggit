@@ -6,14 +6,14 @@
   type Props = {
     /** 篩選結果總數 */
     total: number;
-    /** 圖片牆欄數（雙向綁定，斷點預設值由頁面提供） */
+    /** 圖片牆欄數 */
     columns: number;
   };
 
   let { total, columns = $bindable() }: Props = $props();
 </script>
 
-<div class="viewport">
+<div>
   <header>
     <h2>探索與靈感</h2>
     <p>共 {total} 張</p>
@@ -25,7 +25,7 @@
 </div>
 
 <style>
-  .viewport {
+  div {
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;
@@ -36,7 +36,7 @@
     align-items: stretch;
   }
 
-  .viewport > header {
+  header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -48,16 +48,16 @@
     border-right: var(--border-style);
     border-bottom-right-radius: 16px;
     background: var(--color-bg);
+  }
 
-    & > h2 {
-      font: var(--font-body1);
-      font-weight: normal;
-    }
+  h2 {
+    font: var(--font-body1);
+    font-weight: normal;
+  }
 
-    & > p {
-      font: var(--font-caption);
-      font-family: var(--font-family-mono);
-      color: var(--color-text-muted);
-    }
+  p {
+    font: var(--font-caption);
+    font-family: var(--font-family-mono);
+    color: var(--color-text-muted);
   }
 </style>

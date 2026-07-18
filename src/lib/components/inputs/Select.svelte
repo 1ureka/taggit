@@ -169,10 +169,16 @@
     border: var(--border-style);
     border-radius: var(--border-radius);
     user-select: none;
-    transition: border-color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease;
 
     &:hover {
       border-color: var(--color-border-hover);
+    }
+
+    &:active {
+      transform: translateY(1.5px);
     }
 
     &:disabled {

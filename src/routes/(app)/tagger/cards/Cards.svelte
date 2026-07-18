@@ -4,7 +4,7 @@
 
   import type { Draft } from "../inspector/draft";
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
-  import StagedCard from "./StagedCard.svelte";
+  import StagedCard from "./Card.svelte";
 
   type Props = {
     /** 暫存檔案列表 */

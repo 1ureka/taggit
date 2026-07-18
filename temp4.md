@@ -1,156 +1,137 @@
-# /tags 遷移與新設計計畫（分析用，尚未實作；不含 /tags/cleanup）
+# `/tagger` 頁面現況審查
 
-> 規格參考 taggit 舊專案 `routes/tags-d/**`（拖放合併畫布，已勝出原型）。畫布互動概念保留，但**資料流全面重設計**：使用者本輪定調「減少 page load」——tags-d 那套「layout 一次取回完整 committedFiles + allTags、其後互動純前端」**作廢**，標籤池改伺服器分頁、審查預覽與懸停預覽圖改查詢式。巢狀工具頁 `/tags/cleanup`（tags-c 清理助手）不在本報告範圍。**這次只是計畫，尚未動任何程式碼。**
+範圍：`src/routes/(app)/tagger/**` 及其直接呼叫的 API（`/api/proto/staged-batch`、`/api/staged/[filename]`、`/api/committed`）。
+判斷基準：只看目前程式碼實際會怎麼跑，不管遷移文件、規劃文件、或記憶裡記的「應該長怎樣」。
 
-## 一、定位與本輪新增能力
+---
 
-- /tags 是標籤層級的整理工作區：把標籤拖進右側「合併堆／刪除區／顯隱切換區」排程操作，經審查 modal 前後對照後批次送出（`POST /api/proto/tags-batch`，現成端點，執行順序 deletes → renames → hidden 語意不變）。
-- 本輪新增、tags-d 沒有的三件事（皆使用者提出）：
-  1. **左池標籤懸停 tooltip**：以 snippet 展開顯示——元資訊（名稱、使用數、hidden 徽章；資料就在列表項上，**立即顯示**）＋該標籤的 **4 張預覽圖**（評等最高，同分依提交時間新→舊；已確認）。預覽圖查詢完成前顯示 loading 佔位 snippet。這同時回應了 draft.md 懸而未決的「這個標籤掛在哪些圖片上，在畫布裡怎麼被滿足」。
-  2. **右側每個區塊角落的 open-external 按鈕**：以區塊內全部標籤 **AND** 查詢回主頁（已確認維持 AND，即使近似名合併堆交集可能很小——「確認共現」本身有價值；後端 `includedTags` 就是 AND 且 hidden 標籤在被明確 include 時豁免遮蔽，語意剛好正確）。**新分頁開啟**（`target="_blank"`）——畫布上未送出的排程不會因導航而觸發警告或遺失。
-  3. **標籤池分頁**：純文字 chip 難以虛擬化，改分頁（100 個/頁，已確認）。
-- 快捷鍵**全部拿掉**（tags-d 的 window 級 Ctrl+S 與 Escape 皆不做，與 tagger/compare 一致）：清空選取改為一顆可見按鈕（選取數 > 0 才顯示），審查靠 toolbar 按鈕。
+## 結論先講
 
-### 對 migration.md Phase 4 與 tags-d 的偏離（以本文件為準）
+1. **確認 bug：`pending` 被同時拿來表示「這筆暫存目前結構不合法」和「現在有任何不相關的非同步操作正在跑」，兩者共用同一個 `disabled` 欄位**，導致按下「重新整理」「匯入紀錄」「刪除此張」甚至「提交」的當下，審查清單/工具列的「可提交」統計會短暫失真，其中一個具體症狀是提交中「全選」列會顯示成 `N / 0 可提交紀錄已選取` 這種自相矛盾的數字。
+2. **次要觀察（非典型路徑才會踩到，但確實是現況行為）：卡片牆（`Card.svelte`/`CardInfo.svelte`）完全不知道 `failures` 這個狀態存在**，提交失敗後只要使用者手動關掉審查對話框，卡片牆上那張圖看起來會跟「從沒提交過、內容合法」的其他已填寫卡片一模一樣（綠勾），沒有任何線索告訴使用者剛剛失敗過。
+3. 另外記錄了三個**已經懷疑過、但追完程式碼後可以排除**的點（見最後一節），避免之後重複懷疑同一個地方。
 
-- 「layout 層一次取回 committedFiles + allTags，其後互動純前端」→ **作廢**（減少 page load）。`+layout.server.ts` 不再扛共用資料；/tags 用自己的 `+page.server.ts` 只載標籤第一頁。cleanup 屆時自行決定資料流（tags-c 的 suggest.ts 靠全量掃描，遷移時大概也要改成查詢式），本報告不處理。
-- 「該路由用到的 api/proto 端點完成轉正改名」→ **延後**：使用者定調新端點一律先放 `/api/proto`，等所有頁面遷移完成後才做全站 API 整理。
-- tags-d 用 `$effect` 掃 allTags 修剪畫布失效成員 → **移除**（見畫布一節）；這同時符合已確立的 tagger-dataflow-pattern（拒用 $effect 同步、原始意圖 state 不主動清除）。
+---
 
-## 二、資料流（全查詢式）
+## 一、`pending` 與「可提交 / 已勾選」統計語意混淆
 
-### 標籤池：伺服器分頁（現成 GET /api/tags，零新後端）
+### 程式碼定位
 
-- `+page.server.ts`：回第 1 頁——`TagQuery`（`universe: "all"`、`sort: "count"`、`order: "desc"`、`limit: 100`、`page: 1`）＋ `total`。`universe: "all"` 維持 tags-d 決定（要能管理 count 0 的殘留標籤）。
-- 之後所有池互動走 client fetch `GET /api/tags`（`TagQuery.toSearchParams()` 組參數）：
-  - 搜尋（`name` 子字串）：輸入去抖後查詢。
-  - 排序 `Select`：使用數降冪／名稱升冪。
-  - 顯隱篩選 `Select`：全部／僅隱藏／僅可見（`hidden` 參數；已確認要有——管理情境常要找隱藏標籤）。
-  - 翻頁：上一頁/下一頁＋「n / N 頁」指示，翻頁後池捲回頂部。
-- 分頁/搜尋/排序狀態**純前端**（不進 URL）；搜尋/排序/篩選變動一律回到第 1 頁。
-- 併發防護：查詢帶遞增序號，只採納最後一次發出的回應（去抖已擋掉大部分，序號擋 out-of-order）。
+`reviewEntry.ts` 第 25–44 行 `buildReviewEntry`：
 
-### 畫布：本地排程 state，標籤攜帶快照
-
-- 畫布 state 與 tags-d 同構：`groups: { id, canonical, members }[]`、`deleteList`、`toggleList`，變更集由畫布推導（`changeset.ts` 的純函式可整組搬，`projectImageTags`/`projectedCounts`/`emptiedImages` 這三個需要全量 committedFiles 的預覽函式**不搬**——由新預覽端點取代）。
-- 沒有全量 `tagByName` 字典了：標籤被拖入/加入畫布**當下快照** `{ name, count, hidden }`（拖放的 dataTransfer 或點選備援時 chip 上都有這份資料）。畫布顯示用快照；快照的 count 可能過期——審查 modal 開啟時預覽端點會回最新值，送出時後端以現實為準，可接受。
-- **不做自動修剪**：畫布成員只在「送出成功」與「手動移出」時移除；標籤已被外部改掉的情況由送出結果的逐筆錯誤（not_found 等）呈現在審查 modal。
-- dirty 防護：畫布有排程時 `beforeunload`＋`beforeNavigate`（照 tagger 已定案的雙軌方案：原生擋分頁關閉；SPA 導航 `nav.cancel()` → `requestConfirm` → bypass 旗標 → `goto`）。不用 tags-d 的 `window.confirm`。
-
-### 變更集預估：新端點，畫布即時＋審查 modal 共用（已確認）
-
-- **`POST /api/proto/tags-preview`**（與 `tags-batch` 對仗；名稱屬 proto 等級，API 整理時再定）。入：與 tags-batch 相同形狀的變更集 `{ deletes, renames, hidden }`；出（供兩處共用）：
-  - 逐標籤現況：`{ name: { exists, count, hidden } }`（審查條目的「已不存在」驗證與最新 count）。
-  - 合併預估：每個 rename 目標的套用後張數（後端用位圖索引算，便宜且精確）。
-  - 清空警告：每個 delete 造成「失去最後一個標籤」的圖片數。
-- 呼叫時機：畫布變動**去抖**（~300ms）後查一次，更新合併堆的「→ N 張」即時預估（查詢中顯示前值＋pending 樣式或省略號）；審查 modal 開啟時再查一次確保最新。
-- 前端 `changesetEntries` 改為以「本地變更集 × 預覽回應」組審查條目；純本地可判的問題（名稱不合法、rename 目標互指、目標被排入刪除）維持前端即時驗證，不等端點。
-
-### 懸停預覽圖：hover 才查＋Map 快取
-
-- 端點放 **`/api/proto`**（已確認）。建議形狀：**通用查詢 `GET /api/proto/committed-query`**，吃 `ImageQuery` 參數（此處用 `includedTags=<tag>&sort=rating&order=desc&limit=4`），回 `items`＋`total`——比專用端點多一點通用性，tags 頁也順便用 `total` 交叉顯示；API 整理階段再決定正式形狀與去留。
-- 前端 `pool/previews.ts`：`Map<tagName, ImageWithId[] | "loading">` 快取——同 session 同標籤不重查；`tags-batch` 送出成功後整個清空（標籤內容已變）。
-- 觸發：chip 的 mouseenter/focus 去抖（~150ms）後發查詢（滑過一整排 chip 不噴請求）；tooltip 的顯示則交給既有 `tooltip` attachment（openDelay 機制），兩者互不干涉。
-- 縮圖用 `imgSrc(id, "sm")`；預覽圖本身載入前有 blurhash/佔位底色。
-
-## 三、tooltip snippet 設計
-
-- 用全域 `Tooltip` 的 **Snippet content**（`tooltip.core.svelte.ts` 已支援 `content: string | Snippet`；用法見 `lab/(showcase)/(floating)/tooltip-behavior` 的 `richContent` 範例）。頁面定義一個零參數 snippet，閉包讀 `hoveredTag` state 與 previews 快取——快取狀態變化時 tooltip 內容 reactive 更新，天然涵蓋「元資訊立即、預覽圖後到」：
-
-```
-┌─tooltip──────────────┐
-│ 標籤名  ×123  [隱藏]   │   ← meta：來自列表項的 Tag 資料，立即
-│ ┌──┐┌──┐┌──┐┌──┐     │   ← 預覽圖 ×4：快取 miss 時先渲染
-│ └──┘└──┘└──┘└──┘     │      loadingDisplay 佔位方塊
-└──────────────────────┘
+```ts
+return {
+  ...
+  problem: problem ?? (failure ? `提交失敗：${failure}` : null),
+  checked: problem === null && checked,
+  disabled: problem !== null || pending,
+};
 ```
 
-- `{#if entry === "loading"}` → `{@render loadingDisplay()}`（四個固定尺寸的佔位方塊，脈動樣式）；載入完成換成縮圖列；查無圖（count 0）顯示「無已提交圖片」caption。
-- 已知視覺注意點：全域 Tooltip 的氣泡是反色底（`background: var(--color-text)`），縮圖會落在反色氣泡內——先照用（相框感可接受），走查不行再在 snippet 內自帶底色/內距微調，**不另起浮層系統**。
+`disabled` 把兩件事揉在一起：「這筆草稿結構上不合法」（`problem !== null`）跟「現在頁面正在跑某個不相關的非同步操作」（`pending`）。而 `pending` 是整頁共用的單一鎖（`+page.svelte` 第 27 行註解就寫「全頁共用的操作鎖」），會在四種完全不同的操作中被設成 `true`：`handleRefresh`（重新整理）、`handleImportFile`（匯入 JSON）、`handleDeleteFile`（刪除單張暫存圖）、`handleSubmit`（提交審查）。
 
-## 四、版面與元件
+`readyCount`（`+page.svelte` 第 64 行 `reviewEntries.filter((e) => !e.disabled).length`）跟 `SessionProgress.svelte` 第 16 行 `blockedCount = touchedCount - readyCount` 都是拿這個混合欄位去算「可提交張數」——所以：
 
-```
-┌─toolbar──────────────────────────────────────────────┐
-│ N 標籤 · 3 已選 · 5 待送出  [清空選取] [⟳][清理工具][檢視變更(5)] │
-├──────────────────────────────┬───────────────────────┤
-│ 池：[🔍搜尋][排序▾][顯隱▾]      │ 右板（23rem，捲動）        │
-│  [chip][chip][chip]…          │ ┌新合併堆（拖放目標）┐      │
-│  （100/頁，flex-wrap）         │ ┌合併堆 A     ⧉ ✕┐       │
-│                               │ ┌刪除區       ⧉ ┐        │
-│  ◀ 上一頁   3 / 12   下一頁 ▶  │ ┌顯隱切換區    ⧉ ┐        │
-└──────────────────────────────┴───────────────────────┘
-```
+- 只要按下「重新整理」（`handleRefresh`，第 245–255 行），哪怕沒有任何一張草稿真的變不合法，`pending` 變 `true` 的那一小段時間內（200ms debounce + `invalidateAll()` 的往返時間），`readyCount` 會瞬間掉到 0，`SessionProgress` 的 tooltip 會把**所有已填寫的圖片都標成「其中尚無法提交」**。
+- 匯入 JSON（`handleImportFile`）、刪除單張暫存圖（`handleDeleteFile`）也是同樣道理，且這兩個操作跟「這些暫存圖片能不能提交」根本沒有邏輯關係。
 
-- **toolbar**：比照 tagger `header/Toolbar.svelte` 語彙——左側資訊（標籤總數、選取數、待送出數 badge）；右側「清空選取」（選取數 > 0 才顯示）、重新整理 ghost（重跑當前池查詢＋失效預覽快取）、「清理工具」ButtonLink（`/tags/cleanup`，本輪只保留連結位、目標頁不做）、「檢視變更（N）」primary。
-- **池**（左，flex-1）：控制列（SearchInput＋排序 Select＋顯隱 Select）＋chip 流式排列＋底部分頁列。chip 沿用 tags-d 的資訊密度：名稱（ellipsis）＋count＋hidden 徽章（外觀交給 `Chip`/`TagChips` 的既有語彙，hidden 統一用 `IconAlertTriangleFilled` 徽章——與 TagChips widget 現狀一致）；狀態樣式：selected／in-group／in-delete／in-toggle（placement map 查詢，**獨立於分頁**——翻頁後放置狀態標記依然正確）。chip 可拖（draggable）也可點（toggle 選取）。
-- **分頁列**：上一頁/下一頁 `Button`＋「n / N」指示（`Chip` 或 caption 文字）。無現成 Pagination 積木——先做頁面局部組合，證明通用後再依 widgets-wrap-use-cases 慣例升格。
-- **右板**（23rem，捲動）：結構照 tags-d——「新合併堆」放置區（＋「把選取的 N 個變成一堆」備援按鈕）、各合併堆（canonical `TextInput`＋成員 chips＋星號指定 canonical＋「→ N 張」預估＋解散）、刪除區、顯隱切換區（各有「加入選取」備援按鈕）。**每個區塊角落新增 open-external icon 按鈕**：`ButtonLink` ghost/icon，`href = /?${new ImageWhere({ includedTags: members }).toSearchParams()}`，`target="_blank" rel="noopener"`；合併堆一顆（全成員）、刪除區/顯隱區各一顆（該區全部標籤）、成員為空時 disabled。icon 目前庫裡沒有 external-link——依 0.7 慣例用相似的（候選 `IconLink`）或由使用者自補。
-- **審查 modal**：頁面本地元件（比照 tagger 對 ReviewModal 不做 widget 的決策），內容照 tags-d 的 TagReviewModal 語彙——操作類型徽章（合併/重命名/刪除/隱藏/取消隱藏）、舊→新 del/ins、預估數字（來自 preview 端點）、problem/失敗訊息、逐筆勾選與捨棄、部分失敗後保留失敗項。markup 全新（Modal＋Checkbox＋Chip＋Button 積木）。
+### 更直接可見的症狀：審查對話框裡的「全選」列
 
-## 五、檔案結構（0.8 慣例）
+`ReviewList.svelte` 第 27–31 行：
 
-```
-src/routes/(app)/tags/
-├── +page.svelte           # 畫布 state 編排、dirty 防護
-├── +page.server.ts        # 標籤第 1 頁＋total
-├── pool/
-│   ├── TagPool.svelte     # 控制列＋chip 流＋分頁列
-│   ├── pool.ts            # /api/tags client fetch（去抖、序號）
-│   └── previews.ts        # hover 預覽查詢＋Map 快取
-├── board/
-│   ├── MergeGroup.svelte
-│   ├── Zone.svelte        # 刪除區/顯隱區（同構，props 區分）
-│   └── dnd.ts             # dataTransfer 協定＋dropping 高亮
-├── review/
-│   └── ReviewModal.svelte
-└── logic/
-    └── changeset.ts       # 變更集模型＋純本地驗證（自 tags-d 搬，去掉全量預覽函式）
+```ts
+const bulkSelectionState = $derived.by(() => {
+  if (checkableCount === 0 || checkedCount === 0) return "unchecked";
+  if (checkableCount === checkedCount) return "checked";
+  return "indeterminate";
+});
 ```
 
-新後端（皆 `/api/proto`，暫不轉正）：
+`checkableCount`（= `entries.filter(!disabled).length`，由 `ReviewModal.svelte` 第 35 行算）在提交送出去、`pending` 變 `true` 的那個當下會直接變成 0（因為每一筆 `disabled` 都因 `pending` 變 `true`），但 `checkedCount`（= `entries.filter(checked).length`）不受 `pending` 影響，維持原本被勾選的數字。於是第 70 行的文字：
 
-| 端點 | 用途 |
-| --- | --- |
-| `POST /api/proto/tags-preview` | 變更集預估（合併後張數、清空警告、逐標籤現況） |
-| `GET /api/proto/committed-query` | 通用 ImageQuery 查詢（本頁用於懸停預覽圖 top-4） |
-| `POST /api/proto/tags-batch` | 既有，批次送出（不動） |
+```svelte
+<span>{checkedCount} / {checkableCount} 可提交紀錄已選取</span>
+```
 
-後端測試：兩個新端點比照 `test/` 現有 proto 端點測試補齊。
+在每一次點「提交」之後、伺服器回應之前，都會短暫顯示成類似「**3 / 0 可提交紀錄已選取**」——選了 3 筆，但可提交的卻是 0 筆，字面上互相矛盾。這是 100% 會重現的（只要提交耗時 > 0ms，也就是每一次提交都會發生），比前面 `SessionProgress` 那個還更容易踩到。
 
-## 六、實作前必讀的 lab use case（CLAUDE.md 鐵律）
+需要說明的是：這個問題**目前只影響顯示統計，不影響實際送出的內容**——`handleSubmit`（`+page.svelte` 第 90 行）是用 `reviewEntries.filter((e) => e.checked)` 去算要送出的檔名，`checked` 本身沒有被 `pending` 污染，所以不會漏送或送錯。純粹是統計數字暫時性地講不通。
 
-| 積木/widget | lab 展示頁 |
-| --- | --- |
-| Tooltip snippet content | `lab/(showcase)/(floating)/tooltip-behavior`（richContent 範例） |
-| Chip | `lab/(showcase)/(display)/chip` |
-| SearchInput 組合 | `lab/(showcase)/(inputs)/search-input` |
-| Select | `lab/(showcase)/(inputs)/select` |
-| TextInput（canonical 輸入） | `lab/(showcase)/(inputs)/type-field` |
-| Modal | `lab/(showcase)/(floating)/modal` |
-| Checkbox | `lab/(showcase)/(inputs)/checkbox` |
-| ConfirmDialog / requestConfirm | `lab/(showcase)/(widgets)/confirm-dialog` |
-| LinearProgress（若送出要進度） | `lab/(showcase)/(display)/linear-progress` |
+---
 
-## 七、風險與未決（實作時就地決定，不阻塞）
+## 二、次要觀察：卡片牆不反映提交失敗狀態
 
-- **preview 端點回應形狀細節**（欄位命名、emptied 是否附樣本 id）：實作時定，proto 等級允許粗糙。
-- **反色 tooltip 氣泡內的縮圖視覺**：走查再調，方案見第三節。
-- **拖曳與 tooltip 的互動**：dragstart 時應立即關 tooltip（mouseleave 通常會觸發，若殘留再補 dispatch 清除事件）。
-- **選取跨頁**：選取集合獨立於分頁，翻頁後看不到但仍選取——toolbar 的選取數與「清空選取」按鈕使其可控；若走查覺得反直覺再改為翻頁清空。
-- **open-external icon**：庫內無 external-link，使用者自補或用 `IconLink`。
-- **/tags 入口**：本輪不處理（導航面板 navItems 目前無此項，屆時與導航重整一起做）。
-- **OR 查詢**：open-external 維持 AND；「ImageWhere 支援 anyTags/OR」記為 API 整理階段的候選項，不在本輪。
+`Card.svelte` 第 21 行：
 
-## 八、驗收清單（使用者自行走查）
+```ts
+const problem = $derived(problemOf(draft));
+```
 
-1. 進 /tags：只載入標籤第 1 頁（Network 佐證 payload 不含 committedFiles）；池顯示 100 顆 chip＋正確總數/頁數。
-2. 搜尋去抖、排序/顯隱篩選即查即回、變動回第 1 頁；翻頁捲回頂部；快速連打不出現舊回應覆蓋新回應。
-3. 懸停 chip：meta 立即顯示；首次懸停預覽區為 loading 佔位、載畢換 4 張「評等最高」縮圖；再次懸停同標籤不發新請求（快取）；count 0 標籤顯示空狀態。
-4. 拖放與點選備援：建堆/入堆/刪除區/顯隱區/拖回池全部可用；chip 的放置狀態標記在翻頁後仍正確。
-5. 合併堆「→ N 張」在畫布變動去抖後更新；審查 modal 的預估與警告（失去最後標籤）數字正確；名稱不合法等本地驗證即時出現。
-6. 每個區塊的 open-external：新分頁開主頁、URL 為 includedTags AND、含 hidden 標籤時圖片可見（豁免語意）；畫布排程不受影響。
-7. 送出：部分失敗時失敗項留在 modal 與畫布、成功項自畫布移除；送出成功後懸停預覽快取失效（重查）。
-8. dirty 防護：有排程時關分頁觸發原生攔截、SPA 導航觸發 requestConfirm；確認離開後不殘留。
-9. 全程無 window 級鍵盤監聽；「清空選取」按鈕只在選取數 > 0 顯示。
-10. light/dark 走查；`npm run check`、`build`、`test`（含兩個新端點的後端測試）全綠。
+這裡只呼叫了純草稿驗證 `problemOf`，跟 `buildReviewEntry`（`reviewEntry.ts` 第 40 行）不一樣的地方在於：`buildReviewEntry` 還會把 `failures[f]`（上一次提交失敗訊息）併進 `problem` 裡，`Card.svelte`／`CardInfo.svelte` 完全沒有接到 `failures` 這個 prop，也没有任何管道拿到它。
+
+實際後果：假設一次提交裡有 1 張因為伺服器端驗證失敗（`failures[f]` 被設值），根據 `handleSubmit`（第 89–115 行）的邏輯，只要 `result.size > 0`（有任何失敗）審查對話框會保持開啟（第 107 行 `if (result.size === 0) reviewOpen = false;`），使用者可以在對話框裡看到失敗原因。但如果使用者手動關掉這個對話框（`handleReviewClose`，第 153–155 行，只要沒在 `pending` 中就允許關閉），回到卡片牆看那張失敗的圖——`Card.svelte` 算出來的 `problem` 只看 `problemOf(draft)`，跟正常合法的草稿沒有兩樣，卡片上顯示的是綠勾（`CardInfo.svelte` 第 27–28 行 `IconCheckFilled`），完全看不出剛剛提交失敗過。使用者必須重新打開審查清單才能再次看到錯誤訊息。
+
+嚴重度不高（伺服器端驗證規則目前跟前端 `problemOf`/`Validator` 幾乎一致，實務上很少真的觸發這種伺服器獨有的驗證失敗），但這是目前程式碼確實存在的行為缺口。
+
+---
+
+## 三、幾個具體使用情境的程式碼路徑追蹤
+
+以下都是照現有程式碼逐步走，不含任何「應該怎樣」的假設。
+
+### 情境 1：編輯一張暫存圖並提交（全部成功）
+
+1. 使用者點卡片牆上的縮圖 → `Card.svelte` `onclick` → `onselect(filename)` → `+page.svelte` 的 `handleOpenInspector` → `setActiveFile(file)`（第 239–241、75–78 行）。
+2. `setActiveFile` 用 `drafts[file] ??= emptyDraft()` 補一份空草稿（若尚未存在），再設 `active = file`。
+3. `activeFile`（`$derived`，第 54 行）重新計算為 `file`（因為它在 `data.stagedFiles` 裡），`Inspector` 被 `{#if activeFile !== null && drafts[activeFile]}`（第 300 行）渲染出來，`bind:draft={drafts[activeFile]}` 建立雙向綁定鏈一路通到 `InspectorFields` 裡的 `TextInput`/`Rating`/`TagInput`。
+4. 使用者在 `TagInput` 裡打字並用逗號送出 → `TagInput.svelte` 的 `commitTags`（第 86–99 行）把字串 trim、去重、過濾已存在的標籤，寫回 `draft.tags`（透過綁定鏈直接改到 `drafts[activeFile].tags`）。
+5. `touchedFiles`（第 52 行）、`reviewEntries`（第 58–60 行，呼叫 `buildReviewEntry`）、`readyCount`（第 64 行）全部是 `$derived`，自動跟著重算；`Toolbar` 上「檢視待提交的變更 (N)」的 N 即時更新。
+6. 使用者點「檢視待提交的變更」→ `handleReviewOpen`（第 119–122 行）：先把 `failures` 清空，再把 `reviewOpen` 設 `true`。
+7. `ReviewModal` 開啟，`ReviewList` 逐筆渲染 `entries`；使用者點「全選」或個別勾選 → `handleReviewToggle`/`handleReviewToggleAll` → 直接操作 `checkedFiles`（`SvelteSet<string>`）。
+8. 點「提交」→ `ReviewFooter` 的 `onsubmit` → `+page.svelte` 的 `handleSubmit`（第 89–115 行）：取出 `checked` 的檔名 → `pending = true` → `commitDrafts`（`draft.ts` 第 55–71 行）POST `/api/proto/staged-batch`。
+9. 伺服器端（`+server.ts` 第 37–110 行）逐筆檢查安全檔名、是否為圖片、`query.hasImage`（是否已提交過）、實體檔案是否存在，再呼叫 `mutation.commitRecord`（內部即 `ImageCommands.commit`，`image.ts` 第 26–55 行）——驗證規則（`Validator.tags`/`Validator.name`，`validator.ts` 第 10–36 行）跟前端 `problemOf`（`draft.ts` 第 19–30 行）幾乎一致，且伺服器端 `normalizeTags`（`image.ts` 第 14–17 行）還會再 trim + 自然排序一次。
+10. 全部成功 → `result.size === 0` → 逐一 `delete drafts[f]`、`checkedFiles.delete(f)`、`reviewOpen = false`、`addToast` 成功訊息、`invalidateAll()` 讓 `+page.server.ts` 重新載入 `stagedFiles`（此時這些檔案已經 `query.hasImage` 為真，會被過濾掉）跟 `existingTagNames`。
+
+### 情境 2：提交時部分失敗
+
+延續情境 1 第 8-9 步，若其中一筆 `mutation.commitRecord` 回傳失敗（例如同時有另一個分頁已經把同一張圖提交掉，觸發 `query.hasImage` 檢查而回「已提交過，請重新整理列表」）：
+
+- `commitDrafts` 回傳的 `Map` 只包含失敗的項目 → `failures = Object.fromEntries(result)`（第 96 行）。
+- `reviewEntries` 這個 `$derived.by` 因為讀了 `failures`，會自動重算：失敗的那筆 `buildReviewEntry` 算出 `problem = failures[f]` 非 null → `checked` 被強制設回 `false`、`disabled = true`。
+- 因為 `result.size > 0`，`reviewOpen` **不會**被設回 `false`（第 107 行），對話框留在畫面上，使用者可以直接看到那一筆多了一行紅字錯誤訊息（`ReviewList.svelte` 第 91–93 行 `{#if entry.problem}`）。
+- 但因為 `disabled = true`，那一筆的 checkbox 是鎖住的（`Checkbox status={entry.disabled ? "disabled" : "default"}`），使用者**在同一次對話框開啟期間沒辦法重新勾選它去重試**——必須先關掉對話框，再從 `Toolbar` 重新點「檢視待提交的變更」觸發 `handleReviewOpen` 把 `failures` 清空，那一筆才會恢復成可勾選（前提是這次重新整理後它的 `problemOf` 仍然是 `null`）。就上面舉的「已提交過」這個例子來說，`invalidateAll()`（第 109 行，無論成功失敗都會執行）之後 `stagedFiles` 會直接把它濾掉，那一筆會整個從清單消失，不需要真的重試。
+
+### 情境 3：刪除暫存圖片
+
+1. `Inspector` 裡點「刪除此張」→ `ondelete` → `handleDeleteFile`（第 207–233 行）。
+2. 先跳確認對話框（`requestConfirm`），確認後：用**刪除前**的 `data.stagedFiles` 算出 `idx`，決定刪除後要自動切去哪一張（`next = 下一張 ?? 上一張 ?? null`）。
+3. `pending = true` → `DELETE /api/staged/[filename]`（`+server.ts` 第 81–106 行：檢查檔名安全、`query.hasImage` 為假才准刪、`fs.unlinkSync` 實際刪檔）。
+4. 成功後 `delete drafts[file]`、`setActiveFile(next)`、`invalidateAll()` 讓 `stagedFiles` 反映實際少了一張。
+5. 這段期間（`pending=true`）全頁其他 `ReviewEntry` 也會暫時被算成 `disabled`（見第一節），但因為刪除操作通常很快，且 `Inspector`/`Cards` 並沒有被任何 modal 擋住互動性，使用者理論上可以在這極短暫的視窗內看到「可提交」統計被誤標成 0——機率低但邏輯上存在。
+
+### 情境 4：匯入 JSON 紀錄（SSE）
+
+1. 點「匯入紀錄」→ `handleOpenImport` → `importOpen = true`，`ImportModal` 用原生 `<dialog>.showModal()` 開啟（`modal.core.svelte.ts` 第 17–19 行），背景（含 `Toolbar`/`Cards`/`Inspector`）此時是 inert，滑鼠/鍵盤都碰不到。
+2. 使用者選檔 → `ImportGuide.svelte` 的 `handleFileChange` → `onimport(file)` → `+page.svelte` 的 `handleImportFile`（第 172–198 行）：先在前端解析 JSON、檢查非空物件，才進入 `pending = true`。
+3. `importRecords`（`import.ts` 第 11–56 行）用 `fetch` 打 `/api/committed`，讀取 `ReadableStream`，用 `\n\n` 切 SSE 訊息、正則抓 `data: ...` 這一行，逐筆呼叫 `onProgress` 更新 `importProgress`（`ImportModal` 顯示 `LinearProgress`）。
+4. 伺服器（`api/committed/+server.ts` 第 70–141 行）逐筆跑 `importEntry`（內部一樣是 `mutation.commitRecord`），每筆都送一個 `progress` 事件，最後送 `done`（含 `imported`/`skipped`/`errors`）。
+5. 前端收到 `done` 後設 `importResult`，`ImportModal` 切換成結果畫面（`resultDisplay` 片段，第 28–42 行）；`invalidateAll()` 讓 `stagedFiles`/`existingTagNames` 反映匯入結果（已匯入的圖片會從 `stagedFiles` 消失）。
+6. 這整段期間 `pending=true`，同樣會讓當下任何已編輯但**還沒關閉匯入對話框**時看向工具列（若背景真的能被看到，實際上被 `::backdrop` 模糊 + inert 擋住互動但視覺上還是看得到）的「可提交」統計短暫失真，跟情境 3 同一個根因。
+
+### 情境 5：離開頁面守衛
+
+1. 站內導覽（點其他選單連結等）：`beforeNavigate`（第 261–277 行）攔截，若 `touchedFiles.length === 0` 直接放行；否則 `nav.cancel()`，跳確認對話框，確認才 `drafts = {}` 並 `goto(to.url.href)` 手動導航過去。
+2. 關分頁/重新整理/離開網站：走瀏覽器原生 `beforeunload`（`handleBeforeUnload`，第 257–259 行），只要 `touchedFiles.length > 0` 就 `preventDefault()`，交給瀏覽器原生確認框（沒有自訂文字的空間，這是瀏覽器規範本身的限制，不是這裡的問題）。
+3. 兩條路徑各自獨立判斷，`nav.type === "leave"` 時直接放行不攔（那類型本來就對應「要離開此 app」，交給 `beforeunload` 處理），彼此沒有重疊或漏判的情況。
+
+---
+
+## 四、已排除的懷疑點
+
+寫下來是為了避免之後重複花時間查同樣的地方。
+
+1. **`draft.tags` 有沒有可能帶著沒 trim 的空白送到伺服器？** 追過之後確認不成立：`draft.tags` 唯一的寫入入口是 `TagInput.svelte` 的 `commitTags`（第 86–99 行），裡面已經 `.map((s) => s.trim())`；就算真的漏網，伺服器端 `ImageCommands.commit` 內的 `normalizeTags`（`image.ts` 第 14–17 行）也會再 trim 一次並排序。兩層保護，不是問題。
+
+2. **`drafts`（`$state<Record<string, Draft>>`）有沒有可能踩到跟 `/tags` 頁那次一樣的 proxy identity 分裂 bug（`temp3.md` 記錄的那個 `groups.push(group)` 問題）？** 不成立。那個 bug的必要條件是「先拿到一個尚未被容器包過的裸物件參照，塞進 `$state` 容器之後，繼續用手上那個舊參照直接改欄位（繞過容器的 proxy）」。這裡完全找不到這種模式：`drafts[file] ??= emptyDraft()` 之後，沒有任何程式碼留著 `emptyDraft()` 回傳值的參照去後續直接賦值；所有後續的欄位寫入（`draft.name = ...`、`draft.rating = ...`、`draft.tags = ...`）都是透過 `bind:draft` 一路往下綁到 `InspectorFields`/`TextInput`/`Rating`/`TagInput`，每次寫入都是重新經過綁定鏈讀回 `drafts[activeFile]` 再寫，不會有「拿著舊參照直接寫」的情況。
+
+3. **`ReviewModal`/`ImportModal`/`Lightbox` 三個對話框開著的時候，背景的 `Cards`/`Inspector`/`Toolbar` 是否還能被點到，造成競態（例如提交中途又跑去改同一份 draft）？** 不成立。`Modal.svelte` 底層用原生 `<dialog>.showModal()`（`modal.core.svelte.ts` 第 17–19 行），瀏覽器會自動讓背景內容變成 `inert`，滑鼠點擊、鍵盤 focus 都進不去，不需要額外自己寫鎖。
