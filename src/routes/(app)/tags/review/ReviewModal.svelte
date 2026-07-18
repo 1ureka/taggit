@@ -1,15 +1,9 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import type { ChangeEntry } from "../logic/changeset";
+  import type { ReviewEntry } from "./reviewEntry";
   import ReviewHeader from "./ReviewHeader.svelte";
   import ReviewFooter from "./ReviewFooter.svelte";
   import ReviewList from "./ReviewList.svelte";
-
-  /** 審查條目加上勾選與失敗狀態（由頁面組好） */
-  type ReviewEntry = ChangeEntry & {
-    checked: boolean;
-    failure?: string;
-  };
 
   type Props = {
     /** 是否開啟審查對話框 */

@@ -20,7 +20,8 @@
   import ReviewModal from "./review/ReviewModal.svelte";
 
   import { fetchProjection, submitChangeset } from "./logic/api";
-  import { changesetFromBoard, changesetSize, changesetEntries, type MergeGroup } from "./logic/changeset";
+  import { changesetFromBoard, changesetSize, type MergeGroup } from "./logic/changeset";
+  import { buildReviewEntries, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
   import Toolbar from "./header/Toolbar.svelte";
 
   // ---
@@ -234,21 +235,12 @@
 
   // ─── 審查與送出 ───
 
-  const reviewEntries = $derived.by(() => {
-    const base = changesetEntries(changeset, (name) => tagByName.get(name), projection);
-    return base.map((e) => ({
-      ...e,
-      checked: checkedKeys.has(e.key) && e.problem === null,
-      failure: failures[e.key],
-    }));
-  });
+  const reviewEntries = $derived(
+    buildReviewEntries(changeset, (name) => tagByName.get(name), projection, checkedKeys, failures),
+  );
 
   const handleReviewOpen = () => {
     failures = {};
-    checkedKeys.clear();
-    for (const e of changesetEntries(changeset, (name) => tagByName.get(name), projection)) {
-      if (e.problem === null) checkedKeys.add(e.key);
-    }
     clearTimeout(previewTimer);
     runPreview(); // 開啟當下立即取最新預估
     reviewOpen = true;
@@ -259,14 +251,11 @@
   };
 
   const handleReviewToggle = (key: string) => {
-    if (checkedKeys.has(key)) checkedKeys.delete(key);
-    else checkedKeys.add(key);
+    toggleEntry(checkedKeys, key);
   };
 
   const handleReviewToggleAll = () => {
-    const checkable = reviewEntries.filter((e) => e.problem === null);
-    if (checkable.every((e) => e.checked)) checkedKeys.clear();
-    else for (const e of checkable) checkedKeys.add(e.key);
+    toggleAllEntries(checkedKeys, reviewEntries);
   };
 
   const handleSubmit = async () => {
@@ -391,7 +380,7 @@
         >
           <ZoneHeader
             selected={selected.size}
-            label="合併組"
+            label="合併或重新命名"
             tags={group.members.map((m) => m.name)}
             onadd={() => addToGroup(group.id, takeSelection())}
             ondissolve={() => dissolveGroup(group.id)}
