@@ -8,7 +8,7 @@
 
 但這個重構的真實刪除範圍比你列的「tags/logic 可能消散」大得多、也不在那個資料夾裡——真正整組消失的是 `$lib/query/changeset.ts`、`$lib/query-spec/changeset.ts`、`Query.changeset()` facade、`api/proto/tags-preview` 端點。這件事我已經 grep 過全專案確認除了 `/tags` 沒有其他呼叫者，砍掉不會波及 `/compare` 或 `/tagger`。
 
-第一輪收斂後，Skeleton 做法、merge/rename 精準度、GET 參數格式都已定案（見第三、五節）；唯一還沒收斂的是 mergedCount 的命名，以及要不要順手幫 `rename`/`delete` 補上目前完全沒有的 `not_found` 檢查（技術上可行、成本低，建議做，細節見 3.1）。
+兩輪收斂後，五個待決問題（Skeleton 做法、exists 退化、merge/rename 精準度、命名、GET 參數格式）全部定案，見第三、五節。其中 `rename`/`delete` 補 `not_found` 檢查已經直接動手做完並過了 `check`/`test`，是這份分析裡唯一提前落地的部分；其餘（per-group 查詢排程、Skeleton UI、`reviewEntry.ts` 改寫、砍 `ChangesetEngine` 一組）都還沒做。
 
 ## 一、現況資料流複核
 
@@ -37,20 +37,12 @@
 
 可行性已核對：`db.tagBits(name): BitSet | null`（`$lib/database/store.ts:187`）＋ `BitSet.orInPlace/clone/size`（`bitmap.ts`）就是 `ChangesetEngine.mergedCounts()` 在做的事，逐行等價。「找不到的是空集合」也已經是現有語意：`tagBits` 找不到回 `null`，`acc ?? 0` 的 fallback 就是空集合聯集。
 
-命名（補充討論，尚未定案）：你澄清了原本「不要直接稱為 union」的限制只針對「字面上就叫 union」，不是排斥 union 這個概念家族。整理幾個候選：
-
-| 候選 | 理由 | 疑慮 |
-|---|---|---|
-| `Query.mergedCount(tags)` | 跟現有詞彙對齊——`ChangesetPreview.mergedCounts`（雖然整個型別要刪）、`ZoneBodyGroup`/`MergeGroup` 的 `mergeCount` prop 都已經在用這個字 | 隱含「這是給合併用的」，如果以後有別的地方也想用同一個 union count（例如畫多標籤 AND/OR 篩選的統計），語意上會有點名不符實 |
-| `Query.unionCount(tags)` | 直接、精確描述「這是集合聯集大小」，滿足「不要裸用 union」（有 Count 後綴限定），不會誤導成別的意思 | 是資料結構詞彙而非領域詞彙，跟 `projectChangeset→previewChangeset` 那次「避開技術詞彙、改用領域詞彙」的既有考量方向相反 |
-| `Query.anyTagsCount(tags)` | 對齊 memory 裡記錄的「OR/anyTags 查詢」既有 API 整理候選（見 `phase0-status` 第七輪備註）——語意是「符合這些標籤中任一個的圖片數」，如果以後真的要做一個通用的 OR 標籤篩選查詢，這個方法可以直接被那個需求收編，不用重複造一個 | 目前 `/tags` 這裡的呼叫情境是「合併預覽」，用 `anyTags` 命名要多轉一層才想到是在做合併預估 |
-
-我傾向 `mergedCount`（跟現場既有詞彙密度最高、最快看懂），但 `anyTagsCount` 有「順便對齊未來 OR 查詢整理」的加分，兩個都合理，你選一個即可，我沒有強烈立場。端點路徑會跟著方法名走（例如 `tags-merged-count` 或 `tags-any-count`）。
+**已定案：`Query.unionCount(tags: string[]): number`**。你的理由是它偏後端底層詞彙——`Query` facade 這一層本來就是查詢執行器，用資料結構詞彙精確描述「這是集合聯集大小」，比借用 `/tags` 這個特定畫面的「合併」領域詞彙更誠實，也不會綁死成只能給合併預覽用（跟 `anyTagsCount` 一樣有未來給 OR 標籤查詢重用的空間，但不用先射箭畫靶猜那個功能的命名）。跟先前 `projectChangeset→previewChangeset` 避開技術詞彙的考量方向不同，但那次是因為「projection」這個詞已經被 database 層佔用、會撞名；這次「union」在 `Query` facade 底下沒有佔用衝突，純粹是命名風格選擇，不是規則衝突。端點路徑跟著改為 `tags-union-count`。
 
 端點：不需要包一層 query-spec class。tag 名稱本來就禁止逗號（`isValidTagName` / `Validator.tagName`），`ImageWhere.includedTags` 已經用逗號分隔編碼＋`parseTags()` 解析（`query-spec/search-params.ts:7-13`），可以直接重用同一個 helper（它目前沒被 barrel 匯出，深路徑 import 或補一行 export 都行）。**已確認採用**：
 
 ```
-GET /api/proto/tags-merged-count?tags=a,b,c  ->  { count: number }
+GET /api/proto/tags-union-count?tags=a,b,c  ->  { count: number }
 ```
 
 不需要新的 `+server.ts` 之外的任何檔案。
@@ -99,12 +91,12 @@ GET /api/proto/tags-merged-count?tags=a,b,c  ->  { count: number }
 
 也就是說，拿掉 exists 預檢查後，「畫布上留著一個其實已經在別處被刪掉/改名的標籤」**送出時不會報錯**——會顯示「已套用 N 筆標籤操作」成功 toast，但那一筆實際上什麼都沒發生。這在單人本機工具情境下發生機率很低，但如果要接受，這是一個要明確承認、記錄成刻意決定的行為退化：從「擋下並告知」變成「靜默無效操作＋誤導性成功訊息」，跟刪除清空警告那個「純粹延後顯示、無資料風險」的情況不是同一等級。
 
-**這個缺口可以修、但只有一半該修**（追問「這能修嗎」的回答）：
+**已修**（追問「這能修嗎」的回答，且已直接動手做掉，非規劃）：
 
-- **`rename`/`delete` 可以、也建議補上 `not_found`**。做法很小：在 `TagCommands.rename()`/`delete()` 開頭加一個存在性檢查——`db.tagBits(name)` 有值、或 `db.tagMetaEntries()` 裡有這個名字，兩者都沒有才回 `notFound()`（`result.ts:20-23` 這個 factory 已經存在，只是目前 tags 相關方法完全沒人呼叫它）。錯誤往下傳的管線**不用改**：`Result` 的錯誤型別加上 `NotFound` 只是把既有聯集用上，`tags-batch/+server.ts` 的 `errorMessage()` 早就有 `case "not_found": return "找不到目標紀錄"` 這個分支（現在只是死碼，因為沒有東西會回這個 kind）。補上後，rename/delete 兩種操作在「標籤已被外部刪掉/改名」時會在送出當下正確失敗、跳出跟現在文案很接近的錯誤，而不是靜默假成功——跟 `last_tag` 是同一種「後端本身把關、前端預檢查只是提早告知」的安全退化，不是資料風險。
-- **`setTagMeta`（hidden 切換）不應該加這個檢查**。我去讀了 `api/tags/[tagName]/+server.ts` 的 `PATCH` 端點（`+server.ts:31-35`），文件註解明講：「元資料獨立於標籤的使用狀態存在，允許為目前未使用的標籤名稱設定」——這是刻意設計，不是疏漏。也就是說「隱藏切換」這件事本來就沒有被後端當成「標籤要存在才能做」的操作，現在畫布預檢查會擋下這種情況反而是比後端契約更嚴格。拿掉 hidden 這條的 exists 預檢查**不是退化，是對齊後端實際契約**。
+- **`rename`/`delete` 補上了 `not_found`**。`TagCommands.rename()`/`delete()`（`$lib/mutation/tag.ts`）開頭各加了一個存在性檢查——`db.tagBits(name)` 有值、或 `db.tagMetaEntries()` 裡有這個名字，兩者都沒有才回 `notFound()`（`result.ts` 這個 factory 本來就有，只是先前 tags 相關方法完全沒人呼叫它）。順手把 `rename()` 裡原本算兩次的 `tagMetaEntries()` 合併成一次重用。錯誤往下傳的管線完全沒改：`Mutation.renameTag`/`deleteTag` 的回傳型別加上 `NotFound` 只是把既有聯集用上，`tags-batch/+server.ts` 的 `errorMessage()`、`$lib/utils/server.ts` 的 `errorJson`/`errorToHttp` 早就把 `not_found` 當一般 case 處理（原本是死碼，現在有東西會真的回這個 kind 了）。`test/repo/mutation/mutation.suite.mjs` 裡兩個原本斷言「rename/delete 不存在標籤 → 靜默成功 affected 0」的測試已經改成斷言 `not_found`——那兩條原本就是在幫舊行為背書，現在改成幫新契約背書。`npm run check`（0 errors）、`npm run test`（521 passed）都過。
+- **`setTagMeta`（hidden 切換）維持原樣、沒有加這個檢查**。讀了 `api/tags/[tagName]/+server.ts` 的 `PATCH` 端點文件註解：「元資料獨立於標籤的使用狀態存在，允許為目前未使用的標籤名稱設定」——這是刻意設計，不是疏漏。也就是說「隱藏切換」本來就不是後端認定「標籤要存在才能做」的操作，現在畫布預檢查會擋下這種情況反而比後端契約更嚴格。拿掉 hidden 這條的 exists 預檢查**不是退化，是對齊後端實際契約**。
 
-淨結果：只要順手把 `rename`/`delete` 這個小檢查加上去（兩個方法、各三行），拿掉前端 exists 預檢查幾乎沒有行為代價——三種操作裡有兩種會在送出時正確失敗（只是比現在晚一輪 API），第三種（hidden）現在的預檢查本來就比後端設計更嚴，拿掉它是修正而不是妥協。建議把這個小補丁一併排進這輪重構的範圍。
+淨結果：拿掉前端 exists 預檢查現在幾乎沒有行為代價——三種操作裡有兩種（rename/delete）會在送出時正確失敗（只是比現在晚一輪 API，文案跟現在很接近），第三種（hidden）現在的預檢查本來就比後端設計更嚴，拿掉它是修正而不是妥協。
 
 （附帶一提：`emptiedTotal` 這個欄位算出來後其實從沒被 UI 顯示過，只有 `emptiedBy[name]` 被拿去擋 checkbox——確認 `emptied()` 的產出在畫面上只有這一個用途。）
 
@@ -132,7 +124,7 @@ export type MergeGroup = {
 
 ```ts
 // $lib/query/index.ts（Query class 內新增方法，不另立 engine）
-mergedCount(tags: string[]): number {
+unionCount(tags: string[]): number {
   let acc: BitSet | null = null;
   for (const name of tags) {
     const bits = this.db.tagBits(name);
@@ -144,12 +136,12 @@ mergedCount(tags: string[]): number {
 ```
 
 ```ts
-// api/proto/tags-merged-count/+server.ts
+// api/proto/tags-union-count/+server.ts
 export const GET: RequestHandler = ({ url }) => {
   if (!Database.isLoaded()) return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   const tags = parseTags(url.searchParams.get("tags"));
   const query = new Query(Database.requireLoaded());
-  return json({ ok: true, data: { count: query.mergedCount(tags) } });
+  return json({ ok: true, data: { count: query.unionCount(tags) } });
 };
 ```
 
@@ -177,12 +169,11 @@ export function buildReviewEntries(
 
 ## 五、待你收斂的問題清單
 
-已收斂（本輪定案）：
-- ~~Skeleton 走正式元件還是 local~~ → local pulse placeholder，比照 `ChipTooltip.svelte`。
-- ~~merge/rename 精準度退化~~ → 接受，規則簡化為 `members.length > 1`。
-- ~~GET 逗號分隔參數~~ → 確認採用，沿用 `includedTags` 既有慣例。
+全部收斂完畢（本輪定案）：
+- Skeleton 走正式元件還是 local → local pulse placeholder，比照 `ChipTooltip.svelte`。
+- merge/rename 精準度退化 → 接受，規則簡化為 `members.length > 1`。
+- GET 逗號分隔參數 → 確認採用，沿用 `includedTags` 既有慣例。
+- `rename`/`delete` 補 `not_found` 檢查 → 已直接動手做完（`$lib/mutation/tag.ts`、`index.ts`、對應測試），`check`/`test` 全綠；`setTagMeta` 確認不補。
+- 命名 → `Query.unionCount(tags)`，端點 `tags-union-count`。
 
-還剩：
-
-1. `rename`/`delete` 補 `not_found` 檢查（3.1 節）——技術上可行、成本低（兩個方法各加一個存在性檢查，錯誤管線已存在），建議排進這輪一併做。`setTagMeta` 則確認不該補（後端本來就設計成與存在狀態無關）。若你同意，這條會補進實作範圍，不算是還要選邊的問題，只是想讓你知道要多動兩個小地方。
-2. 命名：`mergedCount` / `unionCount` / `anyTagsCount` 三選一（見第二節表格），我傾向 `mergedCount` 但不堅持。
+目前沒有還沒收斂的問題。下一步可以開始照第四節草案動工（`+page.svelte` 的 per-group 排程、`ZoneBodyGroup`/`ReviewImpact` 的 Skeleton、`reviewEntry.ts` 改吃畫布狀態、砍 `ChangesetEngine`／`tags-preview`／`query-spec/changeset.ts` 那一整組），但這些都還沒做，只有這份分析＋`not_found` 這個獨立的後端小修補是例外先做掉的。
