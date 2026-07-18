@@ -204,6 +204,7 @@ export const createController = () => {
 
 export const getController = () => getContext<Controller>(key);
 ```
+<!-- COMMENT: 幫我補上一個私有方法與一個公開 handle 開頭的方法，這樣讀者才會意識到我希望 handler 是寫在這裡而不是讓組件變的很長，或者說我希望組件就是單純狀態 in 事件 out 的 wire，只是從 React 那種 prop 法，改成狀態來自 context controller，事件回傳 context controller -->
 
 欄位一律優先用 `private`（TypeScript 修飾詞，型別檢查期擋、編譯後是普通公開欄位），不用原生 `#`——專案內部用的 controller，不是要對外發布的 library 邊界，型別檢查期的保護就夠了，`#` 換來的執行期隱私在這裡不值得多花的語法成本。只有特別在意某個欄位「就算隊友手滑繞過型別檢查也不該碰到」時，才為那一個欄位單獨升級成 `#`。
 
@@ -227,12 +228,13 @@ import { getContext, setContext } from 'svelte';
 const key = Symbol('page-data');
 
 export const createPageDataContext = (getData: () => PageData) => {
-  // ...
-}
+  const context = { get value() { return getData(); } };
+  setContext(key, context);
+  return context;
+};
 
-export
+export const getPageDataContext = () => getContext<{ readonly value: PageData }>(key);
 ```
-<!-- COMMENT: 幫我將以上例子寫完 -->
 
 ### 什麼時候該把外部狀態注入某個 controller？——先檢查邊界是不是畫錯了
 
