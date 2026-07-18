@@ -125,6 +125,8 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
 
 `untrack` 在這裡是必要的：`page` 是 rune 追蹤的來源，若不包一層直接拿去初始化 `$state`，會觸發編譯器 `state_referenced_locally` 警告（"This reference only captures the initial value... did you mean to reference it inside a closure instead?"）——這個警告的偵測範圍很廣，不限於 `$state()`/`$derived()` 的初始化式，任何頂層直接讀取 rune 值的地方（包括純賦值、函式參數）都會觸發，細節見下一節。
 
+> 這些工具在 `$lib/utils/search-params.svelte.ts`
+
 ---
 
 ## 怎樣將頁面邏輯拆到外部 - pure module
@@ -246,7 +248,7 @@ export const getController = () => getContext<Controller>(key);
 工廠函式收的是一個 getter 而不是 `data` 本身，因為 `data` 會隨 `load` 重新執行而變動，要傳的是「即時讀取」而不是「呼叫當下的快照」（直接傳 `data` 本身一樣會踩到 `state_referenced_locally` 那類「只捕捉初始值」的問題）。如果這個工廠函式放在比路由檔案更深一層的地方，例如 `routes/page/logic/pageData.ts`，`PageData` 型別要從上一層拿：
 
 ```ts
-// routes/page/logic/page-data.ts
+// routes/page/logic/page-data.svelte.ts
 import type { PageData } from "../$types";
 import { getContext, setContext } from 'svelte';
 
@@ -286,7 +288,7 @@ export const getPageDataContext = () => getContext<{ readonly value: PageData }>
 - `logic/` 底下依領域拆成一個或多個 controller（一律用 class，見「一律用 Class，不用 Closure」），把狀態跟 `handle*` 方法都收進去。
 - 其他子模組回歸純粹的 `*.svelte`，不再跟著一個同名的 `.ts` 檔案配對——邏輯收斂進 `logic/`，子元件依領域分資料夾，取名可以中立（`cards/`、`chips/`），不強制跟 domain 檔名一致。
 - 子元件不再靠 prop 拿狀態、callback prop 送事件，改成直接 `getContext` 拿對應 controller，讀它曝光的狀態、呼叫它的 `handle*` 方法——「狀態 in、事件 out」的形狀不變，只是管道換了（見「元件只做『狀態 in、事件 out』的 wire」）。
-- 子元件不再需要建構一個值去符合某個 prop 型別，很多投影型別可以整個不用 export，留在 `logic/<domain>.ts` 內部。
+- 子元件不再需要建構一個值去符合某個 prop 型別，很多投影型別可以整個不用 export，留在 `logic/<domain>.svelte.ts` 內部。
 - `+page.svelte` 的工作收斂成：呼叫每個 `create<Domain>Context()` 一次，`load` 回來的 `data` 視需要包成 `createPageDataContext`；不再是組裝樞紐，自己也只是「狀態 in、事件 out」原則的根節點實例。
 
 ### 示意檔案樹
@@ -302,7 +304,7 @@ routes/example/            舊
 routes/example/            新
 ├── +page.svelte           # 只呼叫 create*Context()，不是組裝樞紐
 ├── logic/
-│   └── widget.ts           # controller：狀態 + handle*，型別多半不 export
+│   └── widget.svelte.ts    # controller：狀態 + handle*，型別多半不 export
 └── widgets/
     ├── Widget.svelte       # 純元件，getContext 拿 controller
     └── WidgetItem.svelte
