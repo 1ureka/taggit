@@ -3,6 +3,7 @@
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
+
   import type { ReviewEntry } from "./reviewEntry";
   import ReviewImpact from "./ReviewImpact.svelte";
 
@@ -27,7 +28,7 @@
     checked={entry.checked}
     status={!entry.checkable ? "disabled" : "default"}
     onchange={ontoggle}
-    aria-label={`包含 ${entry.key}`}
+    aria-label={`包含 ${entry.name}`}
   />
 
   <div class="info">
@@ -43,7 +44,7 @@
   <Button
     variant="ghost"
     padding="icon"
-    aria-label={`捨棄 ${entry.key}`}
+    aria-label={`捨棄 ${entry.name}`}
     status={!discardable ? "disabled" : undefined}
     {@attach tooltip({ content: "捨棄這筆操作" })}
     onclick={ondiscard}

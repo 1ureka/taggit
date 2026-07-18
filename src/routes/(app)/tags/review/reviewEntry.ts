@@ -5,59 +5,80 @@
 
 import type { OneOf } from "$lib/types";
 import type { Tag } from "$lib/database";
-import { renameKey, deleteKey, hiddenKey, type MergeGroup } from "../logic/changeset";
-
-/** 標籤名稱是否合法 */
-export function isValidTagName(value: string): boolean {
-  return value.trim().length > 0 && value.trim().length <= 50 && !value.includes(",");
-}
+import type { MergeGroup } from "../logic/changeset";
 
 type EntryCommon = {
-  /** 對應 tags-batch 的操作 key（3 種前綴；與展示用 kind 是兩套獨立系統，見 temp3.md） */
-  key: string;
-  /** 操作對象名稱 */
+  /** 標籤名稱 */
   name: string;
-  /** 對象的使用數（畫布上的 Tag 快照值） */
+  /** 標籤的使用數 */
   count: number;
-  /** 不可送出的原因，或上次送出失敗的原因（null = 可送出） */
+  /** 不可送出的原因，或上次送出失敗的原因 */
   problem: string | null;
   /** 是否已被勾選 */
   checked: boolean;
-  /** 是否可勾選（無問題且目前沒有正在送出） */
+  /** 是否可勾選 */
   checkable: boolean;
 };
 
 type RenameFamily = EntryCommon & {
+  /** 該項目的變動種類  */
   kind: "rename" | "merge";
   /** 目標名稱 */
   to: string;
-  /** 合併後目標的預估張數（該合併堆自己查回來的值；只有 merge 才有意義，尚無結果時為 undefined） */
+  /** 合併或重命名後目標的預估張數 */
   mergedCount?: number;
 };
 
-type DeleteEntry = EntryCommon & { kind: "delete" };
+type DeleteEntry = EntryCommon & {
+  /** 該項目的變動種類  */
+  kind: "delete";
+};
 
-type HiddenFamily = EntryCommon & { kind: "hidden" | "visible" };
+type HiddenFamily = EntryCommon & {
+  /** 該項目的變動種類  */
+  kind: "hidden" | "visible";
+};
 
-/** 審查清單上的一列 */
+/** 審查清單上的一個項目 */
 export type ReviewEntry = OneOf<[RenameFamily, DeleteEntry, HiddenFamily]>;
 
-/** 給 ReviewImpact / ReviewListItem 共用，不用各自手刻一份字面量聯集 */
+/** 審查清單上的一個項目的變動種類 */
 export type ReviewEntryKind = ReviewEntry["kind"];
 
+// ---
+
+/** 標籤名稱是否合法 */
+function isValidTagName(value: string): boolean {
+  return value.trim().length > 0 && value.trim().length <= 50 && !value.includes(",");
+}
+
+/** 切換單一項目的勾選狀態（直接操作外部傳入的集合） */
+export function toggleEntry(checkedTags: Set<string>, name: string): void {
+  if (checkedTags.has(name)) checkedTags.delete(name);
+  else checkedTags.add(name);
+}
+
+/** 全選／全不選目前可送出的項目（直接操作外部傳入的集合） */
+export function toggleAllEntries(checkedTags: Set<string>, entries: ReviewEntry[]): void {
+  const eligible = entries.filter((e) => e.checkable);
+  const allSelected = eligible.length > 0 && eligible.every((e) => e.checked);
+  for (const e of eligible) {
+    if (allSelected) checkedTags.delete(e.name);
+    else checkedTags.add(e.name);
+  }
+}
+
+// ---
+
 /**
- * 由畫布三塊狀態（合併堆、刪除區、顯隱切換區）組審查條目。
- * 只做純本地可判的問題（名稱不合法、rename 目標互相碰撞、目標被排入刪除、
- * hidden 目標同時被排入重新命名）；標籤存在性與刪除清空警告交給送出時的後端把關
- * （not_found 會報錯、last_tag 會擋，兩者都是安全的延後，見 temp3.md）。
- * 上次送出失敗的原因（`failures`）與本地問題合併成同一個 `problem` 欄位；
- * `checkable`／`checked` 一併在這裡折入 `pending`，消費端不用再各自算一次。
+ * 由當前草稿組審查條目。做客戶端驗證，若有後端驗證結果，將其與本地問題合併
+ * TODO: 整理該函數
  */
 export function buildReviewEntries(
   groups: Iterable<MergeGroup>,
   deleteList: Tag[],
-  toggleList: Tag[],
-  checkedKeys: Set<string>,
+  hiddenList: Tag[],
+  checkedTags: Set<string>,
   failures: Record<string, string>,
   pending: boolean,
 ): ReviewEntry[] {
@@ -68,11 +89,11 @@ export function buildReviewEntries(
   );
 
   /** 併入上次送出失敗的原因，並依最終問題與 pending 推導可勾選／勾選狀態 */
-  const finish = (key: string, problem: string | null) => {
-    const failure = failures[key];
+  const finish = (name: string, problem: string | null) => {
+    const failure = failures[name];
     const finalProblem = problem ?? (failure ? `送出失敗：${failure}` : null);
     const checkable = finalProblem === null && !pending;
-    return { problem: finalProblem, checkable, checked: checkable && checkedKeys.has(key) };
+    return { problem: finalProblem, checkable, checked: checkable && checkedTags.has(name) };
   };
 
   const entries: ReviewEntry[] = [];
@@ -89,53 +110,32 @@ export function buildReviewEntries(
       else if (renamedFromNames.has(canonical)) problem = `目標「${canonical}」本身也被排入重新命名`;
       else if (deletes.has(canonical)) problem = `目標「${canonical}」已被排入刪除`;
 
-      const key = renameKey(m.name);
       entries.push({
-        key,
         kind: isMerge ? "merge" : "rename",
         name: m.name,
         count: m.count,
         to: canonical,
         mergedCount: g.mergeCount ?? undefined,
-        ...finish(key, problem),
+        ...finish(m.name, problem),
       });
     }
   }
 
   for (const t of deleteList) {
-    const key = deleteKey(t.name);
-    entries.push({ key, kind: "delete", name: t.name, count: t.count, ...finish(key, null) });
+    entries.push({ kind: "delete", name: t.name, count: t.count, ...finish(t.name, null) });
   }
 
-  for (const t of toggleList) {
+  for (const t of hiddenList) {
     let problem: string | null = null;
     if (renamedFromNames.has(t.name)) problem = `「${t.name}」已被排入重新命名，請對新名稱設定顯隱`;
 
-    const key = hiddenKey(t.name);
     entries.push({
-      key,
       kind: t.meta.hidden ? "visible" : "hidden",
       name: t.name,
       count: t.count,
-      ...finish(key, problem),
+      ...finish(t.name, problem),
     });
   }
 
   return entries;
-}
-
-/** 切換單一項目的勾選狀態（直接操作外部傳入的集合） */
-export function toggleEntry(checkedKeys: Set<string>, key: string): void {
-  if (checkedKeys.has(key)) checkedKeys.delete(key);
-  else checkedKeys.add(key);
-}
-
-/** 全選／全不選目前可送出的項目（直接操作外部傳入的集合） */
-export function toggleAllEntries(checkedKeys: Set<string>, entries: ReviewEntry[]): void {
-  const eligible = entries.filter((e) => e.checkable);
-  const allSelected = eligible.length > 0 && eligible.every((e) => e.checked);
-  for (const e of eligible) {
-    if (allSelected) checkedKeys.delete(e.key);
-    else checkedKeys.add(e.key);
-  }
 }

@@ -29,20 +29,13 @@ export type TagChangeset = {
 };
 
 /** 由畫布狀態推導變更集。只在送出當下呼叫一次，不做成常駐 derived（見 temp3.md） */
-export function changesetFromBoard(groups: Iterable<MergeGroup>, deleteList: Tag[], toggleList: Tag[]): TagChangeset {
+export function changesetFromBoard(groups: Iterable<MergeGroup>, deleteList: Tag[], hiddenList: Tag[]): TagChangeset {
   const cs: TagChangeset = { renames: {}, deletes: [], hidden: {} };
   for (const g of groups) {
     const canonical = g.canonical.trim();
     for (const m of g.members) if (m.name !== canonical) cs.renames[m.name] = canonical;
   }
   cs.deletes = deleteList.map((t) => t.name);
-  for (const t of toggleList) cs.hidden[t.name] = !t.meta.hidden;
+  for (const t of hiddenList) cs.hidden[t.name] = !t.meta.hidden;
   return cs;
 }
-
-// ─── 操作 key（審查清單的勾選 / 失敗對映用識別碼，與 tags-batch 的回應 key 對齊）───
-// api.ts（送出 payload 篩選）與 review/reviewEntry.ts（審查條目組裝）共用同一套 key。
-
-export const renameKey = (from: string) => `rename:${from}`;
-export const deleteKey = (name: string) => `delete:${name}`;
-export const hiddenKey = (name: string) => `hidden:${name}`;

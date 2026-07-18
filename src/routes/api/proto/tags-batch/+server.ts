@@ -6,7 +6,14 @@ import { Mutation, type MutationError } from "$lib/mutation";
 import { isRecord } from "$lib/utils/shared";
 import { parseBody, log } from "$lib/utils/server";
 
-/** 單筆操作結果；key 與前端變更集的操作 key 對齊（`rename:<from>` 等） */
+/**
+ * 單筆操作結果；key 是操作對象的標籤名稱，與前端變更集的 name 對齊。
+ * TODO(/api/proto 轉正時一併處理)：delete/rename/hidden 三件事目前共用同一個扁平 `results`
+ * 陣列，用裸 name 當 key 能對上是因為畫布保證同一標籤同時只會有一種操作（互斥），這個保證
+ * 活在呼叫端（`../../../(app)/tags/+page.svelte` 的 `detachTag`），這支端點自己並不知道、
+ * 也沒有驗證。更好的設計是回三個各自獨立對應請求陣列順序的結果集合（或乾脆拆成三支端點），
+ * 屆時就不必依賴呼叫端的不變量也能保證不撞 key。
+ */
 type OpResult = { key: string; ok: boolean; error?: string };
 
 /** 將 mutation 錯誤轉為具體的人類可讀訊息 */
@@ -56,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
     const r = mutation.deleteTag(raw);
-    results.push(r.ok ? { key: `delete:${raw}`, ok: true } : { key: `delete:${raw}`, ok: false, error: errorMessage(r.error) });
+    results.push(r.ok ? { key: raw, ok: true } : { key: raw, ok: false, error: errorMessage(r.error) });
   }
 
   for (const raw of renames) {
@@ -65,9 +72,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
     const r = mutation.renameTag(raw.from, raw.to);
-    results.push(
-      r.ok ? { key: `rename:${raw.from}`, ok: true } : { key: `rename:${raw.from}`, ok: false, error: errorMessage(r.error) },
-    );
+    results.push(r.ok ? { key: raw.from, ok: true } : { key: raw.from, ok: false, error: errorMessage(r.error) });
   }
 
   for (const raw of hidden) {
@@ -76,9 +81,7 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
     const r = mutation.setTagMeta(raw.name, { hidden: raw.hidden });
-    results.push(
-      r.ok ? { key: `hidden:${raw.name}`, ok: true } : { key: `hidden:${raw.name}`, ok: false, error: errorMessage(r.error) },
-    );
+    results.push(r.ok ? { key: raw.name, ok: true } : { key: raw.name, ok: false, error: errorMessage(r.error) });
   }
 
   const okCount = results.filter((r) => r.ok).length;

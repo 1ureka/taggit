@@ -12,23 +12,24 @@
     entries: ReviewEntry[];
     /** 是否正在送出 */
     pending: boolean;
+    /** 目前勾選的項目數量 */
+    checkedCount: number;
+    /** 目前可提交的項目數量 */
+    readyCount: number;
     /** 關閉對話框事件 */
     onclose: () => void;
     /** 送出事件 */
     onsubmit: () => void;
     /** 點擊操作勾選框事件 */
-    ontoggle: (key: string) => void;
+    ontoggle: (name: string) => void;
     /** 點擊全選勾選框事件 */
     ontoggleall: () => void;
     /** 捨棄單筆操作（自畫布移除） */
-    ondiscard: (key: string) => void;
+    ondiscard: (name: string) => void;
   };
 
-  let { open, entries, pending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props = $props();
-
-  // TODO: 移到 +page 統一算
-  const checkedCount = $derived(entries.filter((e) => e.checked).length);
-  const checkableCount = $derived(entries.filter((e) => e.checkable).length);
+  let { open, entries, pending, checkedCount, readyCount, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props =
+    $props();
 
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
@@ -39,7 +40,7 @@
   {#if entries.length === 0}
     <p class="empty">目前沒有任何未送出的標籤操作。</p>
   {:else}
-    <ReviewList {entries} {checkedCount} {checkableCount} {pending} {ontoggle} {ontoggleall} {ondiscard} />
+    <ReviewList {entries} {checkedCount} {readyCount} {pending} {ontoggle} {ontoggleall} {ondiscard} />
   {/if}
 
   <ReviewFooter checked={checkedCount} {pending} {onclose} {onsubmit} />

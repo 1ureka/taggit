@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import type { ReviewEntry } from "./reviewEntry";
+  import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import ReviewListItem from "./ReviewListItem.svelte";
 
   type Props = {
@@ -9,22 +9,22 @@
     /** 已勾選的數量 */
     checkedCount: number;
     /** 可勾選的數量 */
-    checkableCount: number;
+    readyCount: number;
     /** 是否正在送出 */
     pending: boolean;
     /** 點擊操作勾選框事件 */
-    ontoggle: (key: string) => void;
+    ontoggle: (name: string) => void;
     /** 點擊全選勾選框事件 */
     ontoggleall: () => void;
     /** 捨棄單筆操作事件 */
-    ondiscard: (key: string) => void;
+    ondiscard: (name: string) => void;
   };
 
-  let { entries, checkedCount, checkableCount, pending, ontoggle, ontoggleall, ondiscard }: Props = $props();
+  let { entries, checkedCount, readyCount, pending, ontoggle, ontoggleall, ondiscard }: Props = $props();
 
   const bulkSelectionState = $derived.by(() => {
-    if (checkableCount === 0 || checkedCount === 0) return "unchecked";
-    if (checkableCount === checkedCount) return "checked";
+    if (readyCount === 0 || checkedCount === 0) return "unchecked";
+    if (readyCount === checkedCount) return "checked";
     return "indeterminate";
   });
 </script>
@@ -34,16 +34,21 @@
     <Checkbox
       checked={bulkSelectionState === "checked"}
       indeterminate={bulkSelectionState === "indeterminate"}
-      status={checkableCount === 0 || pending ? "disabled" : "default"}
+      status={readyCount === 0 || pending ? "disabled" : "default"}
       onchange={ontoggleall}
       aria-label="全選可送出的操作"
     />
     <span>全選</span>
-    <span>{checkedCount} / {checkableCount} 可送出操作已選取</span>
+    <span>{checkedCount} / {readyCount} 可送出操作已選取</span>
   </li>
 
-  {#each entries as entry (entry.key)}
-    <ReviewListItem {entry} discardable={!pending} ontoggle={() => ontoggle(entry.key)} ondiscard={() => ondiscard(entry.key)} />
+  {#each entries as entry (entry.name)}
+    <ReviewListItem
+      {entry}
+      discardable={!pending}
+      ontoggle={() => ontoggle(entry.name)}
+      ondiscard={() => ondiscard(entry.name)}
+    />
   {/each}
 </ul>
 

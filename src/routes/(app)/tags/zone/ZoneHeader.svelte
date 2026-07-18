@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Tag } from "$lib/database";
   import { ImageWhere } from "$lib/query-spec";
   import { IconExternalLink, IconTagPlus, IconX } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
@@ -11,7 +12,7 @@
     /** 該組的名稱 */
     label: string;
     /** 該組的所有標籤 */
-    tags: string[];
+    tags: Tag[];
     /** 加入事件 */
     onadd: () => void;
     /** 解散事件 */
@@ -28,7 +29,7 @@
     <ButtonLink
       variant="ghost"
       padding="icon"
-      href={`/?${new ImageWhere({ includedTags: tags }).toSearchParams()}`}
+      href={`/?${new ImageWhere({ includedTags: tags.map((t) => t.name) }).toSearchParams()}`}
       status={tags.length < 1 ? "disabled" : undefined}
       target="_blank"
       rel="noopener"
