@@ -1,6 +1,8 @@
+# 頁面狀態架構願景
+
 ## 怎樣與 search params 互動
 
-### 裸 `$derived(page.url.searchParams...)` 不夠用的情況
+### 可覆寫 `$derived(page.url.searchParams...)` 不夠用的情況
 
 `let field = $derived(page.url.searchParams.get(...))` 只在兩種情況下安全：
 
@@ -244,7 +246,7 @@ export const getController = () => getContext<Controller>(key);
 工廠函式收的是一個 getter 而不是 `data` 本身，因為 `data` 會隨 `load` 重新執行而變動，要傳的是「即時讀取」而不是「呼叫當下的快照」（直接傳 `data` 本身一樣會踩到 `state_referenced_locally` 那類「只捕捉初始值」的問題）。如果這個工廠函式放在比路由檔案更深一層的地方，例如 `routes/page/logic/pageData.ts`，`PageData` 型別要從上一層拿：
 
 ```ts
-// routes/page/logic/pageData.ts
+// routes/page/logic/page-data.ts
 import type { PageData } from "../$types";
 import { getContext, setContext } from 'svelte';
 
