@@ -3,7 +3,6 @@
   import { goto, replaceState } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import type { ImageQuery } from "$lib/query-spec";
   import { api } from "$lib/utils/request";
   import { addToast } from "$lib/components/floating/toast-events";
   import { requestConfirm } from "$lib/widgets/confirm-events";
@@ -46,11 +45,6 @@
   };
 
   // ---
-
-  const handleQuery = (query: ImageQuery) => {
-    const qs = query.toSearchParams(new URLSearchParams(location.search)).toString();
-    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
-  };
 
   const handleRefresh = async () => {
     if (pending) return;
@@ -113,7 +107,7 @@
 </svelte:head>
 
 <div>
-  <Toolbar {pending} onquery={handleQuery} onshuffle={handleShuffle} onrefresh={handleRefresh} />
+  <Toolbar {pending} onshuffle={handleShuffle} onrefresh={handleRefresh} />
   <Panel items={data.items} total={data.total} {pinnedIds} ontoggle={handleTogglePin}>
     <Cards {pinnedRecords} {pending} onunpin={handleUnPin} onrevert={handleRevert} />
   </Panel>

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
   import { ImageQuery, IMAGE_SORTS } from "$lib/query-spec";
+
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
   import FilterPopover from "./FilterPopover.svelte";
   import FilterButton from "./FilterButton.svelte";
-
-  let { onchange }: { onchange: (query: ImageQuery) => void } = $props();
 
   const id = $props.id();
 
@@ -21,6 +21,11 @@
 
   // ---
 
+  const handleQuery = (query: ImageQuery) => {
+    const qs = query.toSearchParams(new URLSearchParams(location.search)).toString();
+    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+  };
+
   const handleToggleMenu = () => {
     menuOpen = !menuOpen;
   };
@@ -30,23 +35,23 @@
   };
 
   const handleSearch = (search: string) => {
-    onchange(new ImageQuery(query.where.with({ search }), query.list));
+    handleQuery(new ImageQuery(query.where.with({ search }), query.list));
   };
 
   const handleSortChange = (key: string) => {
     if (key === "committedAt" || key === "rating" || key === "name" || key === "random") {
-      onchange(new ImageQuery(query.where, query.list.with({ sort: key })));
+      handleQuery(new ImageQuery(query.where, query.list.with({ sort: key })));
     }
   };
 
   const handleOrderChange = (key: string) => {
     if (key === "desc" || key === "asc") {
-      onchange(new ImageQuery(query.where, query.list.with({ order: key })));
+      handleQuery(new ImageQuery(query.where, query.list.with({ order: key })));
     }
   };
 
   const handleFilterChange = (query: ImageQuery) => {
-    onchange(query);
+    handleQuery(query);
   };
 </script>
 

@@ -1,24 +1,21 @@
 <script lang="ts">
-  import { ImageQuery } from "$lib/query-spec";
   import Actions from "./Actions.svelte";
   import Filters from "./Filters.svelte";
 
   type Props = {
     /** 全頁共用的操作鎖 */
     pending: boolean;
-    /** 查詢值物件改變事件 */
-    onquery: (query: ImageQuery) => void;
     /** 隨機抽選事件 */
     onshuffle: (count: number) => void;
     /** 重新整理事件 */
     onrefresh: () => void;
   };
 
-  let { pending, onquery, onshuffle, onrefresh }: Props = $props();
+  let { pending, onshuffle, onrefresh }: Props = $props();
 </script>
 
 <div>
-  <Filters onchange={onquery} />
+  <Filters />
   <Actions {pending} {onshuffle} {onrefresh} />
 </div>
 
