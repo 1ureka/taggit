@@ -191,7 +191,17 @@ import { getContext, setContext } from 'svelte';
 
 class Controller {
   private pending = $state(false);
-  // ...其他欄位、方法（方法用箭頭函式欄位）
+
+  private sync() {
+    // 私有：多個 handler 共用的內部步驟（例如寫回 URL、重新驗證…），元件永遠看不到、也不需要知道
+  }
+
+  handleSubmit = (input: Input) => {
+    // 公開、handle 開頭：對應一個使用者互動，元件只需要呼叫這一個
+    this.pending = true;
+    // ...
+    this.sync();
+  };
 }
 
 const key = Symbol('controller-key');
@@ -204,9 +214,22 @@ export const createController = () => {
 
 export const getController = () => getContext<Controller>(key);
 ```
-<!-- COMMENT: 幫我補上一個私有方法與一個公開 handle 開頭的方法，這樣讀者才會意識到我希望 handler 是寫在這裡而不是讓組件變的很長，或者說我希望組件就是單純狀態 in 事件 out 的 wire，只是從 React 那種 prop 法，改成狀態來自 context controller，事件回傳 context controller -->
 
 欄位一律優先用 `private`（TypeScript 修飾詞，型別檢查期擋、編譯後是普通公開欄位），不用原生 `#`——專案內部用的 controller，不是要對外發布的 library 邊界，型別檢查期的保護就夠了，`#` 換來的執行期隱私在這裡不值得多花的語法成本。只有特別在意某個欄位「就算隊友手滑繞過型別檢查也不該碰到」時，才為那一個欄位單獨升級成 `#`。
+
+### 元件只做「狀態 in、事件 out」的 wire
+
+絕大部分的 `.svelte` 的 `<script>` 專心做兩件事： 讀狀態、把 UI 事件轉呼叫 `handle*`
+
+若是 controller
+- 導入 context 從 controller 讀狀態
+- 導入 context 把 UI 事件轉呼叫 controller 的 `handle*` 方法
+
+若是其他狀態
+- 從 props 讀狀態，或者是本地狀態
+- 事件透過 callback props 往上
+
+> 其他狀態通常較少，且要是發現真的傳遞很深，或許代表他其實更適合 controller
 
 ### 用同一套方式包 `load` 回傳的 `data`
 
@@ -235,17 +258,6 @@ export const createPageDataContext = (getData: () => PageData) => {
 
 export const getPageDataContext = () => getContext<{ readonly value: PageData }>(key);
 ```
-
-### 什麼時候該把外部狀態注入某個 controller？——先檢查邊界是不是畫錯了
-
-發現自己想把 B controller 傳進 A controller，先問四個問題：
-
-1. 這是「借看一眼做局部決定」，還是「A、B 其實都在回應同一件事」？後者代表兩者都不是真正的擁有者，該把那個共同事實提升到共同祖先，讓兩者各自從那裡衍生，而不是互相依賴。
-2. 未來會不會也想反過來讓 B 讀 A？雙向依賴通常代表這其實是同一個職責被拆成兩個檔案。
-3. 要注入的是廣泛、變動不頻繁的「環境/設定」（使用者身分、語系、權限），還是另一個具體功能的「內部業務狀態」？前者正常，後者是耦合訊號。
-4. 需要的是「持續讀取 B 的當下值」（pull），還是「B 發生某件事時通知一聲」（push）？後者應該讓 B 接受一個 callback，而不是 A 拿著 B 的參照到處讀。
-
-實例：曾經以為「篩選 controller 需要知道釘選 controller 的 `pending`」是合理的跨 controller 依賴，套用第 1 點重新檢查後發現 `pending` 其實代表「頁面現在是否有變更操作進行中」，是頁面層級的事實，不屬於任一個 controller——正確做法是把 `pending` 提升成頁面根層級自己管的狀態，而不是把 pinnedController 整個傳給 filterController；「pending 為 true 時仍可觸發篩選變更」這類原本被忽略的 edge case，正是這個誤判邊界的實際後果。
 
 ### `syncedSearchParam`/`syncedQuery` 跟 context module 的關係
 
