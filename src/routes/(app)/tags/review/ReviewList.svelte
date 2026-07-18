@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { IconAlertCircleFilled } from "$lib/icons";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import type { ReviewEntry } from "./reviewEntry";
   import ReviewListItem from "./ReviewListItem.svelte";
-  import ReviewImpact from "./ReviewImpact.svelte";
 
   type Props = {
     /** 待送出的操作清單 */
     entries: ReviewEntry[];
+    /** 已勾選的數量 */
+    checkedCount: number;
+    /** 可勾選的數量 */
+    checkableCount: number;
     /** 是否正在送出 */
     pending: boolean;
     /** 點擊操作勾選框事件 */
@@ -18,16 +20,7 @@
     ondiscard: (key: string) => void;
   };
 
-  let { entries, pending, ontoggle, ontoggleall, ondiscard }: Props = $props();
-
-  const entryKind = (e: ReviewEntry): "rename" | "merge" | "delete" | "visible" | "hidden" => {
-    if (e.kind === "rename") return e.merge ? "merge" : "rename";
-    if (e.kind === "delete") return "delete";
-    return e.hidden ? "hidden" : "visible";
-  };
-
-  const checkedCount = $derived(entries.filter((e) => e.checked).length);
-  const checkableCount = $derived(entries.filter((e) => e.problem === null).length);
+  let { entries, checkedCount, checkableCount, pending, ontoggle, ontoggleall, ondiscard }: Props = $props();
 
   const bulkSelectionState = $derived.by(() => {
     if (checkableCount === 0 || checkedCount === 0) return "unchecked";
@@ -50,29 +43,7 @@
   </li>
 
   {#each entries as entry (entry.key)}
-    <ReviewListItem
-      label={entry.key}
-      kind={entryKind(entry)}
-      checked={entry.checked}
-      checkable={entry.problem === null && !pending}
-      discardable={!pending}
-      ontoggle={() => ontoggle(entry.key)}
-      ondiscard={() => ondiscard(entry.key)}
-    >
-      <ReviewImpact
-        kind={entryKind(entry)}
-        name={entry.name}
-        count={entry.count}
-        mergedTo={entry.to}
-        mergedCount={entry.mergedCount}
-      />
-
-      {#snippet problem()}
-        {#if entry.problem}
-          <span class="problem"><IconAlertCircleFilled size={13} />{entry.problem}</span>
-        {/if}
-      {/snippet}
-    </ReviewListItem>
+    <ReviewListItem {entry} discardable={!pending} ontoggle={() => ontoggle(entry.key)} ondiscard={() => ondiscard(entry.key)} />
   {/each}
 </ul>
 
@@ -102,13 +73,5 @@
     margin-left: auto;
     font: var(--font-caption);
     color: var(--color-text-muted);
-  }
-
-  .problem {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font: var(--font-caption);
-    color: var(--color-warning);
   }
 </style>

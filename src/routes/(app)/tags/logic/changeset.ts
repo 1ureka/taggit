@@ -8,7 +8,8 @@ import type { Tag } from "$lib/database";
 
 /** 合併堆：members 全部改名為 canonical（canonical 自身除外） */
 export type MergeGroup = {
-  id: number;
+  /** uuid，建立當下由 crypto.randomUUID() 產生 */
+  id: string;
   canonical: string;
   members: Tag[];
   /** 合併後的預估張數；null = 尚無結果（含查詢中） */
@@ -27,8 +28,8 @@ export type TagChangeset = {
   hidden: Record<string, boolean>;
 };
 
-/** 由畫布狀態推導變更集 */
-export function changesetFromBoard(groups: MergeGroup[], deleteList: Tag[], toggleList: Tag[]): TagChangeset {
+/** 由畫布狀態推導變更集。只在送出當下呼叫一次，不做成常駐 derived（見 temp3.md） */
+export function changesetFromBoard(groups: Iterable<MergeGroup>, deleteList: Tag[], toggleList: Tag[]): TagChangeset {
   const cs: TagChangeset = { renames: {}, deletes: [], hidden: {} };
   for (const g of groups) {
     const canonical = g.canonical.trim();
@@ -37,11 +38,6 @@ export function changesetFromBoard(groups: MergeGroup[], deleteList: Tag[], togg
   cs.deletes = deleteList.map((t) => t.name);
   for (const t of toggleList) cs.hidden[t.name] = !t.meta.hidden;
   return cs;
-}
-
-/** 變更集內的操作總數 */
-export function changesetSize(cs: TagChangeset): number {
-  return Object.keys(cs.renames).length + cs.deletes.length + Object.keys(cs.hidden).length;
 }
 
 // ─── 操作 key（審查清單的勾選 / 失敗對映用識別碼，與 tags-batch 的回應 key 對齊）───

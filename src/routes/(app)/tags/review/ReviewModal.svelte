@@ -26,7 +26,9 @@
 
   let { open, entries, pending, onclose, onsubmit, ontoggle, ontoggleall, ondiscard }: Props = $props();
 
+  // TODO: 移到 +page 統一算
   const checkedCount = $derived(entries.filter((e) => e.checked).length);
+  const checkableCount = $derived(entries.filter((e) => e.checkable).length);
 
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
@@ -37,7 +39,7 @@
   {#if entries.length === 0}
     <p class="empty">目前沒有任何未送出的標籤操作。</p>
   {:else}
-    <ReviewList {entries} {pending} {ontoggle} {ontoggleall} {ondiscard} />
+    <ReviewList {entries} {checkedCount} {checkableCount} {pending} {ontoggle} {ontoggleall} {ondiscard} />
   {/if}
 
   <ReviewFooter checked={checkedCount} {pending} {onclose} {onsubmit} />

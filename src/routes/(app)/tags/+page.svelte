@@ -20,7 +20,7 @@
   import ReviewModal from "./review/ReviewModal.svelte";
 
   import { submitChangeset } from "./logic/api";
-  import { changesetFromBoard, changesetSize, type MergeGroup } from "./logic/changeset";
+  import { changesetFromBoard, type MergeGroup } from "./logic/changeset";
   import { buildReviewEntries, toggleEntry, toggleAllEntries } from "./review/reviewEntry";
   import Toolbar from "./header/Toolbar.svelte";
 
@@ -38,21 +38,19 @@
   const checkedKeys = new SvelteSet<string>();
 
   // ─── 畫布狀態（畫布即變更集的空間化呈現；標籤直接以 Tag 存放，送出前才轉成變更集）───
+  // groups 用 SvelteMap（key 為 uuid）存放；每個 MergeGroup 在建立當下就先 $state() 化再放進去，
+  // 避免插入容器時被重新包一層代理導致物件識別度分岔（見 temp3.md 一、TODO bug 分析）。
 
-  let groups = $state<MergeGroup[]>([]);
+  const groups = new SvelteMap<string, MergeGroup>();
   let deleteList = $state<Tag[]>([]);
   let toggleList = $state<Tag[]>([]);
-  let groupSeq = 1;
-
-  const changeset = $derived(changesetFromBoard(groups, deleteList, toggleList));
-  const pendingCount = $derived(changesetSize(changeset));
 
   type ChipStatus = "idle" | "group" | "delete" | "hidden";
 
   /** chip 池呈現用的狀態查找表（同一標籤同時只會在畫布上的一個位置） */
   const status = $derived.by(() => {
     const m = new Map<string, ChipStatus>();
-    for (const g of groups) for (const member of g.members) m.set(member.name, "group");
+    for (const g of groups.values()) for (const member of g.members) m.set(member.name, "group");
     for (const t of deleteList) m.set(t.name, "delete");
     for (const t of toggleList) m.set(t.name, "hidden");
     return m;
@@ -60,12 +58,12 @@
 
   /** 先把標籤自畫布所有位置移除（換位置前的共用動作）；只 reschedule 真正命中的 group */
   const detachFromBoard = (name: string) => {
-    for (const g of groups) {
+    for (const g of groups.values()) {
       if (!g.members.some((m) => m.name === name)) continue;
       g.members = g.members.filter((m) => m.name !== name);
       if (g.members.length > 0) scheduleMergeCount(g);
+      else groups.delete(g.id);
     }
-    groups = groups.filter((g) => g.members.length > 0);
     deleteList = deleteList.filter((t) => t.name !== name);
     toggleList = toggleList.filter((t) => t.name !== name);
   };
@@ -75,19 +73,19 @@
     for (const t of tags) detachFromBoard(t.name);
     // 代表名預設取使用數最高的成員
     const canonical = tags.toSorted((a, b) => b.count - a.count)[0].name;
-    const group: MergeGroup = { id: groupSeq++, canonical, members: [...tags], mergeCount: null };
-    groups.push(group);
+    const group = $state<MergeGroup>({ id: crypto.randomUUID(), canonical, members: [...tags], mergeCount: null });
+    groups.set(group.id, group);
     scheduleMergeCount(group);
   };
 
-  const addToGroup = (groupId: number, tags: Tag[]) => {
+  const addToGroup = (groupId: string, tags: Tag[]) => {
     for (const t of tags) {
       detachFromBoard(t.name);
-      const g = groups.find((x) => x.id === groupId);
+      const g = groups.get(groupId);
       if (!g) break; // 目標堆因 detach 清空而消失
       if (!g.members.some((m) => m.name === t.name)) g.members.push(t);
     }
-    const g = groups.find((x) => x.id === groupId);
+    const g = groups.get(groupId);
     if (g) scheduleMergeCount(g);
   };
 
@@ -99,8 +97,8 @@
     }
   };
 
-  const dissolveGroup = (groupId: number) => {
-    groups = groups.filter((g) => g.id !== groupId);
+  const dissolveGroup = (groupId: string) => {
+    groups.delete(groupId);
   };
 
   const clearDeleteList = () => {
@@ -177,12 +175,12 @@
     else if (target === "delete") addToZone("delete", tags);
     else if (target === "toggle") addToZone("toggle", tags);
     else if (target === "pool") for (const t of tags) detachFromBoard(t.name);
-    else if (target.startsWith("group:")) addToGroup(Number(target.slice(6)), tags);
+    else if (target.startsWith("group:")) addToGroup(target.slice(6), tags);
   };
 
   // ─── 合併堆張數：各查各的，group 改動後 200ms debounce 才查，載入立刻歸零顯示 Skeleton ───
 
-  const groupTimers = new Map<number, { timer: ReturnType<typeof setTimeout>; seq: number }>();
+  const groupTimers = new Map<string, { timer: ReturnType<typeof setTimeout>; seq: number }>();
 
   $effect(() => {
     return () => {
@@ -210,9 +208,6 @@
         const count = await fetchUnionCount(tags);
         if (groupTimers.get(group.id)?.seq !== seq) return; // 在途回應已過期
         group.mergeCount = count;
-        console.log(count); // 正確 243
-        console.log(group.mergeCount); // 正確 243
-        // TODO: 但是畫面仍是 skeleton，直到下次觸發該組的 scheduleMergeCount
       } catch {
         // 查詢失敗不打擾操作：維持 null（畫面顯示 Skeleton），下次變動再試
       }
@@ -223,7 +218,9 @@
 
   // ─── 審查與送出 ───
 
-  const reviewEntries = $derived(buildReviewEntries(groups, deleteList, toggleList, checkedKeys, failures));
+  const reviewEntries = $derived(
+    buildReviewEntries(groups.values(), deleteList, toggleList, checkedKeys, failures, pending),
+  );
 
   const handleReviewOpen = () => {
     failures = {};
@@ -248,7 +245,8 @@
 
     pending = true;
     try {
-      const result = await submitChangeset(changeset, keys);
+      const cs = changesetFromBoard(groups.values(), deleteList, toggleList);
+      const result = await submitChangeset(cs, keys);
       failures = Object.fromEntries(result);
 
       const okKeys = keys.filter((k) => !result.has(k));
@@ -285,23 +283,23 @@
   // ─── 離開防護 ───
 
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (pendingCount > 0) e.preventDefault();
+    if (reviewEntries.length > 0) e.preventDefault();
   };
 
   beforeNavigate((nav) => {
     if (nav.type === "leave") return;
-    if (pendingCount === 0) return;
+    if (reviewEntries.length === 0) return;
 
     nav.cancel();
 
     const to = nav.to; // 型別收窄
     if (!to) return;
 
-    const msg = `畫布上還有 ${pendingCount} 筆標籤操作尚未送出，離開將會遺失這些排程。確定要離開？`;
+    const msg = `畫布上還有 ${reviewEntries.length} 筆標籤操作尚未送出，離開將會遺失這些排程。確定要離開？`;
     requestConfirm(msg, { title: "尚未送出的標籤操作", action: "離開" }).then((confirmed) => {
       if (!confirmed) return;
 
-      groups = [];
+      groups.clear();
       deleteList = [];
       toggleList = [];
       goto(to.url.href);
@@ -319,8 +317,7 @@
   <Toolbar
     {pending}
     selectedCount={selected.size}
-    // TODO: 錯誤，是 touchedCount 而不是 readyCount
-    touchedCount={pendingCount}
+    touchedCount={reviewEntries.length}
     onclear={clearSelection}
     onrefresh={handleRefresh}
     onreview={handleReviewOpen}
@@ -354,7 +351,7 @@
         <ZoneBodyCreate selected={selected.size} oncreate={() => createGroup(takeSelection())} />
       </ZoneContainer>
 
-      {#each groups as group (group.id)}
+      {#each groups.values() as group (group.id)}
         <ZoneContainer
           variant="group"
           aria-label={`合併堆 ${group.canonical.trim()}`}
