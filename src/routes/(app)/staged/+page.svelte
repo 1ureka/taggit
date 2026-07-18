@@ -280,7 +280,7 @@
 <svelte:window onbeforeunload={handleBeforeUnload} />
 
 <svelte:head>
-  <title>Tagger</title>
+  <title>Staged</title>
 </svelte:head>
 
 <div class="page">
