@@ -197,24 +197,7 @@ export class ToastStage {
   }
 
   #finishProgress(payload: ToastProgressDonePayload) {
-    const now = Date.now();
-    this.items = this.items.map((t) =>
-      t.id === payload.id
-        ? {
-            ...t,
-            variant: payload.variant,
-            message: payload.message,
-            progress: undefined,
-            duration: payload.duration,
-            createdAt: now,
-            remaining: payload.duration,
-          }
-        : t,
-    );
-
-    if (payload.duration > 0 && this.items.some((t) => t.id === payload.id)) {
-      this.#scheduleRemoval(payload.id, payload.duration);
-    }
+    this.dismiss(payload.id);
   }
 
   // ---

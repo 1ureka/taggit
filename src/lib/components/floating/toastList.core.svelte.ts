@@ -76,9 +76,7 @@ export class ToastList {
   }
 
   #finishProgress(payload: ToastProgressDonePayload) {
-    this.history = this.history.map((h) =>
-      h.id === payload.id ? { ...h, variant: payload.variant, message: payload.message, progress: undefined } : h,
-    );
+    this.history = this.history.filter((h) => h.id !== payload.id);
   }
 
   // ---

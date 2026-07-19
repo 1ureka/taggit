@@ -22,9 +22,6 @@ export interface ToastProgressUpdatePayload {
 
 export interface ToastProgressDonePayload {
   id: number;
-  variant: ToastVariant;
-  message: string;
-  duration: number;
 }
 
 // write-only，只用來讓同一次 addToast()/withProgressToast() 呼叫在兩個獨立監聽者（ToastStage／ToastList）
@@ -45,28 +42,21 @@ export function addToast(opts: { message: string; variant?: ToastVariant }): voi
 }
 
 /**
- * 將一個非同步的行為轉換為 Toast 進度型通知
+ * 顯示一個 Toast 進度型通知，僅負責呈現進度；task 結束後（無論成功或失敗）該 toast 即消失，
+ * 錯誤原樣往外拋，成功或失敗的結果通知交由呼叫端自行 addToast()
  */
 export async function withProgressToast<T>(
   task: (update: (pct: number, message?: string) => void) => Promise<T>,
-  formatError: (error: unknown) => string = (e) => (e instanceof Error ? e.message : "未知的錯誤"),
-): Promise<T | undefined> {
+): Promise<T> {
   const id = nextId++;
   dispatch<ToastAddPayload>(TOAST_ADD, { id, message: "處理中...", variant: "info", duration: 0 });
 
   try {
-    const result = await task((pct, message) => {
+    return await task((pct, message) => {
       dispatch<ToastProgressUpdatePayload>(TOAST_PROGRESS_UPDATE, { id, progress: pct, message });
     });
-
-    // TODO: 只能顯示個完成有點爛
-    const payload = { id, variant: "success", message: "完成", duration: 4000 } as const;
-    dispatch<ToastProgressDonePayload>(TOAST_PROGRESS_DONE, payload);
-    return result;
-  } catch (e) {
-    const payload = { id, variant: "error", message: formatError(e), duration: 5000 } as const;
-    dispatch<ToastProgressDonePayload>(TOAST_PROGRESS_DONE, payload);
-    return undefined;
+  } finally {
+    dispatch<ToastProgressDonePayload>(TOAST_PROGRESS_DONE, { id });
   }
 }
 
