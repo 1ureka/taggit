@@ -31,7 +31,7 @@ export function syncedSearchParam(key: string, fallback = "") {
     commit(v: string) {
       local = v;
       echo = v;
-      const url = new URL(page.url);
+      const url = new URL(location.href);
       url.searchParams.set(key, v);
       goto(url, { keepFocus: true, replaceState: true, noScroll: true });
     },
@@ -62,7 +62,7 @@ export function syncedSearchParams<T extends Record<string, string>>(defaults: T
   /** 送出目前 `local` 的完整快照並同步導航，不等待 resolve */
   function commit() {
     echo = { ...local };
-    const url = new URL(page.url);
+    const url = new URL(location.href);
     for (const k of keys) url.searchParams.set(k as string, local[k]);
     goto(url, { keepFocus: true, replaceState: true, noScroll: true });
   }
@@ -93,8 +93,8 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
   function commit(next: T) {
     local = next;
     echo = next;
-    const qs = next.toSearchParams(new URLSearchParams(page.url.searchParams)).toString();
-    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+    const qs = next.toSearchParams(new URLSearchParams(location.search)).toString();
+    goto(`${location.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
   return {
