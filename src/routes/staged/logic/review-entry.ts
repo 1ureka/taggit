@@ -1,5 +1,10 @@
+/**
+ * @file review-entry.ts
+ * 審查清單一列的投影型別與組裝
+ */
+
 import { imgSrc } from "$lib/image/client";
-import { problemOf, stripExt, type Draft } from "../inspector/draft";
+import { problemOf, stripExt, type Draft } from "./draft";
 
 /** 審查清單上的一列。 */
 export type ReviewEntry = {
@@ -22,12 +27,7 @@ export type ReviewEntry = {
 };
 
 /** 把一張暫存圖片的 draft 與外部旗標（勾選、上次失敗原因）拼成一列審查紀錄 */
-export function buildReviewEntry(
-  filename: string,
-  draft: Draft,
-  checked: boolean,
-  failure?: string,
-): ReviewEntry {
+export function buildReviewEntry(filename: string, draft: Draft, checked: boolean, failure?: string): ReviewEntry {
   const problem = problemOf(draft);
 
   return {
@@ -56,20 +56,4 @@ export function computeNewTags(entries: ReviewEntry[], existingTagNames: string[
   }
 
   return [...result];
-}
-
-/** 切換單一項目的勾選狀態（直接操作外部傳入的集合） */
-export function toggleEntry(checkedFiles: Set<string>, filename: string): void {
-  if (checkedFiles.has(filename)) checkedFiles.delete(filename);
-  else checkedFiles.add(filename);
-}
-
-/** 全選／全不選目前可勾選的項目（直接操作外部傳入的集合） */
-export function toggleAllEntries(checkedFiles: Set<string>, entries: ReviewEntry[]): void {
-  const eligible = entries.filter((e) => e.checkable);
-  const allSelected = eligible.length > 0 && eligible.every((e) => e.checked);
-  for (const e of eligible) {
-    if (allSelected) checkedFiles.delete(e.filename);
-    else checkedFiles.add(e.filename);
-  }
 }

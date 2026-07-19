@@ -1,29 +1,22 @@
 <script lang="ts">
   import { imgSrc } from "$lib/image/client";
-  import { emptyDraft, isTouched, problemOf, type Draft } from "../inspector/draft";
-  import StagedCardInfo from "./CardInfo.svelte";
+  import { isTouched, problemOf } from "../logic/draft";
+  import { getEditorContext } from "../logic/editor.svelte";
+  import CardInfo from "./CardInfo.svelte";
 
-  type Props = {
-    /** 暫存圖片的檔名 */
-    filename: string;
-    /** 暫存圖片的本地草稿 */
-    drafts: Record<string, Draft>;
-    /** 目前編輯中的暫存圖片 */
-    activeFile: string | null;
-    /** 點擊卡片事件 */
-    onselect: (file: string) => void;
-  };
+  let { filename }: { filename: string } = $props();
 
-  let { filename, drafts, activeFile, onselect }: Props = $props();
+  const editor = getEditorContext();
 
-  const draft = $derived(drafts[filename] ?? emptyDraft());
+  const draft = $derived(editor.draftOf(filename));
   const touched = $derived(isTouched(draft));
   const problem = $derived(problemOf(draft));
+  const active = $derived(editor.isActive(filename));
 </script>
 
-<button type="button" class:active={filename === activeFile} onclick={() => onselect(filename)}>
+<button type="button" class:active onclick={() => editor.handleSelect(filename)}>
   <img src={imgSrc(filename, "sm")} alt={filename} loading="lazy" />
-  <StagedCardInfo {filename} {touched} {problem} name={draft.name} rating={draft.rating} tagCount={draft.tags.length} />
+  <CardInfo {filename} {touched} {problem} name={draft.name} rating={draft.rating} tagCount={draft.tags.length} />
 </button>
 
 <style>

@@ -79,6 +79,7 @@ staged/
 
 - **`Cards` 捲動 `$effect` 的像素換算忽略 gap，越往下偏差越大**：`Cards.svelte:61–71` 以 `pixelColumnWidth = (viewportEl.clientWidth - layout.p * 2) / columns` 由單位座標推算像素，`pixelY = found.yStart * pixelColumnWidth + layout.p`、`pixelH = (found.yEnd - found.yStart) * pixelColumnWidth` 全程沒有把欄距／列距 `layout.g`（`config.ts:5–12`）納入。此換算等於獨立重算了一套與 masonry 實際輸出（`item.style` / `masonryHeight`，含 gap 的 px 版面）不一致的座標，行間 gap 未累加，導致越靠清單下方的卡片，`scrollTo` 的目標與實際渲染位置偏差越大。
 > 可能問題，沒有實際測試，但獨立重算的確不好，但修法不太確定是要改 masonry 虛擬化模組還是在外部?
+> 誤報：masonry.core 的 gap 是套在每個項目 box 內的 padding，不累加進座標，捲動的 yStart * columnWidth + padding 與 masonry 本身公式完全一致
 
 - **`Cards` 捲動 `$effect` 觸發時機過廣，會把畫面強拉回 activeFile**：同一 effect（`Cards.svelte:49–74`）的反應式依賴不只 `activeFile`，還包含 `masonry.layout.tracks`、`layout.p` 等。任何版面重排（視窗縮放改變欄數、`invalidateAll` 後 `stagedFiles` 變動而 items 重排）都會重跑此 effect 並再次 `scrollTo` 回 `activeFile`，即使使用者剛手動捲動到清單別處，也會被無預期地拉回目前編輯中的卡片。
 > 預期行為

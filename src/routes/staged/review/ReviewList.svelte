@@ -1,57 +1,34 @@
 <script lang="ts">
-  import type { ReviewEntry } from "./reviewEntry";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
   import ReviewListItem from "./ReviewListItem.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
 
-  type Props = {
-    /** 可勾選的數量 */
-    checkableCount: number;
-    /** 已勾選的數量 */
-    checkedCount: number;
-    /** 所有紀錄 */
-    entries: ReviewEntry[];
-    /** 是否正在提交中 */
-    pending: boolean;
-    /** 點擊紀錄名稱事件 */
-    onedit: (filename: string) => void;
-    /** 點擊紀錄圖片事件 */
-    onpreview: (filename: string) => void;
-    /** 點擊紀錄勾選框事件 */
-    ontoggle: (filename: string) => void;
-    /** 點擊全選勾選框事件 */
-    ontoggleall: () => void;
-  };
-
-  let { checkableCount, checkedCount, entries, pending, ontoggle, ontoggleall, onedit, onpreview }: Props = $props();
-
-  const bulkSelectionState = $derived.by(() => {
-    if (checkableCount === 0 || checkedCount === 0) return "unchecked";
-    if (checkableCount === checkedCount) return "checked";
-    return "indeterminate";
-  });
+  const review = getReviewContext();
+  const operations = getOperationsContext();
 </script>
 
 <div class="container">
-  <ul inert={pending} aria-busy={pending}>
+  <ul inert={operations.pending} aria-busy={operations.pending}>
     <li>
       <Checkbox
-        checked={bulkSelectionState === "checked"}
-        indeterminate={bulkSelectionState === "indeterminate"}
-        status={checkableCount === 0 ? "disabled" : "default"}
-        onchange={ontoggleall}
+        checked={review.bulkSelectionState === "checked"}
+        indeterminate={review.bulkSelectionState === "indeterminate"}
+        status={review.checkableCount === 0 ? "disabled" : "default"}
+        onchange={review.handleToggleAll}
         aria-label="全選可提交的項目"
       />
       <span>全選</span>
-      <span>{checkedCount} / {checkableCount} 可提交紀錄已選取</span>
+      <span>{review.checkedCount} / {review.checkableCount} 可提交紀錄已選取</span>
     </li>
 
-    {#each entries as entry (entry.filename)}
-      <ReviewListItem {entry} {ontoggle} {onedit} {onpreview} />
+    {#each review.entries as entry (entry.filename)}
+      <ReviewListItem {entry} />
     {/each}
   </ul>
 
-  {#if pending}
+  {#if operations.pending}
     <div>
       <CircularProgress size={24} color="var(--color-text-muted)" />
     </div>

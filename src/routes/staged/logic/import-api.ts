@@ -1,3 +1,8 @@
+/**
+ * @file import-api.ts
+ * 以 SSE 串流匯入紀錄的傳輸邏輯
+ */
+
 /** SSE 匯入紀錄端點的即時進度 */
 export type ImportProgress = { current: number; total: number };
 

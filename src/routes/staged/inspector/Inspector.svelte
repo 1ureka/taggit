@@ -5,69 +5,45 @@
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
   import Button from "$lib/components/actions/Button.svelte";
 
-  import type { Draft } from "./draft";
+  import { getEditorContext } from "../logic/editor.svelte";
+  import { getLightboxContext } from "../logic/lightbox.svelte";
   import InspectorHeader from "./InspectorHeader.svelte";
   import InspectorFields from "./InspectorFields.svelte";
   import InspectorFooter from "./InspectorFooter.svelte";
 
-  type Props = {
-    /** 暫存檔案的總數量 */
-    fileCount: number;
-    /** 目前正在編輯的檔案的檔案名稱 */
-    activeFile: string;
-    /** 目前正在編輯的檔案的指標 */
-    activeIndex: number;
-    /** 目前正在編輯的檔案的草稿 */
-    draft: Draft;
-    /** 是否正在處理中 */
-    pending: boolean;
-    /** 點擊清空按紐事件 */
-    onclear: () => void;
-    /** 點擊刪除按紐事件 */
-    ondelete: () => void;
-    /** 點擊關閉面板按紐事件 */
-    onclose: () => void;
-    /** 點擊全螢幕預覽事件 */
-    onexpand: () => void;
-  };
+  const editor = getEditorContext();
+  const lightbox = getLightboxContext();
 
-  let {
-    fileCount,
-    activeIndex,
-    activeFile,
-    draft = $bindable(),
-    pending,
-    onclear,
-    ondelete,
-    onclose,
-    onexpand,
-  }: Props = $props();
+  const file = $derived(editor.activeFile);
+  const draft = $derived(editor.activeDraft);
 </script>
 
-<aside>
-  <InspectorHeader {activeFile} {fileCount} {activeIndex} {onclose} />
+{#if file !== null && draft}
+  <aside>
+    <InspectorHeader />
 
-  <div class="preview">
-    <ImageCanvas resetKey={activeFile} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
-      <img src={imgSrc(activeFile, "sm")} alt={activeFile} draggable="false" />
-    </ImageCanvas>
-    <Button
-      variant="outlined"
-      padding="icon"
-      aria-label="全螢幕預覽"
-      onclick={() => onexpand()}
-      {@attach tooltip({ content: "全螢幕預覽" })}
-      style="position: absolute; right: 0.5rem; bottom: 0.5rem;"
-    >
-      <IconMaximize size={16} />
-    </Button>
-  </div>
+    <div class="preview">
+      <ImageCanvas resetKey={file} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
+        <img src={imgSrc(file, "sm")} alt={file} draggable="false" />
+      </ImageCanvas>
+      <Button
+        variant="outlined"
+        padding="icon"
+        aria-label="全螢幕預覽"
+        onclick={() => lightbox.handleOpen()}
+        {@attach tooltip({ content: "全螢幕預覽" })}
+        style="position: absolute; right: 0.5rem; bottom: 0.5rem;"
+      >
+        <IconMaximize size={16} />
+      </Button>
+    </div>
 
-  <div class="fields">
-    <InspectorFields {activeFile} bind:draft />
-    <InspectorFooter {pending} {onclear} {ondelete} />
-  </div>
-</aside>
+    <div class="fields">
+      <InspectorFields {file} {draft} />
+      <InspectorFooter />
+    </div>
+  </aside>
+{/if}
 
 <style>
   aside {

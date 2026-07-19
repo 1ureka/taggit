@@ -3,9 +3,10 @@
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagInput from "$lib/widgets/TagInput.svelte";
-  import { stripExt, problemOf, type Draft } from "./draft";
+  import { stripExt, problemOf, type Draft } from "../logic/draft";
 
-  let { activeFile: file, draft = $bindable() }: { activeFile: string; draft: Draft } = $props();
+  // draft 為 editor 內 $state 的響應式代理；直接改其欄位即會寫回 editor，不需 $bindable
+  let { file, draft }: { file: string; draft: Draft } = $props();
 
   const id = $props.id();
   const problem = $derived(problemOf(draft));

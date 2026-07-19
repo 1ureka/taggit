@@ -1,3 +1,8 @@
+/**
+ * @file draft.ts
+ * 暫存草稿的型別、驗證與批次提交
+ */
+
 import { api } from "$lib/utils/request";
 
 /** 每張暫存圖片的本地暫存（未送出的修改） */
@@ -32,11 +37,6 @@ export function problemOf(d: Draft): string | null {
 /** 暫存是否被動過（有任何內容） */
 export function isTouched(d: Draft): boolean {
   return d.name.trim() !== "" || d.rating > 0 || d.tags.length > 0;
-}
-
-/** 暫存是否已達可提交狀態 */
-export function isReady(d: Draft): boolean {
-  return problemOf(d) === null;
 }
 
 /** 去掉副檔名的檔名（未命名時的生效名稱） */
