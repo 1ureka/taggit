@@ -8,8 +8,8 @@
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import BlurImage from "$lib/widgets/BlurImage.svelte";
-  import TagChips from "$lib/widgets/TagChips.svelte";
+  import BlurImage from "$lib/components/widgets/BlurImage.svelte";
+  import TagChips from "$lib/components/widgets/TagChips.svelte";
   import { getDetailContext } from "../logic/detail.svelte";
   import { getFilterContext } from "../logic/filter.svelte";
 

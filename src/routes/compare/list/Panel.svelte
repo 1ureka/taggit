@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import InverseRadius from "$lib/widgets/InverseRadius.svelte";
+  import InverseRadius from "$lib/components/widgets/InverseRadius.svelte";
   import List from "./List.svelte";
 
   type Props = {

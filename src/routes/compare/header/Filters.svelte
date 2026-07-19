@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IMAGE_SORTS } from "$lib/query-spec";
   import Select from "$lib/components/inputs/Select.svelte";
-  import SearchInput from "$lib/widgets/SearchInput.svelte";
+  import SearchInput from "$lib/components/widgets/SearchInput.svelte";
   import FilterPopover from "./FilterPopover.svelte";
   import FilterButton from "./FilterButton.svelte";
   import { getFilterContext } from "../logic/filter.svelte";

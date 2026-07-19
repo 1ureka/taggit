@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
-  import SearchInput from "$lib/widgets/SearchInput.svelte";
+  import SearchInput from "$lib/components/widgets/SearchInput.svelte";
   import { getQueryContext } from "../logic/query.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
 

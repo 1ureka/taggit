@@ -2,7 +2,7 @@
   import type { ImageWithId } from "$lib/database";
   import { imgSrc, blurhashStyle } from "$lib/image/client";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagChips from "$lib/widgets/TagChips.svelte";
+  import TagChips from "$lib/components/widgets/TagChips.svelte";
   import { getDetailContext } from "../logic/detail.svelte";
 
   let { item }: { item: ImageWithId } = $props();
@@ -10,12 +10,7 @@
   const detail = getDetailContext();
 </script>
 
-<button
-  data-theme="dark"
-  type="button"
-  onclick={() => detail.handleSelect(item.id)}
-  aria-label="查看 {item.name} 詳情"
->
+<button data-theme="dark" type="button" onclick={() => detail.handleSelect(item.id)} aria-label="查看 {item.name} 詳情">
   <figure>
     <img
       src={imgSrc(item.id, "md")}

@@ -10,7 +10,7 @@ import { page } from "$app/state";
 
 import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
-import { requestConfirm } from "$lib/widgets/confirm-events";
+import { requestConfirm } from "$lib/components/widgets/confirm-events";
 
 import { emptyDraft, isTouched, problemOf, type Draft } from "./draft";
 import { getPageDataContext } from "./page-data.svelte";

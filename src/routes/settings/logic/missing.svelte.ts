@@ -10,7 +10,7 @@ import { page } from "$app/state";
 import { goto } from "$app/navigation";
 import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
-import { requestConfirm } from "$lib/widgets/confirm-events";
+import { requestConfirm } from "$lib/components/widgets/confirm-events";
 
 class MissingController {
   /** 缺失檔案 ID 列表（null 表示尚未檢查） */

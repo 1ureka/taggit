@@ -7,7 +7,7 @@ import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
-import { requestConfirm } from "$lib/widgets/confirm-events";
+import { requestConfirm } from "$lib/components/widgets/confirm-events";
 import { getPinnedContext } from "./pinned.svelte";
 
 class OperationsController {

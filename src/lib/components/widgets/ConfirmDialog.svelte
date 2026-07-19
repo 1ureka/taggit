@@ -1,7 +1,7 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
   import Button from "$lib/components/actions/Button.svelte";
-  import { CONFIRM_REQUEST, type ConfirmRequestPayload } from "$lib/widgets/confirm-events";
+  import { CONFIRM_REQUEST, type ConfirmRequestPayload } from "./confirm-events";
 
   let open = $state(false);
   let message = $state("");

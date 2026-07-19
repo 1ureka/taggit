@@ -6,7 +6,7 @@
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagChips from "$lib/widgets/TagChips.svelte";
+  import TagChips from "$lib/components/widgets/TagChips.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
 
   let { record }: { record: ImageWithId } = $props();

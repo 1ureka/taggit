@@ -12,7 +12,7 @@ import { page } from "$app/state";
 import type { Tag } from "$lib/database";
 import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
-import { requestConfirm } from "$lib/widgets/confirm-events";
+import { requestConfirm } from "$lib/components/widgets/confirm-events";
 import { getOperationsContext } from "./operations.svelte";
 
 /** 一個標籤異動區域，刪除與隱藏切換區是固定、永不刪除的單例，合併或重命名區則是動態新增/移除 */

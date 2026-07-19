@@ -2,7 +2,7 @@
   import { IconAlertCircleFilled } from "$lib/icons";
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagInput from "$lib/widgets/TagInput.svelte";
+  import TagInput from "$lib/components/widgets/TagInput.svelte";
   import { stripExt, problemOf, type Draft } from "../logic/draft";
 
   // draft 為 editor 內 $state 的響應式代理；直接改其欄位即會寫回 editor，不需 $bindable

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Popover from "$lib/components/floating/Popover.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
-  import TagInput from "$lib/widgets/TagInput.svelte";
+  import TagInput from "$lib/components/widgets/TagInput.svelte";
   import { getFilterContext } from "../logic/filter.svelte";
 
   type Props = {
