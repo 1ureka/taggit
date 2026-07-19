@@ -55,7 +55,7 @@ export function syncedSearchParam(key: string, fallback = '') {
     commit(v: string) {
       local = v;
       echo = v;
-      const url = new URL(page.url);
+      const url = new URL(location.href); // 不是 page.url，理由見「shallow routing 與 goto」
       url.searchParams.set(key, v);
       goto(url, { keepFocus: true, replaceState: true, noScroll: true });
     }
@@ -85,7 +85,7 @@ export function syncedSearchParams<T extends Record<string, string>>(defaults: T
 
   function commit() {
     echo = { ...local };
-    const url = new URL(page.url);
+    const url = new URL(location.href); // 不是 page.url，理由見「shallow routing 與 goto」
     for (const k of keys) url.searchParams.set(k as string, local[k]);
     goto(url, { keepFocus: true, replaceState: true, noScroll: true });
   }
@@ -115,8 +115,9 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
   function commit(next: T) {
     local = next;
     echo = next;
-    const qs = next.toSearchParams(new URLSearchParams(page.url.searchParams)).toString();
-    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+    // base 讀 location.search、pathname 讀 location.pathname，不是 page.url，理由見「shallow routing 與 goto」
+    const qs = next.toSearchParams(new URLSearchParams(location.search)).toString();
+    goto(`${location.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
   return { get value() { return local; }, commit };
@@ -131,7 +132,7 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
 
 ## shallow routing 與 goto
 
-上一節的 echo + 本地緩衝解決的是「多個彼此不協調的 `goto`」；這一節要解的是另一個維度的問題——頁面上只要**有任何一次** `pushState`/`replaceState`（shallow routing），`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何原本以為讀 `page.url.searchParams`很安全的地方都可能因此讀到過時值。
+上一節的 echo + 本地緩衝解決的是「多個彼此不協調的 `goto`」；這一節要解的是另一個維度的問題——頁面上只要**有任何一次** `pushState`/`replaceState`（shallow routing），`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何原本以為讀 `page.url.searchParams` 很安全的地方都可能因此讀到過時值。
 
 ```ts
 import { page } from '$app/state';
@@ -174,7 +175,7 @@ async function refresh() {
 
 ### 為何必須只用 goto + location
 
-一旦知道 `page.url` 可能過時，任何要「建構新 URL、保留其他未管理的查詢參數」或「強制重跑 load」的程式碼，都不能再信任 `page.url`——而且過時的方向永遠是「少了某個 shallow 寫入的值」，不會報錯，是靜默的資料遺失
+一旦知道 `page.url` 可能過時，任何要「建構新 URL、保留其他未管理的查詢參數」或「強制重跑 load」的程式碼，都不能再信任 `page.url`——而且過時的方向永遠是「少了某個 shallow 寫入的值」，不會報錯，是靜默的資料遺失。
 
 獨立的 `invalidateAll()`/`invalidate()` 問題更根本：它們內部重跑 load 用的 url 固定是 SvelteKit 自己追蹤的 `current.url`（就是 `page.url`），完全沒有參數能讓呼叫端指定要用哪個 url。就算你知道 `page.url` 過時，也沒辦法「單獨修正」這兩個函式，它們 structurally 就是綁死在會過時的來源上，無法從外部補救。
 
@@ -196,7 +197,7 @@ function goto(
 
 `invalidateAll()`、`invalidate()`、shallow routing 想達到的「更新 state」，三種需求全部都能表達成「`goto(url, opts)`，url 由呼叫端自己決定」的形式。因此只立一條規則：
 
-> 專案裡任何需要「建構新 URL」或「強制重跑 load」的地方，一律呼叫 `goto()`，不要直接呼叫 `invalidateAll()`/`invalidate()`；`goto()` 的第一個參數一律從 `location`取得，不要從 `page.url` 取得。
+> 專案裡任何需要「建構新 URL」或「強制重跑 load」的地方，一律呼叫 `goto()`，不要直接呼叫 `invalidateAll()`/`invalidate()`；`goto()` 的第一個參數一律從 `location` 取得，不要從 `page.url` 取得。
 
 ### 為何原本的業務需求不會受影響（比如 invalidateAll, invalidate...）
 
@@ -205,7 +206,7 @@ function goto(
 - **重跑 load 時不想連帶清掉 `page.state`** → 上面兩個呼叫都額外帶 `state: page.state`（呼叫當下讀到的目前值）。
 - **`pushState`/`replaceState` 本身**（shallow routing 的狀態寫入）完全不受影響，不需要、也不應該改成 `goto`。
 
-因為所有「建構新 URL、可能觸及 shallow 寫入參數」的呼叫點現在都保證讀 `location`，因此 page load 後的 URL 就不會再是缺失了 shallow routing 的查詢參數的過時參數。
+因為所有「建構新 URL、可能觸及 shallow 寫入參數」的呼叫點現在都保證讀 `location`，重跑 load 或建構新 URL 時就不會再遺漏 shallow routing 寫入的查詢參數。
 
 ---
 
@@ -325,7 +326,7 @@ export const getController = () => getContext<Controller>(key);
 </script>
 ```
 
-工廠函式收的是一個 getter 而不是 `data` 本身，因為 `data` 會隨 `load` 重新執行而變動，要傳的是「即時讀取」而不是「呼叫當下的快照」（直接傳 `data` 本身一樣會踩到 `state_referenced_locally` 那類「只捕捉初始值」的問題）。如果這個工廠函式放在比路由檔案更深一層的地方，例如 `routes/page/logic/pageData.ts`，`PageData` 型別要從上一層拿：
+工廠函式收的是一個 getter 而不是 `data` 本身，因為 `data` 會隨 `load` 重新執行而變動，要傳的是「即時讀取」而不是「呼叫當下的快照」（直接傳 `data` 本身一樣會踩到 `state_referenced_locally` 那類「只捕捉初始值」的問題）。如果這個工廠函式放在比路由檔案更深一層的地方，例如 `routes/page/logic/page-data.svelte.ts`，`PageData` 型別要從上一層拿：
 
 ```ts
 // routes/page/logic/page-data.svelte.ts
