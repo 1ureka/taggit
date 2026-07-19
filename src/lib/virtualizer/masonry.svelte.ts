@@ -28,6 +28,8 @@ export class Masonry<T extends ItemWithSize> {
   viewportEl = $state<HTMLElement | null>(null);
   /** 當需要重新計算內容時的 `make(chan struct{})` */
   #dirtyCh = $state([]);
+  /** 建立時傳入的配置 */
+  #options: MasonryOptions<T>;
   /** 以權重為基礎的瀑布流佈局結果 */
   layout: MasonryLayout<T>;
   /** 二分搜尋虛擬化項目計算結果 */
@@ -40,6 +42,7 @@ export class Masonry<T extends ItemWithSize> {
   // ---
 
   constructor(options: MasonryOptions<T>) {
+    this.#options = options;
     this.layout = $derived(createMasonryLayout({ items: options.items, columns: options.columns }));
 
     this.#content = $derived.by(() => {
@@ -74,5 +77,71 @@ export class Masonry<T extends ItemWithSize> {
         viewportEl.removeEventListener("scroll", markDirty);
       };
     });
+  }
+
+  // ---
+
+  /**
+   * 取得指定項目在目前視口下的像素位置（相對於 masonryEl 頂端）。
+   *
+   * 與 {@link createMasonryContent} 用同一套座標公式，是像素座標的唯一來源，
+   * 呼叫端不需自行重算。尚未量測（無 viewportEl／無欄）或找不到項目時回傳 null。
+   * gap 只是項目 box 內的 padding、不影響位置，故此處不需納入。
+   */
+  #getItemRect(id: string): { top: number; height: number } | null {
+    const viewportEl = this.viewportEl;
+    if (!viewportEl) return null;
+
+    const columns = this.layout.tracks.length;
+    if (columns === 0) return null;
+
+    const paddingX = this.#options.paddingX ?? 0;
+    const paddingY = this.#options.paddingY ?? 0;
+    const pixelColumnWidth = (viewportEl.clientWidth - paddingX * 2) / columns;
+    if (pixelColumnWidth <= 0) return null;
+
+    for (const track of this.layout.tracks) {
+      const found = track.find((t) => t.item.id === id);
+      if (found === undefined) continue;
+      return {
+        top: found.yStart * pixelColumnWidth + paddingY,
+        height: (found.yEnd - found.yStart) * pixelColumnWidth,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * 將指定項目捲進可視範圍。
+   *
+   * - `block: "nearest"`（預設）：已在可視範圍內就不動，否則捲到最近的一邊。
+   * - `block: "start" | "end"`：對齊視口的上／下緣。
+   * 找不到項目或尚未量測時為無操作。
+   */
+  scrollToItem(id: string, opts: { behavior?: ScrollBehavior; block?: "nearest" | "start" | "end" } = {}): void {
+    const viewportEl = this.viewportEl;
+    if (!viewportEl) return;
+
+    const rect = this.#getItemRect(id);
+    if (rect === null) return;
+
+    const { behavior = "smooth", block = "nearest" } = opts;
+    const viewTop = viewportEl.scrollTop;
+    const viewBottom = viewTop + viewportEl.clientHeight;
+    const itemTop = rect.top;
+    const itemBottom = rect.top + rect.height;
+
+    let top: number | null = null;
+    if (block === "start") {
+      top = itemTop;
+    } else if (block === "end") {
+      top = itemBottom - viewportEl.clientHeight;
+    } else if (itemTop < viewTop) {
+      top = itemTop;
+    } else if (itemBottom > viewBottom) {
+      top = itemBottom - viewportEl.clientHeight;
+    }
+
+    if (top !== null) viewportEl.scrollTo({ top, behavior });
   }
 }

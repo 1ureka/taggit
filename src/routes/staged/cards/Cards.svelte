@@ -41,30 +41,9 @@
   });
 
   $effect(() => {
-    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片
-    const viewportEl = masonry.viewportEl;
-    if (viewportEl === null || activeFile === null) return;
-
-    const columns = masonry.layout.tracks.length;
-    if (columns === 0) return;
-
-    for (const track of masonry.layout.tracks) {
-      const found = track.find((t) => t.item.id === activeFile);
-      if (found === undefined) continue;
-
-      const pixelColumnWidth = (viewportEl.clientWidth - layout.p * 2) / columns;
-      const pixelY = found.yStart * pixelColumnWidth + layout.p;
-      const pixelH = (found.yEnd - found.yStart) * pixelColumnWidth;
-      const viewTop = viewportEl.scrollTop;
-      const viewBottom = viewTop + viewportEl.clientHeight;
-
-      if (pixelY < viewTop) {
-        viewportEl.scrollTo({ top: pixelY, behavior: "smooth" });
-      } else if (pixelY + pixelH > viewBottom) {
-        viewportEl.scrollTo({ top: pixelY + pixelH - viewportEl.clientHeight, behavior: "smooth" });
-      }
-      break;
-    }
+    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片（座標計算由 masonry 內建處理）
+    if (activeFile === null) return;
+    masonry.scrollToItem(activeFile);
   });
 </script>
 
