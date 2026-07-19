@@ -1,13 +1,16 @@
+/**
+ * @file dock.ts
+ * 管理控制列的自動隱藏或顯示，滑鼠移動時顯示，靜止逾時後隱藏
+ */
+
+import { getContext, setContext } from "svelte";
 import { debounce } from "$lib/utils/shared";
 
-/**
- * 控制區域自動隱藏或顯示的互動邏輯：滑鼠移動時顯示，靜止逾時後隱藏。
- */
-export class AutoHide {
+class DockController {
   /** 是否隱藏 dock */
   hideDock = $state(false);
   /** 自動隱藏的閾值時間（毫秒） */
-  readonly timeout = 2000;
+  private readonly timeout = 2000;
 
   constructor() {
     $effect(() => {
@@ -27,3 +30,13 @@ export class AutoHide {
     });
   }
 }
+
+const key = Symbol("dock-controller");
+
+export const createDockContext = () => {
+  const controller = new DockController();
+  setContext(key, controller);
+  return controller;
+};
+
+export const getDockContext = () => getContext<DockController>(key);

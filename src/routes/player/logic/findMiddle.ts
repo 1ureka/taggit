@@ -3,8 +3,10 @@ export function findClosestToMiddle<T>(arr: T[], testFn: (item: T) => boolean) {
   if (n === 0) return -1;
 
   const mid = Math.floor(n / 2);
-  let L = mid;
-  let R = mid;
+  if (testFn(arr[mid])) return mid;
+
+  let L = mid - 1;
+  let R = mid + 1;
 
   // 從中間向兩側擴散，回傳最靠近中央、滿足條件的索引
   while (L >= 0 || R < n) {
