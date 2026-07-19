@@ -41,6 +41,9 @@ class PinnedController {
 
   constructor() {
     // 上一頁/下一頁或其他外部原因造成 URL 的 pinned 參數變動時
+    // TODO: 但是 replaceState 又不會更新 page.url.searchParams ，這導致篩選之後必定會清空 idsState
+    // 很有趣的是因為 handleRefresh 是使用 location.href 而不是 page.url，因此重新整理後反而不會清空
+    // 而是會幫忙在重新整理完成後，讓 page.url.searchParams 重新同步
     $effect(() => {
       const urlIds = parsePinnedIds(page.url.searchParams);
       if (urlIds.join(",") !== this.echo.join(",")) this.idsState = urlIds;

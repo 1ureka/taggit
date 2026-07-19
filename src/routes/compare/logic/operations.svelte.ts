@@ -24,7 +24,7 @@ class OperationsController {
     await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
 
     try {
-      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true });
+      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
       addToast({ message: "列表已更新", variant: "success" });
     } catch (e) {
       addToast({ message: "重新整理失敗" + (e instanceof Error ? `: ${e.message}` : ""), variant: "error" });
@@ -51,7 +51,7 @@ class OperationsController {
       this.pinned.handleUnpin(id);
       addToast({ message: `已取消提交：${id}`, variant: "info" });
 
-      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true });
+      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {
       addToast({ message: "取消提交失敗" + (e instanceof Error ? `: ${e.message}` : ""), variant: "error" });
     } finally {
