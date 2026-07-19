@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { fade } from "svelte/transition";
   import { imgSrc } from "$lib/image/client";
-  import { ImageWhere } from "$lib/query-spec";
   import type { ImageWithId } from "$lib/database";
 
   import { IconX, IconEditFilled } from "$lib/icons";
@@ -12,27 +10,21 @@
   import Rating from "$lib/components/inputs/Rating.svelte";
   import BlurImage from "$lib/widgets/BlurImage.svelte";
   import TagChips from "$lib/widgets/TagChips.svelte";
+  import { getDetailContext } from "../logic/detail.svelte";
+  import { getFilterContext } from "../logic/filter.svelte";
 
   // TODO: 該組件完全過時，請不要參考，待重新設計，未來 home 會希望也有自己的 Carousels 型態，而不是只是單張打開
   // TODO: 絕對不准把該組件濫用 global 的習慣照抄，global 只能用於 `:global([data-theme="light"])` 這種形式
 
-  type Props = {
-    /** 目前顯示的圖片紀錄；null 代表關閉 */
-    record: ImageWithId | null;
-    /** 前往 editor 的連結（帶當下篩選參數） */
-    editorHref: string;
-    /** 關閉請求（backdrop 點擊、Escape、關閉鈕） */
-    onclose: () => void;
-  };
+  const detail = getDetailContext();
+  const filter = getFilterContext();
 
-  let { record, editorHref, onclose }: Props = $props();
-
-  const open = $derived(record !== null);
+  const open = $derived(detail.record !== null);
 
   // 離場動畫期間 record 已為 null，保留最後一筆供渲染
   let shown = $state<ImageWithId | null>(null);
   $effect.pre(() => {
-    if (record) shown = record;
+    if (detail.record) shown = detail.record;
   });
 
   const modal = new Modal({
@@ -40,12 +32,13 @@
       return open;
     },
     get onclose() {
-      return onclose;
+      return detail.handleClose;
     },
   });
 
   const handleTagSelect = (name: string) => {
-    goto(`/?${new ImageWhere({ includedTags: [name] }).toSearchParams()}`);
+    detail.handleClose();
+    filter.handleQuickFilter(name);
   };
 </script>
 
@@ -60,13 +53,13 @@
     <div class="viewport" in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} onoutroend={modal.handleOutroEnd}>
       <article>
         <header>
-          <Button variant="ghost" padding="icon" aria-label="關閉圖片詳細資訊" onclick={onclose}>
+          <Button variant="ghost" padding="icon" aria-label="關閉圖片詳細資訊" onclick={detail.handleClose}>
             <IconX size={16} />
           </Button>
 
           <h2 class="ellipsis">{shown.name}</h2>
 
-          <ButtonLink variant="primary" padding="sm" href={editorHref}>
+          <ButtonLink variant="primary" padding="sm" href={detail.editorHref}>
             <IconEditFilled size={16} />
             <span>編輯</span>
           </ButtonLink>

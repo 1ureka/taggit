@@ -1,43 +1,31 @@
 <script lang="ts">
-  import type { ImageWithId } from "$lib/database";
+  import { navigating } from "$app/state";
   import { Masonry } from "$lib/virtualizer/masonry.svelte";
+  import { getPageDataContext } from "../logic/page-data.svelte";
+  import { getLayoutContext } from "../logic/layout.svelte";
   import ScrollButton from "./ScrollButton.svelte";
   import MasonryImage from "./MasonryImage.svelte";
 
-  type Props = {
-    /** SSR 的圖片集合結果 */
-    items: ImageWithId[];
-    /** 布局欄位數量 */
-    columns: number;
-    /** 兩側留白 */
-    paddingX: number;
-    /** 上下留白 */
-    paddingY: number;
-    /** 項目間距 */
-    gap: number;
-    /** 顯示空狀態 */
-    empty: boolean;
-    /** 點擊卡片時觸發（開啟詳情） */
-    onselect: (id: string) => void;
-  };
+  const pageData = getPageDataContext();
+  const layout = getLayoutContext();
 
-  let { items, columns, paddingX, paddingY, gap, empty, onselect }: Props = $props();
+  const empty = $derived(pageData.value.total === 0 && !navigating.to);
 
   const masonry = new Masonry({
     get items() {
-      return items;
+      return pageData.value.items;
     },
     get columns() {
-      return columns;
+      return layout.columns;
     },
     get paddingX() {
-      return paddingX;
+      return layout.padding;
     },
     get paddingY() {
-      return paddingY;
+      return layout.padding;
     },
     get gap() {
-      return gap;
+      return layout.gap;
     },
   });
 </script>
@@ -50,7 +38,7 @@
   <ul class="masonry" aria-label="圖片牆" style:height="{masonry.masonryHeight}px">
     {#each masonry.masonryItems as item (item.id)}
       <li style={item.style}>
-        <MasonryImage {item} {onselect} />
+        <MasonryImage {item} />
       </li>
     {/each}
   </ul>

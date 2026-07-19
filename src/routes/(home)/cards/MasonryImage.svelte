@@ -3,18 +3,19 @@
   import { imgSrc, blurhashStyle } from "$lib/image/client";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagChips from "$lib/widgets/TagChips.svelte";
+  import { getDetailContext } from "../logic/detail.svelte";
 
-  type Props = {
-    /** 圖片資料 */
-    item: ImageWithId;
-    /** 點擊卡片時觸發（開啟詳情） */
-    onselect: (id: string) => void;
-  };
+  let { item }: { item: ImageWithId } = $props();
 
-  let { item, onselect }: Props = $props();
+  const detail = getDetailContext();
 </script>
 
-<button data-theme="dark" type="button" onclick={() => onselect(item.id)} aria-label="查看 {item.name} 詳情">
+<button
+  data-theme="dark"
+  type="button"
+  onclick={() => detail.handleSelect(item.id)}
+  aria-label="查看 {item.name} 詳情"
+>
   <figure>
     <img
       src={imgSrc(item.id, "md")}
