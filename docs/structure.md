@@ -208,6 +208,20 @@ function goto(
 
 因為所有「建構新 URL、可能觸及 shallow 寫入參數」的呼叫點現在都保證讀 `location`，重跑 load 或建構新 URL 時就不會再遺漏 shallow routing 寫入的查詢參數。
 
+### 例外：在 `beforeNavigate` 裡判斷「目前在哪一頁」要用 `page.url`，不是 `location`
+
+上面「只用 `location`」講的是**寫**的情境——建構新 URL、強制重跑 load。有一個**讀**的情境結論剛好相反：在 `beforeNavigate` 守衛裡判斷「這次導航是不是要離開目前這一頁」（例如比對 pathname，把自己同址的 `goto(location.href, { invalidateAll })` 放行、只攔真正的跨頁離開）。這裡要讀的是「我目前所在頁面的 pathname」，必須用 `page.url.pathname`，不能用 `location.pathname`。
+
+原因是 `beforeNavigate` 觸發當下，`location` 不保證還停在「來源頁」：
+
+- **`<a>` 點擊、`goto()`**：SvelteKit 在動 `history` 之前就先跑 `beforeNavigate`，此刻 `location` 仍是來源頁，`location` 與 `page.url` 一致，兩者都對。
+- **瀏覽器上一頁／下一頁（`popstate`）**：瀏覽器會**先**把 `location` 換成目標頁、**才**派發 `popstate`，SvelteKit 的 `beforeNavigate` 是在這之後才跑。此刻 `location.pathname` 已經是**目標頁**，拿它跟 `to.url.pathname` 比會相等，把「真的要離開」誤判成「同址、不用攔」，守衛整個失效。`page.url` 則要等導航真的 commit（沒被 `nav.cancel()`）才更新，所以 `beforeNavigate` 當下它仍正確地是**來源頁**。
+
+這跟前一節「`page.url` 會因 shallow routing 過時、所以要用 `location`」不衝突，因為兩者針對的欄位不同：shallow routing（`pushState`/`replaceState`）只動 **search params**，從不動 pathname；而這裡比對的正好是 **pathname**，對 pathname 而言 `page.url` 永遠不會被 shallow routing 弄過時。一句話收斂：
+
+> - 要「建構新 URL / 重跑 load」（**寫**，會觸及 search params）→ 讀 `location`，才不會漏掉 shallow 寫入的查詢參數。
+> - 要在 `beforeNavigate` 判斷「目前這一頁是誰」（**讀**，且只看 pathname）→ 讀 `page.url`，因為 `location` 在 `popstate` 當下已跳到目標頁。
+
 ---
 
 ## 怎樣將頁面邏輯拆到外部 - pure module
