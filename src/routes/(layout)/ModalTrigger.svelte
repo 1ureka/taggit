@@ -10,7 +10,7 @@
   const description = $derived.by(() => {
     if (page.error) return page.error?.message ?? "發生未知錯誤";
 
-    // TODO: 放寬為 string：/staged、/editor 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
+    // TODO: 放寬為 string：/committed 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
     const path: string = page.url.pathname;
 
     if (path === "/") return "正在 探索圖片";
@@ -19,7 +19,8 @@
     if (path.startsWith("/tags")) return "正在 整理標籤";
     if (path === "/settings") return "正在 調整設定";
 
-    if (path === "/editor") {
+    // TODO: 未來 committed 就算真的會 replaceState，這裡也吃不到，怎麼辦?
+    if (path === "/committed") {
       const searchParams = page.url.searchParams;
       if (searchParams.has("currentId")) {
         return `正在 編輯 ${searchParams.get("currentId")}`;

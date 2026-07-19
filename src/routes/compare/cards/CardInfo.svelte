@@ -17,7 +17,7 @@
     const params = new URLSearchParams(page.url.searchParams);
     params.delete("pinned");
     params.set("currentId", record.id);
-    return `/editor?${params.toString()}`;
+    return `/committed?${params.toString()}`;
   });
 </script>
 

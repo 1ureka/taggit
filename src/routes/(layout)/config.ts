@@ -22,7 +22,7 @@ export const navItems: {
     key: "staged",
   },
   {
-    href: "/editor",
+    href: "/committed",
     Icon: IconEditFilled,
     name: "管理圖片",
     desc: "編輯已提交圖片的名稱、標籤或評分",

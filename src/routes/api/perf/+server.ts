@@ -60,7 +60,6 @@ export const GET: RequestHandler = () => {
     query.images(new ImageQuery(where, new ListOptions({ sort: "committedAt", order: "desc", limit: 0 })));
 
   const results = [
-    // editor load 實際回傳的三個組成
     bench("committedFiles(all)", () => imagesAll(new ImageWhere())),
     bench("facets(all)", () => query.facets(new TagFacetQuery(new ImageWhere()))),
     bench("authoringTags(all)", () => query.tags(new TagQuery(new TagWhere({ universe: "all" })))),

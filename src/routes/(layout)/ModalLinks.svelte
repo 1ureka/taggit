@@ -15,12 +15,12 @@
 
   /** 判斷當前活躍的導航項目 */
   const currentActiveItem = $derived.by(() => {
-    // TODO: 放寬為 string：/staged, /editor 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
+    // TODO: 放寬為 string：/committed 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
     const path: string = page.url.pathname;
 
     if (path === "/" || path === "/compare" || path === "/player") return "/";
     if (path === "/staged") return "/staged";
-    if (path === "/editor" || path.startsWith("/tags")) return "/editor";
+    if (path === "/committed" || path.startsWith("/tags")) return "/committed";
     if (path === "/settings") return "/settings";
 
     return null;
