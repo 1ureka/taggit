@@ -133,9 +133,38 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
 
 上一節的 echo + 本地緩衝解決的是「多個彼此不協調的 `goto`」；這一節要解的是另一個維度的問題——頁面上只要**有任何一次** `pushState`/`replaceState`（shallow routing），`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何原本以為讀 `page.url.searchParams`很安全的地方都可能因此讀到過時值。
 
+```ts
+import { page } from '$app/state';
+import { goto, replaceState, invalidateAll } from '$app/navigation';
+
+// 頁面掛載當下：/compare?sort=rating
+
+// 1) 使用者釘選一張圖片：shallow routing，不想為了「釘選」重跑 load
+function pin(id: string) {
+  const url = new URL(page.url);
+  url.searchParams.set('pinned', id);
+  replaceState(url, { pinned: [id] });
+  // 瀏覽器網址列此刻確實是 /compare?sort=rating&pinned=A（location 準）
+  // 但 page.url 仍停在 /compare?sort=rating —— replaceState 不會更新它，往後也不會自己追上
+}
+
+// 2) 使用者切換排序：真的導航，goto 建構新 URL 時要保留其他參數
+function changeSort(sort: string) {
+  const url = new URL(page.url); // 錯就錯在這裡：從 page.url 建構，讀不到剛剛 shallow 寫入的 pinned
+  url.searchParams.set('sort', sort);
+  goto(url, { replaceState: true });
+  // 結果：/compare?sort=name —— pinned=A 憑空消失，不會報錯、不會有任何警告
+}
+
+// 3) 使用者按「重新整理」，圖方便直接呼叫 invalidateAll()
+async function refresh() {
+  await invalidateAll();
+  // invalidateAll() 內部固定用 current.url（=page.url）重跑 load，同樣讀不到 pinned
+  // 就算 (2) 沒發生過，單獨呼叫這個也會在下一次重跑時把 pinned 弄丟——它沒有參數能讓你指定要用哪個 url
+}
 ```
-```
-<!-- COMMENT: 這裡補上一個程式碼案例，包括 replaceState, goto 與 invalidateAll -->
+
+只要把 (2)(3) 的 `page.url` 換成 `location`（`new URL(location.href)`）、把 `invalidateAll()` 換成 `goto(location.href, { invalidateAll: true })`，`pinned=A` 就會被正確保留下去——這正是下面兩節規則要解決的問題。
 
 ### replaceState 與 page.url 的關係
 
@@ -365,12 +394,12 @@ routes/example/            新
 ### 還沒真的驗證過的地方
 
 - 一個頁面會有幾個 controller、controller 之間該不該互相注入，這是第一次會被用在「同一個頁面多個 controller 並存」的情境，實際切下去大概還會冒出新的細節。
-<!-- 以新 compare 來看，注入的方式比想像中方便、乾淨(指不須要寫很多樣版)，但也很危險(可能會導致循環依賴) -->
+<!-- 以新 compare 來看，注入的方式比想像中方便、乾淨(指不須要寫很多樣版)，但也有一定風險(可能會導致循環依賴) -->
 - 子元件直接讀 context，換來的代價是沒辦法脫離 provider 單獨掛載——目前驗收方式是 dev server 走查，不是元件層級自動化測試，這個代價可以接受，但是主動接受的取捨，不是沒想到。
 
-### 給新對話的使用說明
+### 使用說明
 
-如果你是在一個新對話裡讀到這份文件、被要求依此改某個路由：
+如果你讀到這份文件、被要求依此改某個路由：
 
 - 這份文件描述的是**目標架構**，不是現狀紀錄。路由現有的程式碼多半還是「目前的樣貌」那套（React 式 prop drilling、子模組配一個同名 `.ts`），改動時不要把現有寫法的風格當參考，只能參考它的業務邏輯/行為，寫法一律照本文件。
 - 動手前先列一份清單：哪些子元件目前靠 prop 拿狀態/送事件、哪些邏輯散落在跟元件並排的 `.ts` 裡、`+page.svelte` 還兼著哪些組裝工作——全部要轉的都列出來，不要邊做邊發現。
