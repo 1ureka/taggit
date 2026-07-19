@@ -2,16 +2,18 @@
   import type { ImageWithId, Tag } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconEyeOff } from "$lib/icons";
-  import { previewCache, requestPreview } from "./previews";
+  import { getPreviewsContext } from "../logic/previews.svelte";
 
   let { tag }: { tag: Tag } = $props();
 
+  const previews = getPreviewsContext();
+
   let hoverTimer: ReturnType<typeof setTimeout>;
-  const cache = $derived(previewCache.get(tag.name));
+  const cache = $derived(previews.get(tag.name));
 
   $effect(() => {
     if (tag.count === 0) return;
-    hoverTimer = setTimeout(() => requestPreview(tag.name), 150);
+    hoverTimer = setTimeout(() => previews.request(tag.name), 150);
     return () => clearTimeout(hoverTimer);
   });
 </script>

@@ -4,21 +4,15 @@
   import Button from "$lib/components/actions/Button.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
 
-  import type { ReviewEntry } from "./reviewEntry";
+  import type { ReviewEntry } from "../logic/review-entry";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
   import ReviewImpact from "./ReviewImpact.svelte";
 
-  type Props = {
-    /** 這一列的完整審查條目 */
-    entry: ReviewEntry;
-    /** 是否可撤銷 */
-    discardable: boolean;
-    /** 勾選事件 */
-    ontoggle: () => void;
-    /** 撤銷事件 */
-    ondiscard: () => void;
-  };
+  let { entry }: { entry: ReviewEntry } = $props();
 
-  let { entry, discardable, ontoggle, ondiscard }: Props = $props();
+  const review = getReviewContext();
+  const operations = getOperationsContext();
 
   const kindLabel = { rename: "重命名", merge: "合併", delete: "刪除", hidden: "隱藏", visible: "取消隱藏" };
 </script>
@@ -27,7 +21,7 @@
   <Checkbox
     checked={entry.checked}
     status={!entry.checkable ? "disabled" : "default"}
-    onchange={ontoggle}
+    onchange={() => review.handleToggle(entry.name)}
     aria-label={`包含 ${entry.name}`}
   />
 
@@ -45,9 +39,9 @@
     variant="ghost"
     padding="icon"
     aria-label={`捨棄 ${entry.name}`}
-    status={!discardable ? "disabled" : undefined}
+    status={operations.pending ? "disabled" : undefined}
     {@attach tooltip({ content: "捨棄這筆操作" })}
-    onclick={ondiscard}
+    onclick={() => review.handleDiscard(entry.name)}
   >
     <IconArrowBackUpDouble size={14} />
   </Button>

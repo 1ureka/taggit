@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ReviewEntry } from "./reviewEntry";
+  import type { ReviewEntry } from "../logic/review-entry";
 
   let { entry }: { entry: ReviewEntry } = $props();
 </script>

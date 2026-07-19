@@ -3,19 +3,13 @@
   import { IconReload, IconArrowRight } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getBoardContext } from "../logic/board.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
 
-  type Props = {
-    /** 全局共用的操作鎖 */
-    pending: boolean;
-    /** 可審查的標籤數量 */
-    touchedCount: number;
-    /** 點擊重新整理事件 */
-    onrefresh: () => void;
-    /** 前往審查流程事件 */
-    onreview: () => void;
-  };
-
-  let { pending, touchedCount, onrefresh, onreview }: Props = $props();
+  const operations = getOperationsContext();
+  const board = getBoardContext();
+  const review = getReviewContext();
 </script>
 
 <div>
@@ -23,8 +17,8 @@
     variant="ghost"
     padding="icon"
     aria-label="重新整理"
-    status={pending ? "pending" : undefined}
-    onclick={onrefresh}
+    status={operations.pending ? "pending" : undefined}
+    onclick={operations.handleRefresh}
     {@attach tooltip({ content: "重新整理" })}
   >
     <IconReload size={16} />
@@ -35,8 +29,12 @@
     <IconArrowRight size={16} />
   </ButtonLink>
 
-  <Button variant="primary" status={touchedCount === 0 ? "disabled" : undefined} onclick={onreview}>
-    檢視變更 ({touchedCount})
+  <Button
+    variant="primary"
+    status={board.touchedCount === 0 || operations.pending ? "disabled" : undefined}
+    onclick={review.handleOpen}
+  >
+    檢視變更 ({board.touchedCount})
   </Button>
 </div>
 

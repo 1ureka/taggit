@@ -1,25 +1,27 @@
 <script lang="ts">
-  import type { Tag } from "$lib/database";
   import { ImageWhere } from "$lib/query-spec";
   import { IconExternalLink, IconTagPlus, IconX } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
+  import { getBoardContext, type GroupTarget } from "../logic/board.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
-  type Props = {
-    /** 目前選取中的標籤數量 */
-    selected: number;
-    /** 該組的名稱 */
-    label: string;
-    /** 該組的所有標籤 */
-    tags: Tag[];
-    /** 加入事件 */
-    onadd: () => void;
-    /** 解散事件 */
-    ondissolve: () => void;
-  };
+  let { target, label }: { target: GroupTarget; label: string } = $props();
 
-  let { selected, label, tags, onadd, ondissolve }: Props = $props();
+  const board = getBoardContext();
+  const selection = getSelectionContext();
+
+  const tags = $derived(
+    target.kind === "group"
+      ? (board.groups.find((g) => g.id === target.id)?.tags ?? [])
+      : target.kind === "delete"
+        ? board.deleteZone.tags
+        : board.hiddenZone.tags,
+  );
+
+  const onadd = () => board.addTags(target, selection.consume());
+  const ondissolve = () => (target.kind === "group" ? board.dissolveGroup(target.id) : board.dissolveZone(target.kind));
 </script>
 
 <div>
@@ -45,7 +47,7 @@
     padding="icon"
     aria-label="加入選取中的標籤"
     onclick={onadd}
-    status={selected === 0 ? "disabled" : undefined}
+    status={selection.size === 0 ? "disabled" : undefined}
     {@attach tooltip({ content: "加入選取中的標籤", placement: "left" })}
   >
     <IconTagPlus size={16} />

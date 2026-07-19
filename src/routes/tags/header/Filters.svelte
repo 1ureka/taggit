@@ -1,39 +1,14 @@
 <script lang="ts">
-  import { TagQuery } from "$lib/query-spec";
   import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
-  type Props = {
-    /** 目前的查詢值物件 */
-    query: TagQuery;
-    /** 目前選取的標籤數量 */
-    selectedCount: number;
-    /** 點擊清空選取事件 */
-    onclear: () => void;
-    /** 查詢參數改變事件 */
-    onchange: (query: TagQuery) => void;
-  };
-
-  let { query, selectedCount, onclear, onchange }: Props = $props();
+  const query = getQueryContext();
+  const selection = getSelectionContext();
 
   const id = $props.id();
-
-  const handleSearch = (search: string) => {
-    onchange(new TagQuery(query.where.with({ name: search }), query.list));
-  };
-
-  const handleSortChange = (key: string) => {
-    if (key === "count" || key === "name") {
-      onchange(new TagQuery(query.where, query.list.with({ sort: key })));
-    }
-  };
-
-  const handleFilterChange = (key: string) => {
-    if (key === "all") onchange(new TagQuery(query.where.with({ hidden: undefined }), query.list));
-    if (key === "hidden") onchange(new TagQuery(query.where.with({ hidden: true }), query.list));
-    if (key === "visible") onchange(new TagQuery(query.where.with({ hidden: false }), query.list));
-  };
 </script>
 
 {#snippet sortOption(key: string)}
@@ -50,8 +25,8 @@
       label="搜尋標籤"
       labelHidden
       placeholder="搜尋標籤…"
-      value={query.where.name ?? ""}
-      onsearch={handleSearch}
+      value={query.query.where.name ?? ""}
+      onsearch={query.handleSearch}
     />
   </div>
 
@@ -60,20 +35,20 @@
     aria-label="排序"
     options={["count", "name"]}
     option={sortOption}
-    value={query.list.sort}
-    onchange={handleSortChange}
+    value={query.query.list.sort}
+    onchange={query.handleSortChange}
   />
   <Select
     id="{id}-hidden"
     aria-label="篩選"
     options={["all", "hidden", "visible"]}
     option={hiddenOption}
-    value={query.where.hidden === undefined ? "all" : query.where.hidden ? "hidden" : "visible"}
-    onchange={handleFilterChange}
+    value={query.query.where.hidden === undefined ? "all" : query.query.where.hidden ? "hidden" : "visible"}
+    onchange={query.handleHiddenFilterChange}
   />
 
-  {#if selectedCount > 0}
-    <Button variant="ghost" onclick={onclear}>清空選取 ({selectedCount})</Button>
+  {#if selection.size > 0}
+    <Button variant="ghost" onclick={selection.handleClear}>清空選取 ({selection.size})</Button>
   {/if}
 </div>
 
