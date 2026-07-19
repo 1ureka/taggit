@@ -12,6 +12,7 @@ export { default as IconCategoryFilled } from "./IconCategoryFilled.svelte";
 export { default as IconCheck } from "./IconCheck.svelte";
 export { default as IconCheckFilled } from "./IconCheckFilled.svelte";
 export { default as IconChevronDown } from "./IconChevronDown.svelte";
+export { default as IconChevronRightPipe } from "./IconChevronRightPipe.svelte";
 export { default as IconCode } from "./IconCode.svelte";
 export { default as IconCompassFilled } from "./IconCompassFilled.svelte";
 export { default as IconDatabase } from "./IconDatabase.svelte";
