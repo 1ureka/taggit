@@ -39,7 +39,7 @@
     </div>
 
     <div class="fields">
-      <InspectorFields {file} {draft} />
+      <InspectorFields />
       <InspectorFooter />
     </div>
   </aside>
