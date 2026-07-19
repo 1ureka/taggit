@@ -133,18 +133,13 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
 
 上一節的 echo + 本地緩衝解決的是「多個彼此不協調的 `goto`」；這一節要解的是另一個維度的問題——頁面上只要**有任何一次** `pushState`/`replaceState`（shallow routing），`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何原本以為讀 `page.url.searchParams`很安全的地方都可能因此讀到過時值。
 
+```
+```
+<!-- COMMENT: 這裡補上一個程式碼案例，包括 replaceState, goto 與 invalidateAll -->
+
 ### replaceState 與 page.url 的關係
 
-`pushState`/`replaceState`（`$app/navigation`）一定會更新瀏覽器 `history`（進而 `location.href`/`location.search`）與 `page.state`，但**設計上不會更新 `page.url`**。不是時序問題、不會自己追上，是 SvelteKit client runtime 固定如此——直接看原始碼（`@sveltejs/kit/src/runtime/client/client.js`）：
-
-```js
-export function replaceState(url, state) {
-  ...
-  history.replaceState(opts, '', resolve_url(url)); // 瀏覽器網址列、location 立即更新
-  page.state = state;                                // 只更新 page.state
-  root.$set({ page: untrack(() => clone_page(page)) }); // page.url 全程沒被重新指派
-}
-```
+`pushState`/`replaceState`（`$app/navigation`）一定會更新瀏覽器 `history`（進而 `location.href`/`location.search`）與 `page.state`，但**設計上不會更新 `page.url`**。不是時序問題、不會自己追上，是 SvelteKit client runtime 固定如此。
 
 `pushState` 是同一套模式。也就是說，只要頁面上發生過一次 shallow routing，`page.url.searchParams` 就會停留在「上一次真的導航」當下的快照，直到下一次真的導航（`goto` 到新 URL、或 popstate 跨過不同的導航 index）才會校正——沒有任何公開 API 能讓你在中途手動把 `page.url` 校正回來，它只由 SvelteKit 內部的 `navigate()` 流程指派。反過來，`location.href`/`location.search` 是瀏覽器原生 History API 的同步保證，`history.replaceState`/`pushState` 呼叫完當下就一定準，不管有沒有 shallow routing 都一樣。
 
@@ -152,7 +147,7 @@ export function replaceState(url, state) {
 
 一旦知道 `page.url` 可能過時，任何要「建構新 URL、保留其他未管理的查詢參數」或「強制重跑 load」的程式碼，都不能再信任 `page.url`——而且過時的方向永遠是「少了某個 shallow 寫入的值」，不會報錯，是靜默的資料遺失
 
-獨立的 `invalidateAll()`/`invalidate()` 問題更根本：它們內部重跑 load 用的 url 固定是 SvelteKit 自己追蹤的 `current.url`（就是 `page.url`），完全沒有參數能讓呼叫端指定要用哪個 url——原始碼裡 `_invalidate()` 寫死 `get_navigation_intent(current.url, true)`。就算你知道 `page.url` 過時，也沒辦法「單獨修正」這兩個函式，它們 structurally 就是綁死在會過時的來源上，無法從外部補救。
+獨立的 `invalidateAll()`/`invalidate()` 問題更根本：它們內部重跑 load 用的 url 固定是 SvelteKit 自己追蹤的 `current.url`（就是 `page.url`），完全沒有參數能讓呼叫端指定要用哪個 url。就算你知道 `page.url` 過時，也沒辦法「單獨修正」這兩個函式，它們 structurally 就是綁死在會過時的來源上，無法從外部補救。
 
 `goto()` 不一樣：它的 `url` 是呼叫端自己傳的參數，而且它的 `opts` 已經涵蓋 `invalidateAll`、`invalidate`、`state` 三個選項：
 
@@ -172,18 +167,16 @@ function goto(
 
 `invalidateAll()`、`invalidate()`、shallow routing 想達到的「更新 state」，三種需求全部都能表達成「`goto(url, opts)`，url 由呼叫端自己決定」的形式。因此只立一條規則：
 
-> 專案裡任何需要「建構新 URL」或「強制重跑 load」的地方，一律呼叫 `goto()`，不要直接呼叫 `invalidateAll()`/`invalidate()`；`goto()` 的第一個參數一律從 `location`（`location.href`/`location.search`/`new URL(location.href)`）取得，不要從 `page.url` 取得。
-
-就不需要為每一種「重跑 load 的方式」各自稽核一次「這個方式讀的 url 準不準」——只剩一個入口，而這個入口的 url 來源被規則鎖死是永遠準的。也不必依賴任何一個 API 內部沒有公開承諾的實作細節（例如賭 SvelteKit 對 load 的逐 key 依賴追蹤剛好會跳過某次 fetch）——那是內部行為，下一個版本說變就能變，不能當作架構要依賴的保證；只有 `goto()` 的這幾個 `opts` 是公開、文件化的 API。
+> 專案裡任何需要「建構新 URL」或「強制重跑 load」的地方，一律呼叫 `goto()`，不要直接呼叫 `invalidateAll()`/`invalidate()`；`goto()` 的第一個參數一律從 `location`取得，不要從 `page.url` 取得。
 
 ### 為何原本的業務需求不會受影響（比如 invalidateAll, invalidate...）
 
-- **`invalidateAll()`** → `goto(location.href, { replaceState: true, invalidateAll: true, state: page.state })`。`_goto()` 在 `options.invalidateAll` 為 true 時做的事跟 `invalidateAll()` 完全相同（設同一個 `force_invalidation` 旗標、清同一份 query 快取），差別只在 url 是自己傳的。
-- **`invalidate(resource)`**（選擇性）→ `goto(location.href, { replaceState: true, invalidate: [resource] })`。`goto()` 的 `invalidate` 選項是同一組 `push_invalidated()` 邏輯，語意完全對應。
-- **重跑 load 時不想連帶清掉 `page.state`**（shallow routing 寫入的值，例如 pinned）→ 上面兩個呼叫都額外帶 `state: page.state`（呼叫當下讀到的目前值）。`goto()` 不傳 `state` 時預設清空成 `{}`——這正是官方後來另外補一個 `refreshAll()` 的原因（見 [sveltejs/kit#13139](https://github.com/sveltejs/kit/issues/13139)：`invalidateAll()`/`invalidate()` 預設會清空 `page.state`，`refreshAll()` 是特地做成不清空的版本）。但只要顯式把 `page.state` 傳回去，效果等於 `refreshAll()`，不需要多學一個函式、多一條「這個函式跟 `goto` 的關係是什麼」的規則。
-- **`pushState`/`replaceState` 本身**（shallow routing 的狀態寫入）完全不受影響，不需要、也不應該改成 `goto`——它們解決的是「不重跑 load、不觸發導航生命週期」，`goto` 從來不是要取代它們；這條規則只規範「需要重跑 load／建構新 URL」的呼叫點，不規範 shallow routing 本身怎麼寫。
+- **`invalidateAll()`** → `goto(location.href, { replaceState: true, invalidateAll: true, state: page.state })`。
+- **`invalidate(resource)`**（選擇性）→ `goto(location.href, { replaceState: true, invalidate: [resource] })`。
+- **重跑 load 時不想連帶清掉 `page.state`** → 上面兩個呼叫都額外帶 `state: page.state`（呼叫當下讀到的目前值）。
+- **`pushState`/`replaceState` 本身**（shallow routing 的狀態寫入）完全不受影響，不需要、也不應該改成 `goto`。
 
-因為所有「建構新 URL、可能觸及 shallow 寫入參數」的呼叫點現在都保證讀 `location`，任何依賴 URL 當 fallback 的讀取端——不管寫法是上一節的 echo + 本地緩衝，還是 `page.state ?? parse(page.url.searchParams)` 這種寫法——都會拿到正確答案。讀取端要挑哪一種寫法變成純粹的風格選擇，不再是正確性議題。
+因為所有「建構新 URL、可能觸及 shallow 寫入參數」的呼叫點現在都保證讀 `location`，因此 page load 後的 URL 就不會再是缺失了 shallow routing 的查詢參數的過時參數。
 
 ---
 
