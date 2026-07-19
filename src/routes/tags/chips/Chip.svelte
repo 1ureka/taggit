@@ -2,13 +2,16 @@
   import type { Tag } from "$lib/database";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import { IconAlertTriangleFilled } from "$lib/icons";
+  import ChipTooltip from "./ChipTooltip.svelte";
+
+  import { getPreviewsContext } from "../logic/previews.svelte";
   import { getBoardContext } from "../logic/board.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
   import { getDragContext } from "../logic/drag.svelte";
-  import ChipTooltip from "./ChipTooltip.svelte";
 
   let { tag }: { tag: Tag } = $props();
 
+  const previews = getPreviewsContext();
   const board = getBoardContext();
   const selection = getSelectionContext();
   const drag = getDragContext();
@@ -28,7 +31,7 @@
   const ondragend = () => drag.handleDragEnd();
 </script>
 
-{#snippet detail()}<ChipTooltip {tag} />{/snippet}
+{#snippet detail()}<ChipTooltip {previews} {tag} />{/snippet}
 
 <button
   type="button"

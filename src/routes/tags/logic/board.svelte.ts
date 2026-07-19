@@ -72,9 +72,13 @@ const HIDDEN_KEY = "hidden";
 class BoardController {
   private operationsCtx = getOperationsContext();
 
+  // 避免 https://svelte.dev/e/state_invalid_placement
+  private deleteZoneState: Zone = $state({ kind: "delete", tags: [] });
+  private hiddenZoneState: Zone = $state({ kind: "hidden", tags: [] });
+
   private zones = new SvelteMap<string, Zone>([
-    [DELETE_KEY, $state({ kind: "delete", tags: [] })],
-    [HIDDEN_KEY, $state({ kind: "hidden", tags: [] })],
+    [DELETE_KEY, this.deleteZoneState],
+    [HIDDEN_KEY, this.hiddenZoneState],
   ]);
 
   /** 合併區張數查詢的 debounce/seq 表；移除合併區時務必同步清理（見 removeGroup） */

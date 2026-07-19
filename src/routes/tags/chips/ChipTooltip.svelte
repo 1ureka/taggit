@@ -4,9 +4,7 @@
   import { IconEyeOff } from "$lib/icons";
   import { getPreviewsContext } from "../logic/previews.svelte";
 
-  let { tag }: { tag: Tag } = $props();
-
-  const previews = getPreviewsContext();
+  let { previews, tag }: { previews: ReturnType<typeof getPreviewsContext>; tag: Tag } = $props();
 
   let hoverTimer: ReturnType<typeof setTimeout>;
   const cache = $derived(previews.get(tag.name));
