@@ -8,7 +8,7 @@ import { Query } from "$lib/query";
  *
  * 原型專用：一組標籤取聯集後的圖片張數（純讀取）。
  * Query：`tags=<逗號分隔的標籤名稱>`，找不到的標籤視為空集合。
- * 供 /tags 的合併堆即時預估張數使用（sources + target 取聯集）。
+ * 供 /tags 的合併區即時預估張數使用（sources + target 取聯集）。
  */
 export const GET: RequestHandler = ({ url }) => {
   if (!Database.isLoaded()) {

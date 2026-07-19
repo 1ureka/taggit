@@ -10,7 +10,7 @@
   import ToastStage from "$lib/components/floating/ToastStage.svelte";
   import ToastList from "$lib/components/floating/ToastList.svelte";
   import NavigationIndicator from "$lib/components/display/NavigationIndicator.svelte";
-  import ConfirmDialog from "$lib/widgets/ConfirmDialog.svelte";
+  import ConfirmDialog from "$lib/components/widgets/ConfirmDialog.svelte";
 
   import ModalHeader from "./(layout)/ModalHeader.svelte";
   import ModalLinks from "./(layout)/ModalLinks.svelte";

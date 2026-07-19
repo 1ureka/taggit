@@ -1,11 +1,11 @@
 <script lang="ts">
   import Select from "$lib/components/inputs/Select.svelte";
+  import { getLayoutContext } from "../logic/layout.svelte";
 
-  let { columns = $bindable() }: { columns: number } = $props();
+  const layout = getLayoutContext();
   const id = $props.id();
 
   const columnOptions = ["1", "2", "3", "4", "5", "6"];
-  let columnsKey = $derived(String(columns));
 </script>
 
 {#snippet columnsOption(key: string)}{key} 欄{/snippet}
@@ -17,8 +17,8 @@
     aria-label="圖片牆欄位"
     options={columnOptions}
     option={columnsOption}
-    bind:value={columnsKey}
-    onchange={(key) => (columns = Number(key))}
+    value={String(layout.columns)}
+    onchange={(key) => layout.handleColumnsChange(Number(key))}
     style="width: 100%"
   />
 </div>

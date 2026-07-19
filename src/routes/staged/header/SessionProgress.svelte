@@ -1,17 +1,15 @@
 <script lang="ts">
   import LinearProgress from "$lib/components/display/LinearProgress.svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import { getPageDataContext } from "../logic/page-data.svelte";
+  import { getEditorContext } from "../logic/editor.svelte";
 
-  type Props = {
-    /** 暫存區圖片總數 */
-    fileCount: number;
-    /** 有暫存內容的圖片數（無論是否可提交） */
-    touchedCount: number;
-    /** 可提交的圖片數 */
-    readyCount: number;
-  };
+  const pageData = getPageDataContext();
+  const editor = getEditorContext();
 
-  let { fileCount, touchedCount, readyCount }: Props = $props();
+  const fileCount = $derived(pageData.value.stagedFiles.length);
+  const touchedCount = $derived(editor.touchedFiles.length);
+  const readyCount = $derived(editor.readyCount);
 
   const blockedCount = $derived(touchedCount - readyCount);
   const untouchedCount = $derived(fileCount - touchedCount);

@@ -1,24 +1,18 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
+  import { getEditorContext } from "../logic/editor.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
 
-  type Props = {
-    /** 是否正在處理中 */
-    pending: boolean;
-    /** 點擊清空按紐事件 */
-    onclear: () => void;
-    /** 點擊刪除按紐事件 */
-    ondelete: () => void;
-  };
+  const editor = getEditorContext();
+  const operations = getOperationsContext();
 
-  let { pending, onclear, ondelete }: Props = $props();
-
-  const clearStatus = $derived(pending ? "disabled" : undefined);
-  const deleteStatus = $derived(pending ? "pending" : undefined);
+  const clearStatus = $derived(operations.pending ? "disabled" : undefined);
+  const deleteStatus = $derived(operations.pending ? "pending" : undefined);
 </script>
 
 <footer>
-  <Button variant="outlined" status={clearStatus} onclick={onclear}>清空草稿</Button>
-  <Button variant="destructive" status={deleteStatus} onclick={ondelete}>刪除此張</Button>
+  <Button variant="outlined" status={clearStatus} onclick={editor.handleClear}>清空草稿</Button>
+  <Button variant="destructive" status={deleteStatus} onclick={editor.handleDelete}>刪除此張</Button>
 </footer>
 
 <style>

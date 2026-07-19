@@ -17,7 +17,7 @@ type PlayerOptions<T extends ItemWithSize> = {
  */
 export class Player<T extends ItemWithSize> {
   /** 是否正在播放 */
-  playing = $state(true);
+  playing = $state(false);
   /** 播放速度（px / frame） */
   speed = $state(1.5);
   /** 格式化的速度顯示文字 */
@@ -31,6 +31,12 @@ export class Player<T extends ItemWithSize> {
   progressText: string;
   /** 播放軌道當前的偏移樣式 */
   stripTransform: string;
+
+  /** 目前長按加速的方向，null 表示未在加速中 */
+  boostDirection = $state<1 | -1 | null>(null);
+
+  /** 方向鍵單次跳張的張數 */
+  readonly jumpStep = 3;
 
   /** @internal 引擎實例 */
   #engine: PlayerEngine<T> | null = null;
@@ -132,6 +138,28 @@ export class Player<T extends ItemWithSize> {
     } else if (e.key === "Escape") {
       e.preventDefault();
       history.back();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      this.#engine?.jumpBy(this.jumpStep);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      this.#engine?.jumpBy(-this.jumpStep);
     }
+  };
+
+  /**
+   * 開始長按加速：以目前速度絕對值的兩倍（至少 3，涵蓋速度為 0 時仍有效果的情況）沿指定方向推進，
+   * 可超出一般速度滑桿的範圍，暫停中也會生效
+   */
+  handleBoostStart = (direction: 1 | -1) => {
+    const magnitude = Math.abs(this.speed) * 2 || 3;
+    this.boostDirection = direction;
+    this.#engine?.startBoost(magnitude * direction);
+  };
+
+  /** 結束長按加速，恢復原本的播放/暫停狀態 */
+  handleBoostEnd = () => {
+    this.boostDirection = null;
+    this.#engine?.endBoost();
   };
 }

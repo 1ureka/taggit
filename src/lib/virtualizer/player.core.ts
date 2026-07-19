@@ -64,9 +64,11 @@ export class PlayerEngine<T extends ItemWithSize> {
   /** 當前速度 */
   private speed = 1.5;
   /** 是否正在播放 */
-  private playing = true;
+  private playing = false;
   /** 是否正在拖曳進度條 */
   private seeking = false;
+  /** 長按加速時的暫時速度（含方向），非 null 時優先於 playing/speed 推進攝影機，暫停中也會生效 */
+  private boostSpeed: number | null = null;
   /** 上一次 rAF 的時間戳，用於計算時間差來決定攝影機水平位置的增量 */
   private lastTime = 0;
 
@@ -175,14 +177,51 @@ export class PlayerEngine<T extends ItemWithSize> {
     this.cameraXLastComputed = -Infinity;
   }
 
+  /**
+   * 開始長按加速：以指定的速度（含方向、可超出一般速度範圍）持續推進攝影機，
+   * 不受 playing/seeking 狀態影響（暫停中長按也能預覽快轉/倒轉）
+   */
+  startBoost(speed: number): void {
+    this.boostSpeed = speed;
+    this.lastTime = 0;
+  }
+
+  /**
+   * 結束長按加速，恢復原本的 playing/speed 推進邏輯
+   */
+  endBoost(): void {
+    this.boostSpeed = null;
+    this.lastTime = 0;
+  }
+
+  /**
+   * 以目前顯示中的圖片為基準，跳到前後第 delta 張（依無限捲動邊界折返，不影響 playing 狀態）
+   */
+  jumpBy(delta: number): void {
+    const { offsets, stripWidth } = this.layout;
+    const n = this.params.images.length;
+    if (n === 0 || stripWidth <= 0) return;
+
+    const { currentIndex } = this.computeProgress();
+    const targetIndex = (((currentIndex + delta) % n) + n) % n;
+
+    this.cameraX = offsets[targetIndex];
+    this.cameraXLastComputed = -Infinity;
+  }
+
   // ---
 
   /**
    * rAF 迴圈的回調函數
    */
   private tick = (ts: number): void => {
-    // 處理播放，推進 cameraX
-    if (this.playing && !this.seeking && this.layout.stripWidth > 0) {
+    // 長按加速優先於一般播放推進，暫停中也會生效
+    if (this.boostSpeed !== null && this.layout.stripWidth > 0) {
+      if (!this.lastTime) this.lastTime = ts;
+      const dt = ts - this.lastTime;
+      this.lastTime = ts;
+      this.cameraX += this.boostSpeed * (dt / 16.667);
+    } else if (this.playing && !this.seeking && this.layout.stripWidth > 0) {
       if (!this.lastTime) this.lastTime = ts;
       const dt = ts - this.lastTime;
       this.lastTime = ts;

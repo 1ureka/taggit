@@ -15,6 +15,5 @@ export const load: PageServerLoad = ({ url }) => {
     list: base.list.with({ limit: base.list.limit > 0 ? base.list.limit : 100 }),
   });
 
-  const { items, total } = query.tags(spec);
-  return { items, total };
+  return query.tags(spec);
 };

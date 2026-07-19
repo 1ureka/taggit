@@ -1,21 +1,16 @@
 <script lang="ts">
   import type { Tag } from "$lib/database";
   import Chip from "$lib/components/display/Chip.svelte";
+  import { getBoardContext } from "../logic/board.svelte";
 
-  type Props = {
-    /** 刪除組的所有標籤 */
-    tags: Tag[];
-    /** 移除某標籤事件 */
-    onremove: (name: string) => void;
-  };
-
-  let { tags, onremove }: Props = $props();
+  const board = getBoardContext();
+  const tags = $derived(board.deleteZone.tags);
 </script>
 
 <p>拖進來的標籤會自所有圖片移除</p>
 
 {#snippet chip({ name, count }: Tag)}
-  <Chip variant="outlined" removable onclick={() => onremove(name)}>
+  <Chip variant="outlined" removable onclick={() => board.detachTag(name)}>
     <span class="chip-name ellipsis">{name}</span>
     <span class="chip-count">{count}</span>
   </Chip>

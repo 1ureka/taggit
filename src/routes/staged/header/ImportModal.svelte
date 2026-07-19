@@ -3,26 +3,17 @@
   import Button from "$lib/components/actions/Button.svelte";
   import LinearProgress from "$lib/components/display/LinearProgress.svelte";
   import ImportGuide from "./ImportGuide.svelte";
-  import type { ImportProgress, ImportResult } from "./import";
+  import type { ImportProgress, ImportResult } from "../logic/import-api";
+  import { getImportContext } from "../logic/import.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
 
-  type Props = {
-    /** 是否開啟匯入對話框 */
-    open: boolean;
-    /** 是否正在匯入中 */
-    pending: boolean;
-    /** 匯入中的即時進度，尚未開始或已結束時為 null */
-    progress: ImportProgress | null;
-    /** 上一次匯入完成後的結果摘要，尚未匯入或已重置時為 null */
-    result: ImportResult | null;
-    /** 關閉對話框事件 */
-    onclose: () => void;
-    /** 選擇檔案事件 */
-    onimport: (file: File) => void;
-  };
+  const importer = getImportContext();
+  const operations = getOperationsContext();
 
-  let { open, pending, progress, result, onclose, onimport }: Props = $props();
-
-  const percent = $derived(progress && progress.total > 0 ? (progress.current / progress.total) * 100 : undefined);
+  const percent = $derived.by(() => {
+    const p = importer.progress;
+    return p && p.total > 0 ? (p.current / p.total) * 100 : undefined;
+  });
 </script>
 
 {#snippet resultDisplay({ imported, skipped, errors }: ImportResult)}
@@ -37,7 +28,7 @@
   {/if}
 
   <div class="actions">
-    <Button variant="primary" onclick={onclose}>關閉</Button>
+    <Button variant="primary" onclick={importer.handleClose}>關閉</Button>
   </div>
 {/snippet}
 
@@ -47,16 +38,16 @@
   <LinearProgress value={percent} size="md" color="var(--color-accent)" />
 {/snippet}
 
-<Modal {open} {onclose} aria-label="匯入紀錄">
+<Modal open={importer.open} onclose={importer.handleClose} aria-label="匯入紀錄">
   <div class="body">
     <h3>匯入紀錄</h3>
 
-    {#if result}
-      {@render resultDisplay(result)}
-    {:else if pending}
-      {@render progressDisplay(progress ?? { current: 0, total: 0 })}
+    {#if importer.result}
+      {@render resultDisplay(importer.result)}
+    {:else if operations.pending}
+      {@render progressDisplay(importer.progress ?? { current: 0, total: 0 })}
     {:else}
-      <ImportGuide {onimport} {onclose} />
+      <ImportGuide />
     {/if}
   </div>
 </Modal>

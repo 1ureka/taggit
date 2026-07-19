@@ -1,40 +1,32 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { ImageWithId } from "$lib/database";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import InverseRadius from "$lib/widgets/InverseRadius.svelte";
+  import InverseRadius from "$lib/components/widgets/InverseRadius.svelte";
   import List from "./List.svelte";
 
   type Props = {
-    /** 篩選結果列表 */
-    items: ImageWithId[];
-    /** 篩選結果總數 */
-    total: number;
-    /** 已釘選的圖片 ids */
-    pinnedIds: string[];
-    /** 切換釘選事件 */
-    ontoggle: (id: string) => void;
     /** 面板右側外部的內容 */
     children: Snippet;
   };
 
-  let { items, total, pinnedIds, ontoggle, children }: Props = $props();
+  let { children }: Props = $props();
+
+  let collapsed = $state(false);
 
   $effect(() => {
-    if (window.innerWidth < 600) {
-      document.documentElement.style.setProperty("--left-panel-width", "0px");
-    }
+    // 只在掛載當下依目前視窗寬度決定初始收合狀態
+    if (window.innerWidth < 600) collapsed = true;
+  });
+
+  $effect(() => {
+    const root = document.documentElement;
+    if (collapsed) root.style.setProperty("--left-panel-width", "0px");
+    else root.style.removeProperty("--left-panel-width");
+    return () => root.style.removeProperty("--left-panel-width");
   });
 
   const handleTogglePanel = () => {
-    const root = document.documentElement;
-    const property = getComputedStyle(root).getPropertyValue("--left-panel-width");
-
-    if (!property.trim()) {
-      root.style.setProperty("--left-panel-width", "0px");
-    } else {
-      root.style.removeProperty("--left-panel-width");
-    }
+    collapsed = !collapsed;
   };
 </script>
 
@@ -44,7 +36,7 @@
   {@render children()}
 
   <aside>
-    <List {items} {total} {pinnedIds} {ontoggle} />
+    <List />
 
     <button
       type="button"

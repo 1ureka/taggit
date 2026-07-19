@@ -1,15 +1,16 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
   import { IconDatabase } from "$lib/icons";
+  import { getImportContext } from "../logic/import.svelte";
 
-  let { onclose, onimport }: { onclose: () => void; onimport: (file: File) => void } = $props();
+  const importer = getImportContext();
 
   let fileInput = $state<HTMLInputElement>();
 
   const handleFileChange = (e: Event) => {
     const input = e.target as HTMLInputElement;
     if (!input.files?.length) return;
-    onimport(input.files[0]);
+    importer.handleImportFile(input.files[0]);
     input.value = "";
   };
 </script>
@@ -27,7 +28,7 @@
 </ul>
 
 <div>
-  <Button variant="outlined" onclick={onclose}>取消</Button>
+  <Button variant="outlined" onclick={importer.handleClose}>取消</Button>
   <Button variant="primary" onclick={() => fileInput?.click()}>
     <IconDatabase size={16} />
     <span>選擇 JSON 檔案</span>

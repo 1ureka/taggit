@@ -2,34 +2,40 @@
   import { IconAlertCircleFilled } from "$lib/icons";
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagInput from "$lib/widgets/TagInput.svelte";
-  import { stripExt, problemOf, type Draft } from "./draft";
+  import TagInput from "$lib/components/widgets/TagInput.svelte";
 
-  let { activeFile: file, draft = $bindable() }: { activeFile: string; draft: Draft } = $props();
+  import { getEditorContext } from "../logic/editor.svelte";
+  import { stripExt, problemOf } from "../logic/draft";
 
   const id = $props.id();
-  const problem = $derived(problemOf(draft));
+
+  const editor = getEditorContext();
+  const file = $derived(editor.activeFile);
+  const draft = $derived(editor.activeDraft);
 </script>
 
-<div>
-  <div class="field-name">
-    <TextInput label="名稱" placeholder={stripExt(file)} bind:value={draft.name} aria-describedby="{id}-name-hint" />
-    <span id="{id}-name-hint">留空則沿用去除副檔名的檔名</span>
-  </div>
+{#if file !== null && draft}
+  {@const problem = problemOf(draft)}
+  <div>
+    <div class="field-name">
+      <TextInput label="名稱" placeholder={stripExt(file)} bind:value={draft.name} aria-describedby="{id}-name-hint" />
+      <span id="{id}-name-hint">留空則沿用去除副檔名的檔名</span>
+    </div>
 
-  <div class="field-rating">
-    <span>評等</span>
-    <Rating bind:value={draft.rating} />
-  </div>
+    <div class="field-rating">
+      <span>評等</span>
+      <Rating bind:value={draft.rating} />
+    </div>
 
-  <div class="field-tags">
-    <TagInput bind:tags={draft.tags} label="標籤" />
-  </div>
+    <div class="field-tags">
+      <TagInput bind:tags={draft.tags} label="標籤" />
+    </div>
 
-  {#if problem}
-    <span class="problem"><IconAlertCircleFilled size={14} />{problem}</span>
-  {/if}
-</div>
+    {#if problem}
+      <span class="problem"><IconAlertCircleFilled size={14} />{problem}</span>
+    {/if}
+  </div>
+{/if}
 
 <style>
   div:has(> .field-name) {

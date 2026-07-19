@@ -1,34 +1,31 @@
 <script lang="ts">
-  import type { ReviewEntry } from "./reviewEntry";
   import { IconAlertCircleFilled } from "$lib/icons";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
 
-  type Props = {
-    /** 所有紀錄 */
-    entry: ReviewEntry;
-    /** 點擊紀錄名稱事件 */
-    onedit: (filename: string) => void;
-    /** 點擊紀錄圖片事件 */
-    onpreview: (filename: string) => void;
-    /** 點擊紀錄勾選框事件 */
-    ontoggle: (filename: string) => void;
-  };
+  import type { ReviewEntry } from "../logic/review-entry";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getLightboxContext } from "../logic/lightbox.svelte";
 
-  let { entry, ontoggle, onedit, onpreview }: Props = $props();
+  let { entry }: { entry: ReviewEntry } = $props();
+
+  const review = getReviewContext();
+  const lightbox = getLightboxContext();
 </script>
 
 {#snippet thumbnail({ filename, imgSrc }: ReviewEntry)}
   {@const label = `檢視 ${filename} 大圖`}
-  <button type="button" class="thumbnail" title={label} aria-label={label} onclick={() => onpreview(filename)}>
+  {@const handleClick = () => lightbox.handleOpen(filename)}
+  <button type="button" class="thumbnail" title={label} aria-label={label} onclick={handleClick}>
     <img src={imgSrc} alt={filename} />
   </button>
 {/snippet}
 
 {#snippet name({ name, filename }: ReviewEntry)}
   {@const label = `繼續編輯 ${filename}`}
-  <button type="button" class="name ellipsis" title={label} aria-label={label} onclick={() => onedit(filename)}>
+  {@const handleClick = () => review.handleEdit(filename)}
+  <button type="button" class="name ellipsis" title={label} aria-label={label} onclick={handleClick}>
     {name}
   </button>
 {/snippet}
@@ -49,7 +46,7 @@
   <Checkbox
     checked={entry.checked}
     status={entry.checkable ? "default" : "disabled"}
-    onchange={() => ontoggle(entry.filename)}
+    onchange={() => review.handleToggle(entry.filename)}
     aria-label={`包含 ${entry.filename}`}
   />
 

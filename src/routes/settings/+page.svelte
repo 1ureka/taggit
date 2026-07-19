@@ -1,53 +1,28 @@
 <script lang="ts">
   import type { PageData } from "./$types";
 
+  import { createPageDataContext } from "./logic/page-data.svelte";
+  import { createNavContext } from "./logic/nav.svelte";
+  import { createCollectionContext } from "./logic/collection.svelte";
+  import { createCacheContext } from "./logic/cache.svelte";
+  import { createMetadataContext } from "./logic/metadata.svelte";
+  import { createMissingContext } from "./logic/missing.svelte";
+  import { createBackupContext } from "./logic/backup.svelte";
+
+  import SectionNav from "./nav/SectionNav.svelte";
   import CollectionSection from "./sections/CollectionSection.svelte";
   import CacheSection from "./sections/CacheSection.svelte";
   import MaintenanceSection from "./sections/MaintenanceSection.svelte";
-  import Button from "$lib/components/actions/Button.svelte";
 
   let { data }: { data: PageData } = $props();
 
-  // ---
-
-  const sections = $derived.by(() => {
-    const base = [{ id: "collection", label: "圖片集路徑" }];
-    if (data.databaseLoaded) {
-      base.push({ id: "images", label: "圖片與快取" });
-      base.push({ id: "maintenance", label: "系統維護" });
-    }
-    return base;
-  });
-
-  let mainEl = $state<HTMLElement>();
-  let activeId = $state("collection");
-
-  // scroll-spy：捲動時以「區塊頂端進入容器頂端 100px 內」判定當前區塊
-  $effect(() => {
-    const container = mainEl;
-    if (!container) return;
-    const ids = sections.map((s) => s.id);
-
-    const onScroll = () => {
-      const containerTop = container.getBoundingClientRect().top;
-      let current = ids[0] ?? "collection";
-      for (const id of ids) {
-        const el = document.getElementById(`section-${id}`);
-        if (!el) continue;
-        if (el.getBoundingClientRect().top - containerTop <= 100) {
-          current = id;
-        }
-      }
-      activeId = current;
-    };
-
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  });
-
-  const handleNavClick = (id: string) => {
-    document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth" });
-  };
+  createPageDataContext(() => data);
+  const nav = createNavContext();
+  createCollectionContext();
+  createCacheContext();
+  createMetadataContext();
+  createMissingContext();
+  createBackupContext();
 </script>
 
 <svelte:head>
@@ -55,31 +30,22 @@
 </svelte:head>
 
 <div class="layout">
-  <nav>
-    {#each sections as section (section.id)}
-      {@const active = section.id === activeId}
-      {@const background = active ? "background-color: var(--color-bg-active);" : ""}
-      {@const style = `font: var(--font-body2); display: block; text-align: left; ${background}`}
-      <Button variant="ghost" {style} onclick={() => handleNavClick(section.id)}>
-        {section.label}
-      </Button>
-    {/each}
-  </nav>
+  <SectionNav />
 
-  <main bind:this={mainEl}>
+  <main>
     <div class="slide-up">
-      <section id="section-collection">
+      <section id="section-collection" {@attach nav.observe}>
         <h2>圖片集路徑</h2>
-        <CollectionSection collectionRoot={data.collectionRoot} />
+        <CollectionSection />
       </section>
 
       {#if data.databaseLoaded}
-        <section id="section-images">
+        <section id="section-images" {@attach nav.observe}>
           <h2>圖片與快取</h2>
-          <CacheSection cacheStats={data.cacheStats} />
+          <CacheSection />
         </section>
 
-        <section id="section-maintenance">
+        <section id="section-maintenance" {@attach nav.observe}>
           <h2>系統維護</h2>
           <MaintenanceSection />
         </section>
@@ -99,34 +65,11 @@
     }
   }
 
-  /* --- */
-
-  nav {
-    width: 200px;
-    flex-shrink: 0;
-    padding: 1.5rem 0.75rem;
-    border-right: var(--border-style);
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-
-    @media (max-width: 768px) {
-      width: 100%;
-      flex-direction: row;
-      padding: 0.5rem 0.75rem;
-      border-right: none;
-      border-bottom: var(--border-style);
-      overflow-x: auto;
-      gap: 0.25rem;
-    }
-  }
-
-  /* --- */
-
   main {
     flex: 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
+    scroll-behavior: smooth;
     min-height: 0;
 
     & > div.slide-up {

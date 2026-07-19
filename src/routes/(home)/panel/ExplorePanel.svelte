@@ -1,63 +1,114 @@
 <script lang="ts">
-  import ExploreButtons from "./ExploreButtons.svelte";
-  import ColumnSelect from "./ColumnSelect.svelte";
-  import ExploreFields from "./ExploreFields.svelte";
+  import type { Snippet } from "svelte";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import InverseRadius from "$lib/components/widgets/InverseRadius.svelte";
+  import Explore from "./Explore.svelte";
 
   type Props = {
-    /** 篩選結果總數 */
-    total: number;
-    /** 圖片牆欄數 */
-    columns: number;
+    /** 面板右側外部的內容（圖片牆） */
+    children: Snippet;
   };
 
-  let { total, columns = $bindable() }: Props = $props();
+  let { children }: Props = $props();
+
+  let collapsed = $state(false);
+
+  $effect(() => {
+    // 只在掛載當下依目前視窗寬度決定初始收合狀態
+    if (window.innerWidth < 600) collapsed = true;
+  });
+
+  $effect(() => {
+    const root = document.documentElement;
+    if (collapsed) root.style.setProperty("--left-panel-width", "0px");
+    else root.style.removeProperty("--left-panel-width");
+    return () => root.style.removeProperty("--left-panel-width");
+  });
+
+  const handleTogglePanel = () => {
+    collapsed = !collapsed;
+  };
 </script>
 
-<div>
-  <header>
-    <h2>探索與靈感</h2>
-    <p>共 {total} 張</p>
-  </header>
+<div class="spacer"></div>
 
-  <ExploreFields />
-  <ColumnSelect bind:columns />
-  <ExploreButtons />
-</div>
+{@render children()}
+
+<aside>
+  <Explore />
+
+  <button
+    type="button"
+    aria-label="開合探索面板"
+    {@attach tooltip({ content: "開合探索面板", placement: "right" })}
+    onclick={handleTogglePanel}
+  >
+    <InverseRadius corner="bottom-left" size="16px" />
+  </button>
+</aside>
 
 <style>
-  div {
-    position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+  div.spacer {
+    width: var(--left-panel-width, 280px);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: 0px;
+    }
   }
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0px 0.75rem;
-    height: 2.5rem;
-    min-height: 2.5rem;
-    border-bottom: var(--border-style);
+  aside {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    overflow: visible;
+    background: var(--color-bg-card);
     border-right: var(--border-style);
+    width: 280px;
+    transform: translateX(calc(-100% + var(--left-panel-width, 280px)));
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 600px) {
+      width: calc(100% - 32px);
+      transform: translateX(calc(-100% + var(--left-panel-width, 100%)));
+    }
+  }
+
+  aside > button {
+    position: absolute;
+    overflow: visible;
+    top: 0;
+    left: 100%;
+    width: 32px;
+    height: 100px;
+    background-color: var(--color-bg-card);
     border-bottom-right-radius: 16px;
-    background: var(--color-bg);
-  }
+    border: var(--border-style);
+    border-top: 0px;
+    border-left: 0px;
 
-  h2 {
-    font: var(--font-body1);
-    font-weight: normal;
-  }
+    display: grid;
+    place-items: center;
 
-  p {
-    font: var(--font-caption);
-    font-family: var(--font-family-mono);
-    color: var(--color-text-muted);
+    &::after {
+      content: "";
+      display: block;
+      width: 20%;
+      height: 60%;
+      background: var(--color-border);
+      border-radius: 999px;
+      transition:
+        background 0.15s,
+        transform 0.15s;
+    }
+
+    &:hover::after {
+      background: var(--color-border-hover);
+      scale: 1.05;
+    }
+
+    &:active::after {
+      scale: 0.95;
+    }
   }
 </style>

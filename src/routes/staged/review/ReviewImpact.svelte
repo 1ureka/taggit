@@ -1,8 +1,9 @@
 <script lang="ts">
   import Chip from "$lib/components/display/Chip.svelte";
   import { IconInfoCircleFilled } from "$lib/icons";
+  import { getReviewContext } from "../logic/review.svelte";
 
-  let { checkedCount, tags }: { checkedCount: number; tags: string[] } = $props();
+  const review = getReviewContext();
 </script>
 
 {#snippet tag(t: string)}
@@ -16,13 +17,13 @@
 
 <div>
   <IconInfoCircleFilled size={16} />
-  {#if checkedCount === 0}
+  {#if review.checkedCount === 0}
     <span>尚未勾選任何項目。</span>
-  {:else if tags.length === 0}
+  {:else if review.newTags.length === 0}
     <span>此次變動不會產生新標籤。</span>
   {:else}
-    <span>此次提交將建立 {tags.length} 個新標籤：</span>
-    {#each tags as t (t)}{@render tag(t)}{/each}
+    <span>此次提交將建立 {review.newTags.length} 個新標籤：</span>
+    {#each review.newTags as t (t)}{@render tag(t)}{/each}
   {/if}
 </div>
 

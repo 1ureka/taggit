@@ -4,28 +4,23 @@
   import Button from "$lib/components/actions/Button.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
 
-  type Props = {
-    /** 目前正在編輯的檔案的檔案名稱 */
-    activeFile: string;
-    /** 目前正在編輯的檔案的指標 */
-    activeIndex: number;
-    /** 暫存檔案的總數量 */
-    fileCount: number;
-    /** 點擊關閉面板按紐事件 */
-    onclose: () => void;
-  };
+  import { getPageDataContext } from "../logic/page-data.svelte";
+  import { getEditorContext } from "../logic/editor.svelte";
 
-  let { activeFile, activeIndex, fileCount, onclose }: Props = $props();
+  const pageData = getPageDataContext();
+  const editor = getEditorContext();
+
+  const fileCount = $derived(pageData.value.stagedFiles.length);
 </script>
 
 <header>
-  <h3 class="ellipsis" title={activeFile}>{activeFile}</h3>
-  <Chip variant="outlined" style="font: var(--font-caption);">{`${activeIndex} / ${fileCount}`}</Chip>
+  <h3 class="ellipsis" title={editor.activeFile ?? ""}>{editor.activeFile}</h3>
+  <Chip variant="outlined" style="font: var(--font-caption);">{`${editor.activeIndex} / ${fileCount}`}</Chip>
   <Button
     variant="ghost"
     padding="icon"
     aria-label="關閉表單"
-    onclick={onclose}
+    onclick={editor.handleClose}
     {@attach tooltip({ content: "關閉表單" })}
   >
     <IconX size={16} />

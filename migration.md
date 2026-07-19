@@ -1,12 +1,9 @@
 # Taggit v3 規劃：複製 workbench、移植後端、分階段重寫路由
 
-> 本報告是自成一體的執行規劃。做法：**複製 svelte-workbench（本專案）成為新專案**，把 taggit（`C:\Users\Summe\Documents\Projects\taggit`）的後端整包移植進來，前端路由在 workbench 的元件庫與基座上全部重寫。
->
-> 節奏原則（已與使用者確認）：**路由頁面重寫之前的所有工程一次到位**（Phase 0，單一大階段），只有**路由頁面本身分階段**（Phase 1~6）。
-
 ---
 
 ## 一、方案輪廓
+<!-- TODO: 該章節刪除大部分，只留下實際目前狀態**簡述** -->
 
 - 新專案（暫稱 `taggit-next`）的前端基因 100% 來自 workbench：token 主題系統（`$lib/assets/theme.css` + `app.css`、`html[data-theme]` 雙主題）、原生 top-layer 浮層（`<dialog>`/popover API，無 z-index 系統）、元件 + `.core.svelte.ts` 架構、`OneOf`/`variant`/`status`/`padding` 慣例。
 - 後端基因 100% 來自 taggit：in-memory 資料庫（`db.json` 載入、SIGINT flush）、sharp 縮圖管線、blurhash、REST API、`query-spec` 同構查詢值物件、`test/` 後端測試。
@@ -18,6 +15,8 @@
 ---
 
 ## 二、Phase 0：一次到位的建置（唯一的非路由階段）
+
+<!-- TODO: 該章節刪除大部分，只留下實際目前狀態**簡述**，比如目前並沒有留 /lab -->
 
 Phase 0 完成後，新專案應該是：後端測試全綠、API 全部可打、全域殼層與服務就緒、元件庫展示場保留可用——**只差業務頁面**。以下每一節都是 Phase 0 的一部分，一個分支內做完。
 
@@ -139,6 +138,8 @@ Phase 0 首發（殼層與多數路由都會用到的）：
 
 ## 三、Phase 1~6：路由重寫（分階段）
 
+<!-- TODO: 該章節刪除大部分，只留下還沒補上圖章模式的 /staged, 還沒遷移的 /committed (editor), /tags-cleanup (/tags/cleanup) -->
+
 排序邏輯：`/settings` 是全 app 入口必須最先；接著優先湊出「**最小日常可用集**＝能設定、能瀏覽」讓新專案盡早接管日常，再依 UX 收斂度由高到低排；editor 因全局視角未定案排最後。每條路由都以 taggit 對應原型/現行頁為**規格參考**（邏輯可抄、markup 全新），寫完即為正式版。
 
 ### Phase 1：`/settings`
@@ -182,6 +183,8 @@ Phase 0 首發（殼層與多數路由都會用到的）：
 
 ### 每個 Phase 的共同完成定義
 
+<!-- TODO: 該小節刪除 -->
+
 1. 不引用任何 taggit 舊 utility class 概念（`.btn-*`/`.text-input`/`.chip` 不存在於新專案）；樣式只用 token。
 2. 頁面邏輯無 presenter class；資料夾結構符合 0.8 慣例。
 3. light/dark 雙主題走查通過；鍵盤基本盤（focus 順序、Escape 關浮層）通過。
@@ -191,6 +194,8 @@ Phase 0 首發（殼層與多數路由都會用到的）：
 ---
 
 ## 四、過渡期紀律與切換
+
+<!-- TODO: 該大節刪除 -->
 
 ### db.json 單寫者（過渡期最重要的一條）
 
@@ -210,6 +215,8 @@ taggit 的資料庫是「啟動載入進記憶體、SIGINT 時 flush 回寫」�
 ---
 
 ## 五、風險與未決事項
+
+<!-- TODO: 該大節刪除 -->
 
 | 項目 | 說明 | 對策 |
 | --- | --- | --- |

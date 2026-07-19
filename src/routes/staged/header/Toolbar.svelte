@@ -3,46 +3,42 @@
   import SessionProgress from "./SessionProgress.svelte";
   import { IconDatabase, IconReload } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getEditorContext } from "../logic/editor.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getImportContext } from "../logic/import.svelte";
 
-  type Props = {
-    /** 暫存區圖片總數 */
-    fileCount: number;
-    /** 有本地修改、可送去審查的張數 */
-    touchedCount: number;
-    /** 可提交的張數 */
-    readyCount: number;
-    /** 全頁共用的操作鎖 */
-    pending: boolean;
-    /** 重新整理事件 */
-    onrefresh: () => void;
-    /** 前往審查流程事件 */
-    onreview: () => void;
-    /** 開啟匯入對話框事件 */
-    onimport: () => void;
-  };
+  const operations = getOperationsContext();
+  const editor = getEditorContext();
+  const review = getReviewContext();
+  const importer = getImportContext();
 
-  let { fileCount, touchedCount, readyCount, pending, onrefresh, onreview, onimport }: Props = $props();
+  const touchedCount = $derived(editor.touchedFiles.length);
 </script>
 
 <div class="toolbar">
-  <SessionProgress {fileCount} {touchedCount} {readyCount} />
+  <SessionProgress />
 
   <div class="actions">
     <Button
       variant="ghost"
       padding="icon"
       aria-label="重新整理"
-      status={pending ? "pending" : undefined}
-      onclick={onrefresh}
+      status={operations.pending ? "pending" : undefined}
+      onclick={operations.handleRefresh}
       {@attach tooltip({ content: "重新整理" })}
     >
       <IconReload size={16} />
     </Button>
-    <Button variant="outlined" status={pending ? "disabled" : undefined} onclick={onimport}>
+    <Button variant="outlined" status={operations.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
       <IconDatabase size={16} />
       <span>匯入紀錄</span>
     </Button>
-    <Button variant="primary" status={touchedCount === 0 ? "disabled" : undefined} onclick={onreview}>
+    <Button
+      variant="primary"
+      status={operations.pending || touchedCount === 0 ? "disabled" : undefined}
+      onclick={review.handleOpen}
+    >
       檢視待提交的變更 ({touchedCount})
     </Button>
   </div>

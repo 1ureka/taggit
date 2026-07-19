@@ -1,21 +1,19 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
+  import { getBoardContext } from "../logic/board.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
-  type Props = {
-    /** 目前選取標籤的數量 */
-    selected: number;
-    /** 點擊創建堆事件 */
-    oncreate: () => void;
-  };
+  const board = getBoardContext();
+  const selection = getSelectionContext();
 
-  let { selected, oncreate }: Props = $props();
+  const oncreate = () => board.createGroup(selection.consume());
 </script>
 
-<p>拖曳到這裡建立<b>合併堆</b></p>
+<p>拖曳到這裡建立<b>合併區</b></p>
 
 <Button
   variant="outlined"
-  status={selected === 0 ? "disabled" : undefined}
+  status={selection.size === 0 ? "disabled" : undefined}
   onclick={oncreate}
   style="font: var(--font-caption)"
 >

@@ -1,60 +1,34 @@
 <script lang="ts">
-  import type { ReviewEntry } from "./reviewEntry";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
   import ReviewListItem from "./ReviewListItem.svelte";
 
-  type Props = {
-    /** 待送出的操作清單 */
-    entries: ReviewEntry[];
-    /** 已勾選的數量 */
-    checkedCount: number;
-    /** 可勾選的數量 */
-    readyCount: number;
-    /** 是否正在送出 */
-    pending: boolean;
-    /** 點擊操作勾選框事件 */
-    ontoggle: (name: string) => void;
-    /** 點擊全選勾選框事件 */
-    ontoggleall: () => void;
-    /** 捨棄單筆操作事件 */
-    ondiscard: (name: string) => void;
-  };
-
-  let { entries, checkedCount, readyCount, pending, ontoggle, ontoggleall, ondiscard }: Props = $props();
-
-  const bulkSelectionState = $derived.by(() => {
-    if (readyCount === 0 || checkedCount === 0) return "unchecked";
-    if (readyCount === checkedCount) return "checked";
-    return "indeterminate";
-  });
+  const review = getReviewContext();
+  const operations = getOperationsContext();
 </script>
 
 <div class="container">
-  <ul inert={pending} aria-busy={pending}>
+  <ul inert={operations.pending} aria-busy={operations.pending}>
     <li>
       <Checkbox
-        checked={bulkSelectionState === "checked"}
-        indeterminate={bulkSelectionState === "indeterminate"}
-        status={readyCount === 0 ? "disabled" : "default"}
-        onchange={ontoggleall}
+        checked={review.bulkSelectionState === "checked"}
+        indeterminate={review.bulkSelectionState === "indeterminate"}
+        status={review.checkableCount === 0 ? "disabled" : "default"}
+        onchange={review.handleToggleAll}
         aria-label="全選可送出的操作"
       />
       <span>全選</span>
-      <span>{checkedCount} / {readyCount} 可送出操作已選取</span>
+      <span>{review.checkedCount} / {review.checkableCount} 可送出操作已選取</span>
     </li>
 
-    {#each entries as entry (entry.name)}
-      <ReviewListItem
-        {entry}
-        discardable={!pending}
-        ontoggle={() => ontoggle(entry.name)}
-        ondiscard={() => ondiscard(entry.name)}
-      />
+    {#each review.entries as entry (entry.name)}
+      <ReviewListItem {entry} />
     {/each}
   </ul>
 
-  {#if pending}
+  {#if operations.pending}
     <div>
       <CircularProgress size={24} color="var(--color-text-muted)" />
     </div>

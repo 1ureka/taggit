@@ -1,19 +1,18 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import type { ImageWithId } from "$lib/database";
-  import type { Player } from "$lib/virtualizer/player.svelte";
 
   import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import DockProgress from "./DockProgress.svelte";
+  import { getPlaybackContext } from "../logic/playback.svelte";
 
-  let { player }: { player: Player<ImageWithId> } = $props();
+  const playback = getPlaybackContext();
 </script>
 
 <aside aria-label="圖片播放器控制區" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
-  <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={player.handlePlayButtonClick}>
-    {#if player.playing}
+  <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={playback.player.handlePlayButtonClick}>
+    {#if playback.player.playing}
       <IconPlayerPauseFilled size={18} />
     {:else}
       <IconPlayerPlayFilled size={18} />
@@ -26,12 +25,12 @@
       type="range"
       min="0"
       max="1000"
-      value={player.progress.progressValue}
-      oninput={player.handleProgressInput}
-      onchange={player.handleProgressChange}
+      value={playback.player.progress.progressValue}
+      oninput={playback.player.handleProgressInput}
+      onchange={playback.player.handleProgressChange}
       style="width: 100%;"
     />
-    <span>{player.progressText}</span>
+    <span>{playback.player.progressText}</span>
   </div>
 
   <div class="speed">
@@ -41,11 +40,11 @@
       min="-6"
       max="6"
       step="0.5"
-      value={player.speed}
-      oninput={player.handleSpeedInput}
+      value={playback.player.speed}
+      oninput={playback.player.handleSpeedInput}
       style="width: 80px;"
     />
-    <span>{player.speedDisplay}</span>
+    <span>{playback.player.speedDisplay}</span>
   </div>
 </aside>
 

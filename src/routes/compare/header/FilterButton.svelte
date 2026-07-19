@@ -1,28 +1,20 @@
 <script lang="ts">
   import type { HTMLButtonAttributes } from "svelte/elements";
-  import { page } from "$app/state";
-  import { ImageQuery } from "$lib/query-spec";
   import { IconFilter } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
+  import { getFilterContext } from "../logic/filter.svelte";
 
   let props: HTMLButtonAttributes = $props();
 
-  const query = $derived(ImageQuery.fromSearchParams(page.url.searchParams));
-
-  /** 作用中的進階條件數 */
-  const advancedCount = $derived(
-    (query.where.includedTags.length > 0 ? 1 : 0) +
-      (query.where.excludedTags.length > 0 ? 1 : 0) +
-      (query.where.rating !== undefined ? 1 : 0),
-  );
+  const filter = getFilterContext();
 </script>
 
 <Button variant="outlined" aria-label="進階篩選" {...props}>
   <IconFilter size={16} />
   <span>篩選</span>
-  {#if advancedCount > 0}
+  {#if filter.advancedCount > 0}
     <span>
-      <span class="badge">{advancedCount}</span>
+      <span class="badge">{filter.advancedCount}</span>
     </span>
   {/if}
 </Button>

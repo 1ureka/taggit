@@ -2,22 +2,16 @@
   import { innerWidth } from "svelte/reactivity/window";
   import { Masonry } from "$lib/virtualizer/masonry.svelte";
 
-  import type { Draft } from "../inspector/draft";
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
-  import StagedCard from "./Card.svelte";
+  import { getPageDataContext } from "../logic/page-data.svelte";
+  import { getEditorContext } from "../logic/editor.svelte";
+  import Card from "./Card.svelte";
 
-  type Props = {
-    /** 暫存檔案列表 */
-    stagedFiles: string[];
-    /** 暫存圖片的草稿 */
-    drafts: Record<string, Draft>;
-    /** 目前編輯中的暫存圖片 */
-    activeFile: string | null;
-    /** 點擊單張暫存檔案事件 */
-    onselect: (file: string) => void;
-  };
+  const pageData = getPageDataContext();
+  const editor = getEditorContext();
 
-  let { stagedFiles, drafts, activeFile, onselect }: Props = $props();
+  const stagedFiles = $derived(pageData.value.stagedFiles);
+  const activeFile = $derived(editor.activeFile);
 
   const availableWidth = $derived.by(() => {
     const windowWidth = innerWidth.current ?? 1000;
@@ -25,7 +19,7 @@
     return Math.max(1, windowWidth - inspectorWidth);
   });
 
-  const layout = $derived.by(() => breakpoints.find((b) => availableWidth >= b.width)!);
+  const layout = $derived(breakpoints.find((b) => availableWidth >= b.width)!);
   const layoutItems = $derived(stagedFiles.map((id) => ({ id, ...CARD_SIZE })));
 
   const masonry = new Masonry({
@@ -47,30 +41,9 @@
   });
 
   $effect(() => {
-    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片
-    const viewportEl = masonry.viewportEl;
-    if (viewportEl === null || activeFile === null) return;
-
-    const columns = masonry.layout.tracks.length;
-    if (columns === 0) return;
-
-    for (const track of masonry.layout.tracks) {
-      const found = track.find((t) => t.item.id === activeFile);
-      if (found === undefined) continue;
-
-      const pixelColumnWidth = (viewportEl.clientWidth - layout.p * 2) / columns;
-      const pixelY = found.yStart * pixelColumnWidth + layout.p;
-      const pixelH = (found.yEnd - found.yStart) * pixelColumnWidth;
-      const viewTop = viewportEl.scrollTop;
-      const viewBottom = viewTop + viewportEl.clientHeight;
-
-      if (pixelY < viewTop) {
-        viewportEl.scrollTo({ top: pixelY, behavior: "smooth" });
-      } else if (pixelY + pixelH > viewBottom) {
-        viewportEl.scrollTo({ top: pixelY + pixelH - viewportEl.clientHeight, behavior: "smooth" });
-      }
-      break;
-    }
+    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片（座標計算由 masonry 內建處理）
+    if (activeFile === null) return;
+    masonry.scrollToItem(activeFile);
   });
 </script>
 
@@ -82,7 +55,7 @@
   <ul aria-label="暫存卡片牆" style:height="{masonry.masonryHeight}px">
     {#each masonry.masonryItems as item (item.id)}
       <li style={item.style}>
-        <StagedCard filename={item.id} {drafts} {activeFile} {onselect} />
+        <Card filename={item.id} />
       </li>
     {/each}
   </ul>

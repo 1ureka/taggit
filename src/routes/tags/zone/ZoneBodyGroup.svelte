@@ -4,26 +4,14 @@
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
+  import { getBoardContext, type Zone } from "../logic/board.svelte";
 
-  type Props = {
-    /** 合併組的所有標籤 */
-    tags: Tag[];
-    /** 合併名稱 */
-    rename: string;
-    /** 合併後的預估張數， `null` 表示尚無結果 */
-    mergeCount: number | null;
-    /** 移除某標籤事件 */
-    onremove: (name: string) => void;
-    /** rename 有任何變動（打字或設為啟用）時觸發，用來排程重新查詢 */
-    onchange: () => void;
-  };
+  let { group }: { group: Extract<Zone, { kind: "group" }> } = $props();
 
-  let { tags, rename = $bindable(), mergeCount, onremove, onchange }: Props = $props();
+  const board = getBoardContext();
 
-  const setActive = (name: string) => {
-    rename = name;
-    onchange();
-  };
+  const setActive = (name: string) => board.renameGroup(group.id, name);
+  const handleRenameInput = () => board.renameGroup(group.id, group.canonical);
 </script>
 
 <div class="rename">
@@ -31,19 +19,19 @@
     label="合併後的名稱"
     labelHidden
     maxlength={50}
-    bind:value={rename}
-    oninput={onchange}
+    bind:value={group.canonical}
+    oninput={handleRenameInput}
     style="flex: 1; min-width: 0;"
     {@attach tooltip({ content: "合併後的名稱", placement: "left" })}
   />
 
   <span class="rename-count">
-    → {#if mergeCount === null}<span class="skeleton" aria-label="計算中"></span>{:else}{mergeCount}{/if} 張
+    → {#if group.mergeCount === null}<span class="skeleton" aria-label="計算中"></span>{:else}{group.mergeCount}{/if} 張
   </span>
 </div>
 
 {#snippet chip({ name, count }: Tag)}
-  {@const active = rename === name}
+  {@const active = group.canonical === name}
   {@const defaultStyle = "background: var(--color-bg-card); padding: 0.1875rem; transition: all 0.15s ease;"}
   {@const activeBorder = "border-color: hsl(from var(--color-accent) h s l / 0.6);"}
   {@const activeBackground = "background: hsl(from var(--color-accent) h s l / 0.15);"}
@@ -63,7 +51,12 @@
     <span class="chip-count">{count}</span>
 
     <span class="chip-action">
-      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => onremove(name)}>
+      <button
+        type="button"
+        title={removeLabel}
+        aria-label={removeLabel}
+        onclick={() => board.detachTag(name)}
+      >
         <IconX size={14} />
       </button>
     </span>
@@ -71,7 +64,7 @@
 {/snippet}
 
 <div class="chips">
-  {#each tags as tag (tag.name)}
+  {#each group.tags as tag (tag.name)}
     {@render chip(tag)}
   {/each}
 </div>

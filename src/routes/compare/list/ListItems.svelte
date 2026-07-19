@@ -1,26 +1,15 @@
 <script lang="ts">
-  import type { ImageWithId } from "$lib/database";
+  import { getPageDataContext } from "../logic/page-data.svelte";
   import { List } from "$lib/virtualizer/list.svelte";
   import ListItem from "./ListItem.svelte";
 
-  type Props = {
-    /** 目前的項目列表 */
-    items: ImageWithId[];
-    /** 已釘選的圖片 ids */
-    pinnedIds: string[];
-    /** 列表項切換釘選事件 */
-    ontoggle: (id: string) => void;
-  };
-
-  let { items, pinnedIds, ontoggle }: Props = $props();
-
-  const pinnedSet = $derived(new Set(pinnedIds));
+  const pageData = getPageDataContext();
 
   const ROW_HEIGHT = 56;
 
   const list = new List({
     get items() {
-      return items;
+      return pageData.value.items;
     },
     get currentIndex() {
       return null;
@@ -38,7 +27,7 @@
   <ul style="height: {list.listHeight}px" aria-label="圖庫列表">
     {#each list.visibleItems as item (item.id)}
       <li style="top: {item.top}px; height: {item.height}px">
-        <ListItem {item} pinned={pinnedSet.has(item.id)} ontoggle={() => ontoggle(item.id)} />
+        <ListItem {item} />
       </li>
     {/each}
   </ul>

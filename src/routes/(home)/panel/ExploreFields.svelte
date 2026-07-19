@@ -1,69 +1,22 @@
 <script lang="ts">
-  import { page } from "$app/state";
-  import { goto } from "$app/navigation";
-  import { ImageQuery, ImageWhere, ListOptions, IMAGE_SORTS, type ImageSort } from "$lib/query-spec";
-
+  import { IMAGE_SORTS } from "$lib/query-spec";
   import Select from "$lib/components/inputs/Select.svelte";
-  import SearchInput from "$lib/widgets/SearchInput.svelte";
-  import TagInput from "$lib/widgets/TagInput.svelte";
+  import SearchInput from "$lib/components/widgets/SearchInput.svelte";
+  import TagInput from "$lib/components/widgets/TagInput.svelte";
+  import { getFilterContext } from "../logic/filter.svelte";
 
+  const filter = getFilterContext();
   const id = $props.id();
 
-  // URL 是查詢的唯一真相源，使用者互動覆寫後由 apply() 寫回 URL，load 重跑後回到 URL 解析值
-  const query = $derived(ImageQuery.fromSearchParams(page.url.searchParams));
-
-  let search = $derived(query.where.search);
-  let includedTags = $derived(query.where.includedTags);
-  let excludedTags = $derived(query.where.excludedTags);
-  let ratingKey = $derived<string | undefined>(query.where.rating === undefined ? "all" : String(query.where.rating));
-  let ratingOpKey = $derived<string | undefined>(query.where.ratingOp);
-  let sortKey = $derived<string | undefined>(query.list.sort);
-  let orderKey = $derived<string | undefined>(query.list.order);
-
-  /** 標籤分面查詢的 scope：當前 URL 的圖片篩選條件 */
-  const facetScope = $derived(ImageWhere.fromSearchParams(page.url.searchParams).toSearchParams().toString());
-
-  // ---
-
-  /** 由目前欄位組出查詢值物件，寫回 URL */
-  const apply = () => {
-    const where = new ImageWhere({
-      search,
-      includedTags,
-      excludedTags,
-      rating: !ratingKey || ratingKey === "all" ? undefined : Number(ratingKey),
-      ratingOp: (ratingOpKey ?? "gte") as "gte" | "lte" | "eq",
-    });
-
-    const list = new ListOptions<ImageSort>({
-      sort: (sortKey ?? "rating") as ImageSort,
-      order: (orderKey ?? "desc") as "asc" | "desc",
-    });
-
-    const params = new ImageQuery(where, list).toSearchParams(page.url.searchParams);
-    const qs = params.toString();
-    goto(`${page.url.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
-  };
-
-  // ---
-
   const ratingOptions = ["all", "1", "2", "3", "4", "5"];
-  const ratingOpOptions = ["gte", "lte", "eq"];
+  const ratingOpOptions = ["gte", "lte", "eq"] as const;
   const ratingOpLabels: Record<string, string> = { gte: "≥", lte: "≤", eq: "=" };
 
   const sortOptions = [...IMAGE_SORTS];
   const sortLabels: Record<string, string> = { committedAt: "時間", rating: "評分", name: "名稱", random: "隨機" };
 
-  const orderOptions = ["desc", "asc"];
+  const orderOptions = ["desc", "asc"] as const;
   const orderLabels: Record<string, string> = { desc: "降冪", asc: "升冪" };
-
-  const createSelectHandler = (type: "rating" | "ratingOp" | "sort" | "order") => (key: string) => {
-    if (type === "rating") ratingKey = key;
-    if (type === "ratingOp") ratingOpKey = key;
-    if (type === "sort") sortKey = key;
-    if (type === "order") orderKey = key;
-    apply();
-  };
 </script>
 
 {#snippet ratingOpOption(key: string)}{ratingOpLabels[key] ?? key}{/snippet}
@@ -74,15 +27,31 @@
 <div class="fields">
   <div class="field">
     <span class="field-label">名稱</span>
-    <SearchInput bind:value={search} label="搜尋名稱" labelHidden placeholder="搜尋名稱…" onsearch={() => apply()} />
+    <SearchInput
+      label="搜尋名稱"
+      labelHidden
+      placeholder="搜尋名稱…"
+      value={filter.query.where.search}
+      onsearch={filter.handleSearch}
+    />
   </div>
 
   <div class="field">
-    <TagInput bind:tags={includedTags} scope={facetScope} label="包含的標籤" onchange={() => apply()} />
+    <TagInput
+      tags={filter.query.where.includedTags}
+      scope={filter.facetScope}
+      label="包含的標籤"
+      onchange={(tags) => filter.handleTagsChange("includedTags", tags)}
+    />
   </div>
 
   <div class="field">
-    <TagInput bind:tags={excludedTags} scope={facetScope} label="排除的標籤" onchange={() => apply()} />
+    <TagInput
+      tags={filter.query.where.excludedTags}
+      scope={filter.facetScope}
+      label="排除的標籤"
+      onchange={(tags) => filter.handleTagsChange("excludedTags", tags)}
+    />
   </div>
 
   <div class="field">
@@ -93,16 +62,16 @@
         aria-label="評等比較運算"
         options={ratingOpOptions}
         option={ratingOpOption}
-        bind:value={ratingOpKey}
-        onchange={createSelectHandler("ratingOp")}
+        value={filter.query.where.ratingOp}
+        onchange={filter.handleRatingOpChange}
       />
       <Select
         id="{id}-rating"
         aria-label="評等"
         options={ratingOptions}
         option={ratingOption}
-        bind:value={ratingKey}
-        onchange={createSelectHandler("rating")}
+        value={filter.query.where.rating ? String(filter.query.where.rating) : "all"}
+        onchange={filter.handleRatingChange}
       />
     </div>
   </div>
@@ -115,17 +84,17 @@
         aria-label="排序欄位"
         options={sortOptions}
         option={sortOption}
-        bind:value={sortKey}
-        onchange={createSelectHandler("sort")}
+        value={filter.query.list.sort}
+        onchange={filter.handleSortChange}
       />
       <Select
         id="{id}-order"
         aria-label="排序方向"
         options={orderOptions}
         option={orderOption}
-        bind:value={orderKey}
-        onchange={createSelectHandler("order")}
-        disabled={sortKey === "random"}
+        value={filter.query.list.order}
+        onchange={filter.handleOrderChange}
+        status={filter.query.list.sort === "random" ? "disabled" : "default"}
       />
     </div>
   </div>

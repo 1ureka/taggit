@@ -4,32 +4,34 @@
   import { IconAlertTriangleFilled } from "$lib/icons";
   import ChipTooltip from "./ChipTooltip.svelte";
 
-  type Props = {
-    /** 要呈現的標籤 */
-    tag: Tag;
-    /** 該標籤的目前草稿狀態 */
-    status: "idle" | "group" | "delete" | "hidden";
-    /** 該標籤目前是否被選取中 */
-    selected: boolean;
-    /** 點擊標籤事件 */
-    onclick: () => void;
-    /** 標籤拖曳開始事件 */
-    ondragstart: () => void;
-    /** 標籤拖曳結束事件 */
-    ondragend: () => void;
-  };
+  import { getPreviewsContext } from "../logic/previews.svelte";
+  import { getBoardContext } from "../logic/board.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
+  import { getDragContext } from "../logic/drag.svelte";
 
-  let { tag, status, selected, onclick, ondragstart, ondragend }: Props = $props();
+  let { tag }: { tag: Tag } = $props();
+
+  const previews = getPreviewsContext();
+  const board = getBoardContext();
+  const selection = getSelectionContext();
+  const drag = getDragContext();
+
+  const status = $derived(board.chipStatus.get(tag.name) ?? "idle");
+  const selected = $derived(selection.isSelected(tag.name));
 
   const titleMap = {
     idle: "拖到右側分堆，或點選後用按鈕加入",
-    group: "已排入合併堆",
+    group: "已排入合併區",
     delete: "已排入刪除區",
     hidden: "已排入隱藏切換區",
   };
+
+  const onclick = () => selection.handleToggle(tag);
+  const ondragstart = () => drag.handleDragStart(tag);
+  const ondragend = () => drag.handleDragEnd();
 </script>
 
-{#snippet detail()}<ChipTooltip {tag} />{/snippet}
+{#snippet detail()}<ChipTooltip {previews} {tag} />{/snippet}
 
 <button
   type="button"

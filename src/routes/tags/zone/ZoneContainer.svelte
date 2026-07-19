@@ -1,29 +1,36 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { getDragContext, type ZoneTarget } from "../logic/drag.svelte";
 
   type Props = {
-    /** 該容器的用途 */
-    variant: "create" | "group" | "delete" | "hidden";
+    /** 這個容器代表的拖放目標 */
+    target: ZoneTarget;
     /** aria-label */
     "aria-label": string;
     /** 要渲染的內容 */
     children: Snippet;
-    /** 是否為當前拖放目標 */
-    dropping: boolean;
-    /** 成為拖放目標事件 */
-    ondragover: (e: DragEvent) => void;
-    /** 脫離拖放目標事件 */
-    ondragleave: () => void;
-    /** 拖放事件 */
-    ondrop: (e: DragEvent) => void;
     /** 額外樣式 */
     style?: string;
   };
 
-  let { variant, children, dropping, ...rest }: Props = $props();
+  let { target, children, ...rest }: Props = $props();
+
+  const drag = getDragContext();
+  const handlers = $derived(drag.zoneHandlers(target));
+
+  const variant = $derived(target.kind === "new-group" ? "create" : target.kind === "group" ? "group" : target.kind);
 </script>
 
-<div class={{ dropping, [variant]: true }} role="group" {...rest}>{@render children()}</div>
+<div
+  class={{ dropping: handlers.dropping, [variant]: true }}
+  role="group"
+  ondragover={handlers.ondragover}
+  ondragleave={handlers.ondragleave}
+  ondrop={handlers.ondrop}
+  {...rest}
+>
+  {@render children()}
+</div>
 
 <style>
   div {
