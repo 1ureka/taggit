@@ -13,12 +13,11 @@
 
   let collapsed = $state(false);
 
-  // 只在掛載當下依目前視窗寬度決定初始收合狀態，不監聽 resize（刻意行為）
   $effect(() => {
+    // 只在掛載當下依目前視窗寬度決定初始收合狀態
     if (window.innerWidth < 600) collapsed = true;
   });
 
-  // --left-panel-width 是跨路由共用的全域 CSS 變數，卸載時必須清掉，否則收合狀態會滲漏給之後掛載的其他頁面
   $effect(() => {
     const root = document.documentElement;
     if (collapsed) root.style.setProperty("--left-panel-width", "0px");

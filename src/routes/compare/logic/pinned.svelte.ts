@@ -1,21 +1,18 @@
 /**
  * @file pinned.ts
- * /compare 已釘選圖片的 controller。管理 pinnedIds 與其對應紀錄的存取／切換／隨機抽選，
- * 讀取時去重（見 issues/route_compare.md 第 5 條），並在目前結果集（`data.items`，受篩選/排序影響）
- * 變動時，主動剔除已不在其中的 pinned id——原本這類孤兒 id 一旦離開可見結果集就再也沒有 UI
- * 能移除它，會永久卡在 URL 的 `pinned` 參數中（見 issues/route_compare.md 第 3 條）。
+ * 管理已釘選圖片
  */
 
 import { getContext, setContext, untrack } from "svelte";
-import { page } from "$app/state";
 import { replaceState } from "$app/navigation";
+import { page } from "$app/state";
 import { addToast } from "$lib/components/floating/toast-events";
-import type { ImageWithId } from "$lib/database";
 import { getPageDataContext } from "./page-data.svelte";
 
 function parsePinnedIds(params: URLSearchParams): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
+
   for (const raw of (params.get("pinned") ?? "").split(",")) {
     const id = raw.trim();
     if (id && !seen.has(id)) {
@@ -23,6 +20,7 @@ function parsePinnedIds(params: URLSearchParams): string[] {
       out.push(id);
     }
   }
+
   return out;
 }
 
@@ -31,30 +29,25 @@ class PinnedController {
 
   private echo = untrack(() => parsePinnedIds(page.url.searchParams));
   private idsState = $state(this.echo);
-  private idsSet = $derived.by(() => new Set(this.idsState));
+  private idsSet = $derived(new Set(this.idsState));
 
-  private recordsById = $derived.by(() => new Map(this.pageData.value.items.map((r) => [r.id, r])));
+  private recordsById = $derived(new Map(this.pageData.value.items.map((r) => [r.id, r])));
 
   /** 目前釘選、且仍存在於目前結果集內的紀錄 */
-  records = $derived.by(() =>
-    this.idsState.map((id) => this.recordsById.get(id)).filter((r): r is ImageWithId => r !== undefined),
-  );
+  records = $derived(this.idsState.map((id) => this.recordsById.get(id)).filter((r) => r !== undefined));
 
-  get ids(): string[] {
-    return this.idsState;
-  }
-
+  /** 給定的圖片 id 對應的圖片是否被釘選中 */
   isPinned = (id: string) => this.idsSet.has(id);
 
   constructor() {
-    // 上一頁/下一頁或其他外部原因造成 URL 的 pinned 參數變動時才回灌；自己造成的變動已由 commit() 同步 echo
+    // 上一頁/下一頁或其他外部原因造成 URL 的 pinned 參數變動時
     $effect(() => {
       const urlIds = parsePinnedIds(page.url.searchParams);
       if (urlIds.join(",") !== this.echo.join(",")) this.idsState = urlIds;
       this.echo = urlIds;
     });
 
-    // 篩選/排序改變導致結果集變動時，剔除已不在其中的孤兒 pinned id
+    // 篩選/排序改變導致結果集變動時，剔除已不在其中的 pinned id
     $effect(() => {
       const validIds = new Set(this.pageData.value.items.map((r) => r.id));
       const next = this.idsState.filter((id) => validIds.has(id));
@@ -72,16 +65,19 @@ class PinnedController {
     replaceState(`${page.url.pathname}${qs ? `?${qs}` : ""}`, page.state);
   }
 
+  /** 切換指定 id 圖片的釘選狀態 */
   handleTogglePin = (id: string) => {
     const next = this.idsState.includes(id) ? this.idsState.filter((x) => x !== id) : [...this.idsState, id];
     this.commit(next);
   };
 
+  /** 取消指定 id 圖片的釘選狀態 */
   handleUnpin = (id: string) => {
     if (!this.idsState.includes(id)) return;
     this.commit(this.idsState.filter((x) => x !== id));
   };
 
+  /** 重新隨機釘選 N 章圖片 */
   handleShuffle = (count: number) => {
     const pool = this.pageData.value.items;
     if (pool.length === 0) {

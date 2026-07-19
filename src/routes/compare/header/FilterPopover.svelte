@@ -24,8 +24,6 @@
   const ratingOpOptions = ["gte", "lte", "eq"] as const;
   const ratingOpLabels: Record<string, string> = { gte: "≥", lte: "≤", eq: "=" };
 
-  // ---
-
   function handleWindowClick(e: MouseEvent) {
     if (!open) return;
     const target = e.target;

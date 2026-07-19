@@ -1,6 +1,5 @@
 <script lang="ts">
   import { IMAGE_SORTS } from "$lib/query-spec";
-
   import Select from "$lib/components/inputs/Select.svelte";
   import SearchInput from "$lib/widgets/SearchInput.svelte";
   import FilterPopover from "./FilterPopover.svelte";
@@ -17,8 +16,6 @@
   const sortLabels: Record<string, string> = { committedAt: "時間", rating: "評分", name: "名稱", random: "隨機" };
   const orderOptions = ["desc", "asc"] as const;
   const orderLabels: Record<string, string> = { desc: "降冪", asc: "升冪" };
-
-  // ---
 
   const handleToggleMenu = () => {
     menuOpen = !menuOpen;

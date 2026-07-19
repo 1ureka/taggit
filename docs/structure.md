@@ -278,9 +278,9 @@ export const getPageDataContext = () => getContext<{ readonly value: PageData }>
 
 - 元件樹通常只有單層（例如 `compare/cards/*.svelte`）。
 - 已經遵循「狀態 in、事件 out」，只是走 React 那種：狀態靠 prop 往下、事件靠 callback prop 往上。
-- `+page.svelte` 因為要兼任「組裝 + 往下傳遞一切」的樞紐，容易冗長；`compare` 邏輯本來就少，是目前這批裡面比較好的例子。
+- `+page.svelte` 因為要兼任「組裝 + 往下傳遞一切」的樞紐，容易冗長。
 - 真的需要拆邏輯時，做法是子模組自己管投影型別、純函數業務轉換、API 呼叫，獨立成一個 `<domain>.ts`，跟對應的 `*.svelte`（以及一群 `Domain*.svelte`）並排放，`+page` 把兩者一起 import 進來組裝。
-- 目前能參考「現行架構」的路由只有 `compare` 跟 `staged`；`tags` 有偏差，可以看但不能當現行架構的典型長相。
+- 目前能參考「現行架構」的路由只有 ~~`compare`~~ 跟 `staged`；而 `tags` 有偏差，可以看但不能當現行架構的典型長相。
 
 ### 新架構
 
@@ -290,6 +290,7 @@ export const getPageDataContext = () => getContext<{ readonly value: PageData }>
 - 子元件不再靠 prop 拿狀態、callback prop 送事件，改成直接 `getContext` 拿對應 controller，讀它曝光的狀態、呼叫它的 `handle*` 方法——「狀態 in、事件 out」的形狀不變，只是管道換了（見「元件只做『狀態 in、事件 out』的 wire」）。
 - 子元件不再需要建構一個值去符合某個 prop 型別，很多投影型別可以整個不用 export，留在 `logic/<domain>.svelte.ts` 內部。
 - `+page.svelte` 的工作收斂成：呼叫每個 `create<Domain>Context()` 一次，`load` 回來的 `data` 視需要包成 `createPageDataContext`；不再是組裝樞紐，自己也只是「狀態 in、事件 out」原則的根節點實例。
+- 目前能參考「新架構」的路由有 `compare`
 
 ### 示意檔案樹
 
@@ -313,6 +314,7 @@ routes/example/            新
 ### 還沒真的驗證過的地方
 
 - 一個頁面會有幾個 controller、controller 之間該不該互相注入，這是第一次會被用在「同一個頁面多個 controller 並存」的情境，實際切下去大概還會冒出新的細節。
+<!-- 以新 compare 來看，注入的方式比想像中方便、乾淨(指不須要寫很多樣版)，但也很危險(可能會導致循環依賴) -->
 - 子元件直接讀 context，換來的代價是沒辦法脫離 provider 單獨掛載——目前驗收方式是 dev server 走查，不是元件層級自動化測試，這個代價可以接受，但是主動接受的取捨，不是沒想到。
 
 ### 給新對話的使用說明

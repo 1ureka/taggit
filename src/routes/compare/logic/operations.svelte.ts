@@ -1,9 +1,6 @@
 /**
  * @file operations.ts
- * /compare 全頁操作鎖：重新整理／取消提交，兩者互斥於同一個 `pending`。
- * `handleRevert` 成功後一併呼叫 `PinnedController.handleUnpin` 移除該 id、再重新整理資料；
- * 兩個非同步流程原本只包了 `finally`、沒有對應的 `catch`，例外會成為未處理的 rejection、
- * 使用者不會收到任何錯誤提示（見 issues/route_compare.md 第 6 條），這裡一併補上。
+ * 管理全頁操作鎖與重新整理或取消提交等操作
  */
 
 import { getContext, setContext } from "svelte";
@@ -16,8 +13,10 @@ import { getPinnedContext } from "./pinned.svelte";
 class OperationsController {
   private pinned = getPinnedContext();
 
+  /** 全局共用的操作鎖與指示 */
   pending = $state(false);
 
+  /** 重新整理列表 */
   handleRefresh = async () => {
     if (this.pending) return;
 
@@ -34,6 +33,7 @@ class OperationsController {
     }
   };
 
+  /** 退回指定 id 的圖片 */
   handleRevert = async (id: string) => {
     if (this.pending) return;
 

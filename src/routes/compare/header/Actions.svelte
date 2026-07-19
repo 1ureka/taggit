@@ -16,7 +16,7 @@
 </script>
 
 {#snippet shuffleOption(key: string)}
-  <span style="display: block; width: 100%; text-align: center;"> {`抽 ${key} 張`}</span>
+  <span style="display: block; width: 100%; text-align: center;">{`抽 ${key} 張`}</span>
 {/snippet}
 
 <div>
