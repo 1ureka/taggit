@@ -8,7 +8,7 @@ import { page } from "$app/state";
 import { goto } from "$app/navigation";
 import { api } from "$lib/utils/request";
 
-import { getPathHistory, pushPathHistory, clearPathHistory } from "../storage/path-history";
+import { getPathHistory, pushPathHistory, clearPathHistory } from "./path-history";
 import { addToast } from "$lib/components/floating/toast-events";
 import { getPageDataContext } from "./page-data.svelte";
 
