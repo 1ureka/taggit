@@ -17,8 +17,6 @@
   const animatedIndex = $derived(findClosestToMiddle(playback.player.visibleItems, matchesGif));
 </script>
 
-<svelte:window onpointerup={playback.handlePointerUp} onpointercancel={playback.handlePointerUp} />
-
 <main aria-label="圖片播放器">
   <div
     class="strip"

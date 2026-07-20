@@ -53,8 +53,6 @@
   });
 </script>
 
-<svelte:window onpointerup={stamp.handleWindowPointerUp} />
-
 <div class="container" class:strip={stamp.isActive}>
   <div class="anchor" bind:this={anchorEl}></div>
   <StampBadge reference={anchorEl} />

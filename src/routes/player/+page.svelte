@@ -19,7 +19,11 @@
   <title>播放器 — Taggit</title>
 </svelte:head>
 
-<svelte:window onkeydown={playback.player.handleKeydown} />
+<svelte:window
+  onkeydown={playback.player.handleKeydown}
+  onpointerup={playback.handlePointerUp}
+  onpointercancel={playback.handlePointerUp}
+/>
 
 <Strip />
 {#if !dock.hideDock}

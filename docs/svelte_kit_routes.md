@@ -309,6 +309,7 @@ export const getPageDataContext = () => getContext<{ readonly value: PageData }>
 - 一個子組件也可能是拿 A 上下文的狀態投影，但是事件是傳給 B 上下文
 - 子元件不再需要建構一個值去符合某個 prop 型別，很多投影型別可以整個不用導出甚至不用定義，留在 `logic/` 內部。
 - `+page.svelte` 的工作收斂成按照依賴順序呼叫每個 `create<Domain>Context()`
+- 一個頁面通常會有多個 controller，注入的方式可以參考已是新架構的頁面，但也要注意避免循環依賴
 - 推薦參考的已符合當前架構設計的路由有 `compare`, `staged`
 
 ### 示意檔案樹
@@ -330,6 +331,63 @@ routes/example/            新
     └── WidgetItem.svelte
 ```
 
-### 注意事項
 
-- 一個頁面通常會有多個 controller，注入的方式可以參考已是新架構的頁面，但也要注意避免循環依賴
+### window 事件的註冊位置
+
+任何 controller 提供的 handler，只要要用 `<svelte:window>` 訂閱，一律只在 `+page.svelte` 掛載，其中鍵盤事件更是如此。
+
+假設一個清單頁有兩個各自獨立的 controller，一個容易出錯的寫法是
+
+```svelte
+<!-- widgets/List.svelte -->
+<svelte:window onkeydown={selection.handleKeydown} />
+```
+
+```svelte
+<!-- widgets/DetailPanel.svelte -->
+<svelte:window onkeydown={panel.handleKeydown} />
+```
+
+更好的作法是 controller 不直接提供鍵盤事件處理，而是共用本來就用在其他元件的 handler
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  const selection = createSelectionContext();
+  const panel = createPanelContext();
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      panel.handleClose();
+    }
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (panel.isOpen) {
+        panel.handleTurnPage(1);
+      } else {
+        selection.handleMoveCursor(1);
+      }
+    }
+
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (panel.isOpen) {
+        panel.handleTurnPage(-1);
+      } else {
+        selection.handleMoveCursor(-1);
+      }
+    }
+
+    if (e.key === " ") {
+      e.preventDefault();
+      selection.handleToggleSelect();
+    }
+  }
+</script>
+
+<svelte:window onkeydown={handleKeydown} />
+```
+
+> 不經過任何 controller 的情況則沒有特別限制，比如某些局部的浮動元素、選單等，但若他們的開關狀態改由 controller 控制時，也需要遵守限制

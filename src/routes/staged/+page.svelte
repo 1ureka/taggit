@@ -23,7 +23,7 @@
   createPageDataContext(() => data);
   createOperationsContext();
   const editor = createEditorContext();
-  createStampContext();
+  const stamp = createStampContext();
   createLightboxContext();
   createReviewContext();
   createImportContext();
@@ -31,7 +31,7 @@
   beforeNavigate(editor.handleBeforeNavigate);
 </script>
 
-<svelte:window onbeforeunload={editor.handleBeforeUnload} />
+<svelte:window onbeforeunload={editor.handleBeforeUnload} onpointerup={stamp.handleWindowPointerUp} />
 
 <svelte:head>
   <title>Staged</title>
