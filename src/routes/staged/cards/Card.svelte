@@ -1,20 +1,37 @@
 <script lang="ts">
   import { imgSrc } from "$lib/image/client";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import { isTouched, problemOf } from "../logic/draft";
   import { getEditorContext } from "../logic/editor.svelte";
+  import { getStampContext } from "../logic/stamp.svelte";
   import CardInfo from "./CardInfo.svelte";
 
   let { filename }: { filename: string } = $props();
 
   const editor = getEditorContext();
+  const stamp = getStampContext();
 
   const draft = $derived(editor.draftOf(filename));
   const touched = $derived(isTouched(draft));
   const problem = $derived(problemOf(draft));
   const active = $derived(editor.isActive(filename));
+
+  const handleClick = () => {
+    if (stamp.isActive) stamp.handleCardClick(filename);
+    else editor.handleSelect(filename);
+  };
 </script>
 
-<button type="button" class:active onclick={() => editor.handleSelect(filename)}>
+<button
+  type="button"
+  class:active
+  class:stamping={stamp.isActive}
+  aria-label={stamp.isActive ? `蓋上圖章：${filename}` : undefined}
+  onclick={handleClick}
+  onpointerdown={(e) => stamp.handleCardPointerDown(e, filename)}
+  onpointerenter={(e) => stamp.handleCardPointerEnter(e, filename)}
+  {@attach stamp.isActive ? tooltip({ content: "點擊套用圖章" }) : undefined}
+>
   <img src={imgSrc(filename, "sm")} alt={filename} loading="lazy" />
   <CardInfo {filename} {touched} {problem} name={draft.name} rating={draft.rating} tagCount={draft.tags.length} />
 </button>
@@ -72,5 +89,9 @@
     & img {
       border-radius: 0px;
     }
+  }
+
+  button.stamping {
+    cursor: copy;
   }
 </style>

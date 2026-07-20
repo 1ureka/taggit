@@ -5,6 +5,7 @@
   import { createPageDataContext } from "./logic/page-data.svelte";
   import { createOperationsContext } from "./logic/operations.svelte";
   import { createEditorContext } from "./logic/editor.svelte";
+  import { createStampContext } from "./logic/stamp.svelte";
   import { createLightboxContext } from "./logic/lightbox.svelte";
   import { createReviewContext } from "./logic/review.svelte";
   import { createImportContext } from "./logic/import.svelte";
@@ -22,6 +23,7 @@
   createPageDataContext(() => data);
   createOperationsContext();
   const editor = createEditorContext();
+  createStampContext();
   createLightboxContext();
   createReviewContext();
   createImportContext();

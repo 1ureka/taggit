@@ -47,6 +47,10 @@ class EditorController {
   draftOf = (filename: string): Draft => this.drafts[filename] ?? EMPTY_DRAFT;
   /** 指定檔名是否為目前編輯中 */
   isActive = (filename: string) => this.activeFile === filename;
+  /** 覆寫指定檔案的草稿，尚未建立過草稿的檔案會直接建立 */
+  writeDraft = (filename: string, draft: Draft) => {
+    this.drafts[filename] = draft;
+  };
 
   private setActive(file: string | null) {
     if (file !== null) this.drafts[file] ??= emptyDraft();

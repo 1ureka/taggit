@@ -5,10 +5,16 @@
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getEditorContext } from "../logic/editor.svelte";
+  import { getStampContext } from "../logic/stamp.svelte";
+
   import Card from "./Card.svelte";
+  import StampBadge from "./StampBadge.svelte";
 
   const pageData = getPageDataContext();
   const editor = getEditorContext();
+  const stamp = getStampContext();
+
+  let anchorEl = $state<HTMLDivElement>();
 
   const stagedFiles = $derived(pageData.value.stagedFiles);
   const activeFile = $derived(editor.activeFile);
@@ -41,34 +47,69 @@
   });
 
   $effect(() => {
-    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片（座標計算由 masonry 內建處理）
+    // 目前檢視中的卡片變動時，捲動可視範圍到該卡片
     if (activeFile === null) return;
     masonry.scrollToItem(activeFile);
   });
 </script>
 
-<section aria-label="暫存清單" bind:this={masonry.viewportEl}>
-  {#if stagedFiles.length === 0}
-    <p>暫存區目前沒有圖片</p>
-  {/if}
+<svelte:window onpointerup={stamp.handleWindowPointerUp} />
 
-  <ul aria-label="暫存卡片牆" style:height="{masonry.masonryHeight}px">
-    {#each masonry.masonryItems as item (item.id)}
-      <li style={item.style}>
-        <Card filename={item.id} />
-      </li>
-    {/each}
-  </ul>
-</section>
+<div class="container" class:strip={stamp.isActive}>
+  <div class="anchor" bind:this={anchorEl}></div>
+  <StampBadge reference={anchorEl} />
+
+  <section aria-label="暫存清單" bind:this={masonry.viewportEl}>
+    {#if stagedFiles.length === 0}
+      <p>暫存區目前沒有圖片</p>
+    {/if}
+
+    <ul aria-label="暫存卡片牆" style:height="{masonry.masonryHeight}px">
+      {#each masonry.masonryItems as item (item.id)}
+        <li style={item.style}>
+          <Card filename={item.id} />
+        </li>
+      {/each}
+    </ul>
+  </section>
+</div>
 
 <style>
-  section {
+  div.container {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  div.container > div.anchor {
+    position: absolute;
+    top: 0.75rem;
+    right: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  div.container > section {
     position: relative;
     flex: 1;
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable;
+  }
+
+  div.container.strip {
+    --stripe-width: 2rem;
+    background-image: repeating-linear-gradient(
+      45deg,
+      hsl(from var(--color-accent) h s l / 0.05),
+      hsl(from var(--color-accent) h s l / 0.05) var(--stripe-width),
+      hsl(from var(--color-accent) h s l / 0.15) var(--stripe-width),
+      hsl(from var(--color-accent) h s l / 0.15) calc(var(--stripe-width) * 2)
+    );
   }
 
   p {
