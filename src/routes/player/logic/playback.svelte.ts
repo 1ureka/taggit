@@ -5,11 +5,11 @@
 
 import { getContext, setContext } from "svelte";
 import type { ImageWithId } from "$lib/database";
+import { blurhashStyle } from "$lib/image/client";
+import { debounce } from "$lib/utils/shared";
+
 import type { PlayerProgress, PlayerStripItem } from "./player.core";
 import { PlayerEngine } from "./player.core";
-import { blurhashStyle } from "$lib/image/client";
-import { isInEditable } from "$lib/utils/dom";
-import { debounce } from "$lib/utils/shared";
 import { getPageDataContext } from "./page-data.svelte";
 
 type PlaybackImage = ImageWithId & { blurhash: string };
@@ -24,45 +24,31 @@ class PlaybackController {
     })),
   );
 
+  /** 方向鍵單次跳張的張數 */
+  readonly jumpStep = 3;
+  /** 引擎實例 */
+  #engine: PlayerEngine<PlaybackImage> | null = null;
+
   /** 是否正在播放 */
   playing = $state(false);
   /** 播放速度（px / frame） */
   speed = $state(1.5);
-  /** 格式化的速度顯示文字 */
-  speedDisplay: string;
-
-  /** 可見的項目（含虛擬化樣式） */
+  /** 目前長按加速的方向，null 表示未在加速中 */
+  boostDirection = $state<1 | -1 | null>(null);
+  /** 可見的項目 */
   visibleItems = $state<PlayerStripItem<PlaybackImage>[]>([]);
   /** 當前的進度資訊 */
   progress = $state<PlayerProgress>({ cameraX: 0, progressValue: 0, currentIndex: 0 });
-  /** 進度文字，如 "5 / 100" */
-  progressText: string;
+
   /** 播放軌道當前的偏移樣式 */
-  stripTransform: string;
-
-  /** 目前長按加速的方向，null 表示未在加速中 */
-  boostDirection = $state<1 | -1 | null>(null);
-
-  /** 方向鍵單次跳張的張數 */
-  readonly jumpStep = 3;
-
-  /** 引擎實例 */
-  #engine: PlayerEngine<PlaybackImage> | null = null;
+  stripTransform = $derived(`translateX(${-this.progress.cameraX}px)`); // 攝影機不動時，場景為反向移動
+  /** 進度文字，如 `5 / 100` */
+  progressText = $derived.by(() => {
+    if (this.images.length > 0) return `${this.progress.currentIndex + 1} / ${this.images.length}`;
+    else return "0 / 0";
+  });
 
   constructor() {
-    this.speedDisplay = $derived(this.speed.toFixed(1));
-
-    // 攝影機不動時，場景為反向移動
-    this.stripTransform = $derived(`translateX(${-this.progress.cameraX}px)`);
-
-    this.progressText = $derived.by(() => {
-      if (this.images.length > 0) {
-        return `${this.progress.currentIndex + 1} / ${this.images.length}`;
-      } else {
-        return "0 / 0";
-      }
-    });
-
     $effect(() => {
       const images = this.images;
       if (images.length === 0) return;
@@ -91,18 +77,14 @@ class PlaybackController {
     });
   }
 
-  // ---
-
-  #togglePlay() {
+  private togglePlay() {
     this.#engine?.togglePlay();
     this.playing = !this.playing;
   }
 
-  // ---
-
-  /** 切換播放/暫停：Dock 播放鈕與手勢判定的短按分支共用同一個方法 */
+  /** 切換播放/暫停 */
   handleTogglePlay = () => {
-    this.#togglePlay();
+    this.togglePlay();
   };
 
   /** 進度條 input 事件（拖曳中） */
@@ -130,29 +112,12 @@ class PlaybackController {
     }
   };
 
-  /** 全域鍵盤事件 */
-  handleKeydown = (e: KeyboardEvent) => {
-    if (isInEditable(e.target)) return;
-
-    if (e.key === " ") {
-      e.preventDefault();
-      this.#togglePlay();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      history.back();
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      this.#engine?.jumpBy(this.jumpStep);
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      this.#engine?.jumpBy(-this.jumpStep);
-    }
+  /** 依方向跳到前後第 {@link jumpStep} 張 */
+  handleJump = (direction: 1 | -1) => {
+    this.#engine?.jumpBy(this.jumpStep * direction);
   };
 
-  /**
-   * 開始長按加速：以目前速度絕對值的兩倍（至少 3，涵蓋速度為 0 時仍有效果的情況）沿指定方向推進，
-   * 可超出一般速度滑桿的範圍，暫停中也會生效
-   */
+  /** 開始長按加速，以目前速度絕對值的兩倍沿指定方向推進，可超出一般速度滑桿的範圍，暫停中也會生效 */
   handleBoostStart = (direction: 1 | -1) => {
     const magnitude = Math.abs(this.speed) * 2 || 3;
     this.boostDirection = direction;

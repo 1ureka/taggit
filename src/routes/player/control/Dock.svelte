@@ -44,7 +44,7 @@
       oninput={playback.handleSpeedInput}
       style="width: 80px;"
     />
-    <span>{playback.speedDisplay}</span>
+    <span>{playback.speed.toFixed(1)}</span>
   </div>
 </aside>
 
