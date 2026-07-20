@@ -24,6 +24,8 @@ class PlaybackController {
     })),
   );
 
+  /** 跳張回饋的世代標記，避免快速連續跳張時較早的計時器提早把回饋歸位 */
+  private jumpFeedbackToken = 0;
   /** 方向鍵單次跳張的張數 */
   readonly jumpStep = 3;
   /** 引擎實例 */
@@ -35,6 +37,9 @@ class PlaybackController {
   speed = $state(1.5);
   /** 目前長按加速的方向，null 表示未在加速中 */
   boostDirection = $state<1 | -1 | null>(null);
+  /** 跳張回饋的顯示狀態，null 表示未在顯示中 */
+  jumpFeedback = $state<{ direction: 1 | -1; token: number } | null>(null);
+
   /** 可見的項目 */
   visibleItems = $state<PlayerStripItem<PlaybackImage>[]>([]);
   /** 當前的進度資訊 */
@@ -112,9 +117,15 @@ class PlaybackController {
     }
   };
 
-  /** 依方向跳到前後第 {@link jumpStep} 張 */
+  /** 依方向跳到前後第 {@link jumpStep} 張，並觸發短暫的方向回饋 */
   handleJump = (direction: 1 | -1) => {
     this.#engine?.jumpBy(this.jumpStep * direction);
+
+    const token = ++this.jumpFeedbackToken;
+    this.jumpFeedback = { direction, token };
+    setTimeout(() => {
+      if (this.jumpFeedback?.token === token) this.jumpFeedback = null;
+    }, 400);
   };
 
   /** 開始長按加速，以目前速度絕對值的兩倍沿指定方向推進，可超出一般速度滑桿的範圍，暫停中也會生效 */
