@@ -1,14 +1,39 @@
 <script lang="ts">
   import { getMissingContext } from "../logic/missing.svelte";
   import { getBackupContext } from "../logic/backup.svelte";
+  import { getPageDataContext } from "../logic/page-data.svelte";
+  import { formatDate, formatSize } from "$lib/utils/shared";
 
-  import { IconAlertCircleFilled, IconDatabase } from "$lib/icons";
+  import { IconAlertCircleFilled, IconDatabase, IconInfoCircleFilled } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ToolCard from "./ToolCard.svelte";
 
   const missing = getMissingContext();
   const backup = getBackupContext();
+  const pageData = getPageDataContext();
+  const fileStats = $derived(pageData.value.databaseFileStats);
 </script>
+
+{#if fileStats}
+  <ToolCard
+    Icon={IconInfoCircleFilled}
+    title="資料庫狀態"
+    description="db.json 紀錄檔目前的大小與最後一次寫入磁碟的時間，設定頁面載入時更新。"
+  >
+    {#snippet actions()}
+      <dl>
+        <div>
+          <dt>最後修改於</dt>
+          <dd>{formatDate(fileStats.mtimeMs)}</dd>
+        </div>
+        <div>
+          <dt>目前大小</dt>
+          <dd>{formatSize(fileStats.size)}</dd>
+        </div>
+      </dl>
+    {/snippet}
+  </ToolCard>
+{/if}
 
 <ToolCard
   Icon={IconAlertCircleFilled}
@@ -50,3 +75,25 @@
     </Button>
   {/snippet}
 </ToolCard>
+
+<style>
+  dl {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font: var(--font-body1);
+    color: var(--color-text);
+  }
+
+  dl > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  dl > div:not(:last-child)::after {
+    content: "·";
+    margin: 0 0.5rem;
+    color: var(--color-text);
+  }
+</style>

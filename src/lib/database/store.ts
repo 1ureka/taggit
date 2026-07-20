@@ -51,6 +51,19 @@ export class Database {
     return Database.singleton().loaded;
   }
 
+  /** 目前綁定的 db.json 檔案大小與最後修改時間，未載入或讀取失敗時為 `null`。 */
+  static fileStats(): { size: number; mtimeMs: number } | null {
+    const db = Database.singleton();
+    if (!db.loaded || !db.filePath) return null;
+
+    try {
+      const stat = fs.statSync(db.filePath);
+      return { size: stat.size, mtimeMs: stat.mtimeMs };
+    } catch {
+      return null;
+    }
+  }
+
   /** 立即將所有待處理變更寫入磁碟 (比如 hooks 關閉訊號 / 備份前)。未載入或無變更時為 no-op。*/
   static flush(): void {
     Database.singleton().flush();

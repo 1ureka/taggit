@@ -9,5 +9,6 @@ export const load: PageServerLoad = () => {
     collectionRoot: Collection.getPersistedRoot() ?? "",
     cacheStats: ImageLibrary.stats(),
     databaseLoaded: Database.isLoaded(),
+    databaseFileStats: Database.fileStats(),
   };
 };
