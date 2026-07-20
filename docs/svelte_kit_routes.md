@@ -4,7 +4,7 @@
 
 ### 回顧
 
-Svelte 5 的 `$derived` 可以直接被賦值覆寫（不是純唯讀），覆寫值會保留到底層依賴真的變動為止：
+Svelte 5 的 `$derived` 可以直接被賦值覆寫，覆寫值會保留到底層依賴真的變動為止：
 
 ```js
 let likes = $derived(post.likes);
@@ -27,7 +27,7 @@ async function onclick() {
 - 使用者打「a」等待 150 毫秒後請求送出，接著使用者又打成「app」新一輪 150ms 等待期間，很可能「a」那個較早送出、已經過時的結果才回來，被 `$derived` 照樣覆蓋，蓋掉使用者已經打好、還在等待送出的「app」。
 - 多個欄位各自獨立 `goto`，若使用者在前一個導航結束之前又觸發另一個欄位的變更，後一次呼叫會基於尚未更新的舊快照建構新的查詢字串、整個覆蓋 URL，前一次的篩選意圖被靜默丟棄。
 
-這是 SvelteKit 生態系目前還沒解決乾淨的問題，見 [sveltejs/kit#13746](https://github.com/sveltejs/kit/issues/13746)，標記 `needs-decision`，社群套件 `sveltekit-search-params` 都還沒完全遷到 runes。
+這是 SvelteKit 目前還沒解法共識的問題，見 [sveltejs/kit#13746](https://github.com/sveltejs/kit/issues/13746)，標記 `needs-decision`。
 
 ### 本地緩衝與上次記憶比對
 
@@ -129,7 +129,7 @@ export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): 
 
 ## 淺路由與 `goto`
 
-上一節解決的是多個彼此不協調的 `goto`，這一節要解的是另一個的問題，頁面上只要有任何一次 `pushState`/`replaceState`，`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何讀 `page.url.searchParams` 的地方都會因此讀到過時值。
+處理查詢參數的另一個常見情境是淺路由，在 SvelteKit，頁面上只要有任何一次 `pushState`/`replaceState`，`page.url` 就會跟瀏覽器實際網址永久脫鉤，任何讀 `page.url.searchParams` 的地方都會因此讀到過時值。
 
 ### 癥結點
 
@@ -175,9 +175,9 @@ async function refresh() {
 
 一旦知道 `page.url` 可能過時，任何要重跑頁面 load 的程式碼，無論是上一章的參數查詢或是重新整理等，都不能再信任 `page.url`。
 
-獨立的 `invalidateAll()`/`invalidate()` 問題更根本，它們內部重跑 load 用的 url 固定是 SvelteKit 自己追蹤的 `current.url`（就是 `page.url`），完全沒有參數能讓呼叫端指定要用哪個 url。
+獨立的 `invalidateAll()`/`invalidate()` 問題更根本，它們內部重跑用的固定是 SvelteKit 自己追蹤的 `current.url`（就是 `page.url`），完全沒有參數能讓呼叫端指定要用哪個 url。
 
-`goto()` 不一樣，它的 `url` 是呼叫端自己傳的參數，而且它的 `opts` 已經涵蓋 `invalidateAll`、`invalidate`、`state` 三個選項：
+`goto()` 雖然仍危險，但它的 `url` 是呼叫端自己傳的參數，而且它的 `opts` 已經涵蓋 `invalidateAll`、`invalidate`、`state` 三個選項：
 
 ```ts
 function goto(
