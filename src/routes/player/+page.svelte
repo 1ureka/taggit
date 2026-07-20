@@ -3,6 +3,7 @@
 
   import { createPageDataContext } from "./logic/page-data.svelte";
   import { createPlaybackContext } from "./logic/playback.svelte";
+  import { createGestureContext } from "./logic/gesture.svelte";
   import { createDockContext } from "./logic/dock.svelte";
 
   import Strip from "./strip/Strip.svelte";
@@ -12,6 +13,7 @@
 
   createPageDataContext(() => data);
   const playback = createPlaybackContext();
+  const gesture = createGestureContext();
   const dock = createDockContext();
 </script>
 
@@ -20,9 +22,9 @@
 </svelte:head>
 
 <svelte:window
-  onkeydown={playback.player.handleKeydown}
-  onpointerup={playback.handlePointerUp}
-  onpointercancel={playback.handlePointerUp}
+  onkeydown={playback.handleKeydown}
+  onpointerup={gesture.handlePointerUp}
+  onpointercancel={gesture.handlePointerUp}
 />
 
 <Strip />

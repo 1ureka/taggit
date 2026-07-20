@@ -1,6 +1,6 @@
 <script lang="ts">
   import { navigating } from "$app/state";
-  import { Masonry } from "$lib/virtualizer/masonry.svelte";
+  import { Virtualizer } from "$lib/utils/virtualize.svelte";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getLayoutContext } from "../logic/layout.svelte";
   import ScrollButton from "./ScrollButton.svelte";
@@ -11,7 +11,7 @@
 
   const empty = $derived(pageData.value.total === 0 && !navigating.to);
 
-  const masonry = new Masonry({
+  const masonry = Virtualizer.masonry({
     get items() {
       return pageData.value.items;
     },
@@ -35,8 +35,8 @@
     <p>找不到符合的圖片，請調整篩選條件，或在上方的導航選單中前往新增圖片</p>
   {/if}
 
-  <ul class="masonry" aria-label="圖片牆" style:height="{masonry.masonryHeight}px">
-    {#each masonry.masonryItems as item (item.id)}
+  <ul class="masonry" aria-label="圖片牆" style:height="{masonry.contentHeight}px">
+    {#each masonry.visibleItems as item (item.id)}
       <li style={item.style}>
         <MasonryImage {item} />
       </li>

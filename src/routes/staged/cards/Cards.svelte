@@ -1,6 +1,6 @@
 <script lang="ts">
   import { innerWidth } from "svelte/reactivity/window";
-  import { Masonry } from "$lib/virtualizer/masonry.svelte";
+  import { Virtualizer } from "$lib/utils/virtualize.svelte";
 
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
@@ -28,7 +28,7 @@
   const layout = $derived(breakpoints.find((b) => availableWidth >= b.width)!);
   const layoutItems = $derived(stagedFiles.map((id) => ({ id, ...CARD_SIZE })));
 
-  const masonry = new Masonry({
+  const masonry = Virtualizer.masonry({
     get items() {
       return layoutItems;
     },
@@ -62,8 +62,8 @@
       <p>暫存區目前沒有圖片</p>
     {/if}
 
-    <ul aria-label="暫存卡片牆" style:height="{masonry.masonryHeight}px">
-      {#each masonry.masonryItems as item (item.id)}
+    <ul aria-label="暫存卡片牆" style:height="{masonry.contentHeight}px">
+      {#each masonry.visibleItems as item (item.id)}
         <li style={item.style}>
           <Card filename={item.id} />
         </li>

@@ -7,24 +7,26 @@
   import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "$lib/icons";
 
   import { getPlaybackContext } from "../logic/playback.svelte";
+  import { getGestureContext } from "../logic/gesture.svelte";
   import { findClosestToMiddle } from "../logic/findMiddle";
 
   const playback = getPlaybackContext();
+  const gesture = getGestureContext();
 
   const matchesGif = (item: ImageWithId) => item.id.toLowerCase().endsWith(".gif");
 
   // 只讓最靠近畫面中央的 GIF 播放動畫，其餘用靜態縮圖以維持流暢
-  const animatedIndex = $derived(findClosestToMiddle(playback.player.visibleItems, matchesGif));
+  const animatedIndex = $derived(findClosestToMiddle(playback.visibleItems, matchesGif));
 </script>
 
 <main aria-label="圖片播放器">
   <div
     class="strip"
     role="presentation"
-    style:transform={playback.player.stripTransform}
-    onpointerdown={playback.handlePointerDown}
+    style:transform={playback.stripTransform}
+    onpointerdown={gesture.handlePointerDown}
   >
-    {#each playback.player.visibleItems as item, i (item.key)}
+    {#each playback.visibleItems as item, i (item.key)}
       <img
         src={imgSrc(item.id, "md", i === animatedIndex)}
         alt={item.name}
@@ -36,9 +38,9 @@
     {/each}
   </div>
 
-  {#if playback.feedback}
+  {#if gesture.feedback}
     <div class="feedback" out:scale={{ start: 1.35, opacity: 0, duration: 550, easing: cubicOut }}>
-      {#if playback.player.playing}
+      {#if playback.playing}
         <IconPlayerPlayFilled size={64} />
       {:else}
         <IconPlayerPauseFilled size={64} />
@@ -46,9 +48,9 @@
     </div>
   {/if}
 
-  {#if playback.player.boostDirection !== null}
+  {#if playback.boostDirection !== null}
     <div class="boost" transition:fade={{ duration: 150 }}>
-      {playback.player.boostDirection === 1 ? "▶▶ 2X" : "◀◀ 2X"}
+      {playback.boostDirection === 1 ? "▶▶ 2X" : "◀◀ 2X"}
     </div>
   {/if}
 </main>
