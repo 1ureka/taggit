@@ -37,9 +37,12 @@ import imageMetadata from "./image/metadata.suite.mjs";
 import imageProcessor from "./image/processor.suite.mjs";
 import imageServer from "./image/server.suite.mjs";
 
+import { createUtilsFixtures } from "./utils/fixtures.mjs";
+import utilsVirtualize from "./utils/virtualize.suite.mjs";
+
 /**
  * 後端各領域。每個領域有自己的 fixtures 工廠（setup）與 suite 清單。
- * 目前有 repo 與 image；未來 collection 等後端模組可各加一筆。
+ * 目前有 repo、image 與 utils；未來 collection 等後端模組可各加一筆。
  */
 const DOMAINS = [
   {
@@ -51,6 +54,11 @@ const DOMAINS = [
     name: "image",
     setup: createImageFixtures,
     suites: [imageResources, imageFormats, imageBlurhash, imageMetadata, imageProcessor, imageServer],
+  },
+  {
+    name: "utils",
+    setup: createUtilsFixtures,
+    suites: [utilsVirtualize],
   },
 ];
 
