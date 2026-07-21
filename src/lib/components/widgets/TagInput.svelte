@@ -125,7 +125,7 @@
   {#if tags.length > 0}
     <div class="tags">
       {#each tags as tag (tag)}
-        <div in:scale={{ duration: 150, start: 0.9 }} out:scale={{ duration: 150, start: 0.9 }}>
+        <div in:scale={{ duration: 150, start: 0.9 }}>
           <Chip removable onclick={() => removeTag(tag)}>
             <span class="ellipsis">{tag}</span>
           </Chip>
