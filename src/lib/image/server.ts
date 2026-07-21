@@ -9,6 +9,7 @@
 
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 import { Readable } from "stream";
 import { sortCollator } from "$lib/utils/shared";
 
@@ -24,6 +25,11 @@ import type { FileInfo } from "./metadata";
 export type { ImageSize } from "./formats";
 export type { FileInfo } from "./metadata";
 export type { Result, NotFound, Forbidden, ImagePayload } from "./result";
+
+// libvips 的原生 operation cache 會保留來源檔案的底層 handle 以供重用；
+// Windows 上這會讓剛產生過縮圖的檔案在刪除時被鎖住 (EBUSY/EPERM)。
+// 本模組已有自己的 LRUCache 負責縮圖重用，關閉這層原生快取影響可忽略。
+sharp.cache(false);
 
 const MAX_CACHE_BYTES = 512 * 1024 * 1024;
 const MAX_CONCURRENT = 4;

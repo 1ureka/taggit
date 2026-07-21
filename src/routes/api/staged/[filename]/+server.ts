@@ -8,8 +8,31 @@ import { Database } from "$lib/database";
 import { Query } from "$lib/query";
 import { Mutation } from "$lib/mutation";
 
-import { isSafeFilename } from "$lib/utils/shared";
+import { isSafeFilename, formatError } from "$lib/utils/shared";
 import { parseBody, errorJson, log } from "$lib/utils/server";
+
+const UNLINK_MAX_ATTEMPTS = 5;
+const UNLINK_RETRY_DELAY_MS = 100;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * 刪除檔案，遇到 `EBUSY`/`EPERM`（檔案仍被鎖住）時重試數次再放棄。
+ * 這類鎖定多半是短暫的（例如防毒軟體、索引服務短暫佔用），重試可自然恢復。
+ */
+async function unlinkWithRetry(filePath: string): Promise<void> {
+  for (let attempt = 1; attempt <= UNLINK_MAX_ATTEMPTS; attempt++) {
+    try {
+      fs.unlinkSync(filePath);
+      return;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      const isLocked = code === "EBUSY" || code === "EPERM";
+      if (!isLocked || attempt === UNLINK_MAX_ATTEMPTS) throw e;
+      await sleep(UNLINK_RETRY_DELAY_MS * attempt);
+    }
+  }
+}
 
 /**
  * `POST /api/staged/[filename]`
@@ -78,7 +101,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
  *
  * 永久刪除暫存區中的指定檔案。
  */
-export const DELETE: RequestHandler = ({ params }) => {
+export const DELETE: RequestHandler = async ({ params }) => {
   const root = Collection.getActiveRoot();
   if (!root || !Database.isLoaded() || !ImageLibrary.isActive()) {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
@@ -100,7 +123,13 @@ export const DELETE: RequestHandler = ({ params }) => {
     return json({ ok: false, error: "檔案不存在" }, { status: 404 });
   }
 
-  fs.unlinkSync(resolved.data);
+  try {
+    await unlinkWithRetry(resolved.data);
+  } catch (e) {
+    log({ level: "error", module: "staged/[id]", message: `刪除暫存失敗: ${filename} (${formatError(e)})` });
+    return json({ ok: false, error: "檔案刪除失敗，請稍後再試" }, { status: 500 });
+  }
+
   log({ level: "info", module: "staged/[id]", message: `刪除暫存: ${filename}` });
   return json({ ok: true, data: { filename } });
 };
