@@ -15,13 +15,13 @@
 
   /** 判斷當前活躍的導航項目 */
   const currentActiveItem = $derived.by(() => {
-    // TODO: 放寬為 string：/committed 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
-    const path: string = page.url.pathname;
+    const { pathname } = page.url;
 
-    if (path === "/" || path === "/compare" || path === "/player") return "/";
-    if (path === "/staged") return "/staged";
-    if (path === "/committed" || path.startsWith("/tags")) return "/committed";
-    if (path === "/settings") return "/settings";
+    if (pathname === "/" || pathname === "/compare" || pathname === "/player") return "/";
+    if (pathname === "/staged") return "/staged";
+    if (pathname === "/committed") return "/committed";
+    if (pathname.startsWith("/tags")) return "/tags";
+    if (pathname === "/settings") return "/settings";
 
     return null;
   });
