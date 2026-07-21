@@ -18,7 +18,7 @@
 | --- | --- | --- |
 | `(home)` | 3 | 3 個 controller（filter／layout／detail），彼此邊界清楚 |
 | `compare` | 3 | 3 個 controller（filter／pinned／operations），pinned 與清單/卡片呈現合併看較完整 |
-| `player` | 2 | 全頁最小（僅 2 個 controller），過度拆分沒有效益 |
+| `player` | 2 | 3 個 controller（playback／gesture／dock） |
 | `settings` | 4 | 6 個 controller，依畫面既有的 3 個 section 分組，另加獨立的章節導覽（nav） |
 | `staged` | 6 | 6 個 controller，彼此有明確單向相依（stamp/lightbox/review 依賴 editor），適合各自獨立審查 |
 | `tags` | 6 | 7 個 controller，其中 operations 依賴 previews、被 board/review 依賴，併入 review 一起看較能追蹤操作鎖 |
@@ -206,27 +206,29 @@
 
 ## `player`（播放器）
 
-相依關係：`playback` 與 `dock` 互不相依（兩者皆只／不依賴 pageData）。`+page.svelte` 建立順序為 `pageData → playback → dock`，順序上沒有強制要求。
+相依關係：`playback` 依賴 pageData；`gesture` 依賴 `playback`（透過 `getPlaybackContext()` 呼叫其 `handleTogglePlay`/`handleBoostStart`/`handleBoostEnd`、讀 `playing` 觸發反饋動畫）；`dock` 不依賴任何其他 controller。`+page.svelte` 建立順序為 `pageData → playback → gesture → dock`，`gesture` 的建構子內部會呼叫 `getPlaybackContext()`，因此必須晚於 `playback` 建立。
 
-### 1. playback（播放狀態／長按加速／連續播放）
+### 1. playback（播放狀態／引擎綁定／手勢判定／長按加速／連續播放）
 
 ```
 # 任務：獨立模組邏輯獨立沙盒審查（Sandboxed Code Review）
 
 請針對以下範圍進行**純粹的內部邏輯審查**：
+- src/routes/player/logic/player.core.ts
 - src/routes/player/logic/playback.svelte.ts
+- src/routes/player/logic/gesture.svelte.ts
 - src/routes/player/logic/findMiddle.ts
 - src/routes/player/strip/Strip.svelte
 - src/routes/player/control/Dock.svelte
 - src/routes/player/control/DockProgress.svelte
-- src/routes/player/+page.svelte（僅 `<svelte:window onkeydown={playback.player.handleKeydown} />` 這一段綁定）
+- src/routes/player/+page.svelte
 
 ## 審查核心限制
 
 1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
    - getPageDataContext()
-   - `$lib/virtualizer/player.svelte` 的 `Player` class 本身內部實作（只審查本頁如何呼叫它、如何處理它暴露的狀態）
    - $lib/image/client 的 blurhashStyle
+   - $lib/utils/dom 的 isInEditable
 2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug。
 3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
 

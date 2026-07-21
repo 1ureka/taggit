@@ -11,8 +11,8 @@
 </script>
 
 <aside aria-label="圖片播放器控制區" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
-  <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={playback.player.handlePlayButtonClick}>
-    {#if playback.player.playing}
+  <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={playback.handleTogglePlay}>
+    {#if playback.playing}
       <IconPlayerPauseFilled size={18} />
     {:else}
       <IconPlayerPlayFilled size={18} />
@@ -25,12 +25,12 @@
       type="range"
       min="0"
       max="1000"
-      value={playback.player.progress.progressValue}
-      oninput={playback.player.handleProgressInput}
-      onchange={playback.player.handleProgressChange}
+      value={playback.progress.progressValue}
+      oninput={playback.handleProgressInput}
+      onchange={playback.handleProgressChange}
       style="width: 100%;"
     />
-    <span>{playback.player.progressText}</span>
+    <span>{playback.progressText}</span>
   </div>
 
   <div class="speed">
@@ -40,11 +40,11 @@
       min="-6"
       max="6"
       step="0.5"
-      value={playback.player.speed}
-      oninput={playback.player.handleSpeedInput}
+      value={playback.speed}
+      oninput={playback.handleSpeedInput}
       style="width: 80px;"
     />
-    <span>{playback.player.speedDisplay}</span>
+    <span>{playback.speed.toFixed(1)}</span>
   </div>
 </aside>
 
