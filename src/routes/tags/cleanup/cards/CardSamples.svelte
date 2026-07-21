@@ -9,8 +9,12 @@
   const samples = getSamplesContext();
   const cache = $derived(samples.get(suggestion.id));
 
-  // 卡片因虛擬化捲動快速略過時，延遲一拍再查，避免瞬間掃過的卡片也發出請求
+  // 依賴快取狀態本身（而非 suggestion 參照）：快取被清空（例如重新整理、送出成功後）
+  // 時 cache 會變回 undefined，這裡就會自動再排一次查詢，不必依賴 suggestion 物件參照
+  // 剛好改變這種間接訊號，也不會在已有快取或正在載入時重複觸發。
+  // 卡片因虛擬化捲動快速略過時，延遲一拍再查，避免瞬間掃過的卡片也發出請求。
   $effect(() => {
+    if (cache !== undefined) return;
     const timer = setTimeout(() => samples.request(suggestion), 150);
     return () => clearTimeout(timer);
   });
