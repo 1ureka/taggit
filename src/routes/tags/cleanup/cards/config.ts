@@ -7,4 +7,4 @@ export const breakpoints = [
 ];
 
 /** 所有卡片統一使用的固定寬高比 1.6/1，只用於 masonry 版面權重計算 */
-export const CARD_SIZE = { width: 1.6, height: 1 };
+export const CARD_SIZE = { width: 1.5, height: 1 };

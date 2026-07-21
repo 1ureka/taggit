@@ -15,31 +15,34 @@
   });
 </script>
 
-{#if cache === undefined || cache === "loading"}
-  <div class="thumbs">
+<div class="thumbs">
+  {#if cache === undefined || cache === "loading"}
     {#each { length: 3 }, i (i)}
       <div class="thumb placeholder"></div>
     {/each}
-  </div>
-{:else if cache.length > 0}
-  <div class="thumbs">
+  {:else if cache.length > 0}
     {#each cache as img (img.id)}
       <img src={imgSrc(img.id, "sm")} alt={img.name} loading="lazy" style={blurhashStyle(img)} />
     {/each}
-  </div>
-{/if}
+  {/if}
+</div>
 
 <style>
   .thumbs {
+    position: relative;
     display: flex;
-    flex-shrink: 0;
+    flex: 1;
     gap: 0.375rem;
+    margin: 0 0.75rem;
+    padding-bottom: 0.25rem;
+    min-height: 0px;
+    border-radius: calc(var(--border-radius) / 1.5);
+    overflow: hidden;
   }
 
   .thumb,
   img {
-    width: 2.25rem;
-    height: 2.25rem;
+    aspect-ratio: 1/1;
     flex-shrink: 0;
     object-fit: cover;
     background: var(--color-bg);

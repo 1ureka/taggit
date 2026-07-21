@@ -1,8 +1,7 @@
 <script lang="ts">
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import { IconReload, IconArrowLeft } from "$lib/icons";
+  import { IconReload } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
   import { getScheduleContext } from "../logic/schedule.svelte";
   import { getReviewContext } from "../logic/review.svelte";
@@ -13,11 +12,6 @@
 </script>
 
 <div>
-  <ButtonLink variant="ghost" href="/tags">
-    <IconArrowLeft size={16} />
-    <span>合併畫布</span>
-  </ButtonLink>
-
   <Button
     variant="ghost"
     padding="icon"

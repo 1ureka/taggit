@@ -1,4 +1,7 @@
 <script lang="ts">
+  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import { IconArrowLeft } from "$lib/icons";
   import { getFilterContext, KIND_LABELS, type Tab } from "../logic/filter.svelte";
 
   const filter = getFilterContext();
@@ -13,6 +16,16 @@
 </script>
 
 <div class="tabs">
+  <ButtonLink
+    variant="ghost"
+    padding="icon"
+    href="/tags"
+    aria-label="返回標籤管理"
+    {@attach tooltip({ content: "返回標籤管理" })}
+  >
+    <IconArrowLeft size={16} />
+  </ButtonLink>
+
   {#each tabs as t (t.value)}
     <button type="button" class:active={filter.tab === t.value} onclick={() => filter.handleTabChange(t.value)}>
       <span>{t.label}</span>
@@ -37,17 +50,33 @@
     gap: 0.375rem;
     padding: 0.25rem 0.625rem;
     font: var(--font-body2);
-    color: var(--color-text-muted);
     white-space: nowrap;
     border-radius: 9999px;
+    transition: all 0.15s ease;
+
+    &:active {
+      transition: all 0.03s ease;
+      transform: scale(0.97);
+    }
+  }
+
+  button {
+    color: var(--color-text-muted);
+    background-color: transparent;
 
     &:hover {
-      background: var(--color-bg-hover);
-    }
-
-    &.active {
-      background: var(--color-bg-active);
       color: var(--color-text);
+      background-color: var(--color-bg-hover);
+    }
+  }
+
+  button.active {
+    color: hsl(from var(--color-accent) h s l / 0.85);
+    background-color: hsl(from var(--color-accent) h s l / 0.15);
+
+    &:hover {
+      color: var(--color-accent);
+      background-color: hsl(from var(--color-accent) h s l / 0.25);
     }
   }
 
