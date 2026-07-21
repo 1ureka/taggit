@@ -10,7 +10,7 @@ import { goto } from "$app/navigation";
 import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
-import { changesetFromOperations, submitChangeset } from "./changeset";
+import { submitChangeset } from "./changeset";
 import { buildReviewEntries } from "./review-entry";
 import { getBoardContext } from "./board.svelte";
 import { getOperationsContext } from "./operations.svelte";
@@ -84,8 +84,7 @@ class ReviewController {
 
     this.operationsCtx.pending = true;
     try {
-      const cs = changesetFromOperations(this.board.operations);
-      const result = await submitChangeset(cs, names);
+      const result = await submitChangeset(this.board.operations, names);
       this.failures = Object.fromEntries(result);
 
       const okNames = names.filter((n) => !result.has(n));
