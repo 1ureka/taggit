@@ -10,8 +10,7 @@
   const description = $derived.by(() => {
     if (page.error) return page.error?.message ?? "發生未知錯誤";
 
-    // TODO: 放寬為 string：/committed 等路由要到 Phase 3~6 才存在，typed pathname 會拒絕比較
-    const path: string = page.url.pathname;
+    const path = page.url.pathname;
 
     if (path === "/") return "正在 探索圖片";
     if (path === "/compare") return "正在 比較圖片";

@@ -1,6 +1,6 @@
 /**
  * @file review.svelte.ts
- * 審查清單：勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
+ * 審查清單，勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
  */
 
 import { getContext, setContext } from "svelte";
@@ -12,14 +12,14 @@ import { addToast } from "$lib/components/floating/toast-events";
 
 import { submitChangeset } from "./changeset";
 import { buildReviewEntries } from "./review-entry";
-import { getBoardContext } from "./board.svelte";
+import { getScheduleContext } from "./schedule.svelte";
 import { getOperationsContext } from "./operations.svelte";
-import { getPreviewsContext } from "./previews.svelte";
+import { getSamplesContext } from "./samples.svelte";
 
 class ReviewController {
-  private board = getBoardContext();
+  private schedule = getScheduleContext();
   private operationsCtx = getOperationsContext();
-  private previews = getPreviewsContext();
+  private samples = getSamplesContext();
 
   /** 審查對話框是否開啟 */
   open = $state(false);
@@ -29,7 +29,7 @@ class ReviewController {
   private checked = new SvelteSet<string>();
 
   /** 審查清單 */
-  entries = $derived(buildReviewEntries(this.board.operations, this.checked, this.failures));
+  entries = $derived(buildReviewEntries(this.schedule.operations, this.checked, this.failures));
   /** 已勾選的數量（只從 entries 衍生，不是原始 checked 集合的大小） */
   checkedCount = $derived(this.entries.filter((e) => e.checked).length);
   /** 可勾選的數量 */
@@ -46,7 +46,7 @@ class ReviewController {
     this.failures = {};
     this.checked.clear();
     // 用空的 checked 集合先跑一次，只為了讀 checkable，不用另外重寫一次「什麼情況下不可勾選」的判斷
-    const draft = buildReviewEntries(this.board.operations, new Set(), {});
+    const draft = buildReviewEntries(this.schedule.operations, new Set(), {});
     for (const e of draft) if (e.checkable) this.checked.add(e.name);
     this.open = true;
   };
@@ -72,9 +72,9 @@ class ReviewController {
     }
   };
 
-  /** 捨棄單筆操作（自畫布移除）——不需要特別處理 checked，board 不認識審查層的勾選狀態 */
+  /** 捨棄單筆操作（自排程移除） */
   handleDiscard = (name: string) => {
-    this.board.detachTag(name);
+    this.schedule.handleUndo(name);
   };
 
   /** 提交目前勾選的操作 */
@@ -84,12 +84,12 @@ class ReviewController {
 
     this.operationsCtx.pending = true;
     try {
-      const result = await submitChangeset(this.board.operations, names);
+      const result = await submitChangeset(this.schedule.snapshot(), names);
       this.failures = Object.fromEntries(result);
 
       const okNames = names.filter((n) => !result.has(n));
       for (const n of okNames) {
-        this.board.detachTag(n);
+        this.schedule.handleUndo(n);
         this.checked.delete(n);
       }
 
@@ -97,7 +97,7 @@ class ReviewController {
       if (result.size > 0) addToast({ message: `${result.size} 筆操作失敗`, variant: "error" });
       if (result.size === 0) this.open = false;
 
-      this.previews.clear(); // 標籤內容已變，懸停預覽快取失效
+      this.samples.clear(); // 標籤內容已變，樣本圖快取失效
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {
       addToast({ message: formatError(e), variant: "error" });

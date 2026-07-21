@@ -1,4 +1,4 @@
-import { IconSettings, IconPhotoFilled, IconTagFilled, IconEditFilled } from "$lib/icons";
+import { IconSettings, IconPhotoFilled, IconTagFilled, IconEditFilled, IconTagsFilled } from "$lib/icons";
 
 /** 導航面板的項目 */
 export const navItems: {
@@ -27,6 +27,12 @@ export const navItems: {
     name: "管理圖片",
     desc: "編輯已提交圖片的名稱、標籤或評分",
     key: "committed",
+  },
+  {
+    href: "/tags",
+    Icon: IconTagsFilled,
+    name: "管理標籤",
+    desc: "合併、重新命名或刪除標籤，整理整個標籤庫",
   },
   {
     href: "/settings",

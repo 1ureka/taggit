@@ -44,6 +44,7 @@ export { default as IconStar } from "./IconStar.svelte";
 export { default as IconStarFilled } from "./IconStarFilled.svelte";
 export { default as IconTagFilled } from "./IconTagFilled.svelte";
 export { default as IconTagPlus } from "./IconTagPlus.svelte";
+export { default as IconTagsFilled } from "./IconTagsFilled.svelte";
 export { default as IconUpload } from "./IconUpload.svelte";
 export { default as IconUserFilled } from "./IconUserFilled.svelte";
 export { default as IconX } from "./IconX.svelte";

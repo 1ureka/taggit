@@ -4,7 +4,11 @@
  */
 
 import type { BoardOperation } from "./board.svelte";
-import { isValidTagName } from "./changeset";
+
+/** 標籤名稱是否合法 */
+export function isValidTagName(value: string): boolean {
+  return value.trim().length > 0 && value.trim().length <= 50 && !value.includes(",");
+}
 
 /** 審查清單上的一個項目：BoardOperation 疊加審查專屬的旗標 */
 export type ReviewEntry = BoardOperation & {

@@ -22,6 +22,7 @@
 | `settings` | 4 | 6 個 controller，依畫面既有的 3 個 section 分組，另加獨立的章節導覽（nav） |
 | `staged` | 6 | 6 個 controller，彼此有明確單向相依（stamp/lightbox/review 依賴 editor），適合各自獨立審查 |
 | `tags` | 6 | 7 個 controller，其中 operations 依賴 previews、被 board/review 依賴，併入 review 一起看較能追蹤操作鎖 |
+| `tags/cleanup` | 4 | 5 個 controller（filter／samples／operations／schedule／review），operations 依賴 samples、被 schedule/review 依賴，併入 review 一起看較能追蹤操作鎖；schedule 承接離頁守衛，獨立成一份 |
 
 輸出檔案建議統一寫到 `docs/review/<route>-<slug>.md`（資料夾若不存在請自行建立），避免多份審查互相覆蓋彼此的輸出。
 
@@ -710,6 +711,128 @@
 ## 輸出要求
 
 請將完整分析寫入 `docs/review/tags-review.md`，包含：
+1. **結構簡述**：ASCII 方塊圖，範圍僅限上述檔案。
+2. **內部 Bug 審查**：條列具體 Bug（Race Condition、記憶體洩漏、未處理例外、錯誤狀態更新等）。【禁止】給修復代碼或步驟，僅指出問題點。
+```
+
+---
+
+## `tags/cleanup`（標籤清理工具）
+
+相依關係：`operations` 依賴 `samples`；`schedule` 依賴 `operations`；`review` 依賴 `schedule`、`operations`、`samples`；`filter` 依賴 `pageData`，與其他 controller 互不相依。`+page.svelte` 建立順序為 `pageData → samples → operations → schedule → filter → review`。`schedule.handleBeforeNavigate` 與 `schedule.handleBeforeUnload` 是本頁的離頁守衛，掛在 `+page.svelte`；`review.handleOpen` 也由 `+page.svelte` 的全域快捷鍵（Ctrl/Cmd+S）觸發。`logic/suggestions.ts`（建議引擎）只在 `+page.server.ts` 被呼叫，client 端各檔案僅引用其 `Suggestion` 型別，因此視為外部依賴、不在任何一份的審查範圍內。
+
+### 1. filter（分類頁籤／忽略狀態 + 卡片牆虛擬化）
+
+```
+# 任務：獨立模組邏輯獨立沙盒審查（Sandboxed Code Review）
+
+請針對以下範圍進行**純粹的內部邏輯審查**：
+- src/routes/tags/cleanup/logic/filter.svelte.ts
+- src/routes/tags/cleanup/header/Filters.svelte
+- src/routes/tags/cleanup/header/Toolbar.svelte
+- src/routes/tags/cleanup/cards/Cards.svelte
+- src/routes/tags/cleanup/cards/config.ts
+- src/routes/tags/cleanup/cards/CardHeader.svelte（僅 filter 相關部分，schedule 相關部分不在本次範圍）
+
+## 審查核心限制
+
+1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
+   - getPageDataContext()
+   - getScheduleContext()（CardHeader.svelte 內用於顯示「已排入」標記，僅供辨識、非本次審查標的）
+   - $lib/utils/virtualize.svelte 的 Virtualizer、svelte/reactivity/window 的 innerWidth
+2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug，特別是分類頁籤切換後 `Virtualizer` 的 `items`（`layoutItems`）與底層 `filter.visible` 是否確實同步、忽略（dismiss）後的清單重算與虛擬化 windowing 邊界情況。
+3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
+
+## 輸出要求
+
+請將完整分析寫入 `docs/review/tags-cleanup-filter.md`，包含：
+1. **結構簡述**：ASCII 方塊圖，範圍僅限上述檔案。
+2. **內部 Bug 審查**：條列具體 Bug（Race Condition、記憶體洩漏、未處理例外、錯誤狀態更新等）。【禁止】給修復代碼或步驟，僅指出問題點。
+```
+
+### 2. samples（建議卡片證據縮圖）
+
+```
+# 任務：獨立模組邏輯獨立沙盒審查（Sandboxed Code Review）
+
+請針對以下範圍進行**純粹的內部邏輯審查**：
+- src/routes/tags/cleanup/logic/samples.svelte.ts
+- src/routes/tags/cleanup/cards/CardSamples.svelte
+
+## 審查核心限制
+
+1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
+   - $lib/query-spec（ImageQuery、ImageWhere、ListOptions）、API 請求回傳結果
+   - $lib/image/client 的 imgSrc、blurhashStyle
+   - `Suggestion` 型別（來自 `./suggestions`，純型別引用，建構邏輯屬伺服器端、不在本次範圍）
+2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug，特別是預覽快取（SvelteMap）的填充/淘汰時機、卡片因虛擬化快速捲入捲出可視範圍時，延遲請求（150ms）與快取狀態是否可能讓過期回應覆蓋新資料或重複發出請求。
+3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
+
+## 輸出要求
+
+請將完整分析寫入 `docs/review/tags-cleanup-samples.md`，包含：
+1. **結構簡述**：ASCII 方塊圖，範圍僅限上述檔案。
+2. **內部 Bug 審查**：條列具體 Bug（Race Condition、記憶體洩漏、未處理例外、錯誤狀態更新等）。【禁止】給修復代碼或步驟，僅指出問題點。
+```
+
+### 3. schedule（標籤清理排程狀態機 + 離頁守衛）
+
+```
+# 任務：獨立模組邏輯獨立沙盒審查（Sandboxed Code Review）
+
+請針對以下範圍進行**純粹的內部邏輯審查**：
+- src/routes/tags/cleanup/logic/schedule.svelte.ts
+- src/routes/tags/cleanup/cards/Card.svelte
+- src/routes/tags/cleanup/cards/CardFooter.svelte
+- src/routes/tags/cleanup/cards/CardHeader.svelte（僅 schedule 相關部分，filter 相關部分不在本次範圍）
+- src/routes/tags/cleanup/+page.svelte（僅 `beforeNavigate(schedule.handleBeforeNavigate)` 與 `onbeforeunload={schedule.handleBeforeUnload}` 這兩處綁定）
+
+## 審查核心限制
+
+1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
+   - getOperationsContext()（僅用於 `pending` 操作鎖判斷）
+   - $app/navigation 的 goto、$app/state 的 page、confirm-events 的 requestConfirm、toast-events 的 addToast
+2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug，特別是「同一標籤只能有一種排程」時 `clear()` 是否所有寫入路徑（合併／刪除／隱藏）都有先呼叫、離頁守衛（`handleBeforeNavigate`／`handleBeforeUnload`）在「操作進行中」與「有未送出排程」兩種情況下的判斷與提示是否正確。
+3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
+
+## 輸出要求
+
+請將完整分析寫入 `docs/review/tags-cleanup-schedule.md`，包含：
+1. **結構簡述**：ASCII 方塊圖，範圍僅限上述檔案。
+2. **內部 Bug 審查**：條列具體 Bug（Race Condition、記憶體洩漏、未處理例外、錯誤狀態更新等）。【禁止】給修復代碼或步驟，僅指出問題點。
+```
+
+### 4. review & operations（送審 Modal／差異計算／提交 + 全域操作鎖，含組裝順序檢查）
+
+```
+# 任務：獨立模組邏輯獨立沙盒審查（Sandboxed Code Review）
+
+請針對以下範圍進行**純粹的內部邏輯審查**：
+- src/routes/tags/cleanup/logic/review.svelte.ts
+- src/routes/tags/cleanup/logic/review-entry.ts
+- src/routes/tags/cleanup/logic/changeset.ts
+- src/routes/tags/cleanup/logic/operations.svelte.ts
+- src/routes/tags/cleanup/header/Actions.svelte
+- src/routes/tags/cleanup/review/ReviewFooter.svelte
+- src/routes/tags/cleanup/review/ReviewHeader.svelte
+- src/routes/tags/cleanup/review/ReviewList.svelte
+- src/routes/tags/cleanup/review/ReviewListItem.svelte
+- src/routes/tags/cleanup/review/ReviewModal.svelte
+- src/routes/tags/cleanup/+page.svelte（僅 `handleKeydown` 中 Ctrl/Cmd+S 觸發 `review.handleOpen()` 的部分）
+
+## 審查核心限制
+
+1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
+   - getScheduleContext()（含其暴露的 `operations`、`touchedCount`、`statusOf`、`handleUndo` 等）
+   - getSamplesContext()（僅呼叫 `clear()`）
+   - $app/navigation 的 goto、API 請求回傳結果、toast-events 的 addToast
+2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug，特別是 `operations.pending` 操作鎖的設置/釋放是否所有路徑都成對、送出後失敗匯總（`failures`）與排程狀態（透過 `schedule.handleUndo`）的收斂時機、`changeset.ts` 的 payload 轉換是否遺漏邊界情況。
+3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
+4. **附帶檢查**：核對 `src/routes/tags/cleanup/+page.svelte` 內 `create*Context()` 的呼叫順序，是否符合以下相依關係：`samples` 需在 `operations` 之前；`operations` 需在 `schedule` 之前；`schedule`、`operations`、`samples` 皆需在 `review` 之前。
+
+## 輸出要求
+
+請將完整分析寫入 `docs/review/tags-cleanup-review.md`，包含：
 1. **結構簡述**：ASCII 方塊圖，範圍僅限上述檔案。
 2. **內部 Bug 審查**：條列具體 Bug（Race Condition、記憶體洩漏、未處理例外、錯誤狀態更新等）。【禁止】給修復代碼或步驟，僅指出問題點。
 ```

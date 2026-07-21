@@ -1,14 +1,13 @@
 <script lang="ts">
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import { IconReload, IconArrowRight } from "$lib/icons";
+  import { IconReload } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getScheduleContext } from "../logic/schedule.svelte";
   import { getReviewContext } from "../logic/review.svelte";
 
   const operations = getOperationsContext();
-  const board = getBoardContext();
+  const schedule = getScheduleContext();
   const review = getReviewContext();
 </script>
 
@@ -24,17 +23,12 @@
     <IconReload size={16} />
   </Button>
 
-  <ButtonLink variant="outlined" href="/tags/cleanup">
-    <span>清理工具</span>
-    <IconArrowRight size={16} />
-  </ButtonLink>
-
   <Button
     variant="primary"
-    status={board.touchedCount === 0 || operations.pending ? "disabled" : undefined}
+    status={schedule.touchedCount === 0 || operations.pending ? "disabled" : undefined}
     onclick={review.handleOpen}
   >
-    檢視變更 ({board.touchedCount})
+    檢視變更 ({schedule.touchedCount})
   </Button>
 </div>
 

@@ -13,4 +13,3 @@ Phase 0 已完成：`package.json`（`name: "taggit"`、`3.0.0-dev`、`adapter-n
 ## 三、剩餘路由工作
 
 - **`/committed`（原規劃中的 `/editor`）**：尚未遷移。
-- **`/tags/cleanup`**：尚未遷移。

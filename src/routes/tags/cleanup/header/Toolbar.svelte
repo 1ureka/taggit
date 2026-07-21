@@ -1,0 +1,22 @@
+<script lang="ts">
+  import Filters from "./Filters.svelte";
+  import Actions from "./Actions.svelte";
+</script>
+
+<div>
+  <Filters />
+  <Actions />
+</div>
+
+<style>
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 3rem;
+    border-bottom: var(--border-style);
+    overflow-x: auto;
+  }
+</style>
