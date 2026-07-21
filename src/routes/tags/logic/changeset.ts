@@ -36,7 +36,7 @@ type ChangesetPayload = {
   hidden: { name: string; hidden: boolean }[];
 };
 
-/** 即將淘汰 */
+/** TODO: 即將淘汰或重寫 */
 function toPayload(cs: TagChangeset, included: Set<string>): ChangesetPayload {
   const want = (name: string) => included.has(name);
 
@@ -54,7 +54,7 @@ function toPayload(cs: TagChangeset, included: Set<string>): ChangesetPayload {
 /** 即將淘汰（見 `api/proto/tags-batch/+server.ts` 的 OpResult 註解） */
 type OpResult = { key: string; ok: boolean; error?: string };
 
-/** 即將淘汰 */
+/** TODO: 即將淘汰或重寫 */
 export async function submitChangeset(ops: BoardOperation[], names: string[]): Promise<Map<string, string>> {
   const cs = changesetFromOperations(ops);
   const res = await api.post<{ results: OpResult[] }>("/api/proto/tags-batch", toPayload(cs, new Set(names)));

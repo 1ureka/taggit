@@ -1,7 +1,15 @@
 <script lang="ts">
   import type { Suggestion } from "../logic/suggestions";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
   let { suggestion: s }: { suggestion: Suggestion } = $props();
+
+  /** 兩標籤並列的列（similar/cooccur）名稱過長時的截斷上限，避免其中一個把另一個擠不見 */
+  const MAX_NAME_CHARS = 16;
+
+  function displayName(name: string): string {
+    return name.length > MAX_NAME_CHARS ? `${name.slice(0, MAX_NAME_CHARS - 1)}…` : name;
+  }
 </script>
 
 <div>
@@ -11,9 +19,15 @@
     {@const both = s.both}
 
     <p class="subject">
-      <b>{a.name}</b><span class="count">{a.count}</span>
+      <b {@attach a.name.length > MAX_NAME_CHARS ? tooltip({ content: a.name }) : undefined}>
+        {displayName(a.name)}
+      </b>
+      <span class="count">{a.count}</span>
       <span class="vs">×</span>
-      <b>{b.name}</b><span class="count">{b.count}</span>
+      <b {@attach b.name.length > MAX_NAME_CHARS ? tooltip({ content: b.name }) : undefined}>
+        {displayName(b.name)}
+      </b>
+      <span class="count">{b.count}</span>
     </p>
 
     <p class="evidence">

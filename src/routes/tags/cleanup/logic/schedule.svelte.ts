@@ -1,9 +1,6 @@
 /**
  * @file schedule.svelte.ts
- * 建議卡片排入的清理操作：每個標籤同時只會有一種排程（合併／刪除／隱藏），
- * 直接以標籤名稱為鍵存放單一狀態物件，不另外維護一份可能失去同步的索引。
- * 合併目標一律是既有標籤（來自建議引擎），因此連帶的 fromCount/toCount/both 在排程當下就已知，
- * 審查清單不需要再回頭查詢任何標籤資料。
+ * 建議卡片排入的清理操作：每個標籤同時只會有一種排程
  */
 
 import type { BeforeNavigate } from "@sveltejs/kit";
@@ -51,7 +48,9 @@ class ScheduleController {
   operations = $derived(operationsFromSchedule(this.state));
   /** 已排程的標籤數量 */
   touchedCount = $derived(
-    Object.keys(this.state.renames).length + Object.keys(this.state.deletes).length + Object.keys(this.state.hidden).length,
+    Object.keys(this.state.renames).length +
+      Object.keys(this.state.deletes).length +
+      Object.keys(this.state.hidden).length,
   );
 
   /** 指定標籤目前排入的操作種類，未排入為 `null` */

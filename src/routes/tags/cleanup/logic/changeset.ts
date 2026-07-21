@@ -1,19 +1,19 @@
 /**
  * @file changeset.ts
- * /tags/cleanup 的送出：把目前排程狀態轉為 tags-batch 的 body 並呼叫。
+ * TODO: 重新思考職責與正確位置
  */
 
 import { api } from "$lib/utils/request";
 import type { ScheduleState } from "./schedule.svelte";
 
-/** tags-batch 送出的 body 形狀 */
+/** TODO: 淘汰原本非常不好的 api 後，這裡可能也得重寫 */
 type ChangesetPayload = {
   deletes: string[];
   renames: { from: string; to: string }[];
   hidden: { name: string; hidden: boolean }[];
 };
 
-/** 排程狀態轉為 tags-batch 的 body 形狀，`included` 用操作對象的標籤名稱篩選子集合 */
+/** TODO: 即將淘汰或重寫 */
 function toPayload(state: ScheduleState, included: Set<string>): ChangesetPayload {
   const want = (name: string) => included.has(name);
   return {
@@ -27,14 +27,10 @@ function toPayload(state: ScheduleState, included: Set<string>): ChangesetPayloa
   };
 }
 
-/** key 是操作對象的標籤名稱，見 `api/proto/tags-batch/+server.ts` 的 OpResult 註解 */
+/** TODO: 即將淘汰或重寫 */
 type OpResult = { key: string; ok: boolean; error?: string };
 
-/**
- * 送出排程狀態中 names 指定的子集合。
- * 回傳失敗操作的 `name -> 錯誤訊息` 對映（全部成功時為空）。
- * 傳輸層錯誤直接 throw。
- */
+/** TODO: 即將淘汰或重寫 */
 export async function submitChangeset(state: ScheduleState, names: string[]): Promise<Map<string, string>> {
   const res = await api.post<{ results: OpResult[] }>("/api/proto/tags-batch", toPayload(state, new Set(names)));
   if (!res.ok || !res.data) throw new Error(res.error || "送出失敗");

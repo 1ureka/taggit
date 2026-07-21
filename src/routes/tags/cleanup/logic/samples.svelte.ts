@@ -1,7 +1,6 @@
 /**
  * @file samples.svelte.ts
  * 建議卡片的證據縮圖：懶加載並以 suggestion id 為鍵快取，卡片因虛擬化捲出/捲回可視範圍時不重查。
- * 兩兩配對的建議（similar/cooccur）先查交集，查無交集（例如兩個都還沒有共同圖片）才退而查各自的樣本。
  */
 
 import { getContext, setContext } from "svelte";

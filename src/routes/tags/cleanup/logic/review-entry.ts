@@ -1,6 +1,6 @@
 /**
  * @file review-entry.ts
- * 審查清單的資料模型：由排程操作疊加審查專屬的旗標
+ * 審查清單的資料模型，由排程操作疊加審查專屬的旗標
  */
 
 import type { CleanupOperation } from "./schedule.svelte";

@@ -1,6 +1,6 @@
 /**
  * @file review.svelte.ts
- * 審查清單：勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
+ * 審查清單，勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
  */
 
 import { getContext, setContext } from "svelte";

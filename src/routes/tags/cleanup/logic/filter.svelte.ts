@@ -1,7 +1,6 @@
 /**
  * @file filter.svelte.ts
- * 建議清單的分類頁籤與忽略狀態。純前端篩選——建議清單本身在 load 時已一次算好，
- * 分類與忽略都不影響資料本身，不需要連帶 goto 重新整理。
+ * 建議清單的分類頁籤與忽略狀態，純前端篩選
  */
 
 import { getContext, setContext } from "svelte";
