@@ -18,7 +18,7 @@
   } as const;
 </script>
 
-<footer>
+<footer class:scheduled={scheduledName !== undefined}>
   {#if scheduledName !== undefined}
     {@const target = scheduledName}
     <Button onclick={() => schedule.handleUndo(target)} {...buttonProps}>取消排程</Button>
@@ -66,5 +66,10 @@
     background-color: var(--color-bg);
     padding: 0.25rem 0.75rem 0rem 0.75rem;
     overflow-x: scroll;
+  }
+
+  footer.scheduled {
+    border-color: hsl(from var(--color-warning) h s l / 0.75);
+    background-color: hsl(from var(--color-warning) h s l / 0.1);
   }
 </style>

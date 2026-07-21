@@ -34,9 +34,9 @@
     border: var(--border-style);
     border-radius: calc(var(--border-radius) * 1.5);
     overflow: hidden;
+  }
 
-    &.scheduled {
-      border-left-color: var(--color-warning);
-    }
+  article.scheduled {
+    border-color: hsl(from var(--color-warning) h s l / 0.75);
   }
 </style>

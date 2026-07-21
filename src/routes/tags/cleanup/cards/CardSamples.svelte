@@ -1,7 +1,8 @@
 <script lang="ts">
-  import type { Suggestion } from "../logic/suggestions";
   import { imgSrc, blurhashStyle } from "$lib/image/client";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import { getSamplesContext } from "../logic/samples.svelte";
+  import type { Suggestion } from "../logic/suggestions";
 
   let { suggestion }: { suggestion: Suggestion } = $props();
 
@@ -22,7 +23,18 @@
     {/each}
   {:else if cache.length > 0}
     {#each cache as img (img.id)}
-      <img src={imgSrc(img.id, "sm")} alt={img.name} loading="lazy" style={blurhashStyle(img)} />
+      {#snippet preview()}
+        <img class="preview" src={imgSrc(img.id, "md")} alt={img.name} loading="lazy" style={blurhashStyle(img)} />
+      {/snippet}
+
+      <img
+        class="thumb"
+        src={imgSrc(img.id, "sm")}
+        alt={img.name}
+        loading="lazy"
+        style={blurhashStyle(img)}
+        {@attach tooltip({ content: preview })}
+      />
     {/each}
   {/if}
 </div>
@@ -40,8 +52,7 @@
     overflow: hidden;
   }
 
-  .thumb,
-  img {
+  .thumbs > .thumb {
     aspect-ratio: 1/1;
     flex-shrink: 0;
     object-fit: cover;
@@ -49,7 +60,7 @@
     border-radius: calc(var(--border-radius) / 1.5);
   }
 
-  .thumb.placeholder {
+  .thumbs > .thumb.placeholder {
     background: hsl(from currentColor h s l / 0.15);
     animation: pulse 1.2s ease-in-out infinite;
   }
@@ -62,5 +73,13 @@
     50% {
       opacity: 0.9;
     }
+  }
+
+  .preview {
+    width: 15rem;
+    height: 15rem;
+    object-fit: cover;
+    border-radius: calc(var(--border-radius) / 1.5);
+    margin: 0.25rem 0.1rem;
   }
 </style>
