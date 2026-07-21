@@ -46,9 +46,9 @@ routes/committed/
 │   ├── CardInfo.svelte           # 概要列，依草稿狀態切換顯示內容
 │   ├── config.ts                 # 沿用 staged（breakpoints / CARD_SIZE / INSPECTOR_WIDTH）
 │   └── batch/
-│       ├── BatchBar.svelte       # 常駐列本體：全選 + 三個動作觸發鈕 + 結束批次選取
-│       ├── BatchRatingSelect.svelte  # 評等，真的 Select，星號 option/triggerOption snippet
-│       └── BatchTagAction.svelte # 加標籤／去標籤共用（mode: "add" | "remove"），觸發鈕外觀各自獨立寫
+│       ├── BatchBar.svelte       # 常駐列本體：全選 + 三個觸發鈕 + 標記退回 + 結束批次選取
+│       ├── BatchRatingMenu.svelte    # 評等，Menu + 手刻 Button 觸發鈕，星號只在選項
+│       └── BatchTagAction.svelte # 加標籤／去標籤共用（mode: "add" | "remove"），Popover + TagInput + 套用按鈕
 ├── inspector/
 │   ├── Inspector.svelte          # 沿用 staged 版面
 │   ├── InspectorHeader.svelte    # 沿用（檔名 + X/Y 指標 + 關閉鈕）
@@ -166,40 +166,26 @@ effectiveTagsOf(filename: string): string[] {
 
 ### 批次寫入方法
 
+加標籤／去標籤面板現在是「編輯 → 按套用 → 一次寫入」的模式（見第 5 節），不再是面板開著時逐個 chip 即時寫入草稿，所以這裡收整批標籤、不是收單一個標籤：
+
 ```ts
-handleBulkAddTag = (filenames: string[], tag: string) => {
-  const t = tag.trim();
-  if (!t) return;
-  for (const f of filenames) {
-    const d = this.ensureDraft(f);
-    if (d.kind === "revert" || d.tags.includes(t)) continue;
-    this.writeDraft(f, { ...d, tags: [...d.tags, t] });
-  }
-};
-
-/** 從「加標籤」面板移除一個 chip：只清掉這批動作剛加上去的，不影響圖片原本就有的標籤 */
-handleBulkUndoAddTag = (filenames: string[], tag: string) => {
-  for (const f of filenames) {
-    const d = this.drafts[f];
-    if (!d || d.kind === "revert" || d.baseline.tags.includes(tag)) continue; // 原本就有，不是這次加的
-    if (d.tags.includes(tag)) this.writeDraft(f, { ...d, tags: d.tags.filter((t) => t !== tag) });
-  }
-};
-
-handleBulkRemoveTag = (filenames: string[], tag: string) => {
+handleBulkAddTags = (filenames: string[], tags: string[]) => {
+  const clean = [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
+  if (clean.length === 0) return;
   for (const f of filenames) {
     const d = this.ensureDraft(f);
     if (d.kind === "revert") continue;
-    this.writeDraft(f, { ...d, tags: d.tags.filter((t) => t !== tag) });
+    this.writeDraft(f, { ...d, tags: [...new Set([...d.tags, ...clean])] });
   }
 };
 
-/** 從「去標籤」面板移除一個 chip：復原這批動作剛去掉的，把標籤加回草稿 */
-handleBulkUndoRemoveTag = (filenames: string[], tag: string) => {
+handleBulkRemoveTags = (filenames: string[], tags: string[]) => {
+  const set = new Set(tags.map((t) => t.trim()).filter(Boolean));
+  if (set.size === 0) return;
   for (const f of filenames) {
     const d = this.ensureDraft(f);
-    if (d.kind === "revert" || d.tags.includes(tag)) continue;
-    this.writeDraft(f, { ...d, tags: [...d.tags, tag] });
+    if (d.kind === "revert") continue;
+    this.writeDraft(f, { ...d, tags: d.tags.filter((t) => !set.has(t)) });
   }
 };
 
@@ -219,7 +205,7 @@ handleBulkRevert = (filenames: string[]) => {
 };
 ```
 
-去標籤／加標籤面板的「復原」不是單純的 undo stack，而是各自對稱地反向操作（第一次加標籤時排除已有的、復原時排除 baseline 就有的），理由是這個面板開著期間**每個操作都立即套用**（[temp3.md 第 5 節](temp3.md#5-批次編輯) 已確認），移除一個 chip 必須精準地只撤銷「這個 chip 造成的效果」，不能連圖片原本就有的標籤一起動到。
+因為套用是「按下套用鈕那一刻」的單一動作，不再需要對稱的 undo 方法——面板裡打字/加入/移除 chip 都只是面板自己的本地狀態（見第 5 節 `BatchTagAction.svelte`），跟圖片草稿完全無關，關掉面板不按套用就直接作廢，沒有東西需要復原。
 
 ---
 
@@ -250,6 +236,8 @@ div.container > section { flex: 1; min-height: 0; overflow-y: auto; }
 
 ### `SelectionController`
 
+跟原本設計相比明顯變簡單：不再需要追蹤「面板目前排隊了哪些標籤」（那是面板自己的本地狀態，見下方 `BatchTagAction.svelte`），`SelectionController` 只管選取集合本身，動作方法收到的都是「已經確定要套用」的完整資料，直接轉呼叫 `editor` 對應的批次方法：
+
 ```ts
 class SelectionController {
   private editor = getEditorContext();
@@ -257,10 +245,6 @@ class SelectionController {
 
   active = $state(false);
   private ids = new SvelteSet<string>();
-
-  /** 這次批次動作透過「加標籤」／「去標籤」面板排隊的標籤，純粹是面板自己的 UI 狀態（badge 計數、chip 列表），不是圖片草稿本身 */
-  pendingAddTags = new SvelteSet<string>();
-  pendingRemoveTags = new SvelteSet<string>();
 
   selectedFiles = $derived([...this.ids]);
   count = $derived(this.ids.size);
@@ -282,14 +266,8 @@ class SelectionController {
 
   handleToggleMode = () => {
     this.active = !this.active;
-    if (!this.active) this.resetSelection();
+    if (!this.active) this.ids.clear();
   };
-
-  private resetSelection() {
-    this.ids.clear();
-    this.pendingAddTags.clear();
-    this.pendingRemoveTags.clear();
-  }
 
   handleToggle = (filename: string) => {
     if (this.ids.has(filename)) this.ids.delete(filename);
@@ -305,22 +283,8 @@ class SelectionController {
     }
   };
 
-  handleAddTag = (tag: string) => {
-    this.pendingAddTags.add(tag);
-    this.editor.handleBulkAddTag(this.selectedFiles, tag);
-  };
-  handleUndoAddTag = (tag: string) => {
-    this.pendingAddTags.delete(tag);
-    this.editor.handleBulkUndoAddTag(this.selectedFiles, tag);
-  };
-  handleRemoveTag = (tag: string) => {
-    this.pendingRemoveTags.add(tag);
-    this.editor.handleBulkRemoveTag(this.selectedFiles, tag);
-  };
-  handleUndoRemoveTag = (tag: string) => {
-    this.pendingRemoveTags.delete(tag);
-    this.editor.handleBulkUndoRemoveTag(this.selectedFiles, tag);
-  };
+  handleApplyAddTags = (tags: string[]) => this.editor.handleBulkAddTags(this.selectedFiles, tags);
+  handleApplyRemoveTags = (tags: string[]) => this.editor.handleBulkRemoveTags(this.selectedFiles, tags);
   handleSetRating = (rating: number) => this.editor.handleBulkSetRating(this.selectedFiles, rating);
   handleRevert = () => this.editor.handleBulkRevert(this.selectedFiles);
 }
@@ -328,50 +292,101 @@ class SelectionController {
 
 ### `BatchBar.svelte` 的三個觸發鈕
 
-- **`BatchRatingSelect.svelte`**：直接用既有的 `Select` 元件（不需要另外做觸發鈕外觀，`Select` 內建 trigger 已經有文字＋箭頭＋pending/disabled 狀態）。`option` 與 `triggerOption` 都要帶星號圖示：
+[temp3.md 第 5 節](temp3.md#5-批次編輯) 已確認：三顆觸發鈕外觀完全一致、不因為使用過而改變，實作上就直接照抄本專案既有 `Menu.svelte` 的標準用法——觸發鈕是頁面路由自己手刻的 `Button`（文字 + 手動渲染的 `IconChevronDown`），不透過 `Select` 元件，三顆天生長得一樣。
+
+- **`BatchRatingMenu.svelte`**：用既有的 `Menu` 元件（`$lib/components/floating/Menu.svelte`），`items` 是 1～5 星五個按鈕，選項內容帶星號圖示；點了哪個立刻呼叫 `selection.handleSetRating` 並收合選單。觸發鈕固定顯示「評等」，不因為用過而改變外觀：
 
   ```svelte
-  <Select
-    options={["1", "2", "3", "4", "5"]}
-    option={ratingOption}
-    triggerOption={ratingOption}
-    placeholder="評等"
-    value={undefined}
-    onchange={(key) => selection.handleSetRating(Number(key))}
-    aria-label="批次設定評等"
-  />
+  <script lang="ts">
+    import Button from "$lib/components/actions/Button.svelte";
+    import Menu from "$lib/components/floating/Menu.svelte";
+    import { IconChevronDown, IconStarFilled } from "$lib/icons";
+    import { getSelectionContext } from "../../logic/selection.svelte";
 
-  {#snippet ratingOption(key: string)}
+    const selection = getSelectionContext();
+    const id = $props.id();
+
+    let open = $state(false);
+    let anchor = $state<HTMLElement>();
+
+    const items = [1, 2, 3, 4, 5].map((n) => ({
+      type: "button" as const,
+      content: { render: ratingRow, props: { n } },
+      props: { onclick: () => { selection.handleSetRating(n); open = false; } },
+    }));
+  </script>
+
+  {#snippet ratingRow({ n }: { n: number })}
     <IconStarFilled size={14} />
-    <span>{key}</span>
+    <span>{n}</span>
   {/snippet}
+
+  <div bind:this={anchor}>
+    <Button
+      id="{id}-trigger"
+      onclick={() => (open = !open)}
+      aria-expanded={open}
+      status={selection.count === 0 ? "disabled" : undefined}
+    >
+      <span>評等</span>
+      <span class="chevron" class:open><IconChevronDown size={14} /></span>
+    </Button>
+  </div>
+
+  <Menu id="{id}-menu" labelledBy={{ triggerId: "{id}-trigger" }} {open} reference={anchor} {items} onclose={() => (open = false)} />
   ```
 
-  `value` 恆為 `undefined`（placeholder 恆顯示「評等」），不把「上次選過的星等」記成 `Select` 自身的選取狀態——[temp3.md 第 5 節](temp3.md#5-批次編輯) 的「★ 3」是套用後**當次**的視覺回饋，不是要讓這顆 Select 變成「目前篩選是 3 星」的持久狀態；如果讓 `value` 真的定住在 "3"，使用者換一批新選取後想再套用同一個評等，點同一個選項可能因為 `value` 沒變而不觸發 `onchange`。改成套用後由呼叫端自己短暫地把觸發鈕文字換成「★ 3」（用一個本地 `lastApplied` 顯示用的狀態，不綁定 `Select` 的 `value`），`Select` 本身永遠是無狀態的一次性動作觸發器。
-
-  > 待確認：上面「`value` 恆 `undefined`、用另一個本地狀態顯示已套用值」是我為了避免「重選同一個值不觸發」而繞的寫法，如果你不在意這個邊界情況（使用者少數情況下要點兩下才能重新套用同一個評等），也可以讓 `Select` 直接綁 `value`，寫法更單純。
-
-- **`BatchTagAction.svelte`**（`mode: "add" | "remove"`）：觸發鈕外觀**各自獨立寫**（已確認不抽共用元件），視覺上模仿 `Select` 的 trigger（文字＋`IconChevronDown`），但不是 `Select`——點下去開的是 `Popover` + 完整的 `TagInput`：
+- **`BatchTagAction.svelte`**（`mode: "add" | "remove"`）：觸發鈕是同一套手刻 `Button` + chevron 寫法，點下去開的不是 `Menu`，是 `Popover` + `TagInput` + 一顆「套用」按鈕。TagInput 綁定的標籤陣列是**元件自己的本地狀態**，跟任何圖片草稿無關，按下套用才把這份清單整批送給 `selection`：
 
   ```svelte
-  <Popover open={panelOpen} reference={triggerEl} placement="bottom-start">
-    <TagInput
-      tags={mode === "add" ? [...selection.pendingAddTags] : [...selection.pendingRemoveTags]}
-      chipsPlacement="below"
-      candidates={mode === "remove" ? selection.removableTagCandidates : undefined}
-      onchange={(tags) => diffAndApply(tags)}
-      label={mode === "add" ? "加標籤" : "去標籤"}
-    />
+  <script lang="ts">
+    let { mode }: { mode: "add" | "remove" } = $props();
+
+    const selection = getSelectionContext();
+    let open = $state(false);
+    let anchor = $state<HTMLElement>();
+    let draftTags = $state<string[]>([]); // 面板自己的暫存清單，關閉不套用就作廢
+
+    const label = mode === "add" ? "新增標籤" : "去除標籤";
+
+    function handleOpen() {
+      draftTags = [];
+      open = true;
+    }
+    function handleApply() {
+      if (mode === "add") selection.handleApplyAddTags(draftTags);
+      else selection.handleApplyRemoveTags(draftTags);
+      open = false;
+    }
+  </script>
+
+  <div bind:this={anchor}>
+    <Button onclick={handleOpen} aria-expanded={open} status={selection.count === 0 ? "disabled" : undefined}>
+      <span>{label}</span>
+      <span class="chevron" class:open><IconChevronDown size={14} /></span>
+    </Button>
+  </div>
+
+  <Popover {open} reference={anchor} placement="bottom-start">
+    <div class="panel">
+      <TagInput
+        bind:tags={draftTags}
+        chipsPlacement="below"
+        candidates={mode === "remove" ? selection.removableTagCandidates : undefined}
+        {label}
+      />
+      <Button variant="primary" onclick={handleApply} status={draftTags.length === 0 ? "disabled" : undefined}>
+        套用
+      </Button>
+    </div>
   </Popover>
   ```
 
-  `chipsPlacement="below"` 是給 `TagInput` 新增的方向 prop（見第 6 節），這裡固定傳 `"below"`；其他既有呼叫端不傳這個 prop，維持現行的 `"above"` 預設值，行為不變。
-
-  觸發鈕右側的徽章數字＝`selection.pendingAddTags.size`／`selection.pendingRemoveTags.size`，樣式比照 `FilterButton.svelte` 現有的 `.badge`（本地複製一份小樣式，不硬拉一個共用元件，跟評等/加去標籤觸發鈕的外觀已經確定各自獨立寫是一致的決定）。
+  點擊面板外部關閉、不套用（沿用 `FilterPopover.svelte` 既有的 window click 判斷寫法）。`candidates` 只在 `mode === "remove"` 時傳，`mode === "add"` 維持 `TagInput` 原本查全庫標籤的行為（可以打全新的標籤名稱）。
 
 ---
 
-## 6. `TagInput.svelte` 新增 `chipsPlacement` prop
+## 6. `TagInput.svelte` 新增兩個 prop
 
 ```ts
 type Props = {
@@ -382,11 +397,23 @@ type Props = {
   scope?: string;
   /** chip 清單相對於輸入框的堆疊方向，預設 "above"（維持現有行為） */
   chipsPlacement?: "above" | "below";
+  /** 提供時直接用這份清單當候選（僅依輸入字串本地過濾），不打 /api/tags 查詢 */
+  candidates?: string[];
   onchange?: (tags: string[]) => void;
 };
 ```
 
-Markup 依 `chipsPlacement` 決定 chips 區塊渲染在 `<Combo>` 之前還是之後；`"above"` 時完全就是目前的 DOM 順序，不影響既有呼叫端（staged Inspector、compare 進階篩選、`/tags` 系列頁面）的外觀。`"below"` 只有這裡的批次標籤面板在用——輸入框固定在上緣，chip 往下長，符合連續輸入時輸入框不跳動的需求（[temp3.md 第 5 節](temp3.md#5-批次編輯) 已確認）。
+### `chipsPlacement`
+
+Markup 依此決定 chips 區塊渲染在 `<Combo>` 之前還是之後；`"above"` 時完全就是目前的 DOM 順序，不影響既有呼叫端（staged Inspector、compare 進階篩選、`/tags` 系列頁面）的外觀。`"below"` 只有這裡的批次標籤面板在用——輸入框固定在上緣，chip 往下長，符合連續輸入時輸入框不跳動的需求（[temp3.md 第 5 節](temp3.md#5-批次編輯) 已確認）。
+
+### `candidates`（新發現的必要修正）
+
+第 5 節原本的設想是直接把 `selection.removableTagCandidates` 傳給 `TagInput` 的候選清單，但重新對照 `TagInput.svelte` 現有原始碼後發現：它目前**沒有**直接傳入候選清單這條路，候選永遠是元件自己 debounce 呼叫 `/api/tags`（用 `scope` 這個 `ImageWhere` 查詢字串去限定範圍）查回來的，`scope` 沒有辦法表達「剛好是這批選取的圖片 id」——`ImageWhere` 只有 search／標籤／評等這些篩選維度，沒有「id 在某個清單內」這種篩法。
+
+「去標籤」要求候選限定在「選取範圍內至少一張圖片目前真的有」的標籤（[temp3.md 第 5 節](temp3.md#5-批次編輯)），這個集合完全來自本地已載入/草稿中的資料（`selection.removableTagCandidates`，見第 5 節），沒有必要也沒有辦法透過 `scope` 從伺服器查——所以要新增這個 `candidates` prop：提供時整個跳過 `/api/tags` 查詢，直接拿這份清單依目前輸入字串做本地字串過濾當候選。`mode === "add"` 不傳這個 prop，維持原本查全庫標籤的行為。
+
+其他既有呼叫端都不傳 `candidates`，行為不受影響。
 
 ---
 
@@ -610,6 +637,4 @@ export async function commitDrafts(
 
 ## 11. 待使用者確認的剩餘小節點
 
-1. 第 5 節提到的「評等 Select 要不要真的綁定 `value`」：目前設計成恆 `undefined`（每次都是一次性動作，避免重選同一個值不觸發 `onchange` 的邊界情況），但這樣寫法比較繞。如果不在意那個邊界情況，可以簡化成直接綁 `value`。
-
-其餘設計已經對應 temp3.md 收斂完成的互動需求，可以進入實作階段。
+目前沒有還沒收斂的節點。設計已經對應 temp3.md 收斂完成的互動需求，可以進入實作階段。
