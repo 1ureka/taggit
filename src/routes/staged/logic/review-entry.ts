@@ -41,19 +41,3 @@ export function buildReviewEntry(filename: string, draft: Draft, checked: boolea
     checkable: problem === null,
   };
 }
-
-/** 目前已勾選的項目提交後會新建立的標籤（不存在於既有標籤中） */
-export function computeNewTags(entries: ReviewEntry[], existingTagNames: string[]): string[] {
-  const existing = new Set(existingTagNames);
-  const result = new Set<string>();
-
-  for (const e of entries) {
-    if (!e.checked) continue;
-    for (const t of e.tags) {
-      const trimmed = t.trim();
-      if (trimmed && !existing.has(trimmed)) result.add(trimmed);
-    }
-  }
-
-  return [...result];
-}

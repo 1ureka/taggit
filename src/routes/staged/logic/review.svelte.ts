@@ -1,23 +1,22 @@
 /**
  * @file review.svelte.ts
- * 審查清單：勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
+ * 審查清單：勾選狀態、投影出的清單、標籤庫影響評估、提交流程，以及提交失敗匯總
  */
 
 import { getContext, setContext } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import { goto } from "$app/navigation";
 
+import { api } from "$lib/utils/request";
 import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
 import { commitDrafts, problemOf } from "./draft";
-import { buildReviewEntry, computeNewTags } from "./review-entry";
-import { getPageDataContext } from "./page-data.svelte";
+import { buildReviewEntry } from "./review-entry";
 import { getEditorContext } from "./editor.svelte";
 import { getOperationsContext } from "./operations.svelte";
 
 class ReviewController {
-  private pageData = getPageDataContext();
   private editor = getEditorContext();
   private operations = getOperationsContext();
 
@@ -34,8 +33,6 @@ class ReviewController {
       buildReviewEntry(f, this.editor.draftOf(f), this.checked.has(f), this.failures[f]),
     ),
   );
-  /** 提交後會新增的標籤 */
-  newTags = $derived(computeNewTags(this.entries, this.pageData.value.existingTagNames));
   /** 已勾選的數量 */
   checkedCount = $derived(this.entries.filter((e) => e.checked).length);
   /** 可勾選的數量 */
@@ -83,6 +80,58 @@ class ReviewController {
     this.open = false;
     this.editor.handleSelect(filename);
   };
+
+  // --- 標籤庫影響評估 ---
+  // 暫存圖片提交只會新增標籤使用（沒有退回/刪除），因此只需要 newTags，不需要 orphanedTags
+
+  private touchedTagNames = $derived.by(() => {
+    const set = new Set<string>();
+    for (const e of this.entries) {
+      if (!e.checked) continue;
+      for (const t of e.tags) set.add(t);
+    }
+    return [...set];
+  });
+
+  /**
+   * 是否有一次查詢正在等待中（含 debounce 等待期）。
+   * touchedTagNames 一變動就立刻為 true（不受 debounce 影響）；
+   * 查詢真正完成、套用完非過期回應後才解除；沒有標籤異動時直接為 false，不需要查詢也不需要等待。
+   */
+  private pendingFetch = $state(false);
+  impactLoading = $derived(this.open && this.pendingFetch);
+
+  private impactCounts = $state(new Map<string, number>());
+  private impactSeq = 0;
+  private impactTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** 提交後會新增的全新標籤（目前全域使用數為 0） */
+  newTags = $derived(this.touchedTagNames.filter((t) => (this.impactCounts.get(t) ?? 0) === 0));
+
+  constructor() {
+    $effect(() => {
+      const names = this.touchedTagNames;
+      clearTimeout(this.impactTimer);
+
+      if (!this.open || names.length === 0) {
+        this.pendingFetch = false;
+        return;
+      }
+
+      this.pendingFetch = true; // 立刻進入 loading，不受下面的 debounce 影響
+      const seq = ++this.impactSeq;
+      this.impactTimer = setTimeout(async () => {
+        const res = await api.get<{ counts: { name: string; count: number }[] }>(
+          `/api/proto/tags-impact?names=${encodeURIComponent(names.join(","))}`,
+        );
+        if (seq !== this.impactSeq) return; // 已有更新的查詢在路上，這次回應作廢
+        if (res.ok && res.data) this.impactCounts = new Map(res.data.counts.map((c) => [c.name, c.count]));
+        this.pendingFetch = false; // 套用完成才解除 loading
+      }, 200);
+    });
+  }
+
+  // --- 提交 ---
 
   /** 提交目前勾選的暫存圖片 */
   handleSubmit = async () => {

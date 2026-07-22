@@ -55,6 +55,11 @@
     oncancel={review.handleClose}
     onsubmit={review.handleSubmit}
   >
-    <ReviewTagImpact checkedCount={review.checkedCount} tagsToAdd={review.newTags.length} tagsToRemove={0} />
+    <ReviewTagImpact
+      loading={review.impactLoading}
+      checkedCount={review.checkedCount}
+      tagsToAdd={review.newTags.length}
+      tagsToRemove={0}
+    />
   </ReviewFooter>
 </Modal>
