@@ -81,9 +81,9 @@ class ReviewController {
     this.editor.handleSelect(filename);
   };
 
-  // --- 標籤庫影響評估 ---
-  // 暫存圖片提交只會新增標籤使用（沒有退回/刪除），因此只需要 newTags，不需要 orphanedTags
+  // ---
 
+  /** 目前草稿中有的標籤  */
   private touchedTagNames = $derived.by(() => {
     const set = new Set<string>();
     for (const e of this.entries) {
@@ -93,11 +93,7 @@ class ReviewController {
     return [...set];
   });
 
-  /**
-   * 是否有一次查詢正在等待中（含 debounce 等待期）。
-   * touchedTagNames 一變動就立刻為 true（不受 debounce 影響）；
-   * 查詢真正完成、套用完非過期回應後才解除；沒有標籤異動時直接為 false，不需要查詢也不需要等待。
-   */
+  /** 是否有一次查詢正在等待中，含 debounce 等待期 */
   private pendingFetch = $state(false);
   impactLoading = $derived(this.open && this.pendingFetch);
 
@@ -131,7 +127,7 @@ class ReviewController {
     });
   }
 
-  // --- 提交 ---
+  // ---
 
   /** 提交目前勾選的暫存圖片 */
   handleSubmit = async () => {
