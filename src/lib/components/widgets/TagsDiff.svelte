@@ -5,14 +5,20 @@
     /** 標籤清單 */
     tags: string[];
     /** 新增或移除 */
-    sign: "+" | "-";
+    sign: "+" | "-" | "~";
     /** 超過這個數量收斂成一個 +N/-N 溢出標籤 */
     max?: number;
   };
 
   let { tags, sign, max = 3 }: Props = $props();
 
-  const colorVar = $derived(sign === "+" ? "var(--color-success)" : "var(--color-error)");
+  const colorVar = $derived(
+    {
+      "+": "var(--color-success)",
+      "-": "var(--color-error)",
+      "~": "var(--color-text-muted)",
+    }[sign],
+  );
 
   const chipStyle = $derived(
     [
@@ -21,6 +27,7 @@
       `background: hsl(from ${colorVar} h s l / 0.08)`,
       "font: var(--font-caption)",
       "max-width: 8rem",
+      sign === "~" ? "text-decoration: line-through" : "",
     ].join(";"),
   );
 
@@ -36,7 +43,7 @@
 {/each}
 {#if overflow > 0}
   <Chip style={chipStyle}>
-    <span class="sign">{sign + overflow}</span>
+    <span class="sign">{"+" + overflow}</span>
   </Chip>
 {/if}
 

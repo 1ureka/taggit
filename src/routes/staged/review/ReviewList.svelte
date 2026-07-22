@@ -1,12 +1,14 @@
 <script lang="ts">
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
-  import ReviewListItem from "./ReviewListItem.svelte";
+  import ReviewItemImage from "$lib/components/widgets/ReviewItemImage.svelte";
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
+  import { getLightboxContext } from "../logic/lightbox.svelte";
 
   const review = getReviewContext();
   const operations = getOperationsContext();
+  const lightbox = getLightboxContext();
 </script>
 
 <div class="container">
@@ -24,7 +26,18 @@
     </li>
 
     {#each review.entries as entry (entry.filename)}
-      <ReviewListItem {entry} />
+      <ReviewItemImage
+        checkable={entry.checkable}
+        checked={entry.checked}
+        name={entry.name}
+        filename={entry.filename}
+        changeRating={entry.rating ? { before: 0, after: entry.rating } : undefined}
+        changeTags={{ toAdd: entry.tags }}
+        problem={entry.problem}
+        onclickimage={() => lightbox.handleOpen(entry.filename)}
+        onclickname={() => review.handleEdit(entry.filename)}
+        ontoggle={() => review.handleToggle(entry.filename)}
+      />
     {/each}
   </ul>
 
