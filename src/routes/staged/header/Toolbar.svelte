@@ -2,7 +2,7 @@
   import { IconDatabase, IconReload } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
-  import ReviewTrigger from "$lib/components/widgets/ReviewTrigger.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import SessionProgress from "./SessionProgress.svelte";
 
   import { getOperationsContext } from "../logic/operations.svelte";

@@ -1,9 +1,10 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import ReviewFooter from "$lib/components/widgets/ReviewFooter.svelte";
-  import ReviewHeader from "$lib/components/widgets/ReviewHeader.svelte";
-  import ReviewList from "$lib/components/widgets/ReviewList.svelte";
-  import ReviewItemTag from "$lib/components/widgets/ReviewItemTag.svelte";
+  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
+  import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
+  import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewItemTag from "$lib/components/review/ReviewItemTag.svelte";
+
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
 

@@ -3,7 +3,7 @@
   import { IconReload, IconArrowRight } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import ReviewTrigger from "$lib/components/widgets/ReviewTrigger.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
 
   import { getOperationsContext } from "../logic/operations.svelte";
   import { getBoardContext } from "../logic/board.svelte";

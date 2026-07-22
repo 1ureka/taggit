@@ -1,10 +1,10 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import ReviewHeader from "$lib/components/widgets/ReviewHeader.svelte";
-  import ReviewList from "$lib/components/widgets/ReviewList.svelte";
-  import ReviewItemImage from "$lib/components/widgets/ReviewItemImage.svelte";
-  import ReviewTagImpact from "$lib/components/widgets/ReviewTagImpact.svelte";
-  import ReviewFooter from "$lib/components/widgets/ReviewFooter.svelte";
+  import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
+  import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewItemImage from "$lib/components/review/ReviewItemImage.svelte";
+  import ReviewTagImpact from "$lib/components/review/ReviewTagImpact.svelte";
+  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
 
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
