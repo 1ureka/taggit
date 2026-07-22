@@ -43,12 +43,12 @@ class SubmitController {
     };
   }
 
-  /** 清掉上一輪的失敗匯總，供重新打開審查清單時呼叫 */
+  /** 清掉上一輪的失敗匯總 */
   clearFailures = () => {
     this.lastFailures = {};
   };
 
-  /** 批次提交指定檔名目前生效的內容（edit 或 revert 由各自的 controller 決定） */
+  /** 批次提交指定檔名目前生效的內容 */
   handleSubmit = async (filenames: string[]) => {
     if (filenames.length === 0 || this.pending) return;
 
