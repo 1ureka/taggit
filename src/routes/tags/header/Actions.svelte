@@ -3,6 +3,8 @@
   import { IconReload, IconArrowRight } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
+  import ReviewTrigger from "$lib/components/widgets/ReviewTrigger.svelte";
+
   import { getOperationsContext } from "../logic/operations.svelte";
   import { getBoardContext } from "../logic/board.svelte";
   import { getReviewContext } from "../logic/review.svelte";
@@ -29,13 +31,11 @@
     <IconArrowRight size={16} />
   </ButtonLink>
 
-  <Button
-    variant="primary"
-    status={board.touchedCount === 0 || operations.pending ? "disabled" : undefined}
+  <ReviewTrigger
+    count={board.touchedCount}
+    disabled={board.touchedCount === 0 || operations.pending}
     onclick={review.handleOpen}
-  >
-    檢視變更 ({board.touchedCount})
-  </Button>
+  />
 </div>
 
 <style>

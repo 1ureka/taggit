@@ -1,8 +1,10 @@
 <script lang="ts">
-  import Button from "$lib/components/actions/Button.svelte";
-  import SessionProgress from "./SessionProgress.svelte";
   import { IconDatabase, IconReload } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import Button from "$lib/components/actions/Button.svelte";
+  import ReviewTrigger from "$lib/components/widgets/ReviewTrigger.svelte";
+  import SessionProgress from "./SessionProgress.svelte";
+
   import { getOperationsContext } from "../logic/operations.svelte";
   import { getEditorContext } from "../logic/editor.svelte";
   import { getReviewContext } from "../logic/review.svelte";
@@ -30,17 +32,17 @@
     >
       <IconReload size={16} />
     </Button>
+
     <Button variant="outlined" status={operations.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
       <IconDatabase size={16} />
       <span>匯入紀錄</span>
     </Button>
-    <Button
-      variant="primary"
-      status={operations.pending || touchedCount === 0 ? "disabled" : undefined}
+
+    <ReviewTrigger
+      count={touchedCount}
+      disabled={operations.pending || touchedCount === 0}
       onclick={review.handleOpen}
-    >
-      檢視待提交的變更 ({touchedCount})
-    </Button>
+    />
   </div>
 </div>
 
