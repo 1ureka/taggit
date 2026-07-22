@@ -6,7 +6,7 @@
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagChips from "$lib/components/widgets/TagChips.svelte";
+  import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
 
   let { record }: { record: ImageWithId } = $props();
@@ -23,7 +23,7 @@
 
 <div class="info">
   <Rating value={record.rating} readonly size="md" />
-  <TagChips tags={record.tags} nowrap />
+  <TagsWithMask tags={record.tags} />
 
   <div>
     <ButtonLink variant="outlined" {href}>

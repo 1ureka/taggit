@@ -2,7 +2,7 @@
   import type { ImageWithId } from "$lib/database";
   import { imgSrc, blurhashStyle } from "$lib/image/client";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import TagChips from "$lib/components/widgets/TagChips.svelte";
+  import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
   import { getDetailContext } from "../logic/detail.svelte";
 
   let { item }: { item: ImageWithId } = $props();
@@ -22,7 +22,7 @@
     <figcaption>
       <h3 class="ellipsis">{item.name}</h3>
       <Rating value={item.rating} size="sm" readonly />
-      <TagChips tags={item.tags} nowrap />
+      <TagsWithMask tags={item.tags} />
     </figcaption>
   </figure>
 </button>
