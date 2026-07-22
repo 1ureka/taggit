@@ -11,12 +11,12 @@ import { page } from "$app/state";
 import { addToast } from "$lib/components/floating/toast-events";
 import { requestConfirm } from "$lib/components/widgets/confirm-events";
 
-import { getOperationsContext } from "../logic/operations.svelte";
 import { getDraftsContext } from "./drafts.svelte";
 import { getRevertMarkContext } from "./reverts.svelte";
+import { getSubmitContext } from "./submit.svelte";
 
 class GuardController {
-  private operations = getOperationsContext();
+  private submit = getSubmitContext();
   private drafts = getDraftsContext();
   private reverts = getRevertMarkContext();
 
@@ -31,7 +31,7 @@ class GuardController {
     const leaving = to === null || to.url.pathname !== page.url.pathname;
     if (!leaving) return; // 自身的同址 goto with invalidate 不攔
 
-    if (this.operations.pending) {
+    if (this.submit.pending) {
       nav.cancel();
       addToast({ message: "操作進行中，請稍候", variant: "info" });
       return;
@@ -52,7 +52,7 @@ class GuardController {
   };
 
   handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (this.pendingCount > 0 || this.operations.pending) {
+    if (this.pendingCount > 0 || this.submit.pending) {
       e.preventDefault();
       e.returnValue = "";
     }
