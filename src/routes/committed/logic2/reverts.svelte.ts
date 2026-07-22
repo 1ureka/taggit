@@ -1,5 +1,5 @@
 /**
- * @file revert-mark.svelte.ts
+ * @file reverts.svelte.ts
  * 管理已提交圖片退回暫存的標記
  */
 
