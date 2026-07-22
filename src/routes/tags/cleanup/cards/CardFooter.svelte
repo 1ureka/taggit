@@ -69,7 +69,7 @@
   }
 
   footer.scheduled {
-    border-color: hsl(from var(--color-warning) h s l / 0.75);
-    background-color: hsl(from var(--color-warning) h s l / 0.1);
+    border-color: hsl(from var(--color-success) h s l / 0.75);
+    background-color: hsl(from var(--color-success) h s l / 0.1);
   }
 </style>
