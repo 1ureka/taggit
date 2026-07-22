@@ -19,7 +19,7 @@
     /** 對項目名稱的改動 */
     changeName?: { before: string; after: string };
     /** 對項目評分的改動 */
-    changeRating?: { before: number; after: number }; // TODO: after 0 的話要顯示刪除
+    changeRating?: { before: number; after: number };
     /** 對項目標籤的改動 */
     changeTags?: { toAdd?: string[]; toRemove?: string[]; toDel?: string[] };
     /** 項目的問題 */
