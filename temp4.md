@@ -203,9 +203,9 @@ export async function commitDrafts(entries: { filename: string; draft: Draft }[]
 
 ---
 
-## 4. `editor.svelte.ts`：草稿 CRUD、統一的批次寫入介面、目前編輯中的圖片
+## 4. `editor.svelte.ts`：懶建立草稿、統一的批次寫入介面、目前編輯中的圖片
 
-這是相對 temp2.md 的核心修正所在。
+這是相對 temp2.md 的核心修正所在，且在階段一實作過程中又經過一次更根本的重新設計（見下方說明）。
 
 ### 統一介面：所有草稿寫入方法都吃 `filenames: string[]`
 
@@ -213,17 +213,25 @@ export async function commitDrafts(entries: { filename: string; draft: Draft }[]
 
 還有一個額外的收斂：Inspector 裡「還原草稿」（編輯模式下把欄位改回 baseline）跟「取消退回」（退回模式下取消標記）在底層其實是同一個動作——都是「整個刪掉這張圖目前的草稿」，回到毫無草稿的初始狀態。因此這兩顆按鈕共用同一個 `handleDiscardDraft`，UI 只依 `draft.kind` 換文字。這個方法還有第三個呼叫點：提交成功後清掉已送出檔名的草稿（見第 9 節），語意完全一致。
 
-### 「點開過但沒編輯」不能算已編輯
+### 為什麼是「懶建立」，而不是「選中就先建立」
 
-`handleSelect`（開啟編輯面板）會呼叫 `ensureDraft`，因為 `InspectorFields` 需要直接綁定 `draft.name`／`draft.rating`／`draft.tags`（見下方說明），這個綁定目標必須先存在。這代表**單純點開一張圖片、什麼都沒改，`this.drafts` 裡也會暫時多一筆跟 baseline 完全相同的 `kind: "edit"` 草稿**。這件事本身沒有問題，只要滿足兩個條件：
+實作階段一之後發現一個真實的 bug：帶著 `?currentId=xxx` 深連結首次進入頁面時，對應的 Card 會正確顯示「選取中」樣式，但 Inspector 卻不會展開。根因是最初的版本讓 `handleSelect`（開啟編輯面板）順便呼叫 `ensureDraft` 搶先建立草稿，但 `currentId` 是直接從 URL 初始化 `activeState`，從未經過 `handleSelect`，於是「選中哪張」（`activeFile`，純粹是 URL／篩選結果推導出的事實）跟「這張有沒有草稿可以綁定」（原本的 `activeDraft`，只有呼叫過 `handleSelect` 才會有）變成兩個各自獨立、卻只有部分入口記得同步的事實——這正是要避免的「分散事實」。
 
-1. 任何判斷「是否已編輯」的地方一律用 `isTouched(draft)`，不能只判斷「有沒有草稿」——`isTouched` 會正確比對草稿內容跟 baseline，內容相同時回傳 `false`。
-2. `handleClose` 在關閉當下，如果這份草稿其實沒有被真的改過，直接刪掉，不留下「開過但沒改」的殘影。
+修法不是再加一個 `$effect` 去補這個同步缺口（那只是把問題往後挪一層），而是讓「選中哪張」和「草稿存不存在」徹底變成互不相干的兩件事：
+
+- **草稿的建立不再跟「選中」綁定，只在真的寫入欄位時才發生**：任何欄位寫入方法都收斂成同一個底層原語 `mutate`——沒有草稿就先以 baseline 臨時合成一份、套用這次變更，寫入後只要結果跟 baseline 完全相同就直接刪掉，不留痕跡。
+- **讀取一側永遠有東西可讀**：`viewOf(filename)` 是純讀取，有草稿用草稿，沒有就用 baseline 現場合成一份等效內容回傳，絕不寫入 `this.drafts`。Inspector 用這個方法取得要渲染的內容，因此完全不需要判斷「草稿存不存在」，深連結首次進入那一刻就能正確展開。
+
+這樣做的直接好處：`handleSelect` 整個不再需要呼叫任何「建立草稿」的方法，`this.drafts` 也因此有了一個結構性保證——**裡面的每一筆都是真的被寫入過的**，因為它們只能經由 `mutate`（寫入時才判斷是否偏離 baseline）或 `handleMarkRevert` 產生。`touchedFiles` 因此可以直接是 `Object.keys(this.drafts)`，不需要再額外用 `isTouched` 過濾一次，也不需要在 `handleClose` 額外清理「開過沒改」的殘影——因為這種殘影從一開始就不會被建立。
 
 ```ts
 /**
  * @file editor.svelte.ts
  * 已提交圖片的草稿本地狀態、統一的批次寫入方法、目前編輯中的圖片（含 currentId 淺路由同步）、離頁守衛
+ *
+ * 草稿採「懶建立」：選中哪張（activeFile）與草稿是否存在完全無關——
+ * 草稿只在真的寫入欄位時才臨時以 baseline 合成、寫入，寫入後只要內容跟 baseline 相同就立刻清掉。
+ * 因此 this.drafts 的每個 key 保證都是真的被動過的，不需要額外過濾，也不需要任何 effect 讓兩者同步。
  */
 import type { BeforeNavigate } from "@sveltejs/kit";
 import { getContext, setContext, untrack } from "svelte";
@@ -237,13 +245,16 @@ import { baselineOf, isTouched, type Baseline, type Draft } from "./draft";
 import { getPageDataContext } from "./page-data.svelte";
 import { getOperationsContext } from "./operations.svelte";
 
+/** 只有 edit 種類的草稿才能被欄位寫入方法操作 */
+type DraftEdit = Extract<Draft, { kind: "edit" }>;
+
 class EditorController {
   private pageData = getPageDataContext();
   private operations = getOperationsContext();
 
-  /** 每張已提交圖片的本地草稿，key 不存在 = 該圖片目前是「一般」狀態 */
+  /** 每張已提交圖片的本地草稿，key 不存在 = 該圖片目前是「一般」狀態（沒有被真的動過） */
   private drafts = $state<Record<string, Draft>>({});
-  /** 圖片被篩出目前可視範圍、但仍持有草稿時，供 ensureDraft 取用的 baseline 備份 */
+  /** 圖片被篩出目前可視範圍、但仍持有草稿時，供還原 baseline 用的備份 */
   private knownBaselines: Record<string, Baseline> = {};
 
   private get files() {
@@ -253,83 +264,90 @@ class EditorController {
   private echo = untrack(() => page.url.searchParams.get("currentId"));
   private activeState = $state(this.echo);
 
-  /**
-   * 被編輯過的檔名，用 isTouched 過濾（不能只看 this.drafts 有沒有 key——
-   * 正在編輯中、但還沒真的改過任何欄位的草稿不算，見上方說明）。
-   * 也不依賴目前篩選可見清單：換一次篩選條件不該讓已編輯的圖片從審查清單消失。
-   */
-  touchedFiles = $derived(Object.keys(this.drafts).filter((f) => isTouched(this.drafts[f])));
+  /** 被編輯過的檔名：this.drafts 的每個 key 保證都是真的被動過的，不需要額外過濾 */
+  touchedFiles = $derived(Object.keys(this.drafts));
   /** 目前編輯中的圖片；篩選/排序改變導致它不在可視範圍時自動回落為 null */
   activeFile = $derived(this.activeState !== null && this.files.includes(this.activeState) ? this.activeState : null);
   /** 目前編輯中圖片在目前篩選結果內的指標（1-based） */
   activeIndex = $derived(this.activeFile !== null ? this.files.indexOf(this.activeFile) + 1 : 0);
   /** 目前篩選結果的總數 */
   total = $derived(this.files.length);
-  /** 目前編輯中的草稿；Inspector 以此決定顯示可編輯欄位或唯讀摘要 */
-  activeDraft = $derived(this.activeFile !== null ? this.drafts[this.activeFile] : undefined);
 
-  /** 指定檔名的草稿，沒有草稿代表「一般」狀態（呼叫端改讀伺服器資料顯示） */
+  /** 指定檔名的「真實」草稿，沒有被動過就是 undefined（供卡片牆判斷已編輯/一般/退回狀態） */
   draftOf = (filename: string): Draft | undefined => this.drafts[filename];
 
-  private ensureDraft(filename: string): Draft {
-    const existing = this.drafts[filename];
-    if (existing) return existing;
+  /** 指定檔名目前生效的內容：有草稿用草稿，沒有就用 baseline 合成一份等效內容。純讀取，不會建立草稿（供 Inspector 欄位繫結使用） */
+  viewOf = (filename: string): Draft => this.drafts[filename] ?? this.syntheticEdit(filename);
+
+  private resolveBaseline(filename: string): Baseline {
     const record = this.pageData.value.items.find((r) => r.id === filename);
-    const baseline = record ? baselineOf(record) : this.knownBaselines[filename];
-    this.knownBaselines[filename] = baseline;
-    const next: Draft = { kind: "edit", baseline, name: baseline.name, rating: baseline.rating, tags: [...baseline.tags] };
+    if (record) this.knownBaselines[filename] = baselineOf(record);
+    return this.knownBaselines[filename];
+  }
+
+  private syntheticEdit(filename: string): DraftEdit {
+    const baseline = this.resolveBaseline(filename);
+    return { kind: "edit", baseline, name: baseline.name, rating: baseline.rating, tags: [...baseline.tags] };
+  }
+
+  /**
+   * 核心寫入原語：對指定檔名的生效草稿套用一次欄位變更。
+   * revert 中的草稿略過；沒有草稿時先以 baseline 合成一份；寫入後若結果跟 baseline 完全相同，直接清掉不留痕跡。
+   */
+  private mutate(filename: string, patch: (d: DraftEdit) => DraftEdit) {
+    const existing = this.drafts[filename];
+    if (existing?.kind === "revert") return;
+    const next = patch(existing ?? this.syntheticEdit(filename));
+    if (!isTouched(next)) {
+      delete this.drafts[filename];
+      return;
+    }
     this.drafts[filename] = next;
-    return next;
   }
 
   // --- 統一的草稿寫入介面：單張傳 [file]，批次傳 selection.selectedFiles，呼叫端相同 ---
 
-  /** 對指定檔名新增標籤（自動去重、忽略空白），revert 中的草稿略過 */
+  /** 對指定檔名設定名稱 */
+  handleSetName = (filenames: string[], name: string) => {
+    for (const f of filenames) this.mutate(f, (d) => ({ ...d, name }));
+  };
+
+  /** 對指定檔名設定評等 */
+  handleSetRating = (filenames: string[], rating: number) => {
+    for (const f of filenames) this.mutate(f, (d) => ({ ...d, rating }));
+  };
+
+  /** 對指定檔名整批覆寫標籤（Inspector 的 TagInput 是受控元件，onchange 給的就是完整的下一份清單） */
+  handleSetTags = (filenames: string[], tags: string[]) => {
+    for (const f of filenames) this.mutate(f, (d) => ({ ...d, tags }));
+  };
+
+  /** 對指定檔名新增標籤（自動去重、忽略空白） */
   handleAddTags = (filenames: string[], tags: string[]) => {
     const clean = [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
     if (clean.length === 0) return;
-    for (const f of filenames) {
-      const d = this.ensureDraft(f);
-      if (d.kind === "revert") continue;
-      this.drafts[f] = { ...d, tags: [...new Set([...d.tags, ...clean])] };
-    }
+    for (const f of filenames) this.mutate(f, (d) => ({ ...d, tags: [...new Set([...d.tags, ...clean])] }));
   };
 
-  /** 對指定檔名移除標籤，revert 中的草稿略過 */
+  /** 對指定檔名移除標籤 */
   handleRemoveTags = (filenames: string[], tags: string[]) => {
     const set = new Set(tags.map((t) => t.trim()).filter(Boolean));
     if (set.size === 0) return;
-    for (const f of filenames) {
-      const d = this.ensureDraft(f);
-      if (d.kind === "revert") continue;
-      this.drafts[f] = { ...d, tags: d.tags.filter((t) => !set.has(t)) };
-    }
-  };
-
-  /** 對指定檔名設定評等，revert 中的草稿略過 */
-  handleSetRating = (filenames: string[], rating: number) => {
-    for (const f of filenames) {
-      const d = this.ensureDraft(f);
-      if (d.kind === "revert") continue;
-      this.drafts[f] = { ...d, rating };
-    }
+    for (const f of filenames) this.mutate(f, (d) => ({ ...d, tags: d.tags.filter((t) => !set.has(t)) }));
   };
 
   /** 標記指定檔名為「退回暫存區」，會直接蓋掉該檔名目前的任何欄位編輯 */
   handleMarkRevert = (filenames: string[]) => {
     for (const f of filenames) {
-      const baseline =
-        this.drafts[f]?.baseline ??
-        this.knownBaselines[f] ??
-        baselineOf(this.pageData.value.items.find((r) => r.id === f)!);
+      const baseline = this.drafts[f]?.baseline ?? this.resolveBaseline(f);
       this.drafts[f] = { kind: "revert", baseline };
     }
   };
 
   /**
    * 捨棄指定檔名目前的草稿，回到「一般」狀態。
-   * Inspector 的「還原草稿」（kind === "edit"）與「取消退回」（kind === "revert"）都呼叫這同一個方法，
-   * UI 只依 draft.kind 決定按鈕文字；提交成功後清掉已送出檔名的草稿（見第 9 節）也是同一個方法。
+   * Inspector 的「還原草稿」（kind === "edit" 或尚未被動過）與「取消退回」（kind === "revert"）都呼叫這同一個方法；
+   * 提交成功後清掉已送出檔名的草稿（見第 9 節）也是同一個方法。
    */
   handleDiscardDraft = (filenames: string[]) => {
     for (const f of filenames) delete this.drafts[f];
@@ -356,21 +374,14 @@ class EditorController {
     replaceState(`${location.pathname}${qs ? `?${qs}` : ""}`, page.state);
   }
 
-  /** 開啟指定檔名的編輯面板 */
+  /** 開啟指定檔名的編輯面板；不需要預先建立草稿，Inspector 讀取會自動落回 baseline 合成的等效內容 */
   handleSelect = (filename: string) => {
-    this.ensureDraft(filename);
     this.commit(filename);
   };
 
-  /**
-   * 關閉編輯面板。若這次打開後其實沒有真的編輯過（草稿仍等於 baseline），直接清掉這份草稿——
-   * 避免「只是點開看一眼又關掉」的圖片在 this.drafts 裡留下無意義的殘影。
-   */
+  /** 關閉編輯面板 */
   handleClose = () => {
     if (this.activeState === null) return;
-    const file = this.activeState;
-    const draft = this.drafts[file];
-    if (draft && !isTouched(draft)) delete this.drafts[file];
     this.commit(null);
   };
 
@@ -433,9 +444,33 @@ export const createEditorContext = () => {
 export const getEditorContext = () => getContext<EditorController>(key);
 ```
 
-### Inspector 單張欄位編輯：維持直接綁定，不經過上面的批次方法
+### Inspector 單張欄位編輯：受控元件，跟批次寫入共用同一組 `handle*` 方法
 
-`InspectorFields.svelte` 對名稱／評等／標籤欄位的編輯，做法跟 staged 完全一樣：直接 `bind:value={draft.name}`、`bind:value={draft.rating}`、`bind:tags={draft.tags}`，因為 `activeDraft` 是 `$state` record 裡的即時參照，直接改欄位就是即時寫入。這幾個欄位不需要、也不應該透過 `handleSetRating`／`handleAddTags` 這類批次方法——那些是「一次套用到 N 張圖」的動作，跟「使用者正在對這一張圖打字」是不同性質的操作。
+因為草稿不再預先建立，`InspectorFields.svelte` 沒有一個穩定的 `$state` 物件可以直接 `bind:value`，改成受控元件：欄位的值來自 `editor.viewOf(file)`（單向），變動時呼叫 `editor.handleSetName([file], ...)`／`handleSetRating([file], ...)`／`handleSetTags([file], ...)`——單張編輯因此**也**經由跟批次操作完全相同的寫入原語，不再是兩套邏輯：
+
+```svelte
+<script lang="ts">
+  const editor = getEditorContext();
+  const file = $derived(editor.activeFile);
+  const view = $derived(file !== null ? editor.viewOf(file) : null);
+</script>
+
+{#if file !== null && view}
+  {#if view.kind === "edit"}
+    <TextInput
+      label="名稱"
+      value={view.name}
+      oninput={(e: Event & { currentTarget: HTMLInputElement }) => editor.handleSetName([file], e.currentTarget.value)}
+    />
+    <Rating value={view.rating} onchange={(v) => editor.handleSetRating([file], v)} />
+    <TagInput tags={view.tags} label="標籤" onchange={(tags) => editor.handleSetTags([file], tags)} />
+  {:else}
+    <!-- 唯讀摘要，讀 view.baseline -->
+  {/if}
+{/if}
+```
+
+`Rating`／`TagInput` 本來就有 `onchange` callback，直接用；`TextInput` 沒有現成的 `onchange` prop，但它的 `Props` 型別包含 `HTMLInputAttributes`，`oninput` 會透過 `...rest` 透傳到底層原生 `<input>`，跟它內部自己的 `bind:value` 並存不衝突，不需要為此改動 `TextInput.svelte` 本身。
 
 `InspectorFooter.svelte`：
 
@@ -443,21 +478,21 @@ export const getEditorContext = () => getContext<EditorController>(key);
 <script lang="ts">
   const editor = getEditorContext();
   const file = $derived(editor.activeFile);
-  const draft = $derived(editor.activeDraft);
+  /** 沒有真的草稿（undefined）視同 edit 分支——尚未動過欄位時「還原草稿」是無害的 no-op */
+  const draft = $derived(file !== null ? editor.draftOf(file) : undefined);
 </script>
 
-{#if file !== null && draft}
-  {#if draft.kind === "edit"}
+{#if file !== null}
+  {#if draft?.kind === "revert"}
+    <Button variant="outlined" onclick={() => editor.handleDiscardDraft([file])}>取消退回</Button>
+  {:else}
     <Button variant="outlined" onclick={() => editor.handleDiscardDraft([file])}>還原草稿</Button>
     <Button variant="destructive" onclick={() => editor.handleMarkRevert([file])}>退回暫存區</Button>
-  {:else}
-    <Button variant="outlined" onclick={() => editor.handleDiscardDraft([file])}>取消退回</Button>
-    <p>送出後這筆紀錄會消失、檔案回到暫存區。</p>
   {/if}
 {/if}
 ```
 
-### `Card.svelte`：四態判斷（明確寫死，避免上面提到的誤判）
+### `Card.svelte`：四態判斷
 
 ```svelte
 <script lang="ts">
@@ -466,8 +501,8 @@ export const getEditorContext = () => getContext<EditorController>(key);
   let { record }: { record: ImageWithId } = $props();
 
   const draft = $derived(editor.draftOf(record.id));
-  /** 已編輯：必須是 edit 草稿「且」真的偏離 baseline。只是 ensureDraft 建立、還沒動過的草稿不算 */
-  const touched = $derived(draft?.kind === "edit" && isTouched(draft));
+  /** draftOf 只在真的被寫入過才會有 key（mutate 保證），edit 草稿存在就等於已編輯，不需要再另外判斷 isTouched */
+  const touched = $derived(draft?.kind === "edit");
   const reverted = $derived(draft?.kind === "revert");
   const selected = $derived(selection.isSelected(record.id));
   const active = $derived(editor.activeFile === record.id);
@@ -1004,6 +1039,7 @@ handleSubmit = async () => {
 - `(layout)/ModalTrigger.svelte` 對淺路由 `currentId` 的過期讀取問題（全站共通的既有 TODO，不是本頁引入的新問題）。
 - `Mutation.removeRecord` 沒有樂觀併發檢查——這是既有行為（compare 頁面的單筆退回也是如此），不在這次擴大範圍。
 - 「去標籤」候選精確等於選取範圍的實作（改用頁面篩選條件當 scope，見第 6 節說明，如需要精確版本要另外討論）。
+- **帶 `currentId` 深連結首次進入時，卡片牆沒有捲動到對應卡片的位置**：`Cards.svelte` 的 `$effect(() => masonry.scrollToItem(activeFile))` 依賴 masonry 版面已經量測完成（`viewportEl` 綁定、`ResizeObserver` 跑過第一次），平常點卡片切換時頁面早就掛載完成所以沒問題，但深連結首次掛載當下 `activeFile` 一開始就非空，這個效果很可能在版面量測完成前就先執行、量不到位置直接放棄，之後也不會重試。這跟第 4 節「選中/草稿分家」是不同性質的問題（這裡是版面量測的時機競態，不是兩份事實沒同步），這次沒有一併修正。
 - 開發伺服器啟動、瀏覽器手動測試（依專案規範由使用者驗收，不自動執行，見第 11 節）。
 
 ---
@@ -1011,7 +1047,7 @@ handleSubmit = async () => {
 ## 11. 驗收檢查清單（實作完成後，需要你手動驗證）
 
 - [ ] 從導覽列直接進入 `/committed`：排序跟其他頁面一樣是預設的 rating desc。
-- [ ] 從首頁詳情彈窗、compare 卡片的「編輯」按鈕進入 `/committed`：沿用來源頁當下的排序與篩選條件，並直接開啟該圖片的編輯面板。
+- [ ] 從首頁詳情彈窗、compare 卡片的「編輯」按鈕進入 `/committed`：沿用來源頁當下的排序與篩選條件，並直接開啟該圖片的編輯面板（帶著 `currentId` 深連結首次進入就要正確展開 Inspector，不能因為 URL 已經指定了選中對象而顯示不出來；已知 Cards 捲動到該卡片位置目前仍有時機問題，不在這次修正範圍，見第 10 節）。
 - [ ] **只是點開編輯面板看一眼、沒有做任何修改就關閉**，該圖片的卡片不會顯示「已編輯」標記（也不會被算進「檢視待提交的變更 (N)」的 N 裡）。
 - [ ] 編輯面板：欄位顯示目前實際值、標籤/評等/名稱編輯即時反映在卡片牆的「已編輯」標記；「還原草稿」能把欄位改回原始值。
 - [ ] 「退回暫存區」／「取消退回」：欄位編輯區在標記退回後變成唯讀摘要，取消退回後欄位恢復可編輯且是 baseline 值。

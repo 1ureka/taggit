@@ -59,7 +59,7 @@
 
           <h2 class="ellipsis">{shown.name}</h2>
 
-          <ButtonLink variant="primary" padding="sm" href={detail.editorHref}>
+          <ButtonLink variant="primary" padding="sm" href={detail.href}>
             <IconEditFilled size={16} />
             <span>編輯</span>
           </ButtonLink>
