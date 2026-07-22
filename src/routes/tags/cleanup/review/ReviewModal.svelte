@@ -1,7 +1,7 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
   import ReviewFooter from "$lib/components/widgets/ReviewFooter.svelte";
-  import ReviewHeader from "./ReviewHeader.svelte";
+  import ReviewHeader from "$lib/components/widgets/ReviewHeader.svelte";
   import ReviewList from "./ReviewList.svelte";
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
