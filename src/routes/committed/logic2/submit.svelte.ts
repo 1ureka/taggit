@@ -33,13 +33,13 @@ class SubmitController {
     if (this.reverts.isMarked(filename)) return { id: filename, op: "revert" };
 
     const draft = this.drafts.viewOf(filename);
-    const baseline = this.snapshots.peek(filename);
+    const snapshot = this.snapshots.peek(filename);
     return {
       id: filename,
       name: draft.name.trim(),
       tags: draft.tags,
       rating: draft.rating,
-      expectedUpdatedAt: baseline.updatedAt,
+      expectedUpdatedAt: snapshot.updatedAt,
     };
   }
 

@@ -86,12 +86,28 @@ class DraftsController {
   }
 
   /** 指定檔名的標籤新增/移除差集 */
-  tagDiffOf(filename: string): { added: string[]; removed: string[] } {
+  tagDiffOf(filename: string) {
     const d = this.viewOf(filename);
     const snapshot = this.snapshots.peek(filename);
+
     const before = new Set(snapshot.tags);
     const after = new Set(d.tags);
-    return { added: d.tags.filter((t) => !before.has(t)), removed: snapshot.tags.filter((t) => !after.has(t)) };
+
+    return { toAdd: d.tags.filter((t) => !before.has(t)), toRemove: snapshot.tags.filter((t) => !after.has(t)) };
+  }
+
+  /** 指定檔名的名稱/評等改動 */
+  fieldDiffOf(filename: string) {
+    const d = this.viewOf(filename);
+    const snapshot = this.snapshots.peek(filename);
+
+    const nameBefore = snapshot.name.trim();
+    const nameAfter = d.name.trim();
+
+    const changeName = nameAfter !== nameBefore ? { before: nameBefore, after: nameAfter } : undefined;
+    const changeRating = d.rating !== snapshot.rating ? { before: snapshot.rating, after: d.rating } : undefined;
+
+    return { changeName, changeRating };
   }
 
   // ---
