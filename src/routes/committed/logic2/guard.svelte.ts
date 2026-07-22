@@ -1,6 +1,6 @@
 /**
  * @file guard.ts
- * 離頁守衛：drafts 跟 reverts 誰有未處理的東西都要攔，兩者互不知道對方，這裡才是該合起來問的地方
+ * 管理離頁守衛
  */
 
 import type { BeforeNavigate } from "@sveltejs/kit";

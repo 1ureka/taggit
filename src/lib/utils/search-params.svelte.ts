@@ -39,17 +39,13 @@ export function syncedSearchParam(key: string, fallback = "") {
 }
 
 /**
- * 單一 search param 的同步緩衝，淺路由版本
+ * 單一 search param 的同步緩衝，淺路由版本。
  */
 export function shallowSearchParam(key: string) {
-  let echo = untrack(() => page.url.searchParams.get(key));
-  let local = $state(echo);
+  // replaceState 是同步的、也不會更新 `page.url`（見 docs/svelte_kit_routes.md），
+  // commit 不會觸發任何非同步、可能跟其他操作交錯的情況，純可覆寫的 `$derived` 就夠
 
-  $effect(() => {
-    const urlValue = page.url.searchParams.get(key);
-    if (urlValue !== echo) local = urlValue;
-    echo = urlValue;
-  });
+  let local = $derived(page.url.searchParams.get(key));
 
   return {
     get value() {
@@ -58,7 +54,6 @@ export function shallowSearchParam(key: string) {
     /** 覆寫本地顯示值並做一次淺路由，不會重跑 load */
     commit(v: string | null) {
       local = v;
-      echo = v;
       const params = new URLSearchParams(location.search);
       if (v !== null) params.set(key, v);
       else params.delete(key);
