@@ -1,13 +1,15 @@
 /**
- * @file filter.svelte.ts
- * 管理篩選與排序條件，以及同步對應的 URL 查詢參數（照搬 compare 版本）
+ * @file query.svelte.ts
+ * 管理篩選與排序條件，以及同步對應的 URL 查詢參數
  */
 
 import { getContext, setContext } from "svelte";
+import { goto } from "$app/navigation";
 import { ImageQuery } from "$lib/query-spec";
 import { syncedQuery } from "$lib/utils/search-params.svelte";
+import { addToast } from "$lib/components/floating/toast-events";
 
-class FilterController {
+class QueryController {
   private synced = syncedQuery((params) => ImageQuery.fromSearchParams(params));
 
   /** 目前的圖片查詢條件 */
@@ -68,14 +70,36 @@ class FilterController {
   handleTagsChange = (type: "includedTags" | "excludedTags", tags: string[]) => {
     this.commit(new ImageQuery(this.query.where.with({ [type]: tags }), this.query.list));
   };
+
+  // ---
+
+  /** 是否有一次重新整理正在進行中 */
+  refreshing = $state(false);
+
+  /** 重新整理，條件不變，用同一組查詢再問伺服器一次 */
+  handleRefresh = async () => {
+    if (this.refreshing) return;
+
+    this.refreshing = true;
+    await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
+
+    try {
+      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
+      addToast({ message: "列表已更新", variant: "success" });
+    } catch (e) {
+      addToast({ message: "重新整理失敗" + (e instanceof Error ? `: ${e.message}` : ""), variant: "error" });
+    } finally {
+      this.refreshing = false;
+    }
+  };
 }
 
-const key = Symbol("filter-controller");
+const key = Symbol("query-controller");
 
-export const createFilterContext = () => {
-  const controller = new FilterController();
+export const createQueryContext = () => {
+  const controller = new QueryController();
   setContext(key, controller);
   return controller;
 };
 
-export const getFilterContext = () => getContext<FilterController>(key);
+export const getQueryContext = () => getContext<QueryController>(key);
