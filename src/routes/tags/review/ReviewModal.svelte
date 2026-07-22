@@ -2,7 +2,8 @@
   import Modal from "$lib/components/floating/Modal.svelte";
   import ReviewFooter from "$lib/components/widgets/ReviewFooter.svelte";
   import ReviewHeader from "$lib/components/widgets/ReviewHeader.svelte";
-  import ReviewList from "./ReviewList.svelte";
+  import ReviewList from "$lib/components/widgets/ReviewList.svelte";
+  import ReviewItemTag from "$lib/components/widgets/ReviewItemTag.svelte";
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
 
@@ -20,11 +21,31 @@
 >
   <ReviewHeader />
 
-  {#if review.entries.length === 0}
-    <p class="empty">目前沒有任何未送出的標籤操作。</p>
-  {:else}
-    <ReviewList />
-  {/if}
+  <ReviewList
+    pending={operations.pending}
+    checkedAll={review.bulkSelectionState}
+    checkableCount={review.checkableCount}
+    totalCount={review.entries.length}
+    checkedCount={review.checkedCount}
+    ontoggleall={review.handleToggleAll}
+  >
+    {#each review.entries as entry (entry.name)}
+      {@const kind = entry.kind}
+      {@const withExtraProps = kind === "merge" || kind === "rename"}
+      {@const extraProps = withExtraProps ? { target: entry.to, mergedCount: entry.mergedCount } : undefined}
+      <ReviewItemTag
+        {kind}
+        checkable={entry.checkable}
+        checked={entry.checked}
+        tag={entry.name}
+        count={entry.count}
+        problem={entry.problem}
+        ontoggle={() => review.handleToggle(entry.name)}
+        ondiscard={() => review.handleDiscard(entry.name)}
+        {...extraProps}
+      />
+    {/each}
+  </ReviewList>
 
   <ReviewFooter
     pending={operations.pending}
@@ -33,12 +54,3 @@
     onsubmit={review.handleSubmit}
   />
 </Modal>
-
-<style>
-  .empty {
-    font: var(--font-body1);
-    color: var(--color-text-muted);
-    padding: 2.5rem 1rem;
-    text-align: center;
-  }
-</style>
