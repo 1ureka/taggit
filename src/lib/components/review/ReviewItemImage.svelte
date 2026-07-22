@@ -16,6 +16,8 @@
     name: string;
     /** 項目對應的檔案名稱 */
     filename: string;
+    /** TODO: 項目的模糊預覽 */
+    // blurhash?: string;
     /** 對項目名稱的改動 */
     changeName?: { before: string; after: string };
     /** 對項目評分的改動 */

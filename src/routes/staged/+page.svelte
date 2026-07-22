@@ -10,11 +10,11 @@
   import { createReviewContext } from "./logic/review.svelte";
   import { createImportContext } from "./logic/import.svelte";
 
+  import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import Toolbar from "./header/Toolbar.svelte";
   import ImportModal from "./header/ImportModal.svelte";
   import Cards from "./cards/Cards.svelte";
   import Inspector from "./inspector/Inspector.svelte";
-  import Lightbox from "./inspector/Lightbox.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -24,7 +24,7 @@
   createOperationsContext();
   const editor = createEditorContext();
   const stamp = createStampContext();
-  createLightboxContext();
+  const lightbox = createLightboxContext();
   createReviewContext();
   createImportContext();
 
@@ -47,7 +47,14 @@
 
 <ReviewModal />
 <ImportModal />
-<Lightbox />
+
+<Lightbox
+  item={lightbox.image}
+  total={lightbox.total}
+  onclose={lightbox.handleClose}
+  onnext={lightbox.handleNext}
+  onprev={lightbox.handlePrev}
+/>
 
 <style>
   div.page {
