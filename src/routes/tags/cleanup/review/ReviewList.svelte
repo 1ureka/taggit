@@ -1,9 +1,9 @@
 <script lang="ts">
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
+  import ReviewItemTag from "$lib/components/widgets/ReviewItemTag.svelte";
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
-  import ReviewListItem from "./ReviewListItem.svelte";
 
   const review = getReviewContext();
   const operations = getOperationsContext();
@@ -24,7 +24,19 @@
     </li>
 
     {#each review.entries as entry (entry.name)}
-      <ReviewListItem {entry} />
+      <ReviewItemTag
+        kind={entry.kind}
+        checkable={entry.checkable}
+        checked={entry.checked}
+        tag={entry.name}
+        count={entry.count}
+        problem={entry.problem}
+        ontoggle={() => review.handleToggle(entry.name)}
+        ondiscard={() => review.handleDiscard(entry.name)}
+        {...entry.kind === "merge"
+          ? { target: entry.to, mergedCount: entry.toCount + entry.count - entry.both }
+          : undefined}
+      />
     {/each}
   </ul>
 
