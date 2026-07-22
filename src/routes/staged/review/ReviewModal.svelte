@@ -1,9 +1,10 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import ReviewFooter from "./ReviewFooter.svelte";
   import ReviewHeader from "$lib/components/widgets/ReviewHeader.svelte";
   import ReviewList from "$lib/components/widgets/ReviewList.svelte";
   import ReviewItemImage from "$lib/components/widgets/ReviewItemImage.svelte";
+  import ReviewTagImpact from "$lib/components/widgets/ReviewTagImpact.svelte";
+  import ReviewFooter from "$lib/components/widgets/ReviewFooter.svelte";
 
   import { getReviewContext } from "../logic/review.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
@@ -48,5 +49,12 @@
     {/each}
   </ReviewList>
 
-  <ReviewFooter />
+  <ReviewFooter
+    pending={operations.pending}
+    count={review.checkedCount}
+    oncancel={review.handleClose}
+    onsubmit={review.handleSubmit}
+  >
+    <ReviewTagImpact checkedCount={review.checkedCount} tagsToAdd={review.newTags.length} tagsToRemove={0} />
+  </ReviewFooter>
 </Modal>

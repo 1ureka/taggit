@@ -12,14 +12,14 @@
     /** 點擊送出事件 */
     onsubmit: () => void;
     /** 要渲染的額外內容 */
-    extra?: Snippet;
+    children?: Snippet;
   };
 
-  const { pending, count, oncancel, onsubmit, extra }: Props = $props();
+  const { pending, count, oncancel, onsubmit, children }: Props = $props();
 </script>
 
 <footer>
-  {@render extra?.()}
+  {@render children?.()}
   <div>
     <Button variant="ghost" status={pending ? "disabled" : undefined} onclick={oncancel}>取消</Button>
     <Button variant="primary" status={pending ? "pending" : count === 0 ? "disabled" : undefined} onclick={onsubmit}>
@@ -31,14 +31,15 @@
 <style>
   footer {
     display: flex;
-    justify-content: flex-end;
-    padding: 0.5rem 1rem 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
     border-top: var(--border-style);
   }
 
   div {
     display: flex;
-    align-items: center;
+    justify-content: flex-end;
     gap: 0.5rem;
   }
 </style>
