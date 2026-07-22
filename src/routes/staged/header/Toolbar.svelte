@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { IconDatabase, IconReload } from "$lib/icons";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import { IconDatabase } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
+  import RefreshButton from "$lib/components/widgets/RefreshButton.svelte";
   import SessionProgress from "./SessionProgress.svelte";
 
   import { getOperationsContext } from "../logic/operations.svelte";
@@ -18,20 +18,11 @@
   const touchedCount = $derived(editor.touchedFiles.length);
 </script>
 
-<div class="toolbar">
+<div class="container">
   <SessionProgress />
 
-  <div class="actions">
-    <Button
-      variant="ghost"
-      padding="icon"
-      aria-label="重新整理"
-      status={operations.pending ? "pending" : undefined}
-      onclick={operations.handleRefresh}
-      {@attach tooltip({ content: "重新整理" })}
-    >
-      <IconReload size={16} />
-    </Button>
+  <div>
+    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} />
 
     <Button variant="outlined" status={operations.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
       <IconDatabase size={16} />
@@ -47,7 +38,7 @@
 </div>
 
 <style>
-  .toolbar {
+  div.container {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -57,7 +48,7 @@
     border-bottom: var(--border-style);
   }
 
-  .actions {
+  div.container > div {
     display: flex;
     align-items: center;
     gap: 0.5rem;

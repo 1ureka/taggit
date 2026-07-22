@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import { IconArrowsShuffle, IconReload } from "$lib/icons";
+  import { IconArrowsShuffle } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
+  import RefreshButton from "$lib/components/widgets/RefreshButton.svelte";
+
   import { getOperationsContext } from "../logic/operations.svelte";
   import { getPinnedContext } from "../logic/pinned.svelte";
 
@@ -20,16 +21,7 @@
 {/snippet}
 
 <div>
-  <Button
-    variant="ghost"
-    padding="icon"
-    aria-label="重新整理"
-    status={operations.pending ? "pending" : undefined}
-    onclick={operations.handleRefresh}
-    {@attach tooltip({ content: "重新整理" })}
-  >
-    <IconReload size={16} />
-  </Button>
+  <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} />
 
   <Select
     id="{id}-shuffle-count"

@@ -1,15 +1,33 @@
 <script lang="ts">
+  import RefreshButton from "$lib/components/widgets/RefreshButton.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Filters from "./Filters.svelte";
-  import Actions from "./Actions.svelte";
+
+  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getScheduleContext } from "../logic/schedule.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
+
+  const operations = getOperationsContext();
+  const schedule = getScheduleContext();
+  const review = getReviewContext();
 </script>
 
-<div>
+<div class="container">
   <Filters />
-  <Actions />
+
+  <div>
+    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} />
+
+    <ReviewTrigger
+      count={schedule.touchedCount}
+      disabled={schedule.touchedCount === 0 || operations.pending}
+      onclick={review.handleOpen}
+    />
+  </div>
 </div>
 
 <style>
-  div {
+  div.container {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -18,5 +36,11 @@
     height: 3rem;
     border-bottom: var(--border-style);
     overflow-x: auto;
+  }
+
+  div.container > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 </style>
