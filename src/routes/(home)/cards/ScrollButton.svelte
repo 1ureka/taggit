@@ -47,7 +47,7 @@
         variant="primary"
         padding="icon"
         onclick={handleClick}
-        style="padding: 0.625rem;"
+        style="padding: 0.625rem; width: auto; height: auto;"
         {@attach tooltip({ content: "回到頂部", placement: "left" })}
       >
         <IconArrowUp size={20} />

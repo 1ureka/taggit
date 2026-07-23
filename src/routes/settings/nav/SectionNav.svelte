@@ -9,8 +9,8 @@
   {#each nav.sections as section (section.id)}
     {@const active = section.id === nav.activeId}
     {@const background = active ? "background-color: var(--color-bg-active);" : ""}
-    {@const style = `font: var(--font-body2); display: block; text-align: left; ${background}`}
-    <ButtonLink variant="ghost" {style} href="#section-{section.id}">
+    {@const style = `font: var(--font-body2); justify-content: flex-start; ${background}`}
+    <ButtonLink variant="ghost" {style} href="#section-{section.id}" padding="md">
       {section.label}
     </ButtonLink>
   {/each}

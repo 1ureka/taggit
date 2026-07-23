@@ -20,6 +20,7 @@
 
 <form onsubmit={collection.handleSubmit}>
   <TextInput
+    size="md"
     label="圖片集根目錄"
     bind:value={collection.inputValue}
     placeholder="例如 C:/Users/you/Pictures/tagged"
