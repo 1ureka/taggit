@@ -3,6 +3,7 @@
   import { Virtualizer } from "$lib/utils/virtualize.svelte";
 
   import Card from "./Card.svelte";
+
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
@@ -11,7 +12,6 @@
   const pointers = getPointersContext();
 
   const activeFile = $derived(pointers.editing?.id ?? null);
-
   const availableWidth = $derived.by(() => {
     const windowWidth = innerWidth.current ?? 1000;
     const inspectorWidth = activeFile !== null ? INSPECTOR_WIDTH : 0;
@@ -46,32 +46,22 @@
   });
 </script>
 
-<div class="container">
-  <section aria-label="已提交清單" bind:this={masonry.viewportEl}>
-    {#if pageData.value.items.length === 0}
-      <p>沒有符合條件的圖片</p>
-    {/if}
+<section aria-label="已提交清單" bind:this={masonry.viewportEl}>
+  {#if pageData.value.items.length === 0}
+    <p>沒有符合條件的圖片</p>
+  {/if}
 
-    <ul aria-label="已提交卡片牆" style:height="{masonry.contentHeight}px">
-      {#each masonry.visibleItems as record (record.id)}
-        <li style={record.style}>
-          <Card {record} />
-        </li>
-      {/each}
-    </ul>
-  </section>
-</div>
+  <ul aria-label="已提交卡片牆" style:height="{masonry.contentHeight}px">
+    {#each masonry.visibleItems as record (record.id)}
+      <li style={record.style}>
+        <Card {record} />
+      </li>
+    {/each}
+  </ul>
+</section>
 
 <style>
-  div.container {
-    position: relative;
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-  }
-
-  div.container > section {
+  section {
     position: relative;
     flex: 1;
     min-width: 0;

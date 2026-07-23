@@ -12,6 +12,7 @@
   import { createQueryContext } from "./logic/query.svelte";
   import { createReviewContext } from "./logic/review.svelte";
   import { createTagImpactContext } from "./logic/tag-impact.svelte";
+  import { createSelectionContext } from "./logic/selection.svelte";
 
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import Toolbar from "./header/Toolbar.svelte";
@@ -32,6 +33,7 @@
   createQueryContext();
   createReviewContext();
   createTagImpactContext();
+  createSelectionContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
@@ -42,7 +44,7 @@
   <title>Committed</title>
 </svelte:head>
 
-<div class="page">
+<div class="container">
   <Toolbar />
   <div>
     <Cards />
@@ -61,15 +63,16 @@
 />
 
 <style>
-  div.page {
+  div.container {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
   }
 
-  div.page > div {
+  div.container > div {
     display: flex;
+    flex-direction: row;
     flex: 1;
     min-height: 0;
   }
