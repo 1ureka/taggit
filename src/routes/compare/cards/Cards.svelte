@@ -5,8 +5,9 @@
   const pinned = getPinnedContext();
 </script>
 
-<div class="dock">
+<div class="container">
   {#if pinned.records.length === 0}
+    <!-- TODO: 更好的空狀態顯示(也有可能是因為篩選所以沒東西抽選) -->
     <div class="empty">
       <p>按「隨機抽選」抽 N 張並排比較，或者從左側列表釘選</p>
     </div>
@@ -18,7 +19,7 @@
 </div>
 
 <style>
-  div.dock {
+  div.container {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -29,12 +30,12 @@
     overflow-y: hidden;
   }
 
-  div.dock:has(.empty) {
+  div.container:has(.empty) {
     align-items: center;
     justify-content: center;
   }
 
-  div.dock > .empty {
+  div.container > .empty {
     display: flex;
     flex-direction: column;
     align-items: center;

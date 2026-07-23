@@ -1,27 +1,27 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import type { ImageWithId } from "$lib/database";
-
   import { IconEditFilled, IconArrowBackUpDouble } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
-  import { getOperationsContext } from "../logic/operations.svelte";
+
+  import { getQueryContext } from "../logic/query.svelte";
+  import { getRevertContext } from "../logic/revert.svelte";
 
   let { record }: { record: ImageWithId } = $props();
 
-  const operations = getOperationsContext();
+  const query = getQueryContext();
+  const revert = getRevertContext();
 
   const href = $derived.by(() => {
-    const params = new URLSearchParams(page.url.searchParams);
-    params.delete("pinned");
+    const params = query.query.toSearchParams();
     params.set("currentId", record.id);
     return `/committed?${params.toString()}`;
   });
 </script>
 
-<div class="info">
+<div class="container">
   <Rating value={record.rating} readonly size="md" />
   <TagsWithMask tags={record.tags} />
 
@@ -32,8 +32,8 @@
     </ButtonLink>
     <Button
       variant="destructive"
-      status={operations.pending ? "pending" : undefined}
-      onclick={() => operations.handleRevert(record.id)}
+      status={revert.pending ? "pending" : undefined}
+      onclick={() => revert.handleRevert(record.id)}
     >
       <IconArrowBackUpDouble size={16} />
       <span>取消提交</span>
@@ -42,7 +42,7 @@
 </div>
 
 <style>
-  div.info {
+  div.container {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -52,7 +52,7 @@
     padding-bottom: 1.5rem;
   }
 
-  div.info > div {
+  div.container > div {
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: 100%;

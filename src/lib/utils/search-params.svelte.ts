@@ -38,24 +38,40 @@ export function syncedSearchParam(key: string, fallback = "") {
   };
 }
 
+/** 單一 search param 的字串 <-> 任意型別轉換方式 */
+export type Codec<T> = {
+  parse: (raw: string | null) => T;
+  serialize: (value: T) => string | null;
+};
+
+const identityCodec: Codec<string | null> = {
+  parse: (raw) => raw,
+  serialize: (value) => value,
+};
+
 /**
  * 單一 search param 的同步緩衝，淺路由版本。
+ * 預設把值當成字串（或不存在時的 `null`）；需要其他型別（例如陣列）時傳入 `codec`。
  */
-export function shallowSearchParam(key: string) {
+export function shallowSearchParam(key: string): { readonly value: string | null; commit(v: string | null): void };
+export function shallowSearchParam<T>(key: string, codec: Codec<T>): { readonly value: T; commit(v: T): void };
+export function shallowSearchParam<T>(key: string, codec?: Codec<T>) {
   // replaceState 是同步的、也不會更新 `page.url`（見 docs/svelte_kit_routes.md），
   // commit 不會觸發任何非同步、可能跟其他操作交錯的情況，純可覆寫的 `$derived` 就夠
 
-  let local = $derived(page.url.searchParams.get(key));
+  const c = codec ?? (identityCodec as unknown as Codec<T>);
+  let local = $derived(c.parse(page.url.searchParams.get(key)));
 
   return {
     get value() {
       return local;
     },
     /** 覆寫本地顯示值並做一次淺路由，不會重跑 load */
-    commit(v: string | null) {
+    commit(v: T) {
       local = v;
       const params = new URLSearchParams(location.search);
-      if (v !== null) params.set(key, v);
+      const raw = c.serialize(v);
+      if (raw !== null) params.set(key, raw);
       else params.delete(key);
       const qs = params.toString();
       replaceState(`${location.pathname}${qs ? `?${qs}` : ""}`, page.state);

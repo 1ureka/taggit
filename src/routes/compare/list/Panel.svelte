@@ -30,7 +30,7 @@
   };
 </script>
 
-<div>
+<div class="container">
   <div class="spacer"></div>
 
   {@render children()}
@@ -50,7 +50,7 @@
 </div>
 
 <style>
-  div:has(> .spacer) {
+  div.container {
     position: relative;
     display: flex;
     align-items: stretch;

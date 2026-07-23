@@ -10,18 +10,18 @@ import { syncedQuery } from "$lib/utils/search-params.svelte";
 import { addToast } from "$lib/components/floating/toast-events";
 
 class QueryController {
-  private synced = syncedQuery((params) => ImageQuery.fromSearchParams(params));
+  private params = syncedQuery((params) => ImageQuery.fromSearchParams(params));
 
   /** 目前的圖片查詢條件 */
   get query(): ImageQuery {
-    return this.synced.value;
+    return this.params.value;
   }
 
   /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤 */
   facetScope = $derived(this.query.where.toSearchParams().toString());
 
   private commit(next: ImageQuery) {
-    this.synced.commit(next);
+    this.params.commit(next);
   }
 
   /** 處理關鍵字搜尋 */
@@ -66,7 +66,7 @@ class QueryController {
   /** 是否有一次重新整理正在進行中 */
   refreshing = $state(false);
 
-  /** 重新整理，條件不變，用同一組查詢再問伺服器一次 */
+  /** 重新整理，條件不變再次查詢 */
   handleRefresh = async () => {
     if (this.refreshing) return;
 

@@ -2,35 +2,43 @@
   import type { PageData } from "./$types";
 
   import { createPageDataContext } from "./logic/page-data.svelte";
-  import { createFilterContext } from "./logic/filter.svelte";
+  import { createQueryContext } from "./logic/query.svelte";
   import { createPinnedContext } from "./logic/pinned.svelte";
-  import { createOperationsContext } from "./logic/operations.svelte";
+  import { createRevertContext } from "./logic/revert.svelte";
 
-  import Toolbar from "./header/Toolbar.svelte";
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
+  import QueryControls from "./header/QueryControls.svelte";
+  import ShuffleControl from "./header/ShuffleControl.svelte";
   import Panel from "./list/Panel.svelte";
   import Cards from "./cards/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 
   createPageDataContext(() => data);
-  createFilterContext();
+  const query = createQueryContext();
   createPinnedContext();
-  createOperationsContext();
+  createRevertContext();
 </script>
 
 <svelte:head>
   <title>Compare</title>
 </svelte:head>
 
-<div>
-  <Toolbar />
+<div class="container">
+  <Toolbar>
+    <QueryControls />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
+    <ShuffleControl />
+  </Toolbar>
+
   <Panel>
     <Cards />
   </Panel>
 </div>
 
 <style>
-  div {
+  div.container {
     display: flex;
     flex-direction: column;
     height: 100%;
