@@ -11,6 +11,13 @@ class SelectionController {
 
   private ids = new SvelteSet<string>();
 
+  constructor() {
+    $effect(() => {
+      this.pageData.value.items;
+      this.ids.clear();
+    });
+  }
+
   /** 批次選取模式是否開啟 */
   active = $state(false);
   /** 目前選取的檔名列表 */

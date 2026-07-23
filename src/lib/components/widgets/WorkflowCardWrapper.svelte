@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { imgSrc } from "$lib/image/client";
   import type { Snippet } from "svelte";
+  import { imgSrc } from "$lib/image/client";
+  import Checkbox from "$lib/components/inputs/Checkbox.svelte";
 
   type Props = {
     /** 卡片對應的檔案名稱 */
@@ -9,24 +10,28 @@
     selected: boolean;
     /** TODO: 增加可選的 blurhash */
     // blurhash?: string;
-    /** TODO: 是否可選擇，可選擇就只是單純左上有 Checkbox，有沒有勾選看 selected */
-    // selectable: boolean;
+    /** 是否可選擇 */
+    selectable?: boolean;
     /** 點擊卡片事件 */
     onclick: () => void;
     /** 卡片內容 */
     children: Snippet;
   };
 
-  let { filename, selected, onclick, children }: Props = $props();
+  let { filename, selected, selectable, onclick, children }: Props = $props();
 </script>
 
 <button type="button" class:selected {onclick}>
   <img src={imgSrc(filename, "sm")} alt={filename} loading="lazy" />
   {@render children()}
+  {#if selectable}
+    <div inert><Checkbox checked={selected} /></div>
+  {/if}
 </button>
 
 <style>
   button {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -92,5 +97,15 @@
     & img {
       border-radius: 0px;
     }
+  }
+
+  /* --- */
+
+  div {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: var(--color-bg);
+    border-radius: var(--border-radius);
   }
 </style>
