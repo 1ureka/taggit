@@ -17,17 +17,7 @@ class QueryController {
     return this.synced.value;
   }
 
-  /** 進階篩選作用中的條件數，用於開啟進階篩選按鈕的顯示徽章 */
-  advancedCount = $derived.by(() => {
-    const { where } = this.query;
-    return (
-      (where.includedTags.length > 0 ? 1 : 0) +
-      (where.excludedTags.length > 0 ? 1 : 0) +
-      (where.rating !== undefined ? 1 : 0)
-    );
-  });
-
-  /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤（包含批次「去標籤」面板） */
+  /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤 */
   facetScope = $derived(this.query.where.toSearchParams().toString());
 
   private commit(next: ImageQuery) {
