@@ -40,6 +40,7 @@ export { default as IconPuzzleFilled } from "./IconPuzzleFilled.svelte";
 export { default as IconReload } from "./IconReload.svelte";
 export { default as IconSearch } from "./IconSearch.svelte";
 export { default as IconSettings } from "./IconSettings.svelte";
+export { default as IconSortFilled } from "./IconSortFilled.svelte";
 export { default as IconStar } from "./IconStar.svelte";
 export { default as IconStarFilled } from "./IconStarFilled.svelte";
 export { default as IconTagFilled } from "./IconTagFilled.svelte";
