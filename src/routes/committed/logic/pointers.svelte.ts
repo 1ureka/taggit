@@ -5,8 +5,7 @@
 
 import { getContext, setContext } from "svelte";
 import { shallowSearchParam } from "$lib/utils/search-params.svelte";
-
-import { getPageDataContext } from "../logic/page-data.svelte";
+import { getPageDataContext } from "./page-data.svelte";
 
 /** 一個指標指向目前清單裡的哪個檔案，以及它是清單裡的第幾個（1-based） */
 type Pointer = { id: string; index: number } | null;

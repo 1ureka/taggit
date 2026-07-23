@@ -6,13 +6,13 @@
   import ReviewTagImpact from "$lib/components/review/ReviewTagImpact.svelte";
   import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
 
-  import { getReviewContext } from "../logic2/review.svelte";
-  import { getSubmitContext } from "../logic2/submit.svelte";
-  import { getTagImpactContext } from "../logic2/tag-impact.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
-  import { getDraftsContext } from "../logic2/drafts.svelte";
-  import { getRevertMarkContext } from "../logic2/reverts.svelte";
-  import { buildReviewEntry } from "../logic2/review-entry";
+  import { getReviewContext } from "../logic/review.svelte";
+  import { getSubmitContext } from "../logic/submit.svelte";
+  import { getTagImpactContext } from "../logic/tag-impact.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
+  import { getDraftsContext } from "../logic/drafts.svelte";
+  import { getRevertMarkContext } from "../logic/reverts.svelte";
+  import { buildReviewEntry } from "../logic/review-entry";
 
   const review = getReviewContext();
   const submit = getSubmitContext();

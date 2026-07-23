@@ -2,9 +2,9 @@
   import type { ImageWithId } from "$lib/database";
   import WorkflowCardInfo from "$lib/components/widgets/WorkflowCardInfo.svelte";
   import WorkflowCardWrapper from "$lib/components/widgets/WorkflowCardWrapper.svelte";
-  import { getDraftsContext } from "../logic2/drafts.svelte";
-  import { getRevertMarkContext } from "../logic2/reverts.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
+  import { getDraftsContext } from "../logic/drafts.svelte";
+  import { getRevertMarkContext } from "../logic/reverts.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
 
   const { record }: { record: ImageWithId } = $props();
 

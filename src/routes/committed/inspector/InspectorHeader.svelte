@@ -3,7 +3,7 @@
   import { IconX } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
   import { getPageDataContext } from "../logic/page-data.svelte";
 
   const pointers = getPointersContext();

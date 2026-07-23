@@ -4,7 +4,7 @@
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
   import Button from "$lib/components/actions/Button.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
 
   const pointers = getPointersContext();
 

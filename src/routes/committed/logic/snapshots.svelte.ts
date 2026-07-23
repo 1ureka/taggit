@@ -4,7 +4,7 @@
  */
 
 import { getContext, setContext } from "svelte";
-import { getPageDataContext } from "../logic/page-data.svelte";
+import { getPageDataContext } from "./page-data.svelte";
 
 /** 建立快照當下的原始內容 */
 export type Snapshot = { name: string; rating: number; tags: string[]; updatedAt: number };

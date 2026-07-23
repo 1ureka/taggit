@@ -5,9 +5,9 @@
   import TagInput from "$lib/components/widgets/TagInput.svelte";
   import InspectorFieldsReadonly from "./InspectorFieldsReadonly.svelte";
 
-  import { getPointersContext } from "../logic2/pointers.svelte";
-  import { getDraftsContext } from "../logic2/drafts.svelte";
-  import { getRevertMarkContext } from "../logic2/reverts.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
+  import { getDraftsContext } from "../logic/drafts.svelte";
+  import { getRevertMarkContext } from "../logic/reverts.svelte";
 
   const id = $props.id();
 

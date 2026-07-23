@@ -2,7 +2,7 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { IconFilter } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import { getQueryContext } from "../logic2/query.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
 
   let props: HTMLButtonAttributes = $props();
 

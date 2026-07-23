@@ -2,7 +2,7 @@
   import Popover from "$lib/components/floating/Popover.svelte";
   import Select from "$lib/components/inputs/Select.svelte";
   import TagInput from "$lib/components/widgets/TagInput.svelte";
-  import { getQueryContext } from "../logic2/query.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
 
   type Props = {
     /** 選單的開關狀態 */

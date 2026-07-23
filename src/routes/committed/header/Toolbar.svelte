@@ -3,9 +3,9 @@
   import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Filters from "./Filters.svelte";
 
-  import { getQueryContext } from "../logic2/query.svelte";
-  import { getSubmitContext } from "../logic2/submit.svelte";
-  import { getReviewContext } from "../logic2/review.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
+  import { getSubmitContext } from "../logic/submit.svelte";
+  import { getReviewContext } from "../logic/review.svelte";
 
   const query = getQueryContext();
   const submit = getSubmitContext();
@@ -20,11 +20,7 @@
   <div class="actions">
     <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} />
 
-    <ReviewTrigger
-      count={touchedCount}
-      disabled={submit.pending || touchedCount === 0}
-      onclick={review.handleOpen}
-    />
+    <ReviewTrigger count={touchedCount} disabled={submit.pending || touchedCount === 0} onclick={review.handleOpen} />
   </div>
 </div>
 

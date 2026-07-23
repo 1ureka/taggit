@@ -5,7 +5,7 @@
   import Card from "./Card.svelte";
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
 
   const pageData = getPageDataContext();
   const pointers = getPointersContext();

@@ -3,7 +3,7 @@
   import InspectorFields from "./InspectorFields.svelte";
   import InspectorFooter from "./InspectorFooter.svelte";
   import InspectorImage from "./InspectorImage.svelte";
-  import { getPointersContext } from "../logic2/pointers.svelte";
+  import { getPointersContext } from "../logic/pointers.svelte";
 
   const pointers = getPointersContext();
 

@@ -5,7 +5,7 @@
 
   import FilterPopover from "./FilterPopover.svelte";
   import FilterButton from "./FilterButton.svelte";
-  import { getQueryContext } from "../logic2/query.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
 
   const query = getQueryContext();
 

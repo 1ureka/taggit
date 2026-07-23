@@ -3,15 +3,15 @@
   import type { PageData } from "./$types";
 
   import { createPageDataContext } from "./logic/page-data.svelte";
-  import { createSnapshotsContext } from "./logic2/snapshots.svelte";
-  import { createDraftsContext } from "./logic2/drafts.svelte";
-  import { createRevertMarkContext } from "./logic2/reverts.svelte";
-  import { createSubmitContext } from "./logic2/submit.svelte";
-  import { createPointersContext } from "./logic2/pointers.svelte";
-  import { createGuardContext } from "./logic2/guard.svelte";
-  import { createQueryContext } from "./logic2/query.svelte";
-  import { createReviewContext } from "./logic2/review.svelte";
-  import { createTagImpactContext } from "./logic2/tag-impact.svelte";
+  import { createSnapshotsContext } from "./logic/snapshots.svelte";
+  import { createDraftsContext } from "./logic/drafts.svelte";
+  import { createRevertMarkContext } from "./logic/reverts.svelte";
+  import { createSubmitContext } from "./logic/submit.svelte";
+  import { createPointersContext } from "./logic/pointers.svelte";
+  import { createGuardContext } from "./logic/guard.svelte";
+  import { createQueryContext } from "./logic/query.svelte";
+  import { createReviewContext } from "./logic/review.svelte";
+  import { createTagImpactContext } from "./logic/tag-impact.svelte";
 
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import Toolbar from "./header/Toolbar.svelte";
