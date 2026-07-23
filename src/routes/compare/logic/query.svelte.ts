@@ -6,11 +6,14 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 import { ImageQuery } from "$lib/query-spec";
-import { syncedQuery } from "$lib/utils/search-params.svelte";
+import { SvelteSearchParams } from "$lib/utils/search-params.svelte";
 import { addToast } from "$lib/components/floating/toast-events";
 
 class QueryController {
-  private params = syncedQuery((params) => ImageQuery.fromSearchParams(params));
+  private params = new SvelteSearchParams<ImageQuery>({
+    parse: (params) => ImageQuery.fromSearchParams(params),
+    serialize: (value, base) => value.toSearchParams(base),
+  });
 
   /** 目前的圖片查詢條件 */
   get query(): ImageQuery {
@@ -21,7 +24,7 @@ class QueryController {
   facetScope = $derived(this.query.where.toSearchParams().toString());
 
   private commit(next: ImageQuery) {
-    this.params.commit(next);
+    this.params.set(next);
   }
 
   /** 處理關鍵字搜尋 */

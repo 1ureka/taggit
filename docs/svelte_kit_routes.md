@@ -38,92 +38,133 @@ import { page } from '$app/state';
 import { goto } from '$app/navigation';
 import { untrack } from 'svelte';
 
-export function syncedSearchParam(key: string, fallback = '') {
-  let echo = untrack(() => page.url.searchParams.get(key) ?? fallback);
-  let local = $state(echo);
+export class SvelteSearchParam {
+  private key: string;
+  private fallback: string;
+  private echo: string;
+  private local = $state('');
 
-  $effect(() => {
-    const urlValue = page.url.searchParams.get(key) ?? fallback;
-    if (urlValue !== echo) local = urlValue;
-    echo = urlValue;
-  });
+  constructor(key: string, fallback = '') {
+    this.key = key;
+    this.fallback = fallback;
 
-  return {
-    get value() { return local; },
-    set value(v: string) { local = v; },
-    commit(v: string) {
-      local = v;
-      echo = v;
-      const url = new URL(location.href); // 不是 page.url，理由見「shallow routing 與 goto」
-      url.searchParams.set(key, v);
-      goto(url, { keepFocus: true, replaceState: true, noScroll: true });
-    }
-  };
-}
-```
+    const read = () => page.url.searchParams.get(key) ?? fallback;
+    this.echo = untrack(read);
+    this.local = untrack(read);
 
-多欄位若各自呼叫、各自獨立 `goto`，仍會互相覆蓋，需要收斂成同一組欄位共用一個 commit 點：
+    $effect(() => {
+      const urlValue = page.url.searchParams.get(this.key) ?? this.fallback;
+      if (urlValue !== this.echo) this.local = urlValue;
+      this.echo = urlValue;
+    });
+  }
 
-```ts
-export function syncedSearchParams<T extends Record<string, string>>(defaults: T) {
-  const keys = Object.keys(defaults) as (keyof T)[];
-  const snapshot = () => {
-    const out = {} as T;
-    for (const k of keys) out[k] = (page.url.searchParams.get(k as string) ?? defaults[k]) as T[typeof k];
-    return out;
-  };
+  get value() {
+    return this.local;
+  }
 
-  let echo = untrack(snapshot);
-  const local = $state(snapshot());
-
-  $effect(() => {
-    const urlValue = snapshot();
-    for (const k of keys) if (urlValue[k] !== echo[k]) local[k] = urlValue[k];
-    echo = urlValue;
-  });
-
-  function commit() {
-    echo = { ...local };
+  set(v: string) {
+    this.local = v;
+    this.echo = v;
     const url = new URL(location.href); // 不是 page.url，理由見「shallow routing 與 goto」
-    for (const k of keys) url.searchParams.set(k as string, local[k]);
+    url.searchParams.set(this.key, v);
     goto(url, { keepFocus: true, replaceState: true, noScroll: true });
   }
-
-  return { local, commit };
 }
 ```
 
-或是根據專案特化:
+多個欄位、或有專屬值物件（如 `ImageQuery`）的頁面，若各自呼叫、各自獨立 `goto`，仍會互相覆蓋，需要收斂成同一組欄位共用一個 `set` 點。這種情況一律用整包 `URLSearchParams` 當單位，靠一組 `{ parse, serialize }` 決定怎麼讀寫，不管是「多個獨立欄位」還是「一個值物件」都套同一個形狀：
 
 ```ts
-export function syncedQuery<T extends { toSearchParams(base?: URLSearchParams): URLSearchParams }>(
-  parse: (params: URLSearchParams) => T
-) {
-  const read = () => parse(page.url.searchParams);
-  const key = (v: T) => v.toSearchParams().toString();
+type Codec<T> = {
+  parse: (params: URLSearchParams) => T;
+  serialize: (value: T, base?: URLSearchParams) => URLSearchParams;
+};
 
-  let echo = untrack(read);
-  let local = $state(untrack(read));
+export class SvelteSearchParams<T> {
+  private codec: Codec<T>;
+  private echo: T;
+  private local = $state<T>(undefined as T);
 
-  $effect(() => {
-    const next = read();
-    if (key(next) !== key(echo)) local = next;
-    echo = next;
-  });
+  constructor(codec: Codec<T>) {
+    this.codec = codec;
 
-  function commit(next: T) {
-    local = next;
-    echo = next;
-    // base 讀 location.search、pathname 讀 location.pathname，不是 page.url，理由見「shallow routing 與 goto」
-    const qs = next.toSearchParams(new URLSearchParams(location.search)).toString();
-    goto(`${location.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+    const read = () => codec.parse(page.url.searchParams);
+    this.echo = untrack(read);
+    this.local = untrack(read);
+
+    $effect(() => {
+      const next = this.codec.parse(page.url.searchParams);
+      const key = (v: T) => this.codec.serialize(v).toString();
+      if (key(next) !== key(this.echo)) this.local = next;
+      this.echo = next;
+    });
   }
 
-  return { get value() { return local; }, commit };
+  get value() {
+    return this.local;
+  }
+
+  set(next: T) {
+    this.local = next;
+    this.echo = next;
+    // base 讀 location.search、pathname 讀 location.pathname，不是 page.url，理由見「shallow routing 與 goto」
+    const qs = this.codec.serialize(next, new URLSearchParams(location.search)).toString();
+    goto(`${location.pathname}${qs ? `?${qs}` : ""}`, { replaceState: true, noScroll: true, keepFocus: true });
+  }
 }
 ```
 
-> 這些工具都已在 `$lib/utils/search-params.svelte.ts`，本專案可直接使用
+`SvelteSearchParam`/`SvelteSearchParams` 都是「真的導航」版本，才需要這套 echo 緩衝防止交錯覆蓋。淺路由（`replaceState`）版本不會有非同步導航被打斷、交錯的問題（見下一節「淺路由與 goto」），純可覆寫的 `$derived` 就夠，不需要 echo 緩衝：
+
+```ts
+import { replaceState } from '$app/navigation';
+
+export class SvelteShallowParam {
+  private key: string;
+  private local: string | null;
+
+  constructor(key: string) {
+    this.key = key;
+    this.local = $derived(page.url.searchParams.get(this.key));
+  }
+
+  get value() {
+    return this.local;
+  }
+
+  set(v: string | null) {
+    this.local = v;
+    const params = new URLSearchParams(location.search);
+    if (v !== null) params.set(this.key, v);
+    else params.delete(this.key);
+    const qs = params.toString();
+    replaceState(`${location.pathname}${qs ? `?${qs}` : ''}`, page.state);
+  }
+}
+
+export class SvelteShallowParams<T> {
+  private codec: Codec<T>;
+  private local: T;
+
+  constructor(codec: Codec<T>) {
+    this.codec = codec;
+    this.local = $derived(this.codec.parse(page.url.searchParams));
+  }
+
+  get value() {
+    return this.local;
+  }
+
+  set(next: T) {
+    this.local = next;
+    const qs = this.codec.serialize(next, new URLSearchParams(location.search)).toString();
+    replaceState(`${location.pathname}${qs ? `?${qs}` : ''}`, page.state);
+  }
+}
+```
+
+> 這四個工具都已在 `$lib/utils/search-params.svelte.ts`，本專案可直接使用
 
 ---
 

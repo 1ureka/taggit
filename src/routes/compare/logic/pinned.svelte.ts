@@ -5,29 +5,36 @@
 
 import { getContext, setContext } from "svelte";
 import { addToast } from "$lib/components/floating/toast-events";
-import { shallowSearchParam, type Codec } from "$lib/utils/search-params.svelte";
+import { SvelteShallowParams } from "$lib/utils/search-params.svelte";
 import { getPageDataContext } from "./page-data.svelte";
 
-/** `pinned` 參數的編碼方式：逗號分隔、去重、去空白 */
-const idsCodec: Codec<string[]> = {
-  parse: (raw) => {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const part of (raw ?? "").split(",")) {
-      const id = part.trim();
-      if (id && !seen.has(id)) {
-        seen.add(id);
-        out.push(id);
-      }
+/** 從查詢參數解析出釘選資訊 */
+const parse = (params: URLSearchParams) => {
+  const raw = params.get("pinned");
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const part of (raw ?? "").split(",")) {
+    const id = part.trim();
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      out.push(id);
     }
-    return out;
-  },
-  serialize: (ids) => (ids.length > 0 ? ids.join(",") : null),
+  }
+  return out;
+};
+
+/** 將釘選資訊序列化回查詢參數 */
+const serialize = (pinned: string[], base?: URLSearchParams) => {
+  const p = new URLSearchParams(base);
+  if (pinned.length > 0) p.set("pinned", pinned.join(","));
+  else p.delete("pinned");
+  return p;
 };
 
 class PinnedController {
   private pageData = getPageDataContext();
-  private params = shallowSearchParam("pinned", idsCodec);
+  private params = new SvelteShallowParams<string[]>({ parse, serialize });
 
   private idsSet = $derived(new Set(this.params.value));
   private recordsById = $derived(new Map(this.pageData.value.items.map((r) => [r.id, r])));
@@ -37,7 +44,7 @@ class PinnedController {
     $effect(() => {
       const validIds = new Set(this.pageData.value.items.map((r) => r.id));
       const next = this.params.value.filter((id) => validIds.has(id));
-      if (next.length !== this.params.value.length) this.params.commit(next);
+      if (next.length !== this.params.value.length) this.params.set(next);
     });
   }
 
@@ -50,14 +57,14 @@ class PinnedController {
   /** 切換指定 id 圖片的釘選狀態 */
   handleTogglePin = (id: string) => {
     const ids = this.params.value;
-    this.params.commit(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+    this.params.set(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
   };
 
   /** 取消指定 id 圖片的釘選狀態 */
   handleUnpin = (id: string) => {
     const ids = this.params.value;
     if (!ids.includes(id)) return;
-    this.params.commit(ids.filter((x) => x !== id));
+    this.params.set(ids.filter((x) => x !== id));
   };
 
   /** 重新隨機釘選 N 張圖片 */
@@ -72,7 +79,7 @@ class PinnedController {
     const indices = new Set<number>();
     while (indices.size < n) indices.add(Math.floor(Math.random() * pool.length));
 
-    this.params.commit([...indices].map((i) => pool[i].id));
+    this.params.set([...indices].map((i) => pool[i].id));
   };
 }
 
