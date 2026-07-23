@@ -1,57 +1,76 @@
 <script lang="ts">
-  import { IconEditFilled, IconArrowLeft } from "$lib/icons";
-  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
+  import { beforeNavigate } from "$app/navigation";
+  import type { PageData } from "./$types";
+
+  import { createPageDataContext } from "./logic/page-data.svelte";
+  import { createSnapshotsContext } from "./logic2/snapshots.svelte";
+  import { createDraftsContext } from "./logic2/drafts.svelte";
+  import { createRevertMarkContext } from "./logic2/reverts.svelte";
+  import { createSubmitContext } from "./logic2/submit.svelte";
+  import { createPointersContext } from "./logic2/pointers.svelte";
+  import { createGuardContext } from "./logic2/guard.svelte";
+  import { createQueryContext } from "./logic2/query.svelte";
+  import { createReviewContext } from "./logic2/review.svelte";
+  import { createTagImpactContext } from "./logic2/tag-impact.svelte";
+
+  import Lightbox from "$lib/components/widgets/Lightbox.svelte";
+  import Toolbar from "./header/Toolbar.svelte";
+  import Cards from "./cards/Cards.svelte";
+  import Inspector from "./inspector/Inspector.svelte";
+  import ReviewModal from "./review/ReviewModal.svelte";
+
+  let { data }: { data: PageData } = $props();
+
+  // 依相依順序建立各領域 controller
+  const pageData = createPageDataContext(() => data);
+  createSnapshotsContext();
+  createDraftsContext();
+  createRevertMarkContext();
+  createSubmitContext();
+  const pointers = createPointersContext();
+  const guard = createGuardContext();
+  createQueryContext();
+  createReviewContext();
+  createTagImpactContext();
+
+  beforeNavigate(guard.handleBeforeNavigate);
 </script>
 
+<svelte:window onbeforeunload={guard.handleBeforeUnload} />
+
 <svelte:head>
-  <title>管理圖片 — Taggit</title>
+  <title>Committed</title>
 </svelte:head>
 
-<main class="slide-up">
-  <div class="page-icon">
-    <IconEditFilled size={48} />
+<div class="page">
+  <Toolbar />
+  <div>
+    <Cards />
+    <Inspector />
   </div>
+</div>
 
-  <h2>開發中</h2>
-  <p>管理圖片功能尚在開發中，敬請期待。</p>
+<ReviewModal />
 
-  <ButtonLink href="/" variant="outlined">
-    <IconArrowLeft size={16} />
-    <span>返回首頁</span>
-  </ButtonLink>
-</main>
+<Lightbox
+  item={pointers.lightbox}
+  total={pageData.value.items.length}
+  onclose={pointers.handleLightboxClose}
+  onnext={pointers.handleLightboxNext}
+  onprev={pointers.handleLightboxPrev}
+/>
 
 <style>
-  main {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 4rem 1.5rem;
-    flex: 1;
+  div.page {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 0.75rem;
+    height: 100%;
+    min-height: 0;
   }
 
-  .page-icon {
-    color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
-  }
-
-  h2 {
-    font-size: 3rem;
-    font-weight: normal;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    color: var(--color-text);
-  }
-
-  p {
-    font: var(--font-body1);
-    color: var(--color-text-muted);
-    max-width: 320px;
-    margin-bottom: 1rem;
+  div.page > div {
+    display: flex;
+    flex: 1;
+    min-height: 0;
   }
 </style>

@@ -26,9 +26,11 @@ function errorMessage(e: MutationError): string {
 /**
  * `POST /api/proto/committed-batch`
  *
- * 原型專用：批次更新已提交圖片的名稱 / 標籤 / 評等。
- * Body: `{ items: [{ id, name?, tags?, rating?, expectedUpdatedAt }] }`
+ * 原型專用：批次更新已提交圖片的名稱 / 標籤 / 評等，或批次退回（刪除紀錄）。
+ * Body: `{ items: [{ id, op?: "update", name?, tags?, rating?, expectedUpdatedAt } | { id, op: "revert" }] }`
  * 回傳逐筆結果：`{ results: [{ id, ok, error? }] }`
+ *
+ * TODO: 原型端點，混雜 update/revert 兩種操作；正式轉正時應拆成語意更清楚的端點或改走真正的批次 command 模式
  */
 export const POST: RequestHandler = async ({ request }) => {
   if (!Database.isLoaded()) {
@@ -56,6 +58,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
     if (!isSafeFilename(id)) {
       results.push({ id, ok: false, error: "無效的檔名" });
+      continue;
+    }
+
+    if (raw.op === "revert") {
+      const r = mutation.removeRecord(id);
+      if (!r.ok) {
+        results.push({ id, ok: false, error: errorMessage(r.error) });
+        continue;
+      }
+      results.push({ id, ok: true });
       continue;
     }
 

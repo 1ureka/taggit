@@ -25,7 +25,7 @@ class LightboxController {
     if (this.target === null) return null;
     const index = this.files.indexOf(this.target);
     if (index < 0) return null;
-    return { filename: this.target, index: index + 1 };
+    return { id: this.target, index: index + 1 };
   });
 
   private navigate(delta: number) {
