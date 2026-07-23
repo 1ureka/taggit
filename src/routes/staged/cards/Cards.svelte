@@ -2,13 +2,15 @@
   import { innerWidth } from "svelte/reactivity/window";
   import { Virtualizer } from "$lib/utils/virtualize.svelte";
 
+  import WorkflowCardWrapper from "$lib/components/widgets/WorkflowCardWrapper.svelte";
+  import WorkflowCardInfo from "$lib/components/widgets/WorkflowCardInfo.svelte";
+  import StampBadge from "./StampBadge.svelte";
+
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getEditorContext } from "../logic/editor.svelte";
   import { getStampContext } from "../logic/stamp.svelte";
-
-  import Card from "./Card.svelte";
-  import StampBadge from "./StampBadge.svelte";
+  import { isTouched, problemOf } from "../logic/draft";
 
   const pageData = getPageDataContext();
   const editor = getEditorContext();
@@ -63,9 +65,26 @@
     {/if}
 
     <ul aria-label="暫存卡片牆" style:height="{masonry.contentHeight}px">
-      {#each masonry.visibleItems as item (item.id)}
-        <li style={item.style}>
-          <Card filename={item.id} />
+      {#each masonry.visibleItems as record (record.id)}
+        {@const draft = editor.draftOf(record.id)}
+        <li style={record.style}>
+          <WorkflowCardWrapper
+            filename={record.id}
+            selected={editor.activeFile === record.id}
+            onclick={() => editor.handleSelect(record.id)}
+          >
+            <WorkflowCardInfo
+              filename={record.id}
+              info={!isTouched(draft)
+                ? undefined
+                : {
+                    kind: problemOf(draft) ? "not-ready" : "ready",
+                    name: draft.name,
+                    rating: draft.rating,
+                    tagCount: draft.tags.length,
+                  }}
+            />
+          </WorkflowCardWrapper>
         </li>
       {/each}
     </ul>

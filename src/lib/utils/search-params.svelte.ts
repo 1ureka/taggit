@@ -4,7 +4,7 @@
  */
 
 import { page } from "$app/state";
-import { goto } from "$app/navigation";
+import { goto, replaceState } from "$app/navigation";
 import { untrack } from "svelte";
 
 /**
@@ -34,6 +34,31 @@ export function syncedSearchParam(key: string, fallback = "") {
       const url = new URL(location.href);
       url.searchParams.set(key, v);
       goto(url, { keepFocus: true, replaceState: true, noScroll: true });
+    },
+  };
+}
+
+/**
+ * 單一 search param 的同步緩衝，淺路由版本。
+ */
+export function shallowSearchParam(key: string) {
+  // replaceState 是同步的、也不會更新 `page.url`（見 docs/svelte_kit_routes.md），
+  // commit 不會觸發任何非同步、可能跟其他操作交錯的情況，純可覆寫的 `$derived` 就夠
+
+  let local = $derived(page.url.searchParams.get(key));
+
+  return {
+    get value() {
+      return local;
+    },
+    /** 覆寫本地顯示值並做一次淺路由，不會重跑 load */
+    commit(v: string | null) {
+      local = v;
+      const params = new URLSearchParams(location.search);
+      if (v !== null) params.set(key, v);
+      else params.delete(key);
+      const qs = params.toString();
+      replaceState(`${location.pathname}${qs ? `?${qs}` : ""}`, page.state);
     },
   };
 }

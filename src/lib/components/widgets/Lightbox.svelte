@@ -8,7 +8,7 @@
 
   type Props = {
     /** 要呈現的圖片資料， */
-    item: { filename: string; index: number } | null; // TODO: 增加可選的 blurhash
+    item: { id: string; index: number } | null; // TODO: 增加可選的 blurhash
     /** 總圖片數量 */
     total: number;
     /** 關閉對話框事件 */
@@ -27,7 +27,7 @@
 
 <Modal open={item !== null} {onclose} aria-label="圖片大圖預覽" containerProps={{ style: containerStyle }}>
   {#if item !== null}
-    {@const filename = item.filename}
+    {@const filename = item.id}
     {@const index = item.index}
     <header>
       <span class="ellipsis" title={filename}>{filename}</span>
