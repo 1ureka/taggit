@@ -142,6 +142,7 @@
     onfocus: handleFocus,
     onblur: handleBlur,
     onkeydown: handleKeydown,
+    onclick: ui.handleInputClick,
   }}
 
   {#if label}

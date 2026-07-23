@@ -73,6 +73,11 @@ export class Combo {
     this.activeIndex = -1;
   };
 
+  handleInputClick = () => {
+    if (!this.open) this.#openDropdown();
+    this.activeIndex = -1;
+  };
+
   handleFocus = () => {
     if (!this.open) this.#openDropdown();
   };
@@ -117,12 +122,10 @@ export class Combo {
 
   // ---
 
-  // TODO: 仍會導致關閉下拉
-  /** 處理候選項點擊：用 mousedown + preventDefault 避免 input 先失焦關閉下拉 */
+  /** 處理候選項點擊 */
   handleCandidateMouseDown = (e: MouseEvent, key: string) => {
     e.preventDefault();
     this.#commit(key);
-    this.inputEl?.focus();
   };
 
   handleCandidateMouseEnter = (index: number) => {
