@@ -14,8 +14,11 @@
   import { createTagImpactContext } from "./logic/tag-impact.svelte";
   import { createSelectionContext } from "./logic/selection.svelte";
 
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
-  import Toolbar from "./header/Toolbar.svelte";
+  import Filters from "./header/Filters.svelte";
   import Cards from "./cards/Cards.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
@@ -27,13 +30,15 @@
   createSnapshotsContext();
   createDraftsContext();
   createRevertMarkContext();
-  createSubmitContext();
+  const submit = createSubmitContext();
   const pointers = createPointersContext();
   const guard = createGuardContext();
-  createQueryContext();
-  createReviewContext();
+  const query = createQueryContext();
+  const review = createReviewContext();
   createTagImpactContext();
   createSelectionContext();
+
+  const touchedCount = $derived(review.touchedFiles.length);
 
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
@@ -45,7 +50,12 @@
 </svelte:head>
 
 <div class="container">
-  <Toolbar />
+  <Toolbar>
+    <Filters />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
+    <ReviewTrigger count={touchedCount} disabled={submit.pending || touchedCount === 0} onclick={review.handleOpen} />
+  </Toolbar>
+
   <div>
     <Cards />
     <Inspector />

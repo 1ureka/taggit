@@ -11,7 +11,11 @@
   import { createDragContext } from "./logic/drag.svelte";
   import { createReviewContext } from "./logic/review.svelte";
 
-  import Toolbar from "./header/Toolbar.svelte";
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
+  import Filters from "./header/Filters.svelte";
+  import CleanLink from "./header/CleanLink.svelte";
   import Pool from "./chips/Pool.svelte";
   import ZoneContainer from "./zone/ZoneContainer.svelte";
   import ZoneHeader from "./zone/ZoneHeader.svelte";
@@ -26,12 +30,12 @@
   // 依相依順序建立各領域 controller
   createPageDataContext(() => data);
   createPreviewsContext();
-  createOperationsContext();
+  const operations = createOperationsContext();
   createQueryContext();
   createSelectionContext();
   const board = createBoardContext();
   createDragContext();
-  createReviewContext();
+  const review = createReviewContext();
 
   beforeNavigate(board.handleBeforeNavigate);
 </script>
@@ -71,8 +75,17 @@
   </aside>
 {/snippet}
 
-<div class="page">
-  <Toolbar />
+<div class="container">
+  <Toolbar>
+    <Filters />
+    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} style="margin-left: auto;" />
+    <CleanLink />
+    <ReviewTrigger
+      count={board.touchedCount}
+      disabled={board.touchedCount === 0 || operations.pending}
+      onclick={review.handleOpen}
+    />
+  </Toolbar>
 
   <div>
     <Pool />
@@ -83,14 +96,14 @@
 <ReviewModal />
 
 <style>
-  div.page {
+  div.container {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
   }
 
-  div.page > div {
+  div.container > div {
     flex: 1;
     min-height: 0;
     display: flex;

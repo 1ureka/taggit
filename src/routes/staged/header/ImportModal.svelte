@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { IconDatabase } from "$lib/icons";
   import Modal from "$lib/components/floating/Modal.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import LinearProgress from "$lib/components/display/LinearProgress.svelte";
   import ImportGuide from "./ImportGuide.svelte";
+
   import type { ImportProgress, ImportResult } from "../logic/import-api";
   import { getImportContext } from "../logic/import.svelte";
   import { getOperationsContext } from "../logic/operations.svelte";
@@ -37,6 +39,11 @@
 
   <LinearProgress value={percent} size="md" color="var(--color-accent)" />
 {/snippet}
+
+<Button variant="outlined" status={operations.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
+  <IconDatabase size={16} />
+  <span>匯入紀錄</span>
+</Button>
 
 <Modal open={importer.open} onclose={importer.handleClose} aria-label="匯入紀錄">
   <div class="body">

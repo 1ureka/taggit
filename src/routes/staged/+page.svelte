@@ -10,8 +10,11 @@
   import { createReviewContext } from "./logic/review.svelte";
   import { createImportContext } from "./logic/import.svelte";
 
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
-  import Toolbar from "./header/Toolbar.svelte";
+  import SessionProgress from "./header/SessionProgress.svelte";
   import ImportModal from "./header/ImportModal.svelte";
   import Cards from "./cards/Cards.svelte";
   import Inspector from "./inspector/Inspector.svelte";
@@ -21,12 +24,14 @@
 
   // 依相依順序建立各領域 controller
   createPageDataContext(() => data);
-  createOperationsContext();
+  const operations = createOperationsContext();
   const editor = createEditorContext();
   const stamp = createStampContext();
   const lightbox = createLightboxContext();
-  createReviewContext();
+  const review = createReviewContext();
   createImportContext();
+
+  const touchedCount = $derived(editor.touchedFiles.length);
 
   beforeNavigate(editor.handleBeforeNavigate);
 </script>
@@ -37,8 +42,18 @@
   <title>Staged</title>
 </svelte:head>
 
-<div class="page">
-  <Toolbar />
+<div class="container">
+  <Toolbar>
+    <SessionProgress />
+    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} style="margin-left: auto;" />
+    <ImportModal />
+    <ReviewTrigger
+      count={touchedCount}
+      disabled={operations.pending || touchedCount === 0}
+      onclick={review.handleOpen}
+    />
+  </Toolbar>
+
   <div>
     <Cards />
     <Inspector />
@@ -46,7 +61,6 @@
 </div>
 
 <ReviewModal />
-<ImportModal />
 
 <Lightbox
   item={lightbox.image}
@@ -57,14 +71,14 @@
 />
 
 <style>
-  div.page {
+  div.container {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
   }
 
-  div.page > div {
+  div.container > div {
     display: flex;
     flex: 1;
     min-height: 0;
