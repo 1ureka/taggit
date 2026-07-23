@@ -16,12 +16,11 @@
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
-  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
-  import Filters from "./header/Filters.svelte";
-  import Cards from "./cards/Cards.svelte";
+  import QueryControls from "./header/QueryControls.svelte";
+  import ReviewModal from "./header/ReviewModal.svelte";
   import Inspector from "./inspector/Inspector.svelte";
-  import ReviewModal from "./review/ReviewModal.svelte";
+  import Cards from "./cards/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -30,15 +29,13 @@
   createSnapshotsContext();
   createDraftsContext();
   createRevertMarkContext();
-  const submit = createSubmitContext();
+  createSubmitContext();
   const pointers = createPointersContext();
   const guard = createGuardContext();
   const query = createQueryContext();
-  const review = createReviewContext();
+  createReviewContext();
   createTagImpactContext();
   createSelectionContext();
-
-  const touchedCount = $derived(review.touchedFiles.length);
 
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
@@ -51,9 +48,9 @@
 
 <div class="container">
   <Toolbar>
-    <Filters />
+    <QueryControls />
     <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
-    <ReviewTrigger count={touchedCount} disabled={submit.pending || touchedCount === 0} onclick={review.handleOpen} />
+    <ReviewModal />
   </Toolbar>
 
   <div>
@@ -61,8 +58,6 @@
     <Inspector />
   </div>
 </div>
-
-<ReviewModal />
 
 <Lightbox
   item={pointers.lightbox}
