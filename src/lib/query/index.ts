@@ -51,6 +51,11 @@ export class Query {
     return acc?.size() ?? 0;
   }
 
+  /** 查詢一組指定標籤名稱目前個別的全域使用數（未篩選、未遮蔽），找不到的標籤視為 0 */
+  tagCounts(names: string[]): { name: string; count: number }[] {
+    return [...new Set(names)].map((name) => ({ name, count: this.db.tagCount(name) }));
+  }
+
   /** 查詢單張圖片（含 id），找不到回 `null`。 */
   getImage(id: string): ImageWithId | null {
     const rec = this.db.getImage(id);

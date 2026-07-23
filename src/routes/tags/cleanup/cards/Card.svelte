@@ -37,6 +37,6 @@
   }
 
   article.scheduled {
-    border-color: hsl(from var(--color-warning) h s l / 0.75);
+    border-color: hsl(from var(--color-success) h s l / 0.75);
   }
 </style>

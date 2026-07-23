@@ -5,28 +5,34 @@
   import Modal from "$lib/components/floating/Modal.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getLightboxContext } from "../logic/lightbox.svelte";
 
-  const lightbox = getLightboxContext();
+  type Props = {
+    /** 要呈現的圖片資料， */
+    item: { filename: string; index: number } | null; // TODO: 增加可選的 blurhash
+    /** 總圖片數量 */
+    total: number;
+    /** 關閉對話框事件 */
+    onclose: () => void;
+    /** 下一張事件 */
+    onnext: () => void;
+    /** 上一張事件 */
+    onprev: () => void;
+  };
+
+  const { item, total, onclose, onnext, onprev }: Props = $props();
 
   const containerStyle =
     "width: 90vw; max-width: 90vw; height: 85vh; padding: 0.75rem; display: flex; flex-direction: column;";
 </script>
 
-<Modal
-  open={lightbox.image !== null}
-  onclose={lightbox.handleClose}
-  aria-label="圖片大圖預覽"
-  containerProps={{ style: containerStyle }}
->
-  {#if lightbox.image !== null}
-    {@const filename = lightbox.image.filename}
-    {@const index = lightbox.image.index}
-    {@const total = lightbox.total}
+<Modal open={item !== null} {onclose} aria-label="圖片大圖預覽" containerProps={{ style: containerStyle }}>
+  {#if item !== null}
+    {@const filename = item.filename}
+    {@const index = item.index}
     <header>
       <span class="ellipsis" title={filename}>{filename}</span>
       <Chip variant="outlined" style="font: var(--font-caption);">{`${index} / ${total}`}</Chip>
-      <Button variant="ghost" padding="icon" aria-label="關閉大圖預覽" onclick={lightbox.handleClose}>
+      <Button variant="ghost" padding="icon" aria-label="關閉大圖預覽" onclick={onclose}>
         <IconX size={16} />
       </Button>
     </header>
@@ -41,7 +47,7 @@
         padding="icon"
         aria-label="上一張"
         status={index <= 1 ? "disabled" : undefined}
-        onclick={lightbox.handlePrev}
+        onclick={onprev}
         style={"position: absolute; left: 0.5rem"}
       >
         <IconChevronDown size={16} style="transform: rotate(90deg);" />
@@ -52,7 +58,7 @@
         padding="icon"
         aria-label="下一張"
         status={index >= total ? "disabled" : undefined}
-        onclick={lightbox.handleNext}
+        onclick={onnext}
         style={"position: absolute; right: 0.5rem"}
       >
         <IconChevronDown size={16} style="transform: rotate(-90deg);" />

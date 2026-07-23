@@ -13,20 +13,11 @@
     const path = page.url.pathname;
 
     if (path === "/") return "正在 探索圖片";
-    if (path === "/compare") return "正在 比較圖片";
-    if (path === "/staged") return "正在 審查圖片";
+    if (path.startsWith("/compare")) return "正在 比較圖片";
+    if (path.startsWith("/staged")) return "正在 準備新紀錄";
     if (path.startsWith("/tags")) return "正在 整理標籤";
-    if (path === "/settings") return "正在 調整設定";
-
-    // TODO: 未來 committed 就算真的會 replaceState，這裡也吃不到，怎麼辦?
-    if (path === "/committed") {
-      const searchParams = page.url.searchParams;
-      if (searchParams.has("currentId")) {
-        return `正在 編輯 ${searchParams.get("currentId")}`;
-      } else {
-        return "正在 編輯已提交圖片";
-      }
-    }
+    if (path.startsWith("/settings")) return "正在 調整設定";
+    if (path.startsWith("/committed")) return "正在 編輯已有紀錄";
 
     return path;
   });

@@ -1,11 +1,18 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import ReviewFooter from "./ReviewFooter.svelte";
-  import ReviewHeader from "./ReviewHeader.svelte";
-  import ReviewList from "./ReviewList.svelte";
+  import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
+  import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewItemImage from "$lib/components/review/ReviewItemImage.svelte";
+  import ReviewTagImpact from "$lib/components/review/ReviewTagImpact.svelte";
+  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
+
   import { getReviewContext } from "../logic/review.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getLightboxContext } from "../logic/lightbox.svelte";
 
   const review = getReviewContext();
+  const operations = getOperationsContext();
+  const lightbox = getLightboxContext();
 
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
@@ -18,20 +25,41 @@
 >
   <ReviewHeader />
 
-  {#if review.entries.length === 0}
-    <p>目前沒有任何暫存的變更。</p>
-  {:else}
-    <ReviewList />
-  {/if}
+  <ReviewList
+    pending={operations.pending}
+    checkedAll={review.bulkSelectionState}
+    checkableCount={review.checkableCount}
+    totalCount={review.entries.length}
+    checkedCount={review.checkedCount}
+    ontoggleall={review.handleToggleAll}
+  >
+    {#each review.entries as entry (entry.filename)}
+      <ReviewItemImage
+        checkable={entry.checkable}
+        checked={entry.checked}
+        name={entry.name}
+        filename={entry.filename}
+        changeRating={entry.rating ? { before: 0, after: entry.rating } : undefined}
+        changeTags={{ toAdd: entry.tags }}
+        problem={entry.problem}
+        onclickimage={() => lightbox.handleOpen(entry.filename)}
+        onclickname={() => review.handleEdit(entry.filename)}
+        ontoggle={() => review.handleToggle(entry.filename)}
+      />
+    {/each}
+  </ReviewList>
 
-  <ReviewFooter />
+  <ReviewFooter
+    pending={operations.pending}
+    count={review.checkedCount}
+    oncancel={review.handleClose}
+    onsubmit={review.handleSubmit}
+  >
+    <ReviewTagImpact
+      loading={review.impactLoading}
+      checkedCount={review.checkedCount}
+      tagsToAdd={review.newTags.length}
+      tagsToRemove={0}
+    />
+  </ReviewFooter>
 </Modal>
-
-<style>
-  p {
-    font: var(--font-body1);
-    color: var(--color-text-muted);
-    padding: 2.5rem 1rem;
-    text-align: center;
-  }
-</style>

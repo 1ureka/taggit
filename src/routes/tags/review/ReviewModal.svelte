@@ -1,32 +1,57 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
+  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
+  import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
+  import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewItemTag from "$lib/components/review/ReviewItemTag.svelte";
+
   import { getReviewContext } from "../logic/review.svelte";
-  import ReviewHeader from "./ReviewHeader.svelte";
-  import ReviewFooter from "./ReviewFooter.svelte";
-  import ReviewList from "./ReviewList.svelte";
+  import { getOperationsContext } from "../logic/operations.svelte";
 
   const review = getReviewContext();
+  const operations = getOperationsContext();
 
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
 
-<Modal open={review.open} onclose={review.handleClose} aria-label="檢視待送出的標籤變更" containerProps={{ style: containerStyle }}>
+<Modal
+  open={review.open}
+  onclose={review.handleClose}
+  aria-label="檢視待送出的標籤變更"
+  containerProps={{ style: containerStyle }}
+>
   <ReviewHeader />
 
-  {#if review.entries.length === 0}
-    <p class="empty">目前沒有任何未送出的標籤操作。</p>
-  {:else}
-    <ReviewList />
-  {/if}
+  <ReviewList
+    pending={operations.pending}
+    checkedAll={review.bulkSelectionState}
+    checkableCount={review.checkableCount}
+    totalCount={review.entries.length}
+    checkedCount={review.checkedCount}
+    ontoggleall={review.handleToggleAll}
+  >
+    {#each review.entries as entry (entry.name)}
+      {@const kind = entry.kind}
+      {@const withExtraProps = kind === "merge" || kind === "rename"}
+      {@const extraProps = withExtraProps ? { target: entry.to, mergedCount: entry.mergedCount } : undefined}
+      <ReviewItemTag
+        {kind}
+        checkable={entry.checkable}
+        checked={entry.checked}
+        tag={entry.name}
+        count={entry.count}
+        problem={entry.problem}
+        ontoggle={() => review.handleToggle(entry.name)}
+        ondiscard={() => review.handleDiscard(entry.name)}
+        {...extraProps}
+      />
+    {/each}
+  </ReviewList>
 
-  <ReviewFooter />
+  <ReviewFooter
+    pending={operations.pending}
+    count={review.checkedCount}
+    oncancel={review.handleClose}
+    onsubmit={review.handleSubmit}
+  />
 </Modal>
-
-<style>
-  .empty {
-    font: var(--font-body1);
-    color: var(--color-text-muted);
-    padding: 2.5rem 1rem;
-    text-align: center;
-  }
-</style>

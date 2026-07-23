@@ -9,7 +9,7 @@
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import BlurImage from "$lib/components/widgets/BlurImage.svelte";
-  import TagChips from "$lib/components/widgets/TagChips.svelte";
+  import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
   import { getDetailContext } from "../logic/detail.svelte";
   import { getFilterContext } from "../logic/filter.svelte";
 
@@ -59,7 +59,7 @@
 
           <h2 class="ellipsis">{shown.name}</h2>
 
-          <ButtonLink variant="primary" padding="sm" href={detail.editorHref}>
+          <ButtonLink variant="primary" padding="sm" href={detail.href}>
             <IconEditFilled size={16} />
             <span>編輯</span>
           </ButtonLink>
@@ -78,7 +78,7 @@
 
         <footer>
           <Rating value={shown.rating} readonly />
-          <TagChips tags={shown.tags} nowrap onselect={handleTagSelect} />
+          <TagsWithMask tags={shown.tags} onselect={handleTagSelect} />
         </footer>
       </article>
     </div>

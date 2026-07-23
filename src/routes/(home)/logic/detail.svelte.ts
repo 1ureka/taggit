@@ -19,12 +19,12 @@ class DetailController {
   /** 目前開啟中的詳情圖片；null 代表關閉，或該 id 已不在目前結果集內 */
   record = $derived(this.pageData.value.items.find((item) => item.id === this.idState) ?? null);
 
-  /** 前往 editor 的連結，帶上當下的篩選參數，使 editor 的統一查詢與 home 一致，隱藏標籤圖片才不會在 editor 被再次遮蔽 */
-  editorHref = $derived.by(() => {
-    if (!this.record) return "/editor";
+  /** 前往編輯紀錄的連結，帶上當下的篩選參數，使有隱藏標籤的圖片才不會在新頁面被再次遮蔽 */
+  href = $derived.by(() => {
+    if (!this.record) return "/committed";
     const params = this.filter.query.toSearchParams();
     params.set("currentId", this.record.id);
-    return `/editor?${params.toString()}`;
+    return `/committed?${params.toString()}`;
   });
 
   constructor() {

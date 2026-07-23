@@ -16,24 +16,21 @@
   const scheduledName = $derived(names.find((n) => schedule.statusOf(n) !== null));
 
   const chipBaseStyle =
-    "font: var(--font-body2); color: var(--kind-color); border-color: hsl(from var(--kind-color) h s l / 0.5);";
-  const chipStyles: Record<typeof s.kind, string> = {
+    "font: var(--font-caption); color: var(--kind-color); border-color: hsl(from var(--kind-color) h s l / 0.5);";
+  const chipStyles: Record<typeof s.kind | "scheduled", string> = {
     similar: "--kind-color: var(--color-info);",
     cooccur: "--kind-color: var(--color-success);",
     rare: "--kind-color: var(--color-warning);",
     unused: "--kind-color: var(--color-text-muted);",
+    scheduled: "--kind-color: var(--color-success);",
   };
+
+  const kind = $derived(scheduledName !== undefined ? "scheduled" : s.kind);
+  const label = $derived(scheduledName !== undefined ? "已排入" : KIND_LABELS[s.kind]);
 </script>
 
 <header>
-  <Chip variant="outlined" style={chipStyles[s.kind] + chipBaseStyle}>{KIND_LABELS[s.kind]}</Chip>
-
-  <span class="spacer"></span>
-
-  {#if scheduledName !== undefined}
-    <span class="mark">已排入</span>
-  {/if}
-
+  <Chip variant="outlined" style={chipStyles[kind] + chipBaseStyle}>{label}</Chip>
   <Button variant="ghost" padding="icon" aria-label="忽略這個建議" onclick={() => filter.handleDismiss(s.id)}>
     <IconX size={13} />
   </Button>
@@ -43,18 +40,9 @@
   header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     flex-shrink: 0;
     gap: 0.5rem;
     padding: 0.75rem 0.75rem 0px 0.75rem;
-  }
-
-  span.spacer {
-    flex: 1;
-  }
-
-  span.mark {
-    flex-shrink: 0;
-    font: var(--font-caption);
-    color: var(--color-warning);
   }
 </style>
