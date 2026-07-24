@@ -211,7 +211,7 @@ class BoardController {
       } catch {
         // 查詢失敗不打擾操作，下次變動再試
       }
-    }, 200);
+    }, 500);
 
     this.timers.set(zone.id, { timer, seq });
   }
