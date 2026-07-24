@@ -8,15 +8,33 @@
 
   import { getPlaybackContext } from "../logic/playback.svelte";
   import { getGestureContext } from "../logic/gesture.svelte";
-  import { findClosestToMiddle } from "../logic/findMiddle";
 
   const playback = getPlaybackContext();
   const gesture = getGestureContext();
 
   const matchesGif = (item: ImageWithId) => item.id.toLowerCase().endsWith(".gif");
 
-  // 只讓最靠近畫面中央的 GIF 播放動畫，其餘用靜態縮圖以維持流暢
-  const animatedIndex = $derived(findClosestToMiddle(playback.visibleItems, matchesGif));
+  /** 最靠近畫面中央的 GIF 播放動畫，其餘用靜態縮圖以維持流暢 */
+  const animatedIndex = $derived.by(() => {
+    const n = playback.visibleItems.length;
+    if (n === 0) return -1;
+
+    const mid = Math.floor(n / 2);
+    if (matchesGif(playback.visibleItems[mid])) return mid;
+
+    let L = mid - 1;
+    let R = mid + 1;
+
+    // 從中間向兩側擴散，回傳最靠近中央、滿足條件的索引
+    while (L >= 0 || R < n) {
+      if (L >= 0 && matchesGif(playback.visibleItems[L])) return L;
+      if (R < n && matchesGif(playback.visibleItems[R])) return R;
+      L--;
+      R++;
+    }
+
+    return -1;
+  });
 </script>
 
 <main aria-label="圖片播放器">

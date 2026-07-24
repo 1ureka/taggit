@@ -5,48 +5,53 @@
   import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
   import DockProgress from "./DockProgress.svelte";
+
+  import { getDockContext } from "../logic/dock.svelte";
   import { getPlaybackContext } from "../logic/playback.svelte";
 
+  const dock = getDockContext();
   const playback = getPlaybackContext();
 </script>
 
-<aside aria-label="圖片播放器控制區" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
-  <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={playback.handleTogglePlay}>
-    {#if playback.playing}
-      <IconPlayerPauseFilled size={18} />
-    {:else}
-      <IconPlayerPlayFilled size={18} />
-    {/if}
-  </Button>
+{#if !dock.hideDock}
+  <aside aria-label="圖片播放器控制區" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+    <Button variant="outlined" padding="icon" aria-label="播放/暫停" onclick={playback.handleTogglePlay}>
+      {#if playback.playing}
+        <IconPlayerPauseFilled size={18} />
+      {:else}
+        <IconPlayerPlayFilled size={18} />
+      {/if}
+    </Button>
 
-  <div class="progress">
-    <DockProgress
-      aria-label="播放進度"
-      type="range"
-      min="0"
-      max="1000"
-      value={playback.progress.progressValue}
-      oninput={playback.handleProgressInput}
-      onchange={playback.handleProgressChange}
-      style="width: 100%;"
-    />
-    <span>{playback.progressText}</span>
-  </div>
+    <div class="progress">
+      <DockProgress
+        aria-label="播放進度"
+        type="range"
+        min="0"
+        max="1000"
+        value={playback.progress.progressValue}
+        oninput={playback.handleProgressInput}
+        onchange={playback.handleProgressChange}
+        style="width: 100%;"
+      />
+      <span>{playback.progressText}</span>
+    </div>
 
-  <div class="speed">
-    <label for="player-speed">速度</label>
-    <DockProgress
-      id="player-speed"
-      min="-6"
-      max="6"
-      step="0.5"
-      value={playback.speed}
-      oninput={playback.handleSpeedInput}
-      style="width: 80px;"
-    />
-    <span>{playback.speed.toFixed(1)}</span>
-  </div>
-</aside>
+    <div class="speed">
+      <label for="player-speed">速度</label>
+      <DockProgress
+        id="player-speed"
+        min="-6"
+        max="6"
+        step="0.5"
+        value={playback.speed}
+        oninput={playback.handleSpeedInput}
+        style="width: 80px;"
+      />
+      <span>{playback.speed.toFixed(1)}</span>
+    </div>
+  </aside>
+{/if}
 
 <style>
   aside {
