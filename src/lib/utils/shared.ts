@@ -1,9 +1,5 @@
 /**
  * @file 前後端共用的通用工具函數。
- *
- * 本檔案僅收錄瀏覽器與 Node.js 環境皆可執行的函數。
- * 若函數依賴僅限於特定環境的 API（例如 DOM、`fs`），
- * 請放置於同資料夾的 `client.ts` 或 `server.ts`。
  */
 
 /**
@@ -47,39 +43,6 @@ export function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: numb
       fn(...args);
     }, ms);
   }) as T;
-}
-
-/**
- * 回傳 `fn` 的節流版本。
- * 每 `ms` 毫秒最多執行一次。
- */
-export function throttle<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let lastCall = 0;
-  return ((...args: unknown[]) => {
-    const now = Date.now();
-    if (now - lastCall >= ms) {
-      lastCall = now;
-      fn(...args);
-    }
-  }) as T;
-}
-
-/**
- * 以固定大小的並行批次處理 `items`。
- * 回傳 `[成功數, 失敗數]`。
- */
-export async function batchRun<T>(
-  items: T[],
-  size: number,
-  fn: (item: T) => Promise<{ ok: boolean }>,
-): Promise<[ok: number, fail: number]> {
-  let ok = 0;
-  let fail = 0;
-  for (let i = 0; i < items.length; i += size) {
-    const results = await Promise.all(items.slice(i, i + size).map(fn));
-    for (const r of results) r.ok ? ok++ : fail++;
-  }
-  return [ok, fail];
 }
 
 // ---
