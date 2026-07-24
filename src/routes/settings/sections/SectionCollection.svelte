@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { getCollectionContext } from "../logic/collection.svelte";
-
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import Alert from "$lib/components/display/Alert.svelte";
+  import { getCollectionContext } from "../logic/collection.svelte";
 
   const collection = getCollectionContext();
 
@@ -27,17 +26,17 @@
   <TextInput
     size="md"
     label="圖片集根目錄"
-    bind:value={collection.inputValue}
+    bind:value={collection.value}
     placeholder="例如 C:/Users/you/Pictures/tagged"
     autocomplete="off"
-    status={collection.errorMessage ? "error" : undefined}
-    aria-describedby={collection.errorMessage ? `${id}-error` : `${id}-hint`}
+    status={collection.error ? "error" : undefined}
+    aria-describedby={collection.error ? `${id}-error` : `${id}-hint`}
     onkeydown={collection.handleKeydown}
     oninput={collection.handleInput}
   />
 
-  {#if collection.errorMessage}
-    <span id="{id}-error" class="helper error">{collection.errorMessage}</span>
+  {#if collection.error}
+    <span id="{id}-error" class="helper error">{collection.error}</span>
   {:else}
     <span id="{id}-hint" class="helper">
       {collection.historyHint}
@@ -48,7 +47,7 @@
   {/if}
 
   <footer>
-    <Button type="submit" variant="primary" status={collection.saving ? "pending" : undefined}>儲存</Button>
+    <Button type="submit" variant="primary" status={collection.pending ? "pending" : undefined}>儲存</Button>
   </footer>
 </form>
 

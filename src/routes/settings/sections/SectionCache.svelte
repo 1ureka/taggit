@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { getCacheContext } from "../logic/cache.svelte";
-  import { getMetadataContext } from "../logic/metadata.svelte";
   import { formatSize } from "$lib/utils/shared";
-
   import { IconPhotoFilled, IconFilter } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import LinearProgress from "$lib/components/display/LinearProgress.svelte";
   import ToolCard from "./ToolCard.svelte";
+  import { getCacheContext } from "../logic/cache.svelte";
+  import { getMetadataContext } from "../logic/metadata.svelte";
 
   const cache = getCacheContext();
   const metadata = getMetadataContext();
@@ -29,7 +27,7 @@
   </dl>
 
   {#snippet actions()}
-    <Button variant="outlined" padding="sm" status={cache.busy ? "pending" : undefined} onclick={cache.handleClear}>
+    <Button variant="outlined" status={cache.pending ? "pending" : undefined} onclick={cache.handleClear}>
       清空快取
     </Button>
   {/snippet}
@@ -41,27 +39,13 @@
   description="檢查資料庫是否有已提交圖片缺少寬高或模糊預覽等資料，檢查後可選擇重新計算。"
   result={metadata.result}
 >
-  {#if metadata.fixing}
-    <LinearProgress size="sm" color="var(--color-accent)" />
-  {/if}
-
   {#snippet actions()}
-    <Button
-      variant="outlined"
-      padding="sm"
-      status={metadata.busy ? (metadata.checking ? "pending" : "disabled") : undefined}
-      onclick={metadata.handleCheck}
-    >
+    <Button variant="outlined" status={metadata.pending ? "pending" : undefined} onclick={metadata.handleCheck}>
       開始檢查
     </Button>
     {#if metadata.missing > 0}
-      <Button
-        variant="outlined"
-        padding="sm"
-        status={metadata.busy ? (metadata.fixing ? "pending" : "disabled") : undefined}
-        onclick={metadata.handleFix}
-      >
-        補算 {metadata.missing} 張
+      <Button variant="outlined" status={metadata.pending ? "pending" : undefined} onclick={metadata.handleFix}>
+        修復 {metadata.missing} 張
       </Button>
     {/if}
   {/snippet}

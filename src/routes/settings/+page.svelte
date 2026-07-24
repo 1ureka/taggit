@@ -9,10 +9,10 @@
   import { createMissingContext } from "./logic/missing.svelte";
   import { createBackupContext } from "./logic/backup.svelte";
 
-  import SectionNav from "./nav/SectionNav.svelte";
-  import CollectionSection from "./sections/CollectionSection.svelte";
-  import CacheSection from "./sections/CacheSection.svelte";
-  import MaintenanceSection from "./sections/MaintenanceSection.svelte";
+  import SectionNavigation from "./sections/SectionNavigation.svelte";
+  import SectionCollection from "./sections/SectionCollection.svelte";
+  import SectionCache from "./sections/SectionCache.svelte";
+  import SectionMaintenance from "./sections/SectionMaintenance.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -29,25 +29,25 @@
   <title>設定 — Taggit</title>
 </svelte:head>
 
-<div class="layout">
-  <SectionNav />
+<div class="container">
+  <SectionNavigation />
 
   <main>
     <div class="slide-up">
       <section id="section-collection" {@attach nav.observe}>
         <h2>圖片集路徑</h2>
-        <CollectionSection />
+        <SectionCollection />
       </section>
 
       {#if data.databaseLoaded}
         <section id="section-images" {@attach nav.observe}>
           <h2>圖片與快取</h2>
-          <CacheSection />
+          <SectionCache />
         </section>
 
         <section id="section-maintenance" {@attach nav.observe}>
           <h2>系統維護</h2>
-          <MaintenanceSection />
+          <SectionMaintenance />
         </section>
       {/if}
     </div>
@@ -55,7 +55,7 @@
 </div>
 
 <style>
-  .layout {
+  div.container {
     display: flex;
     flex: 1;
     min-height: 0;

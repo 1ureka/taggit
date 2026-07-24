@@ -6,14 +6,18 @@
 import { getContext, setContext } from "svelte";
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { api } from "$lib/utils/request";
 
-import { getPathHistory, pushPathHistory, clearPathHistory } from "./path-history";
+import { api } from "$lib/utils/request";
+import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
+import { getPathHistory, pushPathHistory, clearPathHistory } from "./path-history";
 import { getPageDataContext } from "./page-data.svelte";
 
 class CollectionController {
   private pageData = getPageDataContext();
+
+  /** 進入歷史瀏覽前，暫存使用者當下輸入，用於回到最新一筆時還原 */
+  private draft = "";
 
   /** 引導 redirect 帶來的提示訊息 */
   alert = $derived.by(() => {
@@ -23,99 +27,104 @@ class CollectionController {
     return null;
   });
 
-  // 可覆寫的 derived，使用者輸入時覆寫，load 重跑後回到伺服器值
-  inputValue = $derived(this.pageData.value.collectionRoot);
-  saving = $state(false);
-  errorMessage = $state("");
-
-  /** 曾成功設定過的路徑歷史（最近優先） */
-  history = $state<string[]>(getPathHistory());
-  /** 目前瀏覽到的歷史索引；`-1` 表示未在瀏覽歷史（顯示的是使用者當下輸入） */
-  historyIndex = $state(-1);
-  /** 進入歷史瀏覽前，暫存使用者當下輸入，供 ArrowDown 越過最新一筆時還原 */
-  private draft = "";
-
+  /** 目前有關歷史紀錄的提示訊息 */
   historyHint = $derived.by(() => {
     if (this.history.length === 0) return "尚無使用紀錄";
     if (this.historyIndex >= 0) return `第 ${this.historyIndex + 1}/${this.history.length} 筆歷史紀錄`;
     return `可用 ↑ / ↓ 切換歷史路徑（共 ${this.history.length} 筆）`;
   });
 
+  /** 目前路徑輸入框內的值 */
+  value = $derived(this.pageData.value.collectionRoot);
+  /** 是否正在設置新路徑中 */
+  pending = $state(false);
+  /** 設置後是否有錯誤與錯誤內容 */
+  error = $state("");
+  /** 曾成功設定過的路徑歷史 */
+  history = $state<string[]>(getPathHistory());
+  /** 目前瀏覽到的歷史索引，`-1` 表示顯示的是使用者當下輸入 */
+  historyIndex = $state(-1);
+
   private applyHistory = (index: number) => {
+    if (index > this.history.length - 1 || index < -1) return;
     this.historyIndex = index;
-    this.inputValue = this.history[index];
+    this.value = this.history[index];
   };
 
+  /** 處理輸入框鍵盤事件 */
   handleKeydown = (e: KeyboardEvent) => {
     if (this.history.length === 0) return;
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      // 從當下輸入進入歷史時，先暫存草稿以便日後還原
-      if (this.historyIndex === -1) this.draft = this.inputValue;
-      this.applyHistory(Math.min(this.historyIndex + 1, this.history.length - 1));
-      return;
+
+      if (this.historyIndex === -1) {
+        this.draft = this.value;
+      }
+
+      this.applyHistory(this.historyIndex + 1);
     }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (this.historyIndex <= -1) return;
+
       if (this.historyIndex === 0) {
         // 越過最新一筆，還原使用者原本的輸入
         this.historyIndex = -1;
-        this.inputValue = this.draft;
+        this.value = this.draft;
         return;
       }
+
       this.applyHistory(this.historyIndex - 1);
     }
   };
 
-  /** 使用者手動編輯輸入框時，脫離歷史瀏覽狀態 */
+  /** 處理編輯輸入框事件，脫離歷史瀏覽狀態 */
   handleInput = () => {
     this.historyIndex = -1;
-    this.errorMessage = "";
+    this.error = "";
   };
 
-  /**
-   * 清空所有歷史紀錄；輸入框當下顯示的文字（不論是否正在瀏覽歷史）直接當成使用者的新草稿，不做還原
-   */
+  /** 清空所有歷史紀錄；輸入框當下顯示的文字則當成使用者的新草稿 */
   handleClearHistory = () => {
     clearPathHistory();
     this.history = [];
     this.historyIndex = -1;
   };
 
+  private navigate = async () => {
+    const url = new URL(location.href);
+    url.searchParams.delete("alert");
+    await goto(url, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true, state: page.state });
+  };
+
+  /** 處理送出更改路徑事件 */
   handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (this.saving) return;
+    if (this.pending) return;
 
-    this.saving = true;
-    this.errorMessage = "";
+    this.pending = true;
+    this.error = "";
 
-    const root = this.inputValue.trim();
     try {
+      const root = this.value.trim();
       const res = await api.post("/api/settings/setup", { collectionRoot: root });
-      if (res.ok) {
-        this.history = pushPathHistory(root);
-        this.historyIndex = -1;
-        addToast({ message: "圖片集路徑已儲存", variant: "success" });
 
-        const url = new URL(location.href);
-        url.searchParams.delete("alert");
-        await goto(url, {
-          replaceState: true,
-          noScroll: true,
-          keepFocus: true,
-          invalidateAll: true,
-          state: page.state,
-        });
-      } else {
-        this.errorMessage = res.error ?? "未知錯誤";
+      if (!res.ok) {
+        // TODO: 修復 $lib/utils/request 而不是這裡
+        this.error = res.error ?? "未知錯誤";
+        return;
       }
+
+      this.history = pushPathHistory(root);
+      this.historyIndex = -1;
+      addToast({ message: "圖片集路徑已儲存", variant: "success" });
+
+      await this.navigate();
     } catch (err) {
-      this.errorMessage = err instanceof Error ? err.message : "未知錯誤";
+      this.error = formatError(err);
     } finally {
-      this.saving = false;
+      this.pending = false;
     }
   };
 }
