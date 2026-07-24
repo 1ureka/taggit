@@ -43,6 +43,6 @@
     justify-content: space-between;
     flex-shrink: 0;
     gap: 0.5rem;
-    padding: 0.75rem 0.75rem 0px 0.75rem;
+    padding: 0.25rem 0.25rem 0px 0.5rem;
   }
 </style>
