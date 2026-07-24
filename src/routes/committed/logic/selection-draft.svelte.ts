@@ -3,30 +3,35 @@
  * 管理多選模式下、套用前的批次編輯表單草稿
  */
 
+import { SvelteSet } from "svelte/reactivity";
 import { getContext, setContext } from "svelte";
 import { getSelectionContext } from "./selection.svelte";
 import { getDraftsContext } from "./drafts.svelte";
 import { getRevertMarkContext } from "./reverts.svelte";
+
+type Field = "revert" | "rating" | "addTags" | "removeTags";
 
 class SelectionDraftController {
   private selection = getSelectionContext();
   private drafts = getDraftsContext();
   private reverts = getRevertMarkContext();
 
-  revertChecked = $state(false);
+  checked = new SvelteSet<Field>();
+
   revertDirection = $state<"mark" | "unmark">("mark");
-
-  ratingChecked = $state(false);
   ratingValue = $state(0);
-
-  addTagsChecked = $state(false);
   addTagsValue = $state<string[]>([]);
-
-  removeTagsChecked = $state(false);
   removeTagsValue = $state<string[]>([]);
 
   /** 標記退回時，評等／加標籤／去標籤三個欄位視為無效 */
-  locked = $derived(this.revertChecked && this.revertDirection === "mark");
+  locked = $derived(this.checked.has("revert") && this.revertDirection === "mark");
+
+  /** 是否有需要套用的操作 */
+  dirty = $derived.by(() => {
+    if (this.checked.has("revert") || this.checked.has("rating")) return true;
+    if (this.checked.has("addTags") && this.addTagsValue.length > 0) return true;
+    if (this.checked.has("removeTags") && this.removeTagsValue.length > 0) return true;
+  });
 
   constructor() {
     // 離開多選模式視為結束這次批次操作，草稿一併清空
@@ -36,29 +41,49 @@ class SelectionDraftController {
   }
 
   private reset() {
-    this.revertChecked = false;
+    this.checked.clear();
     this.revertDirection = "mark";
-    this.ratingChecked = false;
     this.ratingValue = 0;
-    this.addTagsChecked = false;
     this.addTagsValue = [];
-    this.removeTagsChecked = false;
     this.removeTagsValue = [];
   }
+
+  // ---
+
+  handleCheck = (field: Field, value: boolean) => {
+    if (value) this.checked.add(field);
+    else this.checked.delete(field);
+  };
+
+  handleRevertDirectionChange = (direction: "mark" | "unmark") => {
+    this.revertDirection = direction;
+  };
+
+  handleRatingChange = (value: number) => {
+    this.ratingValue = value;
+  };
+
+  handleAddTagsChange = (tags: string[]) => {
+    this.addTagsValue = tags;
+  };
+
+  handleRemoveTagsChange = (tags: string[]) => {
+    this.removeTagsValue = tags;
+  };
 
   /** 把已勾選欄位依目前值套用到所有選取圖片的草稿，並重置表單 */
   handleApply = () => {
     const files = this.selection.selectedFiles;
 
-    if (this.revertChecked) {
+    if (this.checked.has("revert")) {
       if (this.revertDirection === "mark") this.reverts.handleMark(files);
       else this.reverts.handleUnmark(files);
     }
 
     if (!this.locked) {
-      if (this.ratingChecked) this.drafts.handleSetRating(files, this.ratingValue);
-      if (this.addTagsChecked) this.drafts.handleAddTags(files, this.addTagsValue);
-      if (this.removeTagsChecked) this.drafts.handleRemoveTags(files, this.removeTagsValue);
+      if (this.checked.has("rating")) this.drafts.handleSetRating(files, this.ratingValue);
+      if (this.checked.has("addTags")) this.drafts.handleAddTags(files, this.addTagsValue);
+      if (this.checked.has("removeTags")) this.drafts.handleRemoveTags(files, this.removeTagsValue);
     }
 
     this.reset();
