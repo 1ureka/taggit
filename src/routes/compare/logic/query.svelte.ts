@@ -74,7 +74,7 @@ class QueryController {
     if (this.refreshing) return;
 
     this.refreshing = true;
-    await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
+    await new Promise((resolve) => setTimeout(resolve, 300)); // debounce
 
     try {
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });

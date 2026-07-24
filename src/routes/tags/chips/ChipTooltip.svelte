@@ -11,7 +11,7 @@
 
   $effect(() => {
     if (tag.count === 0) return;
-    hoverTimer = setTimeout(() => previews.request(tag.name), 250);
+    hoverTimer = setTimeout(() => previews.request(tag.name), 300);
     return () => clearTimeout(hoverTimer);
   });
 </script>

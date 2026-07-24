@@ -123,7 +123,7 @@ class ReviewController {
         if (seq !== this.impactSeq) return; // 已有更新的查詢在路上，這次回應作廢
         if (res.ok) this.impactCounts = new Map(res.data.counts.map((c) => [c.name, c.count]));
         this.pendingFetch = false; // 套用完成才解除 loading
-      }, 200);
+      }, 300);
     });
   }
 
