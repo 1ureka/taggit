@@ -46,11 +46,21 @@
     open = false;
   };
 
-  // TODO: 這種寫法會導致若點擊的是 chip (移除某個標籤篩選)，會無法發現是  panel?.contains(target)，但改成 pointerdown 卻沒問題
-  const handleWindowClick = (e: MouseEvent) => {
+  const handleWindowPointerDown = (e: PointerEvent) => {
+    // pointerdown 早於 click 觸發，避免某些 DOM 已被 Svelte 拔除導致 contains 誤判
     if (!open) return;
     const target = e.target;
     if (!(target instanceof Node)) return;
+    if (reference?.contains(target) || panel?.contains(target)) return;
+    handleClose();
+  };
+
+  const handleWindowFocusIn = (e: FocusEvent) => {
+    if (!open) return;
+    const target = e.target;
+    if (!(target instanceof Node)) return;
+    // 焦點所在節點被移除時瀏覽器會把焦點重置到 body，這是假訊號而非使用者主動移出面板
+    if (target === document.body) return;
     if (reference?.contains(target) || panel?.contains(target)) return;
     handleClose();
   };
@@ -60,7 +70,11 @@
   };
 </script>
 
-<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
+<svelte:window
+  onpointerdown={handleWindowPointerDown}
+  onfocusin={handleWindowFocusIn}
+  onkeydown={handleWindowKeydown}
+/>
 
 <span bind:this={reference}>
   <Button variant="outlined" aria-label="開啟篩選選單" onclick={handleToggle}>
