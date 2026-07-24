@@ -58,7 +58,7 @@ type OpResult = { key: string; ok: boolean; error?: string };
 export async function submitChangeset(ops: BoardOperation[], names: string[]): Promise<Map<string, string>> {
   const cs = changesetFromOperations(ops);
   const res = await api.post<{ results: OpResult[] }>("/api/proto/tags-batch", toPayload(cs, new Set(names)));
-  if (!res.ok || !res.data) throw new Error(res.error || "送出失敗");
+  if (!res.ok) throw new Error(res.error);
 
   const failures = new Map<string, string>();
   for (const r of res.data.results) {

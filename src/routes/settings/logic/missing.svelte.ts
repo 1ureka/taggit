@@ -1,81 +1,80 @@
 /**
  * @file missing.svelte.ts
- * 缺失檔案記錄檢查 + 刪除。
- * checking/deleting 拆成獨立忙碌旗標；刪除確認框開啟期間與刪除進行中都鎖定「開始檢查」，
- * 避免確認訊息所依據的數量跟實際刪除時的 records 不一致。
+ * 缺失檔案記錄檢查與刪除。
  */
 
 import { getContext, setContext } from "svelte";
-import { page } from "$app/state";
 import { goto } from "$app/navigation";
+import { page } from "$app/state";
+
 import { api } from "$lib/utils/request";
+import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 import { requestConfirm } from "$lib/components/widgets/confirm-events";
 
 class MissingController {
   /** 缺失檔案 ID 列表（null 表示尚未檢查） */
   records = $state<string[] | null>(null);
-  checking = $state(false);
-  deleting = $state(false);
-  /** 刪除確認框開啟中 */
-  private confirming = $state(false);
-
-  /** 確認框開啟中或刪除進行中時，鎖定「開始檢查」 */
-  checkLocked = $derived(this.confirming || this.deleting);
-
+  /** 是否正在檢查或修復中 */
+  pending = $state(false);
+  /** 檢查結果 */
   result = $derived.by(() => {
     if (this.records === null) return undefined;
     if (this.records.length === 0) return "沒有找到缺失記錄";
     return `找到 ${this.records.length} 個缺失記錄`;
   });
 
+  /** 處理檢查事件 */
   handleCheck = async () => {
-    if (this.checking || this.checkLocked) return;
-    this.checking = true;
+    if (this.pending) return;
+    this.pending = true;
 
     try {
       const res = await api.get<{ missing: string[] }>("/api/settings/missing");
-      if (res.ok && res.data) {
-        this.records = res.data.missing;
-      } else {
-        addToast({ message: `檢查失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+
+      if (!res.ok) {
+        addToast({ message: `檢查失敗：${res.error}`, variant: "error" });
+        return;
       }
+
+      this.records = res.data.missing;
     } catch (err) {
-      addToast({ message: "檢查失敗" + (err instanceof Error ? `：${err.message}` : ""), variant: "error" });
+      addToast({ message: "檢查失敗：" + formatError(err), variant: "error" });
     } finally {
-      this.checking = false;
+      this.pending = false;
     }
   };
 
-  handleDelete = async () => {
-    if (this.records === null || this.deleting || this.confirming) return;
+  private navigate = async () => {
+    const url = new URL(location.href);
+    await goto(url, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true, state: page.state });
+  };
 
-    this.confirming = true;
+  /** 處理修復事件 */
+  handleDelete = async () => {
+    if (this.records === null || this.pending) return;
+
     const msg = `確定要刪除 ${this.records.length} 個缺失記錄？此操作無法復原。`;
     const confirmed = await requestConfirm(msg, { title: "刪除記錄", action: "刪除" });
-    this.confirming = false;
     if (!confirmed) return;
 
-    this.deleting = true;
+    this.pending = true;
     try {
       const res = await api.del<{ removed: string[] }>("/api/settings/missing");
-      if (res.ok && res.data) {
-        addToast({ message: `已刪除 ${res.data.removed.length} 個缺失記錄`, variant: "success" });
-        this.records = [];
-        await goto(location.href, {
-          replaceState: true,
-          noScroll: true,
-          keepFocus: true,
-          invalidateAll: true,
-          state: page.state,
-        });
-      } else {
-        addToast({ message: `刪除失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+
+      if (!res.ok) {
+        addToast({ message: `刪除失敗：${res.error}`, variant: "error" });
+        return;
       }
+
+      this.records = [];
+      addToast({ message: `已刪除 ${res.data.removed.length} 個缺失記錄`, variant: "success" });
+
+      await this.navigate();
     } catch (err) {
-      addToast({ message: "刪除失敗" + (err instanceof Error ? `：${err.message}` : ""), variant: "error" });
+      addToast({ message: "刪除失敗：" + formatError(err), variant: "error" });
     } finally {
-      this.deleting = false;
+      this.pending = false;
     }
   };
 }

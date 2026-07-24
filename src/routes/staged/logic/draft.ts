@@ -61,7 +61,7 @@ export async function commitDrafts(entries: { filename: string; draft: Draft }[]
   }));
 
   const res = await api.post<{ results: BatchItemResult[] }>("/api/proto/staged-batch", { items });
-  if (!res.ok || !res.data) throw new Error(res.error || "提交失敗");
+  if (!res.ok) throw new Error(res.error);
 
   const failures = new Map<string, string>();
   for (const r of res.data.results) {

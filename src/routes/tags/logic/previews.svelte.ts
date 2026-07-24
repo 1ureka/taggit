@@ -34,7 +34,7 @@ class PreviewsController {
       `/api/proto/committed-query?${query.toSearchParams()}`,
     );
 
-    if (!res.ok || !res.data) {
+    if (!res.ok) {
       this.cache.delete(tag); // 失敗時移除，下次懸停重試
       return;
     }

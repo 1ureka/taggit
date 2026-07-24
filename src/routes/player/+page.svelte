@@ -7,15 +7,15 @@
   import { createGestureContext } from "./logic/gesture.svelte";
   import { createDockContext } from "./logic/dock.svelte";
 
-  import Strip from "./strip/Strip.svelte";
-  import PlayerDock from "./control/Dock.svelte";
+  import Strip from "./view/Strip.svelte";
+  import Dock from "./view/Dock.svelte";
 
   let { data }: { data: PageData } = $props();
 
   createPageDataContext(() => data);
   const playback = createPlaybackContext();
   const gesture = createGestureContext();
-  const dock = createDockContext();
+  createDockContext();
 
   function handleKeydown(e: KeyboardEvent) {
     if (isInEditable(e.target)) return;
@@ -53,6 +53,4 @@
 />
 
 <Strip />
-{#if !dock.hideDock}
-  <PlayerDock />
-{/if}
+<Dock />

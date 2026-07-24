@@ -50,6 +50,7 @@
     flex: 1;
     gap: 0.375rem;
     margin: 0 0.75rem;
+    margin-bottom: 0.375rem;
     padding-bottom: 0.25rem;
     min-height: 0px;
     border-radius: calc(var(--border-radius) / 1.5);

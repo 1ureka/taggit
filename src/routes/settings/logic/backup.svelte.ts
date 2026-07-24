@@ -4,17 +4,36 @@
  */
 
 import { getContext, setContext } from "svelte";
+import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
 class BackupController {
-  busy = $state(false);
+  /** 是否正在備份中 */
+  pending = $state(false);
 
+  private download = async (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `backup-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
+    document.body.appendChild(a);
+
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  };
+
+  /** 處理下載事件 */
   handleDownload = async () => {
-    if (this.busy) return;
-    this.busy = true;
+    if (this.pending) return;
+    this.pending = true;
 
     try {
+      // 此請求回傳 ZIP 檔案的 Blob，非 JSON，故不透過 $lib/utils/request 統一工具
       const res = await fetch("/api/settings/backup", { method: "POST" });
+
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         addToast({ message: `備份失敗：${data?.error ?? "未知錯誤"}`, variant: "error" });
@@ -22,20 +41,13 @@ class BackupController {
       }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `backup-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await this.download(blob);
 
       addToast({ message: "備份已下載", variant: "success" });
-    } catch {
-      addToast({ message: "備份失敗", variant: "error" });
+    } catch (err) {
+      addToast({ message: "備份失敗：" + formatError(err), variant: "error" });
     } finally {
-      this.busy = false;
+      this.pending = false;
     }
   };
 }

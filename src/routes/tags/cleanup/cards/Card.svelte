@@ -28,7 +28,6 @@
   article {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
     height: 100%;
     background: var(--color-bg-card);
     border: var(--border-style);

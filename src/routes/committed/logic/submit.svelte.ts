@@ -59,7 +59,7 @@ class SubmitController {
         "/api/proto/committed-batch",
         { items },
       );
-      if (!res.ok || !res.data) throw new Error(res.error || "提交失敗");
+      if (!res.ok) throw new Error(res.error);
 
       const failures = new Map<string, string>();
       for (const r of res.data.results) if (!r.ok) failures.set(r.id, r.error ?? "未知錯誤");

@@ -205,7 +205,7 @@ class BoardController {
       try {
         const params = new URLSearchParams({ tags: tags.join(",") });
         const res = await api.get<{ count: number }>(`/api/proto/tags-union-count?${params}`);
-        if (!res.ok || !res.data) throw new Error(res.error || "查詢失敗");
+        if (!res.ok) throw new Error(res.error);
         if (this.timers.get(zone.id)?.seq !== seq) return; // 在途回應已過期
         zone.mergeCount = res.data.count;
       } catch {

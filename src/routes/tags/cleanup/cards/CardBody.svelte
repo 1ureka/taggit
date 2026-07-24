@@ -67,6 +67,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+    margin-bottom: 0.375rem;
     padding: 0rem 0.75rem;
   }
 

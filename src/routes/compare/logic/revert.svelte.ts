@@ -27,7 +27,7 @@ class RevertController {
     try {
       const res = await api.del(`/api/committed/${encodeURIComponent(id)}`);
       if (!res.ok) {
-        addToast({ message: "取消提交失敗" + (res.error ? `: ${res.error}` : ""), variant: "error" });
+        addToast({ message: `取消提交失敗: ${res.error}`, variant: "error" });
         return;
       }
 

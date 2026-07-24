@@ -7,17 +7,14 @@ import { hasKey } from "$lib/utils/shared";
 
 // ---
 
-/** 所有 API 端點的統一回應格式。 */
-interface ApiResponse<T = unknown> {
-  /** 請求是否成功 */
-  ok: boolean;
-  /** 回應資料（僅在成功時存在） */
-  data?: T;
-  /** 錯誤訊息（僅在失敗時存在） */
-  error?: string;
-  /** HTTP 狀態碼 */
-  status: number;
-}
+/**
+ * 所有 API 端點的統一回應格式。
+ * 以 `ok` 為判別欄位的聯集型別，讓呼叫端在 `if (!res.ok)` 分支後
+ * 能直接窄化取得必要的 `data` 或 `error`，不必再自行防禦性判斷。
+ */
+type ApiResponse<T = unknown> =
+  | { ok: true; data: T; status: number }
+  | { ok: false; error: string; status: number };
 
 /**
  * 將 API 回應的 `error` 欄位轉為人類可讀訊息。
