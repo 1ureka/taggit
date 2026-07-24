@@ -49,6 +49,7 @@ class CollectionController {
     if (index > this.history.length - 1 || index < -1) return;
     this.historyIndex = index;
     this.value = this.history[index];
+    this.error = "";
   };
 
   /** 處理輸入框鍵盤事件 */
