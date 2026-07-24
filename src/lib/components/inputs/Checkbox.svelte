@@ -52,8 +52,8 @@
     gap: 0.5rem;
     cursor: pointer;
     user-select: none;
-    font: var(--font-body1);
-    color: var(--color-text);
+    font: var(--font-input);
+    color: hsl(from var(--color-text) h s l / 0.8);
 
     &.disabled {
       opacity: 0.5;
