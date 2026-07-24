@@ -24,7 +24,7 @@
       <Checkbox
         checked={selection.bulkSelectionState === "checked"}
         indeterminate={selection.bulkSelectionState === "indeterminate"}
-        label="全選"
+        label="全選圖片"
         onchange={selection.handleToggleAllVisible}
       />
     </div>
