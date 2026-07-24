@@ -21,6 +21,7 @@
   import ReviewModal from "./header/ReviewModal.svelte";
   import Inspector from "./inspector/Inspector.svelte";
   import Cards from "./cards/Cards.svelte";
+  import Rail from "./cards/Rail.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -54,6 +55,7 @@
   </Toolbar>
 
   <div>
+    <Rail />
     <Cards />
     <Inspector />
   </div>

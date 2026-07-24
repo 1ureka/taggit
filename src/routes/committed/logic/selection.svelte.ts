@@ -5,9 +5,11 @@
 import { getContext, setContext } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import { getPageDataContext } from "./page-data.svelte";
+import { getPointersContext } from "./pointers.svelte";
 
 class SelectionController {
   private pageData = getPageDataContext();
+  private pointers = getPointersContext();
 
   private ids = new SvelteSet<string>();
 
@@ -35,9 +37,19 @@ class SelectionController {
   /** 指定的檔案是否被選取中 */
   isSelected = (id: string) => this.ids.has(id);
 
-  handleToggleMode = () => {
-    this.active = !this.active;
-    if (!this.active) this.ids.clear();
+  /** 切到多選模式：目前正在編輯的那張圖自動成為這次多選的起點 */
+  handleEnterMulti = () => {
+    if (this.active) return;
+    this.active = true;
+    const current = this.pointers.editing?.id;
+    if (current !== undefined) this.ids.add(current);
+  };
+
+  /** 切回單選模式：視為結束這次批次操作，已選取的一併清空 */
+  handleExitToSingle = () => {
+    if (!this.active) return;
+    this.active = false;
+    this.ids.clear();
   };
 
   handleToggle = (filename: string) => {
