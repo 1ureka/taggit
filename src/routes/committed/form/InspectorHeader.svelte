@@ -4,6 +4,7 @@
 
   import Button from "$lib/components/actions/Button.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
+  import Checkbox from "$lib/components/inputs/Checkbox.svelte";
 
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
@@ -19,8 +20,26 @@
 
 <header>
   {#if selection.active}
-    <!-- TODO: 多選模式的 header -->
-    <div>測試 header!</div>
+    <div style="flex: 1;">
+      <Checkbox
+        checked={selection.bulkSelectionState === "checked"}
+        indeterminate={selection.bulkSelectionState === "indeterminate"}
+        label="全選"
+        onchange={selection.handleToggleAllVisible}
+      />
+    </div>
+
+    <Chip variant="outlined" style="font: var(--font-caption);">{`已選取 ${selection.count} 張`}</Chip>
+
+    <Button
+      variant="ghost"
+      padding="icon"
+      aria-label="取消多選"
+      onclick={selection.handleExitToSingle}
+      {@attach tooltip({ content: "取消多選" })}
+    >
+      <IconX size={16} />
+    </Button>
   {:else if file !== null}
     <h3 class="ellipsis" title={pointers.editing?.id ?? ""}>{pointers.editing?.id}</h3>
 
