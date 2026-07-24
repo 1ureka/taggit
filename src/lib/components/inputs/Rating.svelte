@@ -128,6 +128,18 @@
     gap: 0.125rem;
     border-radius: calc(var(--border-radius) / 3);
     user-select: none;
+
+    outline: var(--border-style);
+    outline-color: transparent;
+    outline-width: 0px;
+    transition:
+      outline-width 0.15s ease,
+      outline-color 0.15s ease;
+
+    &:focus-visible {
+      outline-color: var(--color-ring);
+      outline-width: 3.5px;
+    }
   }
 
   .rating.disabled {
