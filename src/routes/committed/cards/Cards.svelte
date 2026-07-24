@@ -7,14 +7,17 @@
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
   const pageData = getPageDataContext();
   const pointers = getPointersContext();
+  const selection = getSelectionContext();
 
-  const activeFile = $derived(pointers.editing?.id ?? null);
+  const file = $derived(pointers.editing?.id ?? null);
   const availableWidth = $derived.by(() => {
+    const open = file !== null || selection.active;
     const windowWidth = innerWidth.current ?? 1000;
-    const inspectorWidth = activeFile !== null ? INSPECTOR_WIDTH : 0;
+    const inspectorWidth = open ? INSPECTOR_WIDTH : 0;
     return Math.max(1, windowWidth - inspectorWidth);
   });
 
@@ -41,8 +44,8 @@
 
   $effect(() => {
     // 目前檢視中的卡片變動時，捲動可視範圍到該卡片
-    if (activeFile === null) return;
-    masonry.scrollToItem(activeFile);
+    if (file === null) return;
+    masonry.scrollToItem(file);
   });
 </script>
 

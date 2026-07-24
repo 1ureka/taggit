@@ -2,16 +2,20 @@
   import { imgSrc } from "$lib/image/client";
   import { IconMaximize } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
   import Button from "$lib/components/actions/Button.svelte";
+
   import { getPointersContext } from "../logic/pointers.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
   const pointers = getPointersContext();
+  const selection = getSelectionContext();
 
   const file = $derived(pointers.editing?.id ?? null);
 </script>
 
-{#if file !== null}
+{#if !selection.active && file !== null}
   <div>
     <ImageCanvas resetKey={file} style="height: 220px; min-height: 220px; border-bottom: var(--border-style);">
       <img src={imgSrc(file, "sm")} alt={file} draggable="false" />

@@ -19,7 +19,7 @@
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import QueryControls from "./header/QueryControls.svelte";
   import ReviewModal from "./header/ReviewModal.svelte";
-  import Inspector from "./inspector/Inspector.svelte";
+  import Inspector from "./form/Inspector.svelte";
   import Cards from "./cards/Cards.svelte";
   import Rail from "./cards/Rail.svelte";
 
