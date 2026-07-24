@@ -1,7 +1,6 @@
 :root {
   --border-radius: 6px;
   --border-style: 2px solid var(--color-border);
-  --shadow1: 0px 1px 2px 1px rgba(0, 0, 0, 0.05);
 
   --font-family: "Comfortaa", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-family-mono: "JetBrains Mono", monospace;
@@ -14,10 +13,6 @@
   --font-body2: 400 0.8125rem/1.5 var(--font-family);
   --font-kbd: 400 0.8125rem/1 var(--font-family-mono);
   --font-caption: 400 0.75rem/1.2 var(--font-family);
-
-  --height-header: 3.5rem;
-  --height-aside: calc(100svh - var(--height-header));
-  --height-content: calc(100svh - var(--height-header));
 }
 
 [data-theme="dark"] {

@@ -49,10 +49,8 @@ img {
 /* --- */
 
 *[id] {
-  scroll-margin-top: calc(var(--height-header) + 1rem);
+  scroll-margin-top: 2.5rem;
 }
-
-/* --- */
 
 :where(a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])) {
   outline: var(--border-style);
@@ -66,6 +64,18 @@ img {
     outline-color: var(--color-ring);
     outline-width: 3.5px;
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* --- */
@@ -92,26 +102,12 @@ img {
 
 /* --- */
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
 .ellipsis {
   overflow: hidden;
   min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* --- */
 
 .slide-up {
   animation: slide-up 0.3s ease;
