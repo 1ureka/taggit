@@ -26,7 +26,13 @@
   />
 
   <span class="rename-count">
-    → {#if group.mergeCount === null}<span class="skeleton" aria-label="計算中"></span>{:else}{group.mergeCount}{/if} 張
+    →
+    {#if group.mergeCount === null}
+      <span class="skeleton" aria-label="計算中">000</span>
+    {:else}
+      {group.mergeCount}
+    {/if}
+    張
   </span>
 </div>
 
@@ -51,12 +57,7 @@
     <span class="chip-count">{count}</span>
 
     <span class="chip-action">
-      <button
-        type="button"
-        title={removeLabel}
-        aria-label={removeLabel}
-        onclick={() => board.detachTag(name)}
-      >
+      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => board.detachTag(name)}>
         <IconX size={14} />
       </button>
     </span>
@@ -86,26 +87,6 @@
     font-family: var(--font-family-mono);
     color: var(--color-text-muted);
     white-space: nowrap;
-  }
-
-  span.skeleton {
-    display: inline-block;
-    width: 1.5em;
-    height: 0.8em;
-    border-radius: 3px;
-    background: hsl(from currentColor h s l / 0.15);
-    vertical-align: middle;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.9;
-    }
   }
 
   div.chips {

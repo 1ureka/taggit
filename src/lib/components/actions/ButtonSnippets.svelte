@@ -100,7 +100,6 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
     font: var(--font-button);
     text-align: center;
     text-decoration: none;
@@ -142,15 +141,18 @@
   /* --- */
 
   .btn.p-icon {
-    padding: 0.25rem;
+    width: 2rem;
+    height: 2rem;
   }
 
   .btn.p-sm {
-    padding: 0.375rem 0.75rem;
+    padding: 0px 0.75rem;
+    height: 2rem;
   }
 
   .btn.p-md {
-    padding: 0.5rem 1rem;
+    padding: 0px 1rem;
+    height: 2.5rem;
   }
 
   /* --- */

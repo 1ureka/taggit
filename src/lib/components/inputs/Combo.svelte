@@ -9,7 +9,7 @@
   type WithExternalLabel = { label?: never; id: string; labelHidden?: never };
 
   type Props = (WithLabel | WithExternalLabel) &
-    Omit<HTMLInputAttributes, "value" | "onchange" | "onblur" | "onfocus" | "oninput" | "onkeydown"> & {
+    Omit<HTMLInputAttributes, "size" | "value" | "onchange" | "onblur" | "onfocus" | "oninput" | "onkeydown"> & {
       /** 雙向綁定：輸入框當前文字，即時同步，不是「選完才變」 */
       value: string;
       /** 這一刻要顯示的候選 key 清單——篩選/查詢邏輯完全由呼叫端決定 */
@@ -142,6 +142,7 @@
     onfocus: handleFocus,
     onblur: handleBlur,
     onkeydown: handleKeydown,
+    onclick: ui.handleInputClick,
   }}
 
   {#if label}

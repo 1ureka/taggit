@@ -3,6 +3,7 @@
 
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Button from "$lib/components/actions/Button.svelte";
+  import Alert from "$lib/components/display/Alert.svelte";
 
   const collection = getCollectionContext();
 
@@ -15,11 +16,16 @@
 </p>
 
 {#if collection.alert}
-  <p class={{ alert: true, error: collection.alert.error }}>{collection.alert.message}</p>
+  <Alert
+    status={collection.alert.error ? "error" : "info"}
+    message={collection.alert.message}
+    style=" margin-bottom: 1.25rem;"
+  />
 {/if}
 
 <form onsubmit={collection.handleSubmit}>
   <TextInput
+    size="md"
     label="圖片集根目錄"
     bind:value={collection.inputValue}
     placeholder="例如 C:/Users/you/Pictures/tagged"
@@ -58,23 +64,6 @@
       border-radius: calc(var(--border-radius) * 2 / 3);
       font: var(--font-kbd);
       font-size: 0.75rem;
-    }
-  }
-
-  .alert {
-    font: var(--font-body2);
-    color: var(--color-info);
-    background-color: hsl(from var(--color-info) h s l / 0.1);
-    border: var(--border-style);
-    border-color: hsl(from var(--color-info) h s l / 0.5);
-    border-radius: var(--border-radius);
-    padding: 0.5rem 0.75rem;
-    margin-bottom: 1.25rem;
-
-    &.error {
-      color: var(--color-error);
-      background-color: hsl(from var(--color-error) h s l / 0.1);
-      border-color: hsl(from var(--color-error) h s l / 0.5);
     }
   }
 

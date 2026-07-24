@@ -46,27 +46,4 @@
     font: var(--font-body2);
     color: var(--color-text-muted);
   }
-
-  .skeleton {
-    color: transparent;
-    pointer-events: none;
-    border-radius: var(--border-radius);
-    background: linear-gradient(
-      90deg,
-      var(--color-bg-active) 25%,
-      var(--color-bg-hover) 50%,
-      var(--color-bg-active) 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.2s ease-in-out infinite;
-  }
-
-  @keyframes shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
 </style>

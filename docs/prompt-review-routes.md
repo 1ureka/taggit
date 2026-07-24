@@ -49,7 +49,7 @@
 
 1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
    - getPageDataContext()（ExploreHeader 使用）
-   - $lib/query-spec（ImageQuery、ImageWhere）、$lib/utils/search-params.svelte 的 syncedQuery
+   - $lib/query-spec（ImageQuery、ImageWhere）、$lib/utils/search-params.svelte 的 SvelteSearchParams
    - 路由參數、API 請求回傳結果
 2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug。
 3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
@@ -133,7 +133,7 @@
 ## 審查核心限制
 
 1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
-   - $lib/query-spec 的 ImageQuery、$lib/utils/search-params.svelte 的 syncedQuery
+   - $lib/query-spec 的 ImageQuery、$lib/utils/search-params.svelte 的 SvelteSearchParams
    - 路由參數、API 請求回傳結果
 2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug。
 3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
@@ -563,7 +563,7 @@
 
 1. **隔離外部依賴**：完全假設以下皆 100% 正確、不需驗證：
    - getPageDataContext()、getSelectionContext()
-   - $app/state 的 navigating、$lib/query-spec 的 TagQuery、$lib/utils/search-params.svelte 的 syncedQuery
+   - $app/state 的 navigating、$lib/query-spec 的 TagQuery、$lib/utils/search-params.svelte 的 SvelteSearchParams
 2. **專注內部狀態與流程**：只審查上述範圍內的邏輯、狀態機變化、副作用觸發時機、事件處理、條件渲染是否有 Bug，特別是換頁/篩選後 `Chips.svelte` 捲動歸零的時機是否正確。
 3. **拒絕外部文件對比**：不比對遷移文件、規格書，純以當前程式碼靜態分析。
 

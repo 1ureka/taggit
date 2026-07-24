@@ -14,11 +14,13 @@
   import { createTagImpactContext } from "./logic/tag-impact.svelte";
   import { createSelectionContext } from "./logic/selection.svelte";
 
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
-  import Toolbar from "./header/Toolbar.svelte";
-  import Cards from "./cards/Cards.svelte";
+  import QueryControls from "./header/QueryControls.svelte";
+  import ReviewModal from "./header/ReviewModal.svelte";
   import Inspector from "./inspector/Inspector.svelte";
-  import ReviewModal from "./review/ReviewModal.svelte";
+  import Cards from "./cards/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -30,7 +32,7 @@
   createSubmitContext();
   const pointers = createPointersContext();
   const guard = createGuardContext();
-  createQueryContext();
+  const query = createQueryContext();
   createReviewContext();
   createTagImpactContext();
   createSelectionContext();
@@ -45,14 +47,17 @@
 </svelte:head>
 
 <div class="container">
-  <Toolbar />
+  <Toolbar>
+    <QueryControls />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
+    <ReviewModal />
+  </Toolbar>
+
   <div>
     <Cards />
     <Inspector />
   </div>
 </div>
-
-<ReviewModal />
 
 <Lightbox
   item={pointers.lightbox}

@@ -5,21 +5,24 @@
 
 import { getContext, setContext } from "svelte";
 import { ImageQuery, ImageWhere } from "$lib/query-spec";
-import { syncedQuery } from "$lib/utils/search-params.svelte";
+import { SvelteSearchParams } from "$lib/utils/search-params.svelte";
 
 class FilterController {
-  private synced = syncedQuery((params) => ImageQuery.fromSearchParams(params));
+  private params = new SvelteSearchParams<ImageQuery>({
+    parse: (params) => ImageQuery.fromSearchParams(params),
+    serialize: (value, base) => value.toSearchParams(base),
+  });
 
   /** 目前的圖片查詢條件 */
   get query(): ImageQuery {
-    return this.synced.value;
+    return this.params.value;
   }
 
   /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤 */
   facetScope = $derived(this.query.where.toSearchParams().toString());
 
   private commit(next: ImageQuery) {
-    this.synced.commit(next);
+    this.params.set(next);
   }
 
   /** 處理關鍵字搜尋 */

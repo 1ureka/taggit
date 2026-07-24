@@ -11,7 +11,7 @@
 
   $effect(() => {
     if (tag.count === 0) return;
-    hoverTimer = setTimeout(() => previews.request(tag.name), 150);
+    hoverTimer = setTimeout(() => previews.request(tag.name), 250);
     return () => clearTimeout(hoverTimer);
   });
 </script>
@@ -29,7 +29,7 @@
 {#snippet loadingDisplay()}
   <div class="thumbs">
     {#each { length: Math.min(tag.count, 4) }, i (i)}
-      <div class="thumb placeholder"></div>
+      <div class="thumb skeleton"></div>
     {/each}
   </div>
 {/snippet}
@@ -103,24 +103,10 @@
   }
 
   .thumb {
+    --color-skeleton: color-mix(in srgb, var(--color-bg) 80%, var(--color-text));
     width: 56px;
     height: 56px;
     object-fit: cover;
     border-radius: calc(var(--border-radius) / 1.5);
-    background: hsl(from currentColor h s l / 0.15);
-  }
-
-  .thumb.placeholder {
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.9;
-    }
   }
 </style>

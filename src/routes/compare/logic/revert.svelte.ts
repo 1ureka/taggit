@@ -1,6 +1,6 @@
 /**
- * @file operations.ts
- * 管理全頁操作鎖與重新整理或取消提交等操作
+ * @file revert.svelte.ts
+ * 管理已釘選圖片的取消提交（退回暫存區）操作
  */
 
 import { getContext, setContext } from "svelte";
@@ -10,30 +10,13 @@ import { addToast } from "$lib/components/floating/toast-events";
 import { requestConfirm } from "$lib/components/widgets/confirm-events";
 import { getPinnedContext } from "./pinned.svelte";
 
-class OperationsController {
+class RevertController {
   private pinned = getPinnedContext();
 
-  /** 全局共用的操作鎖與指示 */
+  /** 是否有一次取消提交正在進行中 */
   pending = $state(false);
 
-  /** 重新整理列表 */
-  handleRefresh = async () => {
-    if (this.pending) return;
-
-    this.pending = true;
-    await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
-
-    try {
-      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
-      addToast({ message: "列表已更新", variant: "success" });
-    } catch (e) {
-      addToast({ message: "重新整理失敗" + (e instanceof Error ? `: ${e.message}` : ""), variant: "error" });
-    } finally {
-      this.pending = false;
-    }
-  };
-
-  /** 退回指定 id 的圖片 */
+  /** 取消指定 id 圖片的提交 */
   handleRevert = async (id: string) => {
     if (this.pending) return;
 
@@ -60,12 +43,12 @@ class OperationsController {
   };
 }
 
-const key = Symbol("operations-controller");
+const key = Symbol("revert-controller");
 
-export const createOperationsContext = () => {
-  const controller = new OperationsController();
+export const createRevertContext = () => {
+  const controller = new RevertController();
   setContext(key, controller);
   return controller;
 };
 
-export const getOperationsContext = () => getContext<OperationsController>(key);
+export const getRevertContext = () => getContext<RevertController>(key);

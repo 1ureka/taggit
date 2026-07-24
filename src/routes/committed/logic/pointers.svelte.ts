@@ -4,7 +4,7 @@
  */
 
 import { getContext, setContext } from "svelte";
-import { shallowSearchParam } from "$lib/utils/search-params.svelte";
+import { SvelteShallowParam } from "$lib/utils/search-params.svelte";
 import { getPageDataContext } from "./page-data.svelte";
 
 /** 一個指標指向目前清單裡的哪個檔案，以及它是清單裡的第幾個（1-based） */
@@ -26,20 +26,20 @@ class PointersController {
 
   // ---
 
-  private editingSynced = shallowSearchParam("currentId");
+  private editingParam = new SvelteShallowParam("currentId");
 
   /** 目前正在編輯的檔案；篩選/排序改變導致它不在可視範圍時自動回落為 null */
-  editing = $derived(this.locate(this.editingSynced.value));
+  editing = $derived(this.locate(this.editingParam.value));
 
   /** 開啟指定檔名的編輯面板 */
   handleSelect = (filename: string) => {
-    this.editingSynced.commit(filename);
+    this.editingParam.set(filename);
   };
 
   /** 關閉編輯面板 */
   handleClose = () => {
-    if (this.editingSynced.value === null) return;
-    this.editingSynced.commit(null);
+    if (this.editingParam.value === null) return;
+    this.editingParam.set(null);
   };
 
   // ---

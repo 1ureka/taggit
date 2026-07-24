@@ -6,32 +6,25 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 import { ImageQuery } from "$lib/query-spec";
-import { syncedQuery } from "$lib/utils/search-params.svelte";
+import { SvelteSearchParams } from "$lib/utils/search-params.svelte";
 import { addToast } from "$lib/components/floating/toast-events";
 
 class QueryController {
-  private synced = syncedQuery((params) => ImageQuery.fromSearchParams(params));
+  private params = new SvelteSearchParams<ImageQuery>({
+    parse: (params) => ImageQuery.fromSearchParams(params),
+    serialize: (value, base) => value.toSearchParams(base),
+  });
 
   /** 目前的圖片查詢條件 */
   get query(): ImageQuery {
-    return this.synced.value;
+    return this.params.value;
   }
 
-  /** 進階篩選作用中的條件數，用於開啟進階篩選按鈕的顯示徽章 */
-  advancedCount = $derived.by(() => {
-    const { where } = this.query;
-    return (
-      (where.includedTags.length > 0 ? 1 : 0) +
-      (where.excludedTags.length > 0 ? 1 : 0) +
-      (where.rating !== undefined ? 1 : 0)
-    );
-  });
-
-  /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤（包含批次「去標籤」面板） */
+  /** 目前篩選條件對應的標籤切片查詢範圍，供標籤輸入框查詢可用標籤 */
   facetScope = $derived(this.query.where.toSearchParams().toString());
 
   private commit(next: ImageQuery) {
-    this.synced.commit(next);
+    this.params.set(next);
   }
 
   /** 處理關鍵字搜尋 */
@@ -76,7 +69,7 @@ class QueryController {
   /** 是否有一次重新整理正在進行中 */
   refreshing = $state(false);
 
-  /** 重新整理，條件不變，用同一組查詢再問伺服器一次 */
+  /** 重新整理，條件不變再次查詢 */
   handleRefresh = async () => {
     if (this.refreshing) return;
 

@@ -11,7 +11,10 @@
   import { createFilterContext } from "./logic/filter.svelte";
   import { createReviewContext } from "./logic/review.svelte";
 
-  import Toolbar from "./header/Toolbar.svelte";
+  import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
+  import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
+  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
+  import Filters from "./header/Filters.svelte";
   import Cards from "./cards/Cards.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
 
@@ -20,7 +23,7 @@
   // 依相依順序建立各領域 controller
   createPageDataContext(() => data);
   createSamplesContext();
-  createOperationsContext();
+  const operations = createOperationsContext();
   const schedule = createScheduleContext();
   createFilterContext();
   const review = createReviewContext();
@@ -42,15 +45,23 @@
   <title>標籤清理工具</title>
 </svelte:head>
 
-<div class="page">
-  <Toolbar />
+<div class="container">
+  <Toolbar>
+    <Filters />
+    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} style="margin-left: auto;" />
+    <ReviewTrigger
+      count={schedule.touchedCount}
+      disabled={schedule.touchedCount === 0 || operations.pending}
+      onclick={review.handleOpen}
+    />
+  </Toolbar>
   <Cards />
 </div>
 
 <ReviewModal />
 
 <style>
-  div.page {
+  div.container {
     display: flex;
     flex-direction: column;
     height: 100%;

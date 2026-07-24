@@ -23,7 +23,7 @@
 <div class="thumbs">
   {#if cache === undefined || cache === "loading"}
     {#each { length: 3 }, i (i)}
-      <div class="thumb placeholder"></div>
+      <div class="thumb skeleton"></div>
     {/each}
   {:else if cache.length > 0}
     {#each cache as img (img.id)}
@@ -60,23 +60,7 @@
     aspect-ratio: 1/1;
     flex-shrink: 0;
     object-fit: cover;
-    background: var(--color-bg);
     border-radius: calc(var(--border-radius) / 1.5);
-  }
-
-  .thumbs > .thumb.placeholder {
-    background: hsl(from currentColor h s l / 0.15);
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.9;
-    }
   }
 
   .preview {

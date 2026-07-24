@@ -1,19 +1,16 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { HTMLInputAttributes, HTMLAttributes, HTMLTextareaAttributes } from "svelte/elements";
-  import type { OneOf } from "$lib/types";
+  import type { HTMLInputAttributes, HTMLAttributes } from "svelte/elements";
 
   type WithLabel = { label: string; id?: string; labelHidden?: boolean };
   type WithExternalLabel = { label?: never; id: string; labelHidden?: never };
-
-  type InputProps = HTMLInputAttributes & { input?: HTMLInputElement };
-  type TextAreaProps = HTMLTextareaAttributes & { input?: HTMLTextAreaElement; minRows?: number; maxRows?: number };
 
   type BaseProps = {
     value?: string;
 
     variant?: "outlined" | "filled";
     status?: "default" | "error" | "disabled";
+    size?: "sm" | "md";
     disableActiveFeedback?: boolean;
 
     adornmentLeft?: Snippet;
@@ -23,24 +20,21 @@
     adornmentBottom?: Snippet;
     adornmentBottomProps?: HTMLAttributes<HTMLDivElement>;
 
+    input?: HTMLInputElement;
     root?: HTMLDivElement;
     rootProps?: HTMLAttributes<HTMLDivElement>;
   };
 
-  type Props = (WithLabel | WithExternalLabel) &
-    OneOf<[{ multiline?: false } & InputProps, { multiline: true } & TextAreaProps]> &
-    BaseProps;
+  type Props = (WithLabel | WithExternalLabel) & Omit<HTMLInputAttributes, "size"> & BaseProps;
 
   let {
-    multiline,
-    minRows = 2,
-    maxRows = 6,
     id,
     input = $bindable(),
     value = $bindable(),
     label,
     labelHidden = false,
     variant = "outlined",
+    size = "sm",
     status = "default",
     disableActiveFeedback = false,
     adornmentLeft,
@@ -70,7 +64,7 @@
   });
 </script>
 
-<div bind:this={root} class="root {variant} {status} {shrink} {activeFeedback}" {...rootProps}>
+<div bind:this={root} class="root {size} {variant} {status} {shrink} {activeFeedback}" {...rootProps}>
   {#if label}
     <label class={{ "sr-only": labelHidden }} for={inputId}>{label}</label>
   {/if}
@@ -80,28 +74,15 @@
       <div class="adornment-left" {...adornmentLeftProps}>{@render adornmentLeft()}</div>
     {/if}
 
-    {#if !multiline}
-      <input
-        bind:this={input as HTMLInputElement}
-        bind:value
-        id={inputId}
-        type="text"
-        disabled={status === "disabled"}
-        aria-invalid={status === "error"}
-        {...rest as HTMLInputAttributes}
-      />
-    {:else}
-      <textarea
-        bind:this={input as HTMLTextAreaElement}
-        bind:value
-        id={inputId}
-        disabled={status === "disabled"}
-        aria-invalid={status === "error"}
-        style:--min-rows={minRows}
-        style:--max-rows={maxRows}
-        {...rest as HTMLTextareaAttributes}
-      ></textarea>
-    {/if}
+    <input
+      bind:this={input as HTMLInputElement}
+      bind:value
+      id={inputId}
+      type="text"
+      disabled={status === "disabled"}
+      aria-invalid={status === "error"}
+      {...rest as HTMLInputAttributes}
+    />
 
     {#if adornmentRight}
       <div class="adornment-right" {...adornmentRightProps}>{@render adornmentRight()}</div>
@@ -154,10 +135,6 @@
     align-items: center;
   }
 
-  .input-wrapper:has(textarea) {
-    align-items: flex-start;
-  }
-
   .adornment-left,
   .adornment-right {
     flex-shrink: 0;
@@ -165,21 +142,13 @@
 
   /* --- */
 
-  input,
-  textarea {
+  input {
     flex: 1;
-    padding: var(--padding-input);
+    padding: 0px var(--padding-input);
+    height: 2rem;
     font: var(--font-input);
     opacity: 0;
     transition: opacity 0.15s ease;
-  }
-
-  textarea {
-    line-height: 1.5;
-    min-height: calc(var(--min-rows) * 1lh + var(--padding-input) * 2);
-    max-height: calc(var(--max-rows) * 1lh + var(--padding-input) * 2);
-    field-sizing: content;
-    overflow-y: auto;
   }
 
   fieldset {
@@ -201,11 +170,20 @@
     cursor: text;
     transform-origin: left top;
     /* 0.875 => font-input, 0.75 => font-caption */
-    transform: translateY(calc(0.75rem - var(--offset-border-top))) scale(calc(0.875 / 0.75));
+    transform: translateY(calc(0.55rem - var(--offset-border-top))) scale(calc(0.875 / 0.75));
     will-change: transform;
     transition:
       transform 0.15s ease,
       color 0.15s ease;
+  }
+
+  .root.md {
+    & input {
+      height: 2.5rem;
+    }
+    & label {
+      transform: translateY(calc(0.8rem - var(--offset-border-top))) scale(calc(0.875 / 0.75));
+    }
   }
 
   fieldset > legend {
@@ -327,16 +305,14 @@
       transform: translateY(0px) scale(1);
     }
 
-    & input,
-    & textarea {
+    & input {
       opacity: 1;
     }
   }
 
   /* --- */
 
-  input,
-  textarea {
+  input {
     background-color: transparent;
     border: none;
     outline: none;
@@ -351,9 +327,7 @@
   }
 
   input::-ms-reveal,
-  input::-ms-clear,
-  textarea::-ms-clear,
-  textarea::-ms-reveal {
+  input::-ms-clear {
     display: none;
   }
 </style>

@@ -49,10 +49,8 @@ img {
 /* --- */
 
 *[id] {
-  scroll-margin-top: calc(var(--height-header) + 1rem);
+  scroll-margin-top: 2.5rem;
 }
-
-/* --- */
 
 :where(a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])) {
   outline: var(--border-style);
@@ -66,6 +64,18 @@ img {
     outline-color: var(--color-ring);
     outline-width: 3.5px;
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* --- */
@@ -92,18 +102,6 @@ img {
 
 /* --- */
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
 .ellipsis {
   overflow: hidden;
   min-width: 0;
@@ -111,7 +109,38 @@ img {
   white-space: nowrap;
 }
 
-/* --- */
+.skeleton {
+  --color-skeleton: color-mix(in srgb, var(--color-bg) 20%, var(--color-text));
+  --shimmer-spread: calc(3ch + 7rem);
+  --skeleton-base: hsl(from var(--color-skeleton) h s l / 15%);
+  --skeleton-highlight: hsl(from var(--color-skeleton) h s l / 50%);
+
+  pointer-events: none;
+  color: transparent !important;
+  border-radius: var(--border-radius);
+
+  background-repeat: no-repeat;
+  background-size: calc(200% + var(--shimmer-spread)) 100%;
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base) calc(50% - var(--shimmer-spread) / 2),
+    color-mix(in oklch, var(--skeleton-highlight), var(--skeleton-base) 50%) calc(50% - var(--shimmer-spread) / 4),
+    var(--skeleton-highlight) 50%,
+    color-mix(in oklch, var(--skeleton-highlight), var(--skeleton-base) 50%) calc(50% + var(--shimmer-spread) / 4),
+    var(--skeleton-base) calc(50% + var(--shimmer-spread) / 2)
+  );
+
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
 
 .slide-up {
   animation: slide-up 0.3s ease;

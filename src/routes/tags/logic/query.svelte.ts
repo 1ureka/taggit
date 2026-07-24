@@ -1,22 +1,25 @@
 /**
  * @file query.svelte.ts
- * 管理標籤篩選（搜尋/排序/隱藏）與分頁——統一成同一個 syncedQuery，只有一個 commit 點，
+ * 管理標籤篩選（搜尋/排序/隱藏）與分頁——統一成同一個 SvelteSearchParams，只有一個 set 點，
  * 篩選條件改變一律連帶把頁碼重置為 1；目前頁/總頁數以伺服器回傳（page-data）為準，不在前端重算。
  */
 
 import { getContext, setContext } from "svelte";
 import { navigating } from "$app/state";
 import { TagQuery } from "$lib/query-spec";
-import { syncedQuery } from "$lib/utils/search-params.svelte";
+import { SvelteSearchParams } from "$lib/utils/search-params.svelte";
 import { getPageDataContext } from "./page-data.svelte";
 
 class QueryController {
   private pageData = getPageDataContext();
-  private synced = syncedQuery((params) => TagQuery.fromSearchParams(params));
+  private params = new SvelteSearchParams<TagQuery>({
+    parse: (params) => TagQuery.fromSearchParams(params),
+    serialize: (value, base) => value.toSearchParams(base),
+  });
 
   /** 目前的標籤查詢條件 */
   get query(): TagQuery {
-    return this.synced.value;
+    return this.params.value;
   }
 
   /** 以下三者一律以伺服器回傳為準，不在前端重算 */
@@ -31,7 +34,7 @@ class QueryController {
   disabledLast = $derived(this.navigatingAway || this.currentPage >= this.totalPages);
 
   private commit(next: TagQuery) {
-    this.synced.commit(next);
+    this.params.set(next);
   }
 
   /** 處理搜尋；篩選條件變動一律把頁碼重置為 1 */
