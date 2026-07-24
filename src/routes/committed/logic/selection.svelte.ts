@@ -2,6 +2,7 @@
  * @file selection.svelte.ts
  * 管理批次選取模式的啟用狀態與選取狀態
  */
+
 import { getContext, setContext } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import { getPageDataContext } from "./page-data.svelte";

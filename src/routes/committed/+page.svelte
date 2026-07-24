@@ -13,6 +13,7 @@
   import { createReviewContext } from "./logic/review.svelte";
   import { createTagImpactContext } from "./logic/tag-impact.svelte";
   import { createSelectionContext } from "./logic/selection.svelte";
+  import { createSelectionDraftContext } from "./logic/selection-draft.svelte";
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
@@ -37,6 +38,7 @@
   createReviewContext();
   createTagImpactContext();
   createSelectionContext();
+  createSelectionDraftContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
