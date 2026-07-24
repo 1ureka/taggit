@@ -112,8 +112,7 @@ class CollectionController {
       const res = await api.post("/api/settings/setup", { collectionRoot: root });
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        this.error = res.error ?? "未知錯誤";
+        this.error = res.error;
         return;
       }
 

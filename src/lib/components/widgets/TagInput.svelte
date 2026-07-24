@@ -65,7 +65,7 @@
     if (seq !== requestSeq) return; // 已有更新的查詢在路上
 
     fetching = false;
-    if (res.ok && res.data) rawMatches = res.data.items;
+    if (res.ok) rawMatches = res.data.items;
   }
 
   /** 條件變化立即顯示「搜尋中…」，實際查詢 debounce 才發 */

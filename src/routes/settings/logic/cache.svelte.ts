@@ -28,15 +28,13 @@ class CacheController {
       const res = await api.del<{ cleared: number }>("/api/settings/cache");
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        addToast({ message: "清空快取失敗：" + (res.error ?? "未知錯誤"), variant: "error" });
+        addToast({ message: "清空快取失敗：" + res.error, variant: "error" });
         return;
       }
 
       this.entries = 0;
       this.bytes = 0;
 
-      // TODO: 修復 $lib/utils/request 而不是這裡
       addToast({ message: `已清空 ${res.data.cleared} 筆快取`, variant: "success" });
     } catch (err) {
       addToast({ message: "清空快取失敗：" + formatError(err), variant: "error" });

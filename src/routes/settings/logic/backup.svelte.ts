@@ -4,6 +4,7 @@
  */
 
 import { getContext, setContext } from "svelte";
+import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
 class BackupController {
@@ -30,12 +31,11 @@ class BackupController {
     this.pending = true;
 
     try {
-      // TODO: 改成統一的 $lib/utils/request
+      // 此請求回傳 ZIP 檔案的 Blob，非 JSON，故不透過 $lib/utils/request 統一工具
       const res = await fetch("/api/settings/backup", { method: "POST" });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        // TODO: 修復 $lib/utils/request 而不是這裡
         addToast({ message: `備份失敗：${data?.error ?? "未知錯誤"}`, variant: "error" });
         return;
       }
@@ -44,9 +44,8 @@ class BackupController {
       await this.download(blob);
 
       addToast({ message: "備份已下載", variant: "success" });
-    } catch {
-      // TODO: 使用 formatError 印出更詳細的訊息
-      addToast({ message: "備份失敗", variant: "error" });
+    } catch (err) {
+      addToast({ message: "備份失敗：" + formatError(err), variant: "error" });
     } finally {
       this.pending = false;
     }

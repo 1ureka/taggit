@@ -33,12 +33,10 @@ class MissingController {
       const res = await api.get<{ missing: string[] }>("/api/settings/missing");
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        addToast({ message: `檢查失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+        addToast({ message: `檢查失敗：${res.error}`, variant: "error" });
         return;
       }
 
-      // TODO: 修復 $lib/utils/request 而不是這裡
       this.records = res.data.missing;
     } catch (err) {
       addToast({ message: "檢查失敗：" + formatError(err), variant: "error" });
@@ -65,13 +63,11 @@ class MissingController {
       const res = await api.del<{ removed: string[] }>("/api/settings/missing");
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        addToast({ message: `刪除失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+        addToast({ message: `刪除失敗：${res.error}`, variant: "error" });
         return;
       }
 
       this.records = [];
-      // TODO: 修復 $lib/utils/request 而不是這裡
       addToast({ message: `已刪除 ${res.data.removed.length} 個缺失記錄`, variant: "success" });
 
       await this.navigate();

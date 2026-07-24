@@ -30,12 +30,10 @@ class MetadataController {
       const res = await api.get<{ missing: number }>("/api/settings/metadata");
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        addToast({ message: `檢查失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+        addToast({ message: `檢查失敗：${res.error}`, variant: "error" });
         return;
       }
 
-      // TODO: 修復 $lib/utils/request 而不是這裡
       this.missing = res.data.missing;
     } catch (err) {
       addToast({ message: "檢查失敗：" + formatError(err), variant: "error" });
@@ -53,12 +51,10 @@ class MetadataController {
       const res = await api.post<{ updated: number }>("/api/settings/metadata");
 
       if (!res.ok) {
-        // TODO: 修復 $lib/utils/request 而不是這裡
-        addToast({ message: `補算失敗：${res.error ?? "未知錯誤"}`, variant: "error" });
+        addToast({ message: `補算失敗：${res.error}`, variant: "error" });
         return;
       }
 
-      // TODO: 修復 $lib/utils/request 而不是這裡
       const { updated } = res.data;
       const message = updated > 0 ? `已為 ${updated} 張圖片補上元資料` : "沒有圖片需要補算";
       addToast({ message, variant: "success" });

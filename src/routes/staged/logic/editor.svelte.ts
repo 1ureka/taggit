@@ -93,7 +93,7 @@ class EditorController {
     try {
       const res = await api.del(`/api/staged/${encodeURIComponent(file)}`);
       if (!res.ok) {
-        addToast({ message: "刪除失敗" + (res.error ? `: ${res.error}` : ""), variant: "error" });
+        addToast({ message: `刪除失敗: ${res.error}`, variant: "error" });
         return;
       }
 

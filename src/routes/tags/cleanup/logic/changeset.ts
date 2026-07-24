@@ -33,7 +33,7 @@ type OpResult = { key: string; ok: boolean; error?: string };
 /** TODO: 即將淘汰或重寫 */
 export async function submitChangeset(state: ScheduleState, names: string[]): Promise<Map<string, string>> {
   const res = await api.post<{ results: OpResult[] }>("/api/proto/tags-batch", toPayload(state, new Set(names)));
-  if (!res.ok || !res.data) throw new Error(res.error || "送出失敗");
+  if (!res.ok) throw new Error(res.error);
 
   const failures = new Map<string, string>();
   for (const r of res.data.results) if (!r.ok) failures.set(r.key, r.error ?? "未知錯誤");

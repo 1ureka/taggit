@@ -36,7 +36,7 @@ async function fetchByTags(tags: string[], limit: number): Promise<ImageWithId[]
   const res = await api.get<{ items: ImageWithId[]; total: number }>(
     `/api/proto/committed-query?${query.toSearchParams()}`,
   );
-  return res.ok && res.data ? res.data.items : null;
+  return res.ok ? res.data.items : null;
 }
 
 class SamplesController {
