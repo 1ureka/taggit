@@ -77,7 +77,7 @@
     fetching = true;
 
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => runQuery(value), 250);
+    debounceTimer = setTimeout(() => runQuery(value), 300);
   });
 
   // ---

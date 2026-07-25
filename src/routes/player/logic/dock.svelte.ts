@@ -4,27 +4,28 @@
  */
 
 import { getContext, setContext } from "svelte";
-import { debounce } from "$lib/utils/shared";
 
 class DockController {
   /** 是否隱藏 dock */
   hideDock = $state(false);
   /** 自動隱藏的閾值時間（毫秒） */
   private readonly timeout = 2000;
+  /** 自動隱藏計時器 */
+  private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
     $effect(() => {
-      const hide = debounce(() => (this.hideDock = true), this.timeout);
-
       const handleActivity = () => {
         this.hideDock = false;
-        hide();
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => (this.hideDock = true), this.timeout);
       };
 
       document.addEventListener("mousemove", handleActivity);
       handleActivity();
 
       return () => {
+        clearTimeout(this.timer);
         document.removeEventListener("mousemove", handleActivity);
       };
     });

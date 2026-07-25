@@ -31,23 +31,6 @@ export function formatError(err: unknown): string {
 // ---
 
 /**
- * 回傳 `fn` 的防抖版本。
- * 在 `ms` 毫秒的靜默期後才會真正執行。
- */
-export function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return ((...args: unknown[]) => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      timer = null;
-      fn(...args);
-    }, ms);
-  }) as T;
-}
-
-// ---
-
-/**
  * 用於自然排序的比較器，支援數字排序與區分大小寫
  */
 export const sortCollator = new Intl.Collator(undefined, {
