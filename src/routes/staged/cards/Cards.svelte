@@ -2,8 +2,8 @@
   import { innerWidth } from "svelte/reactivity/window";
   import { Virtualizer } from "$lib/utils/virtualize.svelte";
 
-  import WorkflowCardWrapper from "$lib/components/widgets/WorkflowCardWrapper.svelte";
-  import WorkflowCardInfo from "$lib/components/widgets/WorkflowCardInfo.svelte";
+  import ImageRecordCardWrapper from "$lib/components/workflow/ImageRecordCardWrapper.svelte";
+  import ImageRecordCardInfo from "$lib/components/workflow/ImageRecordCardInfo.svelte";
   import StampBadge from "./StampBadge.svelte";
 
   import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
@@ -68,12 +68,12 @@
       {#each masonry.visibleItems as record (record.id)}
         {@const draft = editor.draftOf(record.id)}
         <li style={record.style}>
-          <WorkflowCardWrapper
+          <ImageRecordCardWrapper
             filename={record.id}
             selected={editor.activeFile === record.id}
             onclick={() => editor.handleSelect(record.id)}
           >
-            <WorkflowCardInfo
+            <ImageRecordCardInfo
               filename={record.id}
               info={!isTouched(draft)
                 ? undefined
@@ -84,7 +84,7 @@
                     tagCount: draft.tags.length,
                   }}
             />
-          </WorkflowCardWrapper>
+          </ImageRecordCardWrapper>
         </li>
       {/each}
     </ul>

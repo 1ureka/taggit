@@ -20,9 +20,9 @@
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import QueryControls from "./header/QueryControls.svelte";
   import ReviewModal from "./header/ReviewModal.svelte";
-  import Inspector from "./form/Inspector.svelte";
-  import Cards from "./cards/Cards.svelte";
-  import Rail from "./cards/Rail.svelte";
+  import Inspector from "./body/Inspector.svelte";
+  import Cards from "./body/Cards.svelte";
+  import Rail from "./body/Rail.svelte";
 
   let { data }: { data: PageData } = $props();
 
