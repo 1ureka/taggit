@@ -73,6 +73,7 @@ class TagImpactController {
       this.fetching = true;
       const seq = ++this.seq;
       this.timer = setTimeout(async () => {
+        // TODO: Node 的 `--max-http-header-size` 預設 16 KB 且請求行計入，中文標籤約 37 bytes/個，約 440 個相異標籤就爆
         const res = await api.get<{ counts: { name: string; count: number }[] }>(
           `/api/proto/tags-impact?names=${encodeURIComponent(current.join(","))}`,
         );
