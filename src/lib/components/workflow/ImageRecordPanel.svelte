@@ -27,5 +27,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    background-color: var(--color-bg);
   }
 </style>

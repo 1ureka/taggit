@@ -70,7 +70,6 @@
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
-    scrollbar-gutter: stable;
   }
 
   p {

@@ -28,6 +28,7 @@
     padding-left: calc(16px + 0.5rem);
     overflow-x: auto;
     overflow-y: hidden;
+    background-color: var(--color-bg);
   }
 
   div.container:has(.empty) {

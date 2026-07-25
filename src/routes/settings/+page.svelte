@@ -68,9 +68,9 @@
   main {
     flex: 1;
     overflow-y: auto;
-    scrollbar-gutter: stable;
     scroll-behavior: smooth;
     min-height: 0;
+    background-color: var(--color-bg);
 
     & > div.slide-up {
       max-width: 720px;

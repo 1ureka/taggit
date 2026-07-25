@@ -73,7 +73,9 @@
     gap: 0.375rem;
     max-height: 50vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0.5rem 1rem;
+    background-color: var(--color-bg-popover);
   }
 
   li {
