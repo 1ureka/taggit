@@ -23,8 +23,7 @@
     <Checkbox
       checked={revertOn}
       label="退回標記"
-      onchange={(e: Event & { currentTarget: HTMLInputElement }) =>
-        selectionDraft.handleCheck("revert", e.currentTarget.checked)}
+      onchange={(checked) => selectionDraft.handleCheck("revert", checked)}
     />
     <div role="radiogroup" aria-label="退回方向">
       <Radio
@@ -50,8 +49,7 @@
       checked={ratingOn}
       label="覆蓋評等"
       status={selectionDraft.locked ? "disabled" : "default"}
-      onchange={(e: Event & { currentTarget: HTMLInputElement }) =>
-        selectionDraft.handleCheck("rating", e.currentTarget.checked)}
+      onchange={(checked) => selectionDraft.handleCheck("rating", checked)}
     />
     <div>
       <Rating
@@ -67,8 +65,7 @@
       checked={addTagsOn}
       label="增加標籤"
       status={selectionDraft.locked ? "disabled" : "default"}
-      onchange={(e: Event & { currentTarget: HTMLInputElement }) =>
-        selectionDraft.handleCheck("addTags", e.currentTarget.checked)}
+      onchange={(checked) => selectionDraft.handleCheck("addTags", checked)}
     />
     <div class:disabled={selectionDraft.locked || !addTagsOn}>
       <TagInput
@@ -86,8 +83,7 @@
       checked={removeTagsOn}
       label="去除標籤"
       status={selectionDraft.locked ? "disabled" : "default"}
-      onchange={(e: Event & { currentTarget: HTMLInputElement }) =>
-        selectionDraft.handleCheck("removeTags", e.currentTarget.checked)}
+      onchange={(checked) => selectionDraft.handleCheck("removeTags", checked)}
     />
     <div class:disabled={selectionDraft.locked || !removeTagsOn}>
       <TagInput
