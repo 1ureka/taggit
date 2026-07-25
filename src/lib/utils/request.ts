@@ -27,6 +27,8 @@ function formatApiError(error: unknown): string {
     switch (error.kind) {
       case "not_found":
         return "找不到目標紀錄";
+      case "already_exists":
+        return "該圖片已提交過，請重新整理後再試";
       case "stale_update":
         return "紀錄已被其他操作更新，請重新整理後再試";
       case "last_tag":

@@ -1,8 +1,8 @@
 /**
  * @file mutation.suite.mjs
- * Mutation：commit / update（樂觀併發）/ updateFileMeta / remove / renameTag / deleteTag /
- * setTagMeta 的成功與各類預期失敗（validation / not_found / stale_update / last_tag），
- * 以及動詞後投影索引仍與真相一致。
+ * Mutation：commit / restore / update（樂觀併發）/ updateFileMeta / remove / renameTag /
+ * deleteTag / setTagMeta 的成功與各類預期失敗（validation / not_found / already_exists /
+ * stale_update / last_tag），以及動詞後投影索引仍與真相一致。
  */
 
 const FILE = { fileSize: 1, width: 2, height: 3, blurhash: "bh" };
@@ -55,17 +55,48 @@ export async function run(t, h) {
     t.eq("validation 錯誤標明欄位", r.ok === false ? r.error.fields : null, ["tags"]);
   }
 
-  // ── commit：覆寫既有 id ──
+  // ── commit：既有 id 不覆寫，回 already_exists ──
   {
     const db = h.freshDb();
     const m = new Mutation(db);
     m.commitRecord("a.png", { name: "First", tags: ["old"] }, FILE);
     const r = m.commitRecord("a.png", { name: "Second", tags: ["new"] }, FILE);
-    t.ok("覆寫成功", r.ok);
+    t.ok("重複 commit → already_exists", r.ok === false && r.error.kind === "already_exists");
+    t.eq("already_exists 後總數仍為 1", db.imageCount(), 1);
+    t.eq("already_exists 未改動既有紀錄", db.getImage("a.png").name, "First");
+    t.eq("already_exists 未動投影", idsFor(db, { includedTags: ["old"] }), ["a.png"]);
+    t.eq("already_exists 未寫入新標籤", idsFor(db, { includedTags: ["new"] }), []);
+    // 前提守衛優先於欄位驗證：id 已存在時連垃圾 entry 也回 already_exists
+    const bad = m.commitRecord("a.png", { name: "", tags: [] }, FILE);
+    t.ok("既有 id + 垃圾 entry 仍回 already_exists", bad.ok === false && bad.error.kind === "already_exists");
+  }
+
+  // ── restore：允許覆寫既有 id ──
+  {
+    const db = h.freshDb();
+    const m = new Mutation(db);
+    m.commitRecord("a.png", { name: "First", tags: ["old"] }, FILE);
+    const r = m.restoreRecord("a.png", { name: "Second", tags: ["new"] }, FILE);
+    t.ok("restore 覆寫成功", r.ok);
     t.eq("覆寫後總數仍為 1", db.imageCount(), 1);
     t.eq("覆寫後名稱更新", db.getImage("a.png").name, "Second");
     t.eq("覆寫後舊標籤投影清空", idsFor(db, { includedTags: ["old"] }), []);
     t.eq("覆寫後新標籤投影命中", idsFor(db, { includedTags: ["new"] }), ["a.png"]);
+  }
+
+  // ── restore：不存在的 id 等同新增 ──
+  {
+    const db = h.freshDb();
+    const m = new Mutation(db);
+    const r = m.restoreRecord("a.png", { name: "A", tags: ["  b", "a", "c "] }, FILE);
+    t.ok("restore 新增成功", r.ok);
+    t.eq("restore 標籤同樣正規化", r.data.tags, ["a", "b", "c"]);
+    t.eq("restore 未給 rating 預設 0", r.data.rating, 0);
+    t.eq("restore 後可被查詢", idsFor(db, { includedTags: ["a"] }), ["a.png"]);
+    // 時間戳一律重新產生，不沿用 entry 內的 committedAt / updatedAt
+    const withStamps = m.restoreRecord("b.png", { name: "B", tags: ["b"], committedAt: 1, updatedAt: 2 }, FILE);
+    t.ok("restore 不沿用 entry 的 committedAt", withStamps.data.committedAt > 1);
+    t.eq("restore 後 committedAt === updatedAt", withStamps.data.committedAt, withStamps.data.updatedAt);
   }
 
   // ── update：成功 + 部分 patch + 樂觀併發 + not_found ──

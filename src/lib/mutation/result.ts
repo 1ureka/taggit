@@ -4,11 +4,12 @@
  */
 
 export type NotFound = { kind: "not_found" };
+export type AlreadyExists = { kind: "already_exists" };
 export type StaleUpdate = { kind: "stale_update"; expectedUpdatedAt: number; actualUpdatedAt: number };
 export type LastTag = { kind: "last_tag"; images: string[] };
 export type Validation = { kind: "validation"; fields: string[]; message: string };
 
-export type MutationError = NotFound | StaleUpdate | LastTag | Validation;
+export type MutationError = NotFound | AlreadyExists | StaleUpdate | LastTag | Validation;
 export type Result<T, E = MutationError> = { ok: true; data: T } | { ok: false; error: E };
 
 // ---
@@ -20,6 +21,10 @@ export const ok = <T>(data: T): Result<T, never> => ({
 export const notFound = (): Result<never, NotFound> => ({
   ok: false,
   error: { kind: "not_found" },
+});
+export const alreadyExists = (): Result<never, AlreadyExists> => ({
+  ok: false,
+  error: { kind: "already_exists" },
 });
 export const staleUpdate = (expectedUpdatedAt: number, actualUpdatedAt: number): Result<never, StaleUpdate> => ({
   ok: false,

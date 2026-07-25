@@ -14,6 +14,8 @@ function errorMessage(e: MutationError): string {
   switch (e.kind) {
     case "not_found":
       return "找不到紀錄，可能已被退回";
+    case "already_exists":
+      return "紀錄已存在";
     case "stale_update":
       return "紀錄已被其他操作更新，請重新整理後再試";
     case "last_tag":

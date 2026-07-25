@@ -35,6 +35,9 @@ function precheckEntry(filename: string, value: unknown): ImportResult {
 /**
  * 匯入單筆紀錄：通過前置檢查後，讀取檔案元資料並寫入資料庫。
  * 不擲出例外，一切失敗（含非預期例外）都收斂成 {@link ImportResult}。
+ *
+ * 走 `restoreRecord` 而非 `commitRecord`：匯入的語意是「以檔案為準重建收藏庫」，
+ * 覆寫既有紀錄是預期行為。
  */
 async function importEntry(filename: string, value: unknown, mutation: Mutation): Promise<ImportResult> {
   const precheck = precheckEntry(filename, value);
@@ -44,10 +47,10 @@ async function importEntry(filename: string, value: unknown, mutation: Mutation)
     const probed = await ImageLibrary.probe(filename);
     if (!probed.ok) return { ok: false, error: `檔案不存在: ${filename}` };
 
-    const committed = mutation.commitRecord(filename, value, probed.data);
+    const restored = mutation.restoreRecord(filename, value, probed.data);
 
-    if (!committed.ok) {
-      const { message, fields } = committed.error;
+    if (!restored.ok) {
+      const { message, fields } = restored.error;
       return { ok: false, error: `${filename}: ${message} (${fields.join(", ")})` };
     }
 
