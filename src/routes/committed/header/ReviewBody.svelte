@@ -9,12 +9,14 @@
   import { getPointersContext } from "../logic/pointers.svelte";
   import { getDraftsContext } from "../logic/drafts.svelte";
   import { getRevertMarkContext } from "../logic/reverts.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
   const review = getReviewContext();
   const submit = getSubmitContext();
   const pointers = getPointersContext();
   const drafts = getDraftsContext();
   const reverts = getRevertMarkContext();
+  const selection = getSelectionContext();
 
   /** 把一個檔名目前的編輯內容與審查資訊投影成一列審查紀錄 */
   function buildEntry(filename: string, checked: boolean, failure?: string) {
@@ -41,6 +43,12 @@
   }
 
   const entries = $derived(review.batchFiles.map((f) => buildEntry(f, review.isChecked(f), submit.lastFailures[f])));
+
+  const handleBackToEdit = (filename: string) => {
+    review.handleClose();
+    selection.handleExit();
+    pointers.handleSelect(filename);
+  };
 </script>
 
 <ReviewList pending={submit.pending} listCount={review.batchFiles.length}>
@@ -59,7 +67,7 @@
     <ReviewItemImage
       {...entry}
       onclickimage={() => pointers.handleLightboxOpen(entry.filename)}
-      onclickname={() => review.handleEdit(entry.filename)}
+      onclickname={() => handleBackToEdit(entry.filename)}
       ontoggle={() => review.handleToggle(entry.filename)}
     />
   {/each}

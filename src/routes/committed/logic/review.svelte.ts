@@ -9,13 +9,11 @@ import { SveltePagination } from "$lib/utils/pagination.svelte";
 import { getDraftsContext } from "./drafts.svelte";
 import { getRevertMarkContext } from "./reverts.svelte";
 import { getSubmitContext } from "./submit.svelte";
-import { getPointersContext } from "./pointers.svelte";
 
 class ReviewController {
   private drafts = getDraftsContext();
   private reverts = getRevertMarkContext();
   private submit = getSubmitContext();
-  private pointers = getPointersContext();
 
   /** 全部有暫存操作的檔案，維持插入順序 */
   private files = $derived([...new Set([...this.drafts.touchedFiles, ...this.reverts.markedFiles])]);
@@ -90,7 +88,7 @@ class ReviewController {
     this.moveTo(1);
   };
 
-  /** 前往最後一批 */
+  /** 前往上一批 */
   handlePrevBatch = () => {
     this.moveTo(this.batch - 1);
   };
@@ -100,7 +98,7 @@ class ReviewController {
     this.moveTo(this.batch + 1);
   };
 
-  /** 前往上一批 */
+  /** 前往最後一批 */
   handleLastBatch = () => {
     this.moveTo(this.batches);
   };
@@ -119,12 +117,6 @@ class ReviewController {
       if (allSelected) delete this.checked[f];
       else this.checked[f] = true;
     }
-  };
-
-  /** 從審查清單回到某張圖片繼續編輯 */
-  handleEdit = (filename: string) => {
-    this.open = false;
-    this.pointers.handleSelect(filename);
   };
 
   /** 提交本批可送出的項目；成功的會被 submit 自己清掉，這裡只負責同步 checked 狀態 */
