@@ -3,14 +3,17 @@
   import InspectorFields from "./InspectorFields.svelte";
   import InspectorFooter from "./InspectorFooter.svelte";
   import InspectorImage from "./InspectorImage.svelte";
+
   import { getPointersContext } from "../logic/pointers.svelte";
+  import { getSelectionContext } from "../logic/selection.svelte";
 
   const pointers = getPointersContext();
+  const selection = getSelectionContext();
 
   const file = $derived(pointers.editing?.id ?? null);
 </script>
 
-{#if file !== null}
+{#if selection.active || file !== null}
   <aside>
     <InspectorHeader />
     <InspectorImage />

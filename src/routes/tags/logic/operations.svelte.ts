@@ -19,7 +19,7 @@ class OperationsController {
     if (this.pending) return;
 
     this.pending = true;
-    await new Promise((resolve) => setTimeout(resolve, 200)); // debounce
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });

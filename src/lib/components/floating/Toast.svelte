@@ -57,7 +57,7 @@
 <style>
   .container {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.625rem;
     padding: 0.75rem 0.75rem 0.75rem 0.875rem;
     background-color: var(--color-bg-card);

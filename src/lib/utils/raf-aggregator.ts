@@ -1,9 +1,3 @@
-/**
- * @file 基於 requestAnimationFrame 的事件聚合器
- * @description 將高頻率事件（滾動、縮放）聚合並限制回呼執行頻率，
- *              超過空閒時間後自動停止 tick 循環以節省資源。
- */
-
 const EMPTY = Symbol("empty");
 
 /**

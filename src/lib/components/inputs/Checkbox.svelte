@@ -1,13 +1,14 @@
 <script lang="ts">
   import type { HTMLInputAttributes } from "svelte/elements";
 
-  type Props = Omit<HTMLInputAttributes, "size"> & {
+  type Props = Omit<HTMLInputAttributes, "size" | "onchange"> & {
     checked?: boolean;
     indeterminate?: boolean;
     label?: string;
     status?: "default" | "error" | "disabled";
     size?: "sm" | "md";
     input?: HTMLInputElement;
+    onchange?: (checked: boolean) => void;
   };
 
   let {
@@ -17,12 +18,17 @@
     status = "default",
     size = "md",
     input = $bindable(),
+    onchange,
     ...rest
   }: Props = $props();
 
   $effect(() => {
     if (input) input.indeterminate = indeterminate ?? false;
   });
+
+  function handleChange(e: Event & { currentTarget: HTMLInputElement }) {
+    onchange?.(e.currentTarget.checked);
+  }
 </script>
 
 <label class="checkbox {size} {status}">
@@ -33,6 +39,7 @@
       bind:this={input}
       disabled={status === "disabled"}
       aria-invalid={status === "error"}
+      onchange={handleChange}
       {...rest}
     />
     <span class="box" aria-hidden="true">
@@ -52,8 +59,8 @@
     gap: 0.5rem;
     cursor: pointer;
     user-select: none;
-    font: var(--font-body1);
-    color: var(--color-text);
+    font: var(--font-input);
+    color: hsl(from var(--color-text) h s l / 0.8);
 
     &.disabled {
       opacity: 0.5;

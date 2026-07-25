@@ -6,7 +6,6 @@
 import { getContext, setContext } from "svelte";
 import type { ImageWithId } from "$lib/database";
 import { blurhashStyle } from "$lib/image/client";
-import { debounce } from "$lib/utils/shared";
 
 import type { PlayerProgress, PlayerStripItem } from "./player.core";
 import { PlayerEngine } from "./player.core";
@@ -71,10 +70,15 @@ class PlaybackController {
       this.#engine = engine;
       engine.start();
 
-      const handleResize = debounce(() => engine.resize(), 150);
+      let resizeTimer: ReturnType<typeof setTimeout>;
+      const handleResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => engine.resize(), 150);
+      };
       window.addEventListener("resize", handleResize);
 
       return () => {
+        clearTimeout(resizeTimer);
         engine.dispose();
         this.#engine = null;
         window.removeEventListener("resize", handleResize);

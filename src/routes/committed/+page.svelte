@@ -13,14 +13,16 @@
   import { createReviewContext } from "./logic/review.svelte";
   import { createTagImpactContext } from "./logic/tag-impact.svelte";
   import { createSelectionContext } from "./logic/selection.svelte";
+  import { createSelectionDraftContext } from "./logic/selection-draft.svelte";
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import QueryControls from "./header/QueryControls.svelte";
   import ReviewModal from "./header/ReviewModal.svelte";
-  import Inspector from "./inspector/Inspector.svelte";
+  import Inspector from "./form/Inspector.svelte";
   import Cards from "./cards/Cards.svelte";
+  import Rail from "./cards/Rail.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -36,6 +38,7 @@
   createReviewContext();
   createTagImpactContext();
   createSelectionContext();
+  createSelectionDraftContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
@@ -54,6 +57,7 @@
   </Toolbar>
 
   <div>
+    <Rail />
     <Cards />
     <Inspector />
   </div>

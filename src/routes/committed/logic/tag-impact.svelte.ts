@@ -79,7 +79,7 @@ class TagImpactController {
         if (seq !== this.seq) return; // 已有更新的查詢在路上，這次回應作廢
         if (res.ok) this.counts = new Map(res.data.counts.map((c) => [c.name, c.count]));
         this.fetching = false;
-      }, 200);
+      }, 300);
     });
   }
 }

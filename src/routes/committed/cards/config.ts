@@ -6,7 +6,7 @@ export const breakpoints = [
   { width: 1600, cols: 6, p: 16, g: 8 },
   { width: 1200, cols: 5, p: 16, g: 8 },
   { width: 900, cols: 4, p: 16, g: 8 },
-  { width: 500, cols: 3, p: 12, g: 6 },
+  { width: 550, cols: 3, p: 12, g: 6 },
   { width: 300, cols: 2, p: 8, g: 6 },
   { width: 0, cols: 1, p: 8, g: 6 },
 ];
