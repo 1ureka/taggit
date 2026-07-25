@@ -4,12 +4,10 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
+import { paginate, type Paginated } from "$lib/utils/pagination.core";
 import { BitSet, type Database, type ImageWithId } from "$lib/database";
 import type { ImageQuery, ImageSort } from "$lib/query-spec";
-
 import type { ScopeResolver } from "./scope";
-import type { QueryResult } from "./result";
-import { paginate } from "./pagination";
 
 export class ImageEngine {
   constructor(
@@ -18,7 +16,7 @@ export class ImageEngine {
   ) {}
 
   /** 執行篩選 + 遮蔽 + 排序 + 分頁。 */
-  run(q: ImageQuery): QueryResult<ImageWithId> {
+  run(q: ImageQuery): Paginated<ImageWithId> {
     const { visible } = this.scope.resolve(q.where);
 
     const sorted = this.sort(this.materialize(visible), q.list.sort, q.list.order);

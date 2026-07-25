@@ -67,7 +67,7 @@ bulkSelectionState        ↓
 
 `guard.pendingCount`（[guard.svelte.ts:23](src/routes/committed/logic/guard.svelte.ts#L23)）直接讀 drafts/reverts，它問的是「離頁會遺失多少」——本來就該是全域，剛好不受影響。
 
-**唯一被波及的是 [ReviewModal.svelte:17](src/routes/committed/header/ReviewModal.svelte#L17)**：工具列徽章借用了事實來源的長度當全域數字，截斷後會變成「本批筆數」，語意錯誤。改讀新的 `pendingCount` 投影即可（見 §五）。
+**唯一被波及的是 [ReviewModal.svelte:17](src/routes/committed/header/ReviewModal.svelte#L17)**：工具列徽章借用了事實來源的長度當全域數字，截斷後會變成「本批筆數」，語意錯誤。改讀新的 `totalCount` 投影即可（見 §五）。
 
 ---
 
@@ -176,8 +176,8 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 新增   private pagination = new SveltePagination(() => 合併後的全體, BATCH_SIZE)
 
 改名   touchedFiles  →  batchFiles = pagination.items      ← 新的事實來源
-新增   pendingCount  =  pagination.total                    ← 全域待提交數
-新增   batchIndex / batchCount = pagination.page / pages
+新增   totalCount    =  pagination.total                    ← 全域待提交數
+新增   batch / batches = pagination.page / pages
 新增   handleFirstBatch / handlePrevBatch / handleNextBatch / handleLastBatch
 新增   private startBatch()                                 ← §三
 
@@ -188,15 +188,21 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 
 `touchedFiles` → `batchFiles` 的改名是刻意的：名字要說出它已經被截斷，讓每個呼叫點自我說明。改動純機械。
 
+`batch` / `batches` / `totalCount` 與 `SveltePagination` 的 `page` / `pages` / `total` 一一對應，只是換成 review 的領域字彙。
+
+> ⚠️ `totalCount` 會與 `ReviewList` 既有的同名 prop 撞名，但兩者意義相反：`ReviewList.totalCount` 是**本批**項目數（[ReviewList.svelte:12](src/lib/components/review/ReviewList.svelte#L12)），`review.totalCount` 是**全域**待提交數。實作後 `ReviewBody` 裡會同時出現
+> `<ReviewList totalCount={review.batchFiles.length} />` 與 `<ReviewPagination totalCount={review.totalCount} />`，容易看錯。
+> 要嘛把 `ReviewList` 的 prop 改名成 `batchCount`（推薦，它本來就已經是本批的數字了），要嘛在兩處都留註解。
+
 ### 5.5 波及檔案
 
 | 檔案 | 改動 |
 |---|---|
 | `$lib/utils/pagination.svelte.ts` | 新增 |
-| `$lib/components/review/ReviewPagination.svelte` | 新增。純展示，收 `batchIndex` / `batchCount` / `total` / `pending` 與四個 handler，邊界判斷在元件內。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，文案類似「第 X / Y 批 · 共 N 個」 |
+| `$lib/components/review/ReviewPagination.svelte` | 新增。純展示，收 `batch` / `batches` / `totalCount` / `pending` 與四個 handler，邊界判斷在元件內。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，文案類似「第 X / Y 批 · 共 N 個」 |
 | `logic/review.svelte.ts` | 主要改動，見 §5.4 |
 | `header/ReviewBody.svelte` | 掛上 `ReviewPagination`；`touchedFiles` → `batchFiles`（`entries` 的建構邏輯一行都不用改） |
-| `header/ReviewModal.svelte` | 徽章改讀 `pendingCount` |
+| `header/ReviewModal.svelte` | 徽章改讀 `totalCount` |
 | `$lib/components/review/ReviewList.svelte` | 「全選」文案改成能看出是本批 |
 | `logic/tag-impact.svelte.ts` | 只加一則 TODO 註解，見 §七 |
 
