@@ -44,8 +44,8 @@
 <ReviewList
   pending={submit.pending}
   checkedAll={review.bulkSelectionState}
+  listCount={review.touchedFiles.length}
   checkableCount={review.checkableCount}
-  totalCount={review.touchedFiles.length}
   checkedCount={review.submittableCount}
   ontoggleall={review.handleToggleAll}
 >

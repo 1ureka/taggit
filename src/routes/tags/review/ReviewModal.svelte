@@ -25,8 +25,8 @@
   <ReviewList
     pending={operations.pending}
     checkedAll={review.bulkSelectionState}
+    listCount={review.entries.length}
     checkableCount={review.checkableCount}
-    totalCount={review.entries.length}
     checkedCount={review.checkedCount}
     ontoggleall={review.handleToggleAll}
   >

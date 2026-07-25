@@ -148,7 +148,10 @@ private startBatch()
 
 ### 5.2 通用切塊工具
 
-放 `$lib/utils/pagination.svelte.ts`，與 `search-params.svelte.ts` 同族。零依賴、對 review 一無所知。
+分成純核心與響應式包裝兩層，沿用專案既有的 `virtualize.core.ts` / `virtualize.svelte.ts` 配對慣例：
+
+- **`$lib/utils/pagination.core.ts`** —— `Paginated<T>` 型別與 `paginate()` 純函式。由 `$lib/query/{pagination,result}.ts` 提取而來（原本的 `QueryResult` 更名為 `Paginated`），因為那兩個檔案其實與查詢引擎無關，卻害得任何想用分頁的人都要跨進 `$lib/query` 的內部。提取後 `$lib/query` 與 `pagination.svelte.ts` 兩邊都只是它的下游。
+- **`$lib/utils/pagination.svelte.ts`** —— `SveltePagination<T>`，與 `search-params.svelte.ts` 同族。對 review 一無所知。
 
 ```ts
 class SveltePagination<T> {
@@ -157,12 +160,14 @@ class SveltePagination<T> {
   get page(): number;  // 已 clamp
   get pages(): number;
   get total(): number;
+  set(page: number): void;   // 唯一的 mutator，允許越界
 }
 ```
 
 三個設計要點：
 
-- **收整個陣列而非收 total。** `$lib/query/pagination.ts` 的純函式 `paginate(items, page, limit)` 回傳 `{ items, total, page, pages }`，**形狀完全一致**，這個 class 直接 `return paginate(...)` 就好，是真的複用演算法本體而非換名包殼；`paginate()` 內建的 `clampedPage` 也順帶解掉送出後的越界問題。若收 total，total 與被切的陣列是兩個獨立輸入，可以對不上；收陣列則結構上不可能對不上。
+- **收整個陣列而非收 total。** `paginate(items, page, limit)` 回傳 `{ items, total, page, pages }`，**形狀完全一致**，這個 class 直接 `return paginate(...)` 就好，是真的複用演算法本體而非換名包殼；`paginate()` 內建的 `clampedPage` 也順帶解掉送出後的越界問題。若收 total，total 與被切的陣列是兩個獨立輸入，可以對不上；收陣列則結構上不可能對不上。
+- **邊界一律交給 `paginate()`。** `set()` 允許傳越界的頁碼，讀 `page` 一定合法，所以 `ReviewController` 的四個 `handle*Batch` 直接 `set(batch ± 1)` / `set(batches)` 即可，不需要自己判斷邊界。附帶：`size <= 0` 等於不分頁（`pages` 恆為 1），`ReviewPagination` 會自我隱藏，這正好接上 §5.6 的懶惰契約。
 - **不另開 context。** 換批必須連動重置勾選（§三），拆成兩個 context 就得把這條線畫在元件層或 `$effect` 裡，違反 `docs/svelte_kit_routes.md` 的「狀態 in、事件 out」。而且專案的 controller 是**領域**單位，批次不是一個領域，它是 review 這個領域的容量維度。由 `ReviewController` **持有**，元件只認 `getReviewContext()`。
 - **字彙留在通用層。** 這個 class 用 `page` / `pages`（tags 頁面用它時就真的是「頁」），`batch` 是 review 的領域字彙，由 `ReviewController` 投影時翻譯過去。
 
@@ -190,23 +195,41 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 
 `batch` / `batches` / `totalCount` 與 `SveltePagination` 的 `page` / `pages` / `total` 一一對應，只是換成 review 的領域字彙。
 
-> ⚠️ `totalCount` 會與 `ReviewList` 既有的同名 prop 撞名，但兩者意義相反：`ReviewList.totalCount` 是**本批**項目數（[ReviewList.svelte:12](src/lib/components/review/ReviewList.svelte#L12)），`review.totalCount` 是**全域**待提交數。實作後 `ReviewBody` 裡會同時出現
-> `<ReviewList totalCount={review.batchFiles.length} />` 與 `<ReviewPagination totalCount={review.totalCount} />`，容易看錯。
-> 要嘛把 `ReviewList` 的 prop 改名成 `batchCount`（推薦，它本來就已經是本批的數字了），要嘛在兩處都留註解。
+`ReviewList` 既有的 `totalCount` prop 一併改名為 `listCount`（見 §5.6），避免與這裡的 `totalCount` 撞名——兩者意義相反，一個是本批項目數、一個是全域待提交數。
 
 ### 5.5 波及檔案
 
 | 檔案 | 改動 |
 |---|---|
+| `$lib/utils/pagination.core.ts` | 新增（由 `$lib/query/{pagination,result}.ts` 提取，兩者刪除；`QueryResult` → `Paginated`） |
+| `$lib/query/{index,images,tags}.ts` | 跟著改 import 與型別名；`index.ts` 原本對外的 `export type { QueryResult }` 沒有任何使用者，直接刪除 |
 | `$lib/utils/pagination.svelte.ts` | 新增 |
-| `$lib/components/review/ReviewPagination.svelte` | 新增。純展示，收 `batch` / `batches` / `totalCount` / `pending` 與四個 handler，邊界判斷在元件內。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，文案類似「第 X / Y 批 · 共 N 個」 |
+| `$lib/components/review/ReviewPagination.svelte` | 新增。純展示，收 `batch` / `batches` / `pending` 與四個 handler，邊界判斷在元件內，`batches <= 1` 時自我隱藏。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，中央文字為「第 X / Y 頁」 |
+| `$lib/components/review/ReviewList.svelte` | `totalCount` → `listCount`，新增可選的 `batch` / `batches`，見 §5.6 |
 | `logic/review.svelte.ts` | 主要改動，見 §5.4 |
 | `header/ReviewBody.svelte` | 掛上 `ReviewPagination`；`touchedFiles` → `batchFiles`（`entries` 的建構邏輯一行都不用改） |
 | `header/ReviewModal.svelte` | 徽章改讀 `totalCount` |
-| `$lib/components/review/ReviewList.svelte` | 「全選」文案改成能看出是本批 |
 | `logic/tag-impact.svelte.ts` | 只加一則 TODO 註解，見 §七 |
 
-全域數字（還剩幾張）由 `ReviewPagination` 負責顯示，`ReviewFooter` 的送出按鈕維持 `review.submittableCount`——截斷後它自動就是本批的實際數量，**不用改**。
+`ReviewFooter` 的送出按鈕維持 `review.submittableCount`——截斷後它自動就是本批的實際數量，**不用改**。全域待提交數只出現在工具列的 `ReviewTrigger` 徽章。
+
+### 5.6 `ReviewList` 的介面調整
+
+兩項改動：
+
+- **`totalCount` → `listCount`。** 它的用途是空狀態判斷（[ReviewList.svelte:40](src/lib/components/review/ReviewList.svelte#L40)），截斷後傳進來的自然就是本批項目數。改名是為了跟 `review.totalCount`（全域）區隔，避免同一份檔案裡兩個 `totalCount` 意思相反。
+- **新增可選的 `batch` / `batches`。** 兩者**都提供且 `batches > 1`** 時，在右側文字之後追加「· 第 X 頁 · 共 Y 頁」；否則整段不出現。
+
+第二點是刻意設計成「懶惰契約」：呼叫端可以無條件一直傳，不需要自己判斷有沒有分批。沒有分批的 review 場景（未來的 staged、cleanup，或項目本來就少的情況）傳進 `1 / 1` 也不會多出雜訊。
+
+### 5.7 字彙分裂：程式碼用 `batch`，UI 用「頁」
+
+刻意的：
+
+- **程式碼**（`ReviewController` 的投影、`ReviewList` / `ReviewPagination` 的 props）一律 `batch` / `batches`，因為領域語意就是批次承擔。
+- **使用者看到的文字**一律用「頁」——「第 X 頁 · 共 Y 頁」。「批次」在介面上太生硬。
+
+翻譯只發生在元件的模板裡，controller 與 props 不需要知道 UI 怎麼講。`$lib/utils/pagination.svelte.ts` 那一層則本來就是 `page` / `pages`，通用層不涉入這個分裂。
 
 ---
 
@@ -242,10 +265,15 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 | 2 | **維持插入順序**，不引進 `pageData` 排序 | 插入順序天然讓失敗項落在批次最前（§4.1）；引進卡片順序反而要額外補救，還會多一個定義域缺口（§4.4） |
 | 3 | **不做失敗優先排序** | 同上，插入順序免費提供 |
 | 4 | `SveltePagination` 放 `$lib/utils/pagination.svelte.ts` | 零依賴、要給 staged / cleanup 共用 |
+| 4b | 把 `paginate()` 與 `QueryResult` 提取成 `$lib/utils/pagination.core.ts`，型別更名 `Paginated` | 它們與查詢引擎無關，留在 `$lib/query` 會逼下游跨模組邊界抓內部實作。不叫 `Page` 是因為 `@sveltejs/kit` 已經導出同名型別 |
 | 5 | 全域數字由 `ReviewPagination` 顯示 | 送出按鈕只要保證是本批實際數量即可（截斷後自動成立） |
 | 6 | 投影用 `batch` 字彙 | 貼合領域語意；通用層仍用 `page`，由 controller 翻譯 |
 | 7 | 接受「退回標記永遠排在草稿之後」 | 可預測的分組，消除它得多引進一個共用觸碰序號（§4.3） |
 | 8 | 接受「改回原值再改一次會跳到最後」 | 只發生在模態框關閉期間，摩擦而非資料遺失（§4.2） |
+| 9 | 投影命名定為 `totalCount` / `batch` / `batches` | 與 `SveltePagination` 的 `total` / `page` / `pages` 一一對應 |
+| 10 | `ReviewList.totalCount` → `listCount`，並新增可選的 `batch` / `batches` | 避免與 `review.totalCount` 撞名；分頁資訊採「懶惰契約」，`batches <= 1` 自動不顯示（§5.6） |
+| 11 | `ReviewPagination` 顯示四顆按鈕 + 「第 X / Y 頁」 | 沿用 tags 頁面的既有版面；`batches <= 1` 時自我隱藏 |
+| 12 | 程式碼用 `batch` 字彙，UI 文字一律用「頁」 | 「批次」在介面上太生硬，翻譯只發生在元件模板（§5.7） |
 
 ---
 
@@ -254,7 +282,9 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 - [ ] 造出超過 3 批的待提交項目，開啟 review，確認可切換批次
 - [ ] 切到第 2、3 批時，該批可送出項**自動全選**（不需手動按全選）
 - [ ] 任一批內，「全選」三態、「N / M 可送出」、footer 張數三者互相自洽且都是本批數字
-- [ ] `ReviewPagination` 顯示的「第 X / Y 批 · 共 N 個」中，N 是**全域**待提交數
+- [ ] `ReviewPagination` 顯示「第 X / Y 頁」，`ReviewList` 標頭右側顯示「· 第 X 頁 · 共 Y 頁」，兩者一致
+- [ ] 待提交項目不足一批時，`ReviewPagination` 整個不出現、`ReviewList` 標頭也沒有頁碼文字
+- [ ] UI 上任何地方都沒有出現「批次」二字
 - [ ] 送出一整批成功後，下一批自動滑入，沒有空白批、批次索引不越界
 - [ ] 送出部分失敗時，modal 保持開啟，失敗項出現在**本批最前面**且維持勾選
 - [ ] 停在第 2 批送出並部分失敗，確認失敗項同樣落在第 2 批最前面（驗證 §4.1 不只對第 1 批成立）

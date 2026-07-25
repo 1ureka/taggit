@@ -8,19 +8,30 @@
     pending: boolean;
     /** 全選勾的狀態 */
     checkedAll?: "checked" | "indeterminate" | string;
-    /** 清單項目總數 */
-    totalCount: number;
+    /** 清單目前呈現的項目數 */
+    listCount: number;
     /** 可勾選的總數 */
     checkableCount: number;
     /** 勾選的總數 */
     checkedCount: number;
+    /** 目前批次 1-based */
+    batch?: number;
+    /** 總批次數 */
+    batches?: number;
     /** 全選勾的點擊事件 */
     ontoggleall: () => void;
     /** 清單實際內容 */
     children: Snippet;
   };
 
-  const { checkedAll, totalCount, checkableCount, checkedCount, pending, ontoggleall, children }: Props = $props();
+  const { checkedAll, listCount, checkableCount, checkedCount, batch, batches, pending, ontoggleall, children }: Props =
+    $props();
+
+  const description = $derived.by(() => {
+    const selected = `${checkedCount} / ${checkableCount} 可送出操作已選取`;
+    if (batch === undefined || batches === undefined || batches <= 1) return selected;
+    return `${selected} · 第 ${batch} 頁 · 共 ${batches} 頁`;
+  });
 </script>
 
 {#snippet toggleAll()}
@@ -33,11 +44,11 @@
       aria-label="全選可送出的操作"
     />
     <span>全選</span>
-    <span>{checkedCount} / {checkableCount} 可送出操作已選取</span>
+    <span>{description}</span>
   </li>
 {/snippet}
 
-{#if totalCount <= 0}
+{#if listCount <= 0}
   <p>目前沒有任何未送出的操作。</p>
 {:else}
   <div class="container">
