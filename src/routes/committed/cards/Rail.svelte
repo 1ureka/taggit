@@ -10,7 +10,7 @@
   <button
     type="button"
     aria-pressed={!selection.active}
-    onclick={selection.handleExitToSingle}
+    onclick={selection.handleExit}
     {@attach tooltip({ content: "單選模式", placement: "right" })}
   >
     <IconPhotoFilled size={18} />
@@ -19,7 +19,7 @@
   <button
     type="button"
     aria-pressed={selection.active}
-    onclick={selection.handleEnterMulti}
+    onclick={selection.handleEnter}
     {@attach tooltip({ content: "多選模式", placement: "right" })}
   >
     <IconCategoryFilled size={18} />

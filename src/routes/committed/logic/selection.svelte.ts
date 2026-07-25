@@ -38,16 +38,16 @@ class SelectionController {
   /** 指定的檔案是否被選取中 */
   isSelected = (id: string) => this.ids.has(id);
 
-  /** 切到多選模式：目前正在編輯的那張圖自動成為這次多選的起點 */
-  handleEnterMulti = () => {
+  /** 進入多選模式事件 */
+  handleEnter = () => {
     if (this.active) return;
     this.active = true;
     const current = this.pointers.editing?.id;
     if (current !== undefined) this.ids.add(current);
   };
 
-  /** 切回單選模式：視為結束這次批次操作，已選取的一併清空 */
-  handleExitToSingle = () => {
+  /** 離開多選模式事件 */
+  handleExit = () => {
     if (!this.active) return;
     this.active = false;
     this.ids.clear();
@@ -58,7 +58,7 @@ class SelectionController {
     else this.ids.add(filename);
   };
 
-  handleToggleAllVisible = () => {
+  handleToggleAll = () => {
     const allIds = this.pageData.value.items.map((r) => r.id);
     const allSelected = allIds.length > 0 && allIds.every((id) => this.ids.has(id));
     for (const id of allIds) {

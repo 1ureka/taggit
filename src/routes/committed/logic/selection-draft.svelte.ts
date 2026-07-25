@@ -17,20 +17,19 @@ class SelectionDraftController {
   private reverts = getRevertMarkContext();
 
   checked = new SvelteSet<Field>();
-
-  revertDirection = $state<"mark" | "unmark">("mark");
-  ratingValue = $state(0);
-  addTagsValue = $state<string[]>([]);
-  removeTagsValue = $state<string[]>([]);
+  revert = $state<"mark" | "unmark">("mark");
+  rating = $state(0);
+  addTags = $state<string[]>([]);
+  removeTags = $state<string[]>([]);
 
   /** 標記退回時，評等／加標籤／去標籤三個欄位視為無效 */
-  locked = $derived(this.checked.has("revert") && this.revertDirection === "mark");
+  locked = $derived(this.checked.has("revert") && this.revert === "mark");
 
   /** 是否有需要套用的操作 */
   dirty = $derived.by(() => {
     if (this.checked.has("revert") || this.checked.has("rating")) return true;
-    if (this.checked.has("addTags") && this.addTagsValue.length > 0) return true;
-    if (this.checked.has("removeTags") && this.removeTagsValue.length > 0) return true;
+    if (this.checked.has("addTags") && this.addTags.length > 0) return true;
+    if (this.checked.has("removeTags") && this.removeTags.length > 0) return true;
   });
 
   constructor() {
@@ -42,10 +41,10 @@ class SelectionDraftController {
 
   private reset() {
     this.checked.clear();
-    this.revertDirection = "mark";
-    this.ratingValue = 0;
-    this.addTagsValue = [];
-    this.removeTagsValue = [];
+    this.revert = "mark";
+    this.rating = 0;
+    this.addTags = [];
+    this.removeTags = [];
   }
 
   // ---
@@ -55,20 +54,17 @@ class SelectionDraftController {
     else this.checked.delete(field);
   };
 
-  handleRevertDirectionChange = (direction: "mark" | "unmark") => {
-    this.revertDirection = direction;
+  handleRevertChange = (direction: "mark" | "unmark") => {
+    this.revert = direction;
   };
 
   handleRatingChange = (value: number) => {
-    this.ratingValue = value;
+    this.rating = value;
   };
 
-  handleAddTagsChange = (tags: string[]) => {
-    this.addTagsValue = tags;
-  };
-
-  handleRemoveTagsChange = (tags: string[]) => {
-    this.removeTagsValue = tags;
+  handleTagsChange = (type: "add" | "remove", tags: string[]) => {
+    if (type === "add") this.addTags = tags;
+    if (type === "remove") this.removeTags = tags;
   };
 
   /** 把已勾選欄位依目前值套用到所有選取圖片的草稿，並重置表單 */
@@ -76,14 +72,14 @@ class SelectionDraftController {
     const files = this.selection.selectedFiles;
 
     if (this.checked.has("revert")) {
-      if (this.revertDirection === "mark") this.reverts.handleMark(files);
+      if (this.revert === "mark") this.reverts.handleMark(files);
       else this.reverts.handleUnmark(files);
     }
 
     if (!this.locked) {
-      if (this.checked.has("rating")) this.drafts.handleSetRating(files, this.ratingValue);
-      if (this.checked.has("addTags")) this.drafts.handleAddTags(files, this.addTagsValue);
-      if (this.checked.has("removeTags")) this.drafts.handleRemoveTags(files, this.removeTagsValue);
+      if (this.checked.has("rating")) this.drafts.handleSetRating(files, this.rating);
+      if (this.checked.has("addTags")) this.drafts.handleAddTags(files, this.addTags);
+      if (this.checked.has("removeTags")) this.drafts.handleRemoveTags(files, this.removeTags);
     }
 
     this.reset();

@@ -2,13 +2,17 @@
   import Alert from "$lib/components/display/Alert.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import { getSnapshotsContext } from "../logic/snapshots.svelte";
 
-  const { file }: { file: string } = $props();
+  type Props = {
+    /** 名稱欄位值 */
+    name: string;
+    /** 評等欄位值 */
+    rating: number;
+    /** 標籤欄位值 */
+    tags: string[];
+  };
 
-  const snapshots = getSnapshotsContext();
-
-  const view = $derived(snapshots.peek(file));
+  const { name, rating, tags }: Props = $props();
 </script>
 
 <div class="container">
@@ -16,19 +20,19 @@
 
   <div>
     <span>名稱</span>
-    <span>{view.name}</span>
+    <span>{name}</span>
   </div>
 
   <div>
     <span>評等</span>
-    <Rating value={view.rating} readonly />
+    <Rating value={rating} readonly />
   </div>
 
   <div>
     <span>標籤</span>
-    {#if view.tags.length > 0}
+    {#if tags.length > 0}
       <div class="tags">
-        {#each view.tags as tag (tag)}
+        {#each tags as tag (tag)}
           <Chip variant="outlined" style="font: var(--font-body2);">{tag}</Chip>
         {/each}
       </div>

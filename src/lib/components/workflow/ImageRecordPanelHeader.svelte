@@ -6,50 +6,65 @@
   import Chip from "$lib/components/display/Chip.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
 
-  import { getPageDataContext } from "../logic/page-data.svelte";
-  import { getPointersContext } from "../logic/pointers.svelte";
-  import { getSelectionContext } from "../logic/selection.svelte";
+  type BatchProps = {
+    variant: "batch";
+    /** 全選框的狀態 */
+    checkedAll: string;
+    /** 勾選的總數 */
+    checkedCount: number;
+    /** 全選勾的點擊事件 */
+    ontoggleall: () => void;
+    /** 關閉事件 */
+    onclose: () => void;
+  };
 
-  const pageData = getPageDataContext();
-  const pointers = getPointersContext();
-  const selection = getSelectionContext();
+  type SingleProps = {
+    variant: "single";
+    /** 當前項目的名稱 */
+    title: string;
+    /** 當前項目的指標 */
+    index: number;
+    /** 項目總數 */
+    total: number;
+    /** 關閉事件 */
+    onclose: () => void;
+  };
 
-  const file = $derived(pointers.editing?.id ?? null);
-  const total = $derived(pageData.value.items.length);
+  const props: { variant: null } | BatchProps | SingleProps = $props();
 </script>
 
 <header>
-  {#if selection.active}
+  {#if props.variant === "batch"}
     <div style="flex: 1;">
       <Checkbox
-        checked={selection.bulkSelectionState === "checked"}
-        indeterminate={selection.bulkSelectionState === "indeterminate"}
+        checked={props.checkedAll === "checked"}
+        indeterminate={props.checkedAll === "indeterminate"}
         label="全選圖片"
-        onchange={selection.handleToggleAllVisible}
+        onchange={props.ontoggleall}
       />
     </div>
 
-    <Chip variant="outlined" style="font: var(--font-caption);">{`已選取 ${selection.count} 張`}</Chip>
+    <Chip variant="outlined" style="font: var(--font-caption);">{`已選取 ${props.checkedCount} 張`}</Chip>
 
     <Button
       variant="ghost"
       padding="icon"
       aria-label="取消多選"
-      onclick={selection.handleExitToSingle}
+      onclick={props.onclose}
       {@attach tooltip({ content: "取消多選" })}
     >
       <IconX size={16} />
     </Button>
-  {:else if file !== null}
-    <h3 class="ellipsis" title={pointers.editing?.id ?? ""}>{pointers.editing?.id}</h3>
+  {:else if props.variant === "single"}
+    <h3 class="ellipsis" title={props.title}>{props.title}</h3>
 
-    <Chip variant="outlined" style="font: var(--font-caption);">{`${pointers.editing?.index} / ${total}`}</Chip>
+    <Chip variant="outlined" style="font: var(--font-caption);">{`${props.index} / ${props.total}`}</Chip>
 
     <Button
       variant="ghost"
       padding="icon"
       aria-label="關閉表單"
-      onclick={pointers.handleClose}
+      onclick={props.onclose}
       {@attach tooltip({ content: "關閉表單" })}
     >
       <IconX size={16} />
