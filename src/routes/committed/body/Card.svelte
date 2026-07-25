@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/database";
-  import WorkflowCardInfo from "$lib/components/widgets/WorkflowCardInfo.svelte";
-  import WorkflowCardWrapper from "$lib/components/widgets/WorkflowCardWrapper.svelte";
+  import ImageRecordCardWrapper from "$lib/components/workflow/ImageRecordCardWrapper.svelte";
+  import ImageRecordCardInfo from "$lib/components/workflow/ImageRecordCardInfo.svelte";
 
   import { getDraftsContext } from "../logic/drafts.svelte";
   import { getRevertMarkContext } from "../logic/reverts.svelte";
@@ -36,6 +36,6 @@
   };
 </script>
 
-<WorkflowCardWrapper filename={record.id} {selected} selectable={selection.active} onclick={handleClick}>
-  <WorkflowCardInfo filename={record.id} {info} />
-</WorkflowCardWrapper>
+<ImageRecordCardWrapper filename={record.id} {selected} selectable={selection.active} onclick={handleClick}>
+  <ImageRecordCardInfo filename={record.id} {info} />
+</ImageRecordCardWrapper>
