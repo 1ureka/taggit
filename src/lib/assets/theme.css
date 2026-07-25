@@ -15,6 +15,8 @@
   --font-caption: 400 0.75rem/1.2 var(--font-family);
 }
 
+/* IMPORTANT: --color-bg 不得使用 relative color，因為可能導致滾動出現效能問題! */
+
 [data-theme="dark"] {
   color-scheme: dark;
 
