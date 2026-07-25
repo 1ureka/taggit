@@ -4,6 +4,7 @@
  *
  * 本 suite 只餵「型別垃圾」——非物件 entry、tags 非陣列、rating 非數字、
  * expectedUpdatedAt 非數字、tagMeta.hidden 非布林、標籤名非字串——並斷言一律回 validation。
+ * commit 與 restore 共用同一道驗證，兩條路徑都涵蓋。
  * 合法輸入的行為由 mutation.suite.mjs 涵蓋，這裡不重複。
  */
 
@@ -33,6 +34,25 @@ export async function run(t, h) {
     bad("commit rating 非數字(字串) → validation", { name: "N", tags: ["a"], rating: "5" });
     bad("commit rating 非數字(布林) → validation", { name: "N", tags: ["a"], rating: true });
     t.eq("垃圾 commit 一律不落地", db.imageCount(), 0);
+  }
+
+  // ── restoreRecord：與 commit 共用同一道驗證，覆寫路徑也不放行垃圾 ──
+  {
+    const db = h.freshDb();
+    const m = new Mutation(db);
+    const bad = (label, entry) => t.ok(label, isValidation(m.restoreRecord("x.png", entry, FILE)));
+
+    bad("restore 非物件 entry(字串) → validation", "not-an-object");
+    bad("restore 非物件 entry(null) → validation", null);
+    bad("restore name 非字串 → validation", { name: 123, tags: ["a"] });
+    bad("restore tags 非陣列 → validation", { name: "N", tags: "a" });
+    bad("restore rating 非數字 → validation", { name: "N", tags: ["a"], rating: "5" });
+    t.eq("垃圾 restore 一律不落地", db.imageCount(), 0);
+
+    // 已有合法紀錄時，垃圾 restore 也不得覆寫掉它
+    m.commitRecord("x.png", { name: "Keep", tags: ["k"] }, FILE);
+    bad("既有紀錄 + 垃圾 restore → validation", { name: "", tags: [] });
+    t.eq("垃圾 restore 不覆寫既有紀錄", db.getImage("x.png").name, "Keep");
   }
 
   // ── updateRecord：非物件 patch / expectedUpdatedAt 非數字 / 欄位型別垃圾 ──

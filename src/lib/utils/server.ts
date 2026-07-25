@@ -53,6 +53,8 @@ function errorToHttp(error: MutationError): number {
   switch (error.kind) {
     case "not_found":
       return 404;
+    case "already_exists":
+      return 409;
     case "stale_update":
       return 409;
     case "last_tag":

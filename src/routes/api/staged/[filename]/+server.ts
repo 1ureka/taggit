@@ -38,6 +38,7 @@ async function unlinkWithRetry(filePath: string): Promise<void> {
  * `POST /api/staged/[filename]`
  *
  * 將暫存檔案提交至資料庫，也就是為一張圖片新增紀錄。
+ * 該檔名已有紀錄時由 `commitRecord` 回 `already_exists`（HTTP 409），不會覆寫。
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   const root = Collection.getActiveRoot();
@@ -45,9 +46,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
   }
 
-  const db = Database.requireLoaded();
-  const query = new Query(db);
-  const mutation = new Mutation(db);
+  const mutation = new Mutation(Database.requireLoaded());
 
   // ---
 
@@ -58,10 +57,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   if (!ImageLibrary.isImageFile(filename)) {
     return json({ ok: false, error: "非圖片檔案" }, { status: 400 });
-  }
-
-  if (query.hasImage(filename)) {
-    return json({ ok: false, error: "已提交的圖片" }, { status: 409 });
   }
 
   if (!ImageLibrary.has(filename)) {

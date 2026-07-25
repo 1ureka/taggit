@@ -4,7 +4,6 @@ import { json, type RequestHandler } from "@sveltejs/kit";
 import { Collection } from "$lib/collection";
 import { ImageLibrary } from "$lib/image/server";
 import { Database } from "$lib/database";
-import { Query } from "$lib/query";
 import { Mutation, type MutationError } from "$lib/mutation";
 
 import { isRecord, isSafeFilename, formatError } from "$lib/utils/shared";
@@ -18,6 +17,8 @@ function errorMessage(e: MutationError): string {
   switch (e.kind) {
     case "not_found":
       return "找不到紀錄";
+    case "already_exists":
+      return "已提交過，請重新整理列表";
     case "stale_update":
       return "紀錄已被其他操作更新，請重新整理後再試";
     case "last_tag":
@@ -48,9 +49,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ ok: false, error: "items 必須是非空陣列" }, { status: 400 });
   }
 
-  const db = Database.requireLoaded();
-  const query = new Query(db);
-  const mutation = new Mutation(db);
+  const mutation = new Mutation(Database.requireLoaded());
 
   const results: ItemResult[] = [];
 
@@ -69,10 +68,6 @@ export const POST: RequestHandler = async ({ request }) => {
     }
     if (!ImageLibrary.isImageFile(filename)) {
       fail("非圖片檔案");
-      continue;
-    }
-    if (query.hasImage(filename)) {
-      fail("已提交過，請重新整理列表");
       continue;
     }
     if (!ImageLibrary.has(filename)) {
