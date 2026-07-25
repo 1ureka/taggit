@@ -1,5 +1,7 @@
 <script lang="ts">
   import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewListHeader from "$lib/components/review/ReviewListHeader.svelte";
+  import ReviewListFooter from "$lib/components/review/ReviewListFooter.svelte";
   import ReviewItemImage from "$lib/components/review/ReviewItemImage.svelte";
 
   import { getReviewContext } from "../logic/review.svelte";
@@ -38,17 +40,21 @@
     return { filename, name, changeName, changeRating, changeTags, problem, checkable, checked: checkable && checked };
   }
 
-  const entries = $derived(review.touchedFiles.map((f) => buildEntry(f, review.isChecked(f), submit.lastFailures[f])));
+  const entries = $derived(review.batchFiles.map((f) => buildEntry(f, review.isChecked(f), submit.lastFailures[f])));
 </script>
 
-<ReviewList
-  pending={submit.pending}
-  checkedAll={review.bulkSelectionState}
-  listCount={review.touchedFiles.length}
-  checkableCount={review.checkableCount}
-  checkedCount={review.submittableCount}
-  ontoggleall={review.handleToggleAll}
->
+<ReviewList pending={submit.pending} listCount={review.batchFiles.length}>
+  {#snippet header()}
+    <ReviewListHeader
+      checkedAll={review.bulkSelectionState}
+      checkableCount={review.checkableCount}
+      checkedCount={review.submittableCount}
+      batch={review.batch}
+      batches={review.batches}
+      ontoggleall={review.handleToggleAll}
+    />
+  {/snippet}
+
   {#each entries as entry (entry.filename)}
     <ReviewItemImage
       {...entry}
@@ -57,4 +63,15 @@
       ontoggle={() => review.handleToggle(entry.filename)}
     />
   {/each}
+
+  {#snippet footer()}
+    <ReviewListFooter
+      batch={review.batch}
+      batches={review.batches}
+      onfirst={review.handleFirstBatch}
+      onprev={review.handlePrevBatch}
+      onnext={review.handleNextBatch}
+      onlast={review.handleLastBatch}
+    />
+  {/snippet}
 </ReviewList>

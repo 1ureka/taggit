@@ -3,12 +3,10 @@
   import { IconChevronDown, IconChevronRightPipe } from "$lib/icons";
 
   type Props = {
-    /** 目前批次（1-based），對外一律以「頁」稱呼 */
+    /** 目前批次 1-based，對外一律以「頁」稱呼 */
     batch: number;
-    /** 總批次數，`<= 1` 時整個元件不出現 */
+    /** 總批次數，`<= 1` 時整列不出現 */
     batches: number;
-    /** 是否正在送出中；送出期間不允許換批 */
-    pending: boolean;
     /** 跳到第一批 */
     onfirst: () => void;
     /** 跳到上一批 */
@@ -19,14 +17,14 @@
     onlast: () => void;
   };
 
-  const { batch, batches, pending, onfirst, onprev, onnext, onlast }: Props = $props();
+  const { batch, batches, onfirst, onprev, onnext, onlast }: Props = $props();
 
-  const atFirst = $derived(pending || batch <= 1);
-  const atLast = $derived(pending || batch >= batches);
+  const atFirst = $derived(batch <= 1);
+  const atLast = $derived(batch >= batches);
 </script>
 
 {#if batches > 1}
-  <div>
+  <li>
     <Button
       variant="ghost"
       padding="icon"
@@ -48,17 +46,16 @@
     <Button variant="ghost" padding="icon" aria-label="最後一頁" status={atLast ? "disabled" : undefined} onclick={onlast}>
       <IconChevronRightPipe size={16} />
     </Button>
-  </div>
+  </li>
 {/if}
 
 <style>
-  div {
+  li {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 0.375rem 0.75rem;
-    border-top: var(--border-style);
+    padding: 0.25rem 0px;
   }
 
   span {

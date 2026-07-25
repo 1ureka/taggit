@@ -2,6 +2,7 @@
   import Modal from "$lib/components/floating/Modal.svelte";
   import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
   import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewListHeader from "$lib/components/review/ReviewListHeader.svelte";
   import ReviewItemImage from "$lib/components/review/ReviewItemImage.svelte";
   import ReviewTagImpact from "$lib/components/review/ReviewTagImpact.svelte";
   import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
@@ -25,14 +26,16 @@
 >
   <ReviewHeader />
 
-  <ReviewList
-    pending={operations.pending}
-    checkedAll={review.bulkSelectionState}
-    listCount={review.entries.length}
-    checkableCount={review.checkableCount}
-    checkedCount={review.checkedCount}
-    ontoggleall={review.handleToggleAll}
-  >
+  <ReviewList pending={operations.pending} listCount={review.entries.length}>
+    {#snippet header()}
+      <ReviewListHeader
+        checkedAll={review.bulkSelectionState}
+        checkableCount={review.checkableCount}
+        checkedCount={review.checkedCount}
+        ontoggleall={review.handleToggleAll}
+      />
+    {/snippet}
+
     {#each review.entries as entry (entry.filename)}
       <ReviewItemImage
         checkable={entry.checkable}

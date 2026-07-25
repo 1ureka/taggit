@@ -3,6 +3,7 @@
   import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
   import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
   import ReviewList from "$lib/components/review/ReviewList.svelte";
+  import ReviewListHeader from "$lib/components/review/ReviewListHeader.svelte";
   import ReviewItemTag from "$lib/components/review/ReviewItemTag.svelte";
 
   import { getReviewContext } from "../logic/review.svelte";
@@ -22,14 +23,16 @@
 >
   <ReviewHeader />
 
-  <ReviewList
-    pending={operations.pending}
-    checkedAll={review.bulkSelectionState}
-    listCount={review.entries.length}
-    checkableCount={review.checkableCount}
-    checkedCount={review.checkedCount}
-    ontoggleall={review.handleToggleAll}
-  >
+  <ReviewList pending={operations.pending} listCount={review.entries.length}>
+    {#snippet header()}
+      <ReviewListHeader
+        checkedAll={review.bulkSelectionState}
+        checkableCount={review.checkableCount}
+        checkedCount={review.checkedCount}
+        ontoggleall={review.handleToggleAll}
+      />
+    {/snippet}
+
     {#each review.entries as entry (entry.name)}
       {@const kind = entry.kind}
       {@const withExtraProps = kind === "merge"}

@@ -142,7 +142,7 @@ private startBatch()
 
 ### 5.1 批次容量常數
 
-**25**，作為 `committed` 的 review 專屬常數，放 `logic/review.svelte.ts` 模組頂層即可，附一行說明它是「一輪能承擔的審查量」。
+**25**，作為 `ReviewController` 的私有欄位 `batchSize`，附一行說明它是「一輪能承擔的審查量」。不提到模組頂層、也不用全大寫——它不是跨檔案共享的組態，就只是這個 controller 的一個內部參數。
 
 不要放 `$lib`：未來標籤型的 review 會有自己的數字（標籤的 diff 遠比圖片單純，容量可以更大）。**每個 review 場景各自決定自己的容量**，這正是它不該被抽走的理由。
 
@@ -204,8 +204,9 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 | `$lib/utils/pagination.core.ts` | 新增（由 `$lib/query/{pagination,result}.ts` 提取，兩者刪除；`QueryResult` → `Paginated`） |
 | `$lib/query/{index,images,tags}.ts` | 跟著改 import 與型別名；`index.ts` 原本對外的 `export type { QueryResult }` 沒有任何使用者，直接刪除 |
 | `$lib/utils/pagination.svelte.ts` | 新增 |
-| `$lib/components/review/ReviewPagination.svelte` | 新增。純展示，收 `batch` / `batches` / `pending` 與四個 handler，邊界判斷在元件內，`batches <= 1` 時自我隱藏。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，中央文字為「第 X / Y 頁」 |
-| `$lib/components/review/ReviewList.svelte` | `totalCount` → `listCount`，新增可選的 `batch` / `batches`，見 §5.6 |
+| `$lib/components/review/ReviewList.svelte` | 收斂成三插槽的捲動容器，見 §5.6 |
+| `$lib/components/review/ReviewListHeader.svelte` | 新增。原本內建在 `ReviewList` 的全選列，含頁碼提示文字 |
+| `$lib/components/review/ReviewListFooter.svelte` | 新增。換頁列，`batches <= 1` 時自我隱藏。版面參考 [tags/chips/Pagination.svelte](src/routes/tags/chips/Pagination.svelte)，中央文字為「第 X / Y 頁」 |
 | `logic/review.svelte.ts` | 主要改動，見 §5.4 |
 | `header/ReviewBody.svelte` | 掛上 `ReviewPagination`；`touchedFiles` → `batchFiles`（`entries` 的建構邏輯一行都不用改） |
 | `header/ReviewModal.svelte` | 徽章改讀 `totalCount` |
@@ -213,14 +214,27 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 
 `ReviewFooter` 的送出按鈕維持 `review.submittableCount`——截斷後它自動就是本批的實際數量，**不用改**。全域待提交數只出現在工具列的 `ReviewTrigger` 徽章。
 
-### 5.6 `ReviewList` 的介面調整
+### 5.6 `ReviewList` 收斂成三插槽
 
-兩項改動：
+換頁列必須跟全選列在**同一個 scroller 內**——它們是清單的一部分，不是清單外的控制條。既然如此，`ReviewList` 乾脆退化成純粹的版面容器：
 
-- **`totalCount` → `listCount`。** 它的用途是空狀態判斷（[ReviewList.svelte:40](src/lib/components/review/ReviewList.svelte#L40)），截斷後傳進來的自然就是本批項目數。改名是為了跟 `review.totalCount`（全域）區隔，避免同一份檔案裡兩個 `totalCount` 意思相反。
-- **新增可選的 `batch` / `batches`。** 兩者**都提供且 `batches > 1`** 時，在右側文字之後追加「· 第 X 頁 · 共 Y 頁」；否則整段不出現。
+```
+ReviewList  (pending / listCount / header? / footer? / children)
+└── ul  inert={pending}
+    ├── {@render header?.()}      → ReviewListHeader   全選 + 頁碼提示
+    ├── {@render children()}      → ReviewItemImage × N
+    └── {@render footer?.()}      → ReviewListFooter   換頁
+```
 
-第二點是刻意設計成「懶惰契約」：呼叫端可以無條件一直傳，不需要自己判斷有沒有分批。沒有分批的 review 場景（未來的 staged、cleanup，或項目本來就少的情況）傳進 `1 / 1` 也不會多出雜訊。
+- `ReviewList` 的 prop 從 9 個降到 5 個，它不再需要知道全選或分頁是什麼。整個家族的 prop 總數沒少，但每一組都有了單一擁有者——這才是重點，不是數量。
+- 三個插槽的內容都自己渲染 `<li>` 根節點，與 `ReviewItemImage` / `ReviewItemTag` 的既有慣例一致，`ReviewList` 不必額外包一層。
+- `listCount` 由原本的 `totalCount` 改名而來，用途是空狀態判斷；改名是為了跟 `review.totalCount`（全域）區隔，避免同一份檔案裡兩個 `totalCount` 意思相反。
+- `ReviewListHeader` / `ReviewListFooter` **都不收 `pending`**。`ul` 的 `inert={pending}` 已經讓後代拿不到焦點，覆蓋層也擋住整片；邏輯防線在 `ReviewController.moveTo()` 的 `submit.pending` 檢查。多一個永遠冗餘的參數只會讓人以為它有作用。
+- 頁碼資訊採「懶惰契約」：`batch` / `batches` 兩者都提供且 `batches > 1` 才會出現，否則 header 的提示文字與整個 footer 都不渲染。呼叫端可以無條件一直傳，不分批的 review 場景則整個不傳。
+
+代價：`ReviewList` 不再結構性保證全選列存在，呼叫端可能忘記傳 `header`。四個呼叫端都在 repo 內，實務風險低，這是 composition 換來的。
+
+命名上會多出一組鄰居：`ReviewHeader` / `ReviewFooter` 是 **modal 層**（標題塊、送出列），`ReviewListHeader` / `ReviewListFooter` 是**清單層**。前綴規則自洽，但 import 時容易手誤，型別會擋下來。
 
 ### 5.7 字彙分裂：程式碼用 `batch`，UI 用「頁」
 
@@ -271,8 +285,8 @@ review modal 是暫時性 UI。而且 committed 的 URL 已被 `SvelteSearchPara
 | 7 | 接受「退回標記永遠排在草稿之後」 | 可預測的分組，消除它得多引進一個共用觸碰序號（§4.3） |
 | 8 | 接受「改回原值再改一次會跳到最後」 | 只發生在模態框關閉期間，摩擦而非資料遺失（§4.2） |
 | 9 | 投影命名定為 `totalCount` / `batch` / `batches` | 與 `SveltePagination` 的 `total` / `page` / `pages` 一一對應 |
-| 10 | `ReviewList.totalCount` → `listCount`，並新增可選的 `batch` / `batches` | 避免與 `review.totalCount` 撞名；分頁資訊採「懶惰契約」，`batches <= 1` 自動不顯示（§5.6） |
-| 11 | `ReviewPagination` 顯示四顆按鈕 + 「第 X / Y 頁」 | 沿用 tags 頁面的既有版面；`batches <= 1` 時自我隱藏 |
+| 10 | `ReviewList` 收斂成 `header` / `children` / `footer` 三插槽，`totalCount` → `listCount` | 換頁列要在同一個 scroller 內，`ReviewList` 因此退化成版面容器，prop 各自回到擁有者身上（§5.6） |
+| 11 | `ReviewListFooter` 顯示四顆按鈕 + 「第 X / Y 頁」 | 沿用 tags 頁面的既有版面；`batches <= 1` 時自我隱藏 |
 | 12 | 程式碼用 `batch` 字彙，UI 文字一律用「頁」 | 「批次」在介面上太生硬，翻譯只發生在元件模板（§5.7） |
 
 ---
