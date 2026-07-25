@@ -4,12 +4,10 @@
  */
 
 import { sortCollator } from "$lib/utils/shared";
+import { paginate, type Paginated } from "$lib/utils/pagination.core";
 import type { Database, Tag } from "$lib/database";
 import type { ImageWhere, ListOptions, TagFacetQuery, TagQuery, TagSort, TagWhere } from "$lib/query-spec";
-
 import type { ScopeResolver } from "./scope";
-import type { QueryResult } from "./result";
-import { paginate } from "./pagination";
 
 export class TagEngine {
   constructor(
@@ -18,17 +16,17 @@ export class TagEngine {
   ) {}
 
   /** 獨立列表：count = 原始總使用數，不遮蔽。 */
-  runStandalone(q: TagQuery): QueryResult<Tag> {
+  runStandalone(q: TagQuery): Paginated<Tag> {
     return this.finish(this.standalone(q.where), q.list);
   }
 
   /** facet：scope 篩選 + hidden 遮蔽後計數。 */
-  runFacet(q: TagFacetQuery): QueryResult<Tag> {
+  runFacet(q: TagFacetQuery): Paginated<Tag> {
     return this.finish(this.facet(q.scope, q.where), q.list);
   }
 
   /** 兩分支共用的收尾：排序 → 分頁。 */
-  private finish(collected: Tag[], list: ListOptions<TagSort>): QueryResult<Tag> {
+  private finish(collected: Tag[], list: ListOptions<TagSort>): Paginated<Tag> {
     const sorted = this.sort(collected, list.sort, list.order);
     return paginate(sorted, list.page, list.limit);
   }

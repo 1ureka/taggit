@@ -5,14 +5,12 @@
 
 import type { Database, ImageWithId, Tag } from "$lib/database";
 import type { ImageQuery, TagFacetQuery, TagQuery } from "$lib/query-spec";
+import type { Paginated } from "$lib/utils/pagination.core";
 
 import { BitSet } from "$lib/database";
 import { ScopeResolver } from "./scope";
 import { ImageEngine } from "./images";
 import { TagEngine } from "./tags";
-import type { QueryResult } from "./result";
-
-export type { QueryResult } from "./result";
 
 export class Query {
   private imageEngine: ImageEngine;
@@ -26,17 +24,17 @@ export class Query {
   }
 
   /** 執行圖片紀錄查詢 */
-  images(q: ImageQuery): QueryResult<ImageWithId> {
+  images(q: ImageQuery): Paginated<ImageWithId> {
     return this.imageEngine.run(q);
   }
 
   /** 執行標籤列表查詢 */
-  tags(q: TagQuery): QueryResult<Tag> {
+  tags(q: TagQuery): Paginated<Tag> {
     return this.tagEngine.runStandalone(q);
   }
 
   /** 執行分面標籤列表查詢 */
-  facets(q: TagFacetQuery): QueryResult<Tag> {
+  facets(q: TagFacetQuery): Paginated<Tag> {
     return this.tagEngine.runFacet(q);
   }
 

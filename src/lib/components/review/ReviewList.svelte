@@ -1,49 +1,31 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
 
   type Props = {
     /** 是否正在送出中 */
     pending: boolean;
-    /** 全選勾的狀態 */
-    checkedAll?: "checked" | "indeterminate" | string;
-    /** 清單項目總數 */
-    totalCount: number;
-    /** 可勾選的總數 */
-    checkableCount: number;
-    /** 勾選的總數 */
-    checkedCount: number;
-    /** 全選勾的點擊事件 */
-    ontoggleall: () => void;
+    /** 清單目前呈現的項目數 */
+    listCount: number;
+    /** 清單頂部的一列，通常是 `ReviewListHeader` */
+    header?: Snippet;
+    /** 清單底部的一列，通常是 `ReviewListFooter` */
+    footer?: Snippet;
     /** 清單實際內容 */
     children: Snippet;
   };
 
-  const { checkedAll, totalCount, checkableCount, checkedCount, pending, ontoggleall, children }: Props = $props();
+  const { listCount, pending, header, footer, children }: Props = $props();
 </script>
 
-{#snippet toggleAll()}
-  <li>
-    <Checkbox
-      checked={checkedAll === "checked"}
-      indeterminate={checkedAll === "indeterminate"}
-      status={checkableCount === 0 ? "disabled" : "default"}
-      onchange={ontoggleall}
-      aria-label="全選可送出的操作"
-    />
-    <span>全選</span>
-    <span>{checkedCount} / {checkableCount} 可送出操作已選取</span>
-  </li>
-{/snippet}
-
-{#if totalCount <= 0}
+{#if listCount <= 0}
   <p>目前沒有任何未送出的操作。</p>
 {:else}
   <div class="container">
     <ul inert={pending} aria-busy={pending}>
-      {@render toggleAll()}
+      {@render header?.()}
       {@render children()}
+      {@render footer?.()}
     </ul>
 
     {#if pending}
@@ -76,23 +58,6 @@
     overscroll-behavior: contain;
     padding: 0.5rem 1rem;
     background-color: var(--color-bg-popover);
-  }
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.25rem 0px;
-  }
-
-  li > span:nth-of-type(1) {
-    font: var(--font-body2);
-  }
-
-  li > span:nth-of-type(2) {
-    margin-left: auto;
-    font: var(--font-caption);
-    color: var(--color-text-muted);
   }
 
   div.container > div {

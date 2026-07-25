@@ -14,12 +14,14 @@
   const submit = getSubmitContext();
   const tagImpact = getTagImpactContext();
 
-  const touchedCount = $derived(review.touchedFiles.length);
-
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
 
-<ReviewTrigger count={touchedCount} disabled={submit.pending || touchedCount === 0} onclick={review.handleOpen} />
+<ReviewTrigger
+  count={review.totalCount}
+  disabled={submit.pending || review.totalCount === 0}
+  onclick={review.handleOpen}
+/>
 
 <Modal
   open={review.open}
