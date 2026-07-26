@@ -15,7 +15,7 @@ class ReviewController {
   private reverts = getRevertMarkContext();
   private submit = getSubmitContext();
 
-  /** 全部有暫存操作的檔案，維持插入順序 */
+  /** 全部有暫存操作的檔案，維持插入順序，**不應加入任何過濾** */
   private files = $derived([...new Set([...this.drafts.touchedFiles, ...this.reverts.markedFiles])]);
   /** 一輪能承擔的審查量設為 25 ，因圖片的差異比對繁複，更高的量等於沒審查 */
   private pagination = new SveltePagination(() => this.files, 25);

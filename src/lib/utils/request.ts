@@ -1,20 +1,16 @@
 /**
- * @file client.ts
+ * @file request.ts
  * 前端統一的 HTTP 請求工具。
  */
 
 import { hasKey } from "$lib/utils/shared";
-
-// ---
 
 /**
  * 所有 API 端點的統一回應格式。
  * 以 `ok` 為判別欄位的聯集型別，讓呼叫端在 `if (!res.ok)` 分支後
  * 能直接窄化取得必要的 `data` 或 `error`，不必再自行防禦性判斷。
  */
-type ApiResponse<T = unknown> =
-  | { ok: true; data: T; status: number }
-  | { ok: false; error: string; status: number };
+type ApiResponse<T = unknown> = { ok: true; data: T; status: number } | { ok: false; error: string; status: number };
 
 /**
  * 將 API 回應的 `error` 欄位轉為人類可讀訊息。
@@ -73,7 +69,42 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   }
 }
 
-// ---
+/**
+ * 以 SSE (Server-Sent Events) 呼叫 POST 端點，逐一 yield 解析後的事件。
+ * 非 2xx 回應或串流未建立直接 throw；呼叫端只需要在意事件本身，不必處理傳輸細節。
+ */
+async function* stream<T>(url: string, body?: unknown): AsyncGenerator<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok || !res.body) {
+    const json = await res.json().catch(() => null);
+    const error = hasKey(json, "error") ? formatApiError(json.error) : res.statusText;
+    throw new Error(error);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop()!;
+
+    for (const line of lines) {
+      const match = line.match(/^data: (.+)$/m);
+      if (!match) continue;
+      yield JSON.parse(match[1]) as T;
+    }
+  }
+}
 
 /**
  * 統一的 HTTP 請求工具，對應 SvelteKit API 路由。
@@ -96,4 +127,7 @@ export const api = {
 
   /** 發送 DELETE 請求，可附帶 JSON body。 */
   del: <T>(url: string, body?: unknown) => request<T>("DELETE", url, body),
+
+  /** 以 SSE 呼叫 POST 端點，回傳逐一 yield 事件的 async generator。 */
+  stream: <T>(url: string, body?: unknown) => stream<T>(url, body),
 };

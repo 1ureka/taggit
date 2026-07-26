@@ -1,4 +1,3 @@
-import path from "path";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 import { Collection } from "$lib/collection";
@@ -32,7 +31,7 @@ function errorMessage(e: MutationError): string {
  * `POST /api/proto/staged-batch`
  *
  * 原型專用：批次提交暫存圖片。
- * Body: `{ items: [{ filename, name?, tags, rating }] }`
+ * Body: `{ items: [{ filename, name, tags, rating }] }`
  * 回傳逐筆結果：`{ results: [{ filename, ok, error? }] }`
  */
 export const POST: RequestHandler = async ({ request }) => {
@@ -75,10 +74,6 @@ export const POST: RequestHandler = async ({ request }) => {
       continue;
     }
 
-    // name 為可選；未提供時沿用去副檔名的檔名
-    const ext = path.extname(filename).toLowerCase();
-    const name = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : path.basename(filename, ext);
-
     try {
       const probed = await ImageLibrary.probe(filename);
       if (!probed.ok) {
@@ -86,7 +81,8 @@ export const POST: RequestHandler = async ({ request }) => {
         continue;
       }
 
-      const r = mutation.commitRecord(filename, { name, tags: raw.tags, rating: raw.rating }, probed.data);
+      // name 為必填，合法性一律交由 mutation 的 Validator 判斷，此處不做任何補值
+      const r = mutation.commitRecord(filename, { name: raw.name, tags: raw.tags, rating: raw.rating }, probed.data);
       if (!r.ok) {
         fail(errorMessage(r.error));
         continue;

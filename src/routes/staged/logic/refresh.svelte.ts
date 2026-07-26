@@ -1,17 +1,17 @@
 /**
- * @file operations.svelte.ts
- * 全頁共用的操作鎖，以及重新整理暫存列表
+ * @file refresh.svelte.ts
+ * 重新整理暫存列表
  */
 
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 import { addToast } from "$lib/components/floating/toast-events";
 
-class OperationsController {
-  /** 全頁共用的操作鎖與指示 */
+class RefreshController {
+  /** 是否有一次重新整理正在進行中 */
   pending = $state(false);
 
-  /** 重新整理暫存列表 */
+  /** 重新整理，條件不變再次查詢 */
   handleRefresh = async () => {
     if (this.pending) return;
 
@@ -29,12 +29,12 @@ class OperationsController {
   };
 }
 
-const key = Symbol("operations-controller");
+const key = Symbol("refresh-controller");
 
-export const createOperationsContext = () => {
-  const controller = new OperationsController();
+export const createRefreshContext = () => {
+  const controller = new RefreshController();
   setContext(key, controller);
   return controller;
 };
 
-export const getOperationsContext = () => getContext<OperationsController>(key);
+export const getRefreshContext = () => getContext<RefreshController>(key);
