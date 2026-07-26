@@ -89,8 +89,8 @@ createSubmitContext();          // ← drafts
 createDeletionContext();        // ← pageData, pointers, drafts
 const refresh = createRefreshContext();    // 無依賴
 createImportContext();          // 無依賴
-const guard = createGuardContext();        // ← drafts, submit, deletion, import
 createReviewContext();          // ← drafts, submit
+const guard = createGuardContext();        // ← drafts, submit, deletion, import, review
 createTagImpactContext();       // ← drafts, review
 createSelectionContext();       // ← pageData, pointers
 createSelectionDraftContext();  // ← selection, drafts
@@ -98,7 +98,9 @@ createSelectionDraftContext();  // ← selection, drafts
 beforeNavigate(guard.handleBeforeNavigate);
 ```
 
-依賴是單向的，無循環。`deletion` 必須排在 `pointers` 之後（刪完要跳下一張）。
+依賴是單向的，無循環。兩個順序是必要的：
+`deletion` 必須排在 `pointers` 之後（刪完要跳下一張），
+`guard` 必須排在 `review` 之後（待提交張數取自審查清單）。
 
 ---
 
@@ -319,13 +321,15 @@ class GuardController {
   private submit = getSubmitContext();
   private deletion = getDeletionContext();
   private importer = getImportContext();
+  private review = getReviewContext();
 
   /** 會真的改動資料的操作是否進行中；refresh 只是重跑 load，不算 */
   private get busy() {
     return this.submit.pending || this.deletion.pending || this.importer.pending;
   }
+  /** 待提交的張數，直接取審查清單的總數，保證與 ReviewTrigger 的徽章永遠同值 */
   private get pendingCount() {
-    return this.drafts.touchedFiles.length;
+    return this.review.totalCount;
   }
 
   handleBeforeNavigate = (nav: BeforeNavigate) => void;
@@ -355,6 +359,7 @@ class ReviewController {
   private drafts = getDraftsContext();
   private submit = getSubmitContext();
 
+  /** 同時是離頁守衛的依據（經 `totalCount`），不可加入任何過濾 */
   private files = $derived(this.drafts.touchedFiles);
   /** 一輪能承擔的審查量設為 25 */
   private pagination = new SveltePagination(() => this.files, 25);
