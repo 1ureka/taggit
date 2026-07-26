@@ -20,7 +20,7 @@
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import QueryControls from "./header/QueryControls.svelte";
   import ReviewModal from "./header/ReviewModal.svelte";
-  import Inspector from "./body/Inspector.svelte";
+  import Panel from "./body/Panel.svelte";
   import Cards from "./body/Cards.svelte";
   import Rail from "./body/Rail.svelte";
 
@@ -59,7 +59,7 @@
   <div>
     <Rail />
     <Cards />
-    <Inspector />
+    <Panel />
   </div>
 </div>
 

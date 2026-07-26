@@ -4,7 +4,7 @@
 
   import Card from "./Card.svelte";
 
-  import { breakpoints, CARD_SIZE, INSPECTOR_WIDTH } from "./config";
+  import { breakpoints, CARD_SIZE, PANEL_WIDTH } from "./config";
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
@@ -17,7 +17,7 @@
   const availableWidth = $derived.by(() => {
     const open = file !== null || selection.active;
     const windowWidth = innerWidth.current ?? 1000;
-    const inspectorWidth = open ? INSPECTOR_WIDTH : 0;
+    const inspectorWidth = open ? PANEL_WIDTH : 0;
     return Math.max(1, windowWidth - inspectorWidth);
   });
 

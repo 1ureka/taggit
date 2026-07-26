@@ -2,10 +2,11 @@
   import ImageRecordPanel from "$lib/components/workflow/ImageRecordPanel.svelte";
   import ImageRecordPanelHeader from "$lib/components/workflow/ImageRecordPanelHeader.svelte";
   import ImageRecordPanelImage from "$lib/components/workflow/ImageRecordPanelImage.svelte";
-  import ImageRecordPanelFooter from "$lib/components/workflow/ImageRecordPanelFooter.svelte";
-  import ImageRecordFields from "$lib/components/workflow/ImageRecordFields.svelte";
-  import ImageRecordFieldsRevert from "$lib/components/workflow/ImageRecordFieldsRevert.svelte";
-  import ImageRecordFieldsBatch from "$lib/components/workflow/ImageRecordFieldsBatch.svelte";
+
+  import PanelFooter from "./PanelFooter.svelte";
+  import PanelFields from "./PanelFields.svelte";
+  import PanelRevertFields from "./PanelRevertFields.svelte";
+  import PanelBatchFields from "./PanelBatchFields.svelte";
 
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
@@ -38,7 +39,7 @@
       />
     {/snippet}
     {#snippet lower()}
-      <ImageRecordFieldsBatch
+      <PanelBatchFields
         checked={selectionDraft.checked}
         revert={selectionDraft.revert}
         locked={selectionDraft.locked}
@@ -52,7 +53,7 @@
         onchangetags={selectionDraft.handleTagsChange}
       />
 
-      <ImageRecordPanelFooter
+      <PanelFooter
         variant="batch"
         applicable={selection.count > 0 && !!selectionDraft.dirty}
         count={selection.count}
@@ -76,13 +77,13 @@
     {#snippet lower()}
       {@const view = drafts.viewOf(pointer.id)}
       {#if reverts.isMarked(pointer.id)}
-        <ImageRecordFieldsRevert {...view} />
+        <PanelRevertFields {...view} />
 
-        <ImageRecordPanelFooter variant="single-revert" oncancel={() => reverts.handleUnmark([pointer.id])} />
+        <PanelFooter variant="single-revert" oncancel={() => reverts.handleUnmark([pointer.id])} />
       {:else}
         {@const handleDiscard = () => drafts.handleDiscardDraft([pointer.id])}
         {@const handleRevert = () => reverts.handleMark([pointer.id])}
-        <ImageRecordFields
+        <PanelFields
           name={view.name}
           rating={view.rating}
           tags={view.tags}
@@ -92,7 +93,7 @@
           onchangetags={(v) => drafts.handleSetTags([pointer.id], v)}
         />
 
-        <ImageRecordPanelFooter variant="single" ondiscard={handleDiscard} onrevert={handleRevert} />
+        <PanelFooter variant="single" ondiscard={handleDiscard} onrevert={handleRevert} />
       {/if}
     {/snippet}
   </ImageRecordPanel>
