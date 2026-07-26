@@ -2,10 +2,11 @@
   import ImageRecordPanel from "$lib/components/workflow/ImageRecordPanel.svelte";
   import ImageRecordPanelHeader from "$lib/components/workflow/ImageRecordPanelHeader.svelte";
   import ImageRecordPanelImage from "$lib/components/workflow/ImageRecordPanelImage.svelte";
+
   import PanelFooter from "./PanelFooter.svelte";
-  import Fields from "./Fields.svelte";
-  import FieldsRevert from "./FieldsRevert.svelte";
-  import FieldsBatch from "./FieldsBatch.svelte";
+  import PanelFields from "./PanelFields.svelte";
+  import PanelRevertFields from "./PanelRevertFields.svelte";
+  import PanelBatchFields from "./PanelBatchFields.svelte";
 
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { getPointersContext } from "../logic/pointers.svelte";
@@ -38,7 +39,7 @@
       />
     {/snippet}
     {#snippet lower()}
-      <FieldsBatch
+      <PanelBatchFields
         checked={selectionDraft.checked}
         revert={selectionDraft.revert}
         locked={selectionDraft.locked}
@@ -76,13 +77,13 @@
     {#snippet lower()}
       {@const view = drafts.viewOf(pointer.id)}
       {#if reverts.isMarked(pointer.id)}
-        <FieldsRevert {...view} />
+        <PanelRevertFields {...view} />
 
         <PanelFooter variant="single-revert" oncancel={() => reverts.handleUnmark([pointer.id])} />
       {:else}
         {@const handleDiscard = () => drafts.handleDiscardDraft([pointer.id])}
         {@const handleRevert = () => reverts.handleMark([pointer.id])}
-        <Fields
+        <PanelFields
           name={view.name}
           rating={view.rating}
           tags={view.tags}

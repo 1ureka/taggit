@@ -3,8 +3,6 @@
 目標：讓 `staged` 的架構與 `committed` 幾乎同形，差異只留在「暫存區本來就沒有的東西」上。
 本文件以 **controller 邊界** 為主軸，元件樹只描述對應關係。
 
-> 本次改動同時涉及 `committed`：四個表單元件從 `$lib` 下放到各頁面 `body/`，`committed` 必須一起改。
-
 ---
 
 ## 一、與 `committed` 的本質差異
@@ -24,8 +22,6 @@
 ---
 
 ## 二、檔案樹
-
-### `routes/staged/`
 
 ```
 routes/staged/
@@ -62,24 +58,6 @@ routes/staged/
     └── selection-draft.svelte.ts
 ```
 
-### `routes/committed/body/`（連帶調整）
-
-```
-routes/committed/body/
-├── Rail.svelte                   # 不動
-├── Cards.svelte                  # 不動
-├── Card.svelte                   # 不動
-├── Inspector.svelte              # 只改 import 路徑
-├── Fields.svelte                 # 新增 ← $lib/…/ImageRecordFields.svelte
-├── FieldsBatch.svelte            # 新增 ← $lib/…/ImageRecordFieldsBatch.svelte
-├── FieldsRevert.svelte           # 新增 ← $lib/…/ImageRecordFieldsRevert.svelte
-├── PanelFooter.svelte            # 新增 ← $lib/…/ImageRecordPanelFooter.svelte
-└── config.ts                     # 不動
-```
-
-`committed` 的四個新檔案是**原樣搬移**，內容一字不改，只有 import 路徑與檔名變。
-`staged` 沒有 `FieldsRevert.svelte`（沒有退回標記這個概念）。
-
 ### 刪除的檔案
 
 | 現有檔案 | 去向 |
@@ -93,10 +71,6 @@ routes/committed/body/
 | `staged/cards/StampBadge.svelte` | 移除 |
 | `staged/cards/*`、`inspector/*`、`review/*` | 併入 `body/` 與 `header/` |
 | `staged/inspector/InspectorHeader.svelte` | 改用共用的 `ImageRecordPanelHeader variant="single"` |
-| `$lib/…/ImageRecordFields.svelte` | 下放到兩頁的 `body/Fields.svelte` |
-| `$lib/…/ImageRecordFieldsBatch.svelte` | 下放到兩頁的 `body/FieldsBatch.svelte` |
-| `$lib/…/ImageRecordFieldsRevert.svelte` | 下放到 `committed/body/FieldsRevert.svelte` |
-| `$lib/…/ImageRecordPanelFooter.svelte` | 下放到兩頁的 `body/PanelFooter.svelte` |
 
 ---
 
@@ -537,25 +511,15 @@ class SelectionDraftController {
 
 ---
 
-## 四、共用元件的重新劃界
+## 四、頁面自有的表單元件
 
-原則：**`$lib` 只留「殼與版面」，「欄位內容與動作文案」歸頁面。**
+劃界原則：**`$lib` 只留「殼與版面」，「欄位內容與動作文案」歸頁面。**
+判準是——如果一個元件必須用 `variant` 或旗標來區分「這是 committed 的樣子 / 這是 staged 的樣子」，它就不該在 `$lib`。
 
-判準很直接——如果一個元件必須用 `variant` 或旗標來區分「這是 committed 的樣子 / 這是 staged 的樣子」，
-它就不該在 `$lib`。四個表單元件全部踩到這條線。
+`committed` 側已經照這條線切好了，`staged` 要自己寫三個對應檔案。
+每一個都比 `committed` 的版本更小，因為不必承載退回標記那條線。
 
-### 下放（`$lib` → 各頁 `body/`，省略 `ImageRecord` 前綴）
-
-| 原檔案 | committed | staged |
-| --- | --- | --- |
-| `ImageRecordFields.svelte` | `body/Fields.svelte` | `body/Fields.svelte` |
-| `ImageRecordFieldsBatch.svelte` | `body/FieldsBatch.svelte` | `body/FieldsBatch.svelte` |
-| `ImageRecordFieldsRevert.svelte` | `body/FieldsRevert.svelte` | —（無退回概念） |
-| `ImageRecordPanelFooter.svelte` | `body/PanelFooter.svelte` | `body/PanelFooter.svelte` |
-
-下放後每個頁面的版本都比原本的共用版**更小**，因為不再需要承載另一頁的分支：
-
-**`staged/body/Fields.svelte`** — 名稱、評等、標籤、問題提示
+**`staged/body/Fields.svelte`** — 參考 `committed/body/Fields.svelte`
 
 ```ts
 type Props = {
@@ -569,10 +533,10 @@ type Props = {
 };
 ```
 
-提示文字直接寫死「留空則沿用去除副檔名的檔名」，不再需要 `nameHint` prop。
-`committed/body/Fields.svelte` 則寫死「名稱不可留空」、沒有 `placeholder`。
+提示文字直接寫死「留空則沿用去除副檔名的檔名」。
+（`committed` 版寫死「名稱不可留空」、沒有 `placeholder`。）
 
-**`staged/body/FieldsBatch.svelte`** — 只有三個欄位
+**`staged/body/FieldsBatch.svelte`** — 參考 `committed/body/FieldsBatch.svelte`
 
 ```ts
 type Field = "rating" | "addTags" | "removeTags";
@@ -588,7 +552,7 @@ type Props = {
 沒有 `revert`、沒有 `locked`（`locked` 本來就只由退回標記造成）、
 沒有 `facetScope`（`staged` 沒有查詢條件，`TagInput` 走全域標籤建議）。
 
-**`staged/body/PanelFooter.svelte`** — 兩個 variant
+**`staged/body/PanelFooter.svelte`** — 參考 `committed/body/PanelFooter.svelte`，只要兩個 variant
 
 ```ts
 type SingleProps = {
@@ -606,21 +570,15 @@ type BatchProps = {
 };
 ```
 
-`committed/body/PanelFooter.svelte` 保留原本的 `single`（還原草稿 / 退回暫存區）、
-`single-revert`（取消退回）、`batch`（套用）三個 variant，內容原封不動。
-`batch` 那顆「套用」按鈕兩邊各寫一次（約 10 行），是這次劃界唯一的重複代價。
+`batch` 那顆「套用」按鈕與 `committed` 版重複（約 10 行），是這次劃界唯一的重複代價。
 
-### 留在 `$lib/components/workflow/`（皆不修改）
+### 直接沿用的共用元件（皆不需修改）
 
-| 元件 | 為什麼是通用的 |
-| --- | --- |
-| `ImageRecordPanel.svelte` | 純版面：`upper` / `lower` 兩個 snippet 插槽 |
-| `ImageRecordPanelHeader.svelte` | `batch` / `single` 兩個 variant，兩頁用法完全一致 |
-| `ImageRecordPanelImage.svelte` | 純預覽區塊 + 全螢幕按鈕 |
-| `ImageRecordCardWrapper.svelte` | 純卡片外殼 + 可選勾選框 |
-| `ImageRecordCardInfo.svelte` | 卡片上的標記與摘要 |
+`$lib/components/workflow/`：`ImageRecordPanel`（`upper` / `lower` 插槽）、
+`ImageRecordPanelHeader`（`batch` / `single`，兩頁用法一致）、`ImageRecordPanelImage`、
+`ImageRecordCardWrapper`、`ImageRecordCardInfo`。
 
-`$lib/components/review/*` 九個元件全部不動，兩頁共用。
+`$lib/components/review/` 九個元件全部沿用。
 
 ---
 
@@ -745,15 +703,12 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 
 ---
 
-## 七、實作順序建議
+## 七、實作順序
 
-1. **先做共用元件下放**（純搬移，`committed` 行為不變）：
-   四個檔案搬到 `committed/body/`、改 import、`npm run check` + 手動確認 `committed` 沒壞。
-   這一步可以獨立成一個 commit，之後 `staged` 出問題也不會混在一起。
-2. 建 `staged/logic/` 的 12 個 controller。
-3. 建 `staged/body/` 與 `staged/header/`，刪掉舊的 `cards/` `inspector/` `review/`。
-4. 改寫 `+page.svelte`。
-5. 刪除 `stamp.svelte.ts`、`draft.ts`、`review-entry.ts`、`editor.svelte.ts`、`operations.svelte.ts`、`lightbox.svelte.ts`。
+1. 建 `staged/logic/` 的 12 個 controller。
+2. 建 `staged/body/` 與 `staged/header/`，刪掉舊的 `cards/` `inspector/` `review/`。
+3. 改寫 `+page.svelte`。
+4. 刪除 `stamp.svelte.ts`、`draft.ts`、`review-entry.ts`、`editor.svelte.ts`、`operations.svelte.ts`、`lightbox.svelte.ts`。
 
 ---
 
@@ -762,14 +717,7 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 自動化的部分（`npm run check` / `npm run build` / `npm run test`）我會自己跑完。
 以下需要你在瀏覽器裡確認：
 
-### 第一步：`committed` 回歸（共用元件下放後、動 `staged` 之前）
-- [ ] 單張表單的名稱提示仍為「名稱不可留空」，評等 / 標籤 / 問題提示正常
-- [ ] 單張 footer 仍為「還原草稿 / 退回暫存區」
-- [ ] 標記退回後切到唯讀檢視，footer 變成「取消退回」
-- [ ] 批次表單四個欄位齊全，勾「退回標記」後其餘三欄變灰鎖定
-- [ ] 批次 footer 的「套用」與計數徽章正常
-
-### `staged` 單張編輯
+### 單張編輯
 - [ ] 點卡片開啟 Inspector，名稱欄位為空、placeholder 顯示去副檔名的檔名
 - [ ] 填入標籤後卡片右上出現綠色「可提交」標記；只填名稱不填標籤則為黃色「未就緒」
 - [ ] 把所有欄位改回空白，卡片標記自動消失（草稿被自動捨棄）
@@ -778,7 +726,7 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 - [ ] 刪除清單最後一張時，Inspector 跳到上一張
 - [ ] Inspector 的全螢幕預覽按鈕、左右切換、Esc 關閉
 
-### `staged` 多選 / 批次
+### 多選 / 批次
 - [ ] 左側 Rail 切到多選模式，原本編輯中的那張自動被選取
 - [ ] 卡片顯示勾選框，點擊為切換選取而非開啟 Inspector
 - [ ] 批次表單只有「覆蓋評等 / 增加標籤 / 去除標籤」三欄，**沒有**退回標記欄，也沒有任何欄位會變灰鎖定
@@ -786,7 +734,7 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 - [ ] 切回單選模式後選取狀態清空
 - [ ] 重新整理 / 提交 / 刪除後選取狀態清空
 
-### `staged` 審查與提交
+### 審查與提交
 - [ ] 「檢視變更」數字等於已填寫的張數（且不超過暫存清單長度）
 - [ ] 審查清單每列顯示生效名稱（未命名時為去副檔名的檔名）、評等、`+標籤`
 - [ ] 超過 25 筆時出現換頁列，換頁後自動全選該批可送出項目
@@ -794,7 +742,7 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 - [ ] 提交部分失敗時，失敗項目留在清單上並顯示原因、成功項目消失
 - [ ] 點清單裡的名稱可跳回該張繼續編輯（同時關閉對話框並退出多選）
 
-### `staged` 匯入與守衛
+### 匯入與守衛
 - [ ] 匯入 JSON 顯示即時進度，完成後暫存清單少掉已匯入的檔案
 - [ ] **匯入前先對某張填草稿，匯入後該檔案離開暫存區 →「檢視變更」數字要跟著減少**
 - [ ] 有未提交草稿時點側欄導航，跳出「尚未提交的變更」確認框
