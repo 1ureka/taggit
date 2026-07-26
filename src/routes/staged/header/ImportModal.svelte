@@ -71,17 +71,26 @@
     }
   }
 
-  /* TODO: 設計的好看一點 */
   div.container > ul {
-    font: var(--font-caption);
+    font: var(--font-body2);
     color: var(--color-error);
-    max-height: 12rem;
+    max-height: 15rem;
     overflow-y: auto;
-    padding-left: 0rem;
+    overscroll-behavior: contain;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    border: var(--border-style);
+    border-color: hsl(from var(--color-error) h s l / 0.75);
+    background-color: color-mix(var(--color-error) 10%, var(--color-bg-popover));
     margin-bottom: 1rem;
 
     & > li {
-      margin-bottom: 0.5rem;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      height: 2rem;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 2rem;
     }
   }
 
