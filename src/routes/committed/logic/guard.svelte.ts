@@ -14,15 +14,13 @@ import { requestConfirm } from "$lib/components/widgets/confirm-events";
 import { getDraftsContext } from "./drafts.svelte";
 import { getRevertMarkContext } from "./reverts.svelte";
 import { getSubmitContext } from "./submit.svelte";
+import { getReviewContext } from "./review.svelte";
 
 class GuardController {
   private submit = getSubmitContext();
   private drafts = getDraftsContext();
   private reverts = getRevertMarkContext();
-
-  private get pendingCount() {
-    return this.drafts.touchedFiles.length + this.reverts.markedFiles.length;
-  }
+  private review = getReviewContext();
 
   handleBeforeNavigate = (nav: BeforeNavigate) => {
     if (nav.type === "leave") return;
@@ -37,12 +35,12 @@ class GuardController {
       return;
     }
 
-    if (this.pendingCount === 0) return;
+    if (this.review.totalCount === 0) return;
 
     nav.cancel();
     if (to === null) return;
 
-    const msg = `還有 ${this.pendingCount} 張圖片的變更尚未提交，離開將會遺失這些修改。確定要離開？`;
+    const msg = `還有 ${this.review.totalCount} 張圖片的變更尚未提交，離開將會遺失這些修改。確定要離開？`;
     requestConfirm(msg, { title: "尚未提交的變更", action: "離開" }).then((confirmed) => {
       if (!confirmed) return;
       this.drafts.handleDiscardAll();
@@ -52,7 +50,7 @@ class GuardController {
   };
 
   handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (this.pendingCount > 0 || this.submit.pending) {
+    if (this.review.totalCount > 0 || this.submit.pending) {
       e.preventDefault();
       e.returnValue = "";
     }

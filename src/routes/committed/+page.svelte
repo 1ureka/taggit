@@ -33,9 +33,9 @@
   createRevertMarkContext();
   createSubmitContext();
   const pointers = createPointersContext();
+  createReviewContext();
   const guard = createGuardContext();
   const query = createQueryContext();
-  createReviewContext();
   createTagImpactContext();
   createSelectionContext();
   createSelectionDraftContext();
