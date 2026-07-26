@@ -16,7 +16,7 @@
   });
 </script>
 
-<div class="thumbs">
+<div class="container">
   {#if cache === undefined || cache === "loading"}
     {#each { length: 3 }, i (i)}
       <div class="thumb skeleton"></div>
@@ -40,7 +40,7 @@
 </div>
 
 <style>
-  .thumbs {
+  div.container {
     position: relative;
     display: flex;
     flex: 1;
@@ -53,7 +53,7 @@
     overflow: hidden;
   }
 
-  .thumbs > .thumb {
+  div.container > .thumb {
     aspect-ratio: 1/1;
     flex-shrink: 0;
     object-fit: cover;

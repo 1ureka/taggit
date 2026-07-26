@@ -15,7 +15,7 @@
   const { loading, checkedCount, tagsToAdd, tagsToRemove }: Props = $props();
 </script>
 
-<div>
+<div class="container">
   <IconInfoCircleFilled size={18} />
 
   {#if loading}
@@ -38,12 +38,16 @@
 </div>
 
 <style>
-  div {
+  div.container {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     font: var(--font-body2);
     color: var(--color-text-muted);
+  }
+
+  div.container > div.skeleton {
+    border-radius: var(--border-radius);
   }
 </style>

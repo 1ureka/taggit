@@ -122,4 +122,8 @@
     font-family: var(--font-family-mono);
     color: var(--color-text-muted);
   }
+
+  span.skeleton {
+    border-radius: calc(var(--border-radius) / 2);
+  }
 </style>
