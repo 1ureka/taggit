@@ -37,9 +37,9 @@ routes/staged/
 │   ├── Rail.svelte               # 單選 / 多選切換
 │   ├── Cards.svelte              # 虛擬化卡片牆
 │   ├── Card.svelte               # 單張卡片
-│   ├── Inspector.svelte          # 組裝：單張表單 / 批次表單
-│   ├── Fields.svelte             # 單張表單欄位（頁面自有）
-│   ├── FieldsBatch.svelte        # 批次表單欄位（頁面自有）
+│   ├── Panel.svelte              # 組裝：單張表單 / 批次表單
+│   ├── PanelFields.svelte        # 單張表單欄位（頁面自有）
+│   ├── PanelBatchFields.svelte   # 批次表單欄位（頁面自有）
 │   ├── PanelFooter.svelte        # 面板底部動作列（頁面自有）
 │   └── config.ts
 └── logic/
@@ -70,7 +70,10 @@ routes/staged/
 | `staged/logic/review-entry.ts` | `buildEntry` 回到 `header/ReviewBody.svelte` 內部 |
 | `staged/cards/StampBadge.svelte` | 移除 |
 | `staged/cards/*`、`inspector/*`、`review/*` | 併入 `body/` 與 `header/` |
+| `staged/inspector/Inspector.svelte` | 改名並改寫成 `body/Panel.svelte` |
 | `staged/inspector/InspectorHeader.svelte` | 改用共用的 `ImageRecordPanelHeader variant="single"` |
+| `staged/inspector/InspectorFields.svelte` | 改寫成 `body/PanelFields.svelte` |
+| `staged/inspector/InspectorFooter.svelte` | 改寫成 `body/PanelFooter.svelte`（圖章區塊移除） |
 
 ---
 
@@ -117,7 +120,7 @@ type Draft = { name: string; rating: number; tags: string[] };
 /** 所有檔案共用的編輯基準：名稱留空代表沿用去副檔名的檔名 */
 const baseline = (): Draft => ({ name: "", rating: 0, tags: [] });
 
-/** 去掉副檔名的檔名（名稱留空時的生效名稱）；Inspector 也要拿去當 placeholder */
+/** 去掉副檔名的檔名（名稱留空時的生效名稱）；Panel 也要拿去當 placeholder */
 export const stripExt = (filename: string) => filename.replace(/\.[^.]+$/, "");
 
 class DraftsController {
@@ -150,7 +153,7 @@ class DraftsController {
 
 幾個要點：
 
-- **所有 handler 一律吃 `string[]`**，與 `committed` 完全一致。單張情境由 `Inspector` 傳 `[pointer.id]`，
+- **所有 handler 一律吃 `string[]`**，與 `committed` 完全一致。單張情境由 `Panel` 傳 `[pointer.id]`，
   批次情境由 `selection-draft` 傳 `selection.selectedFiles`。這是「單張 / 批次共用同一組寫入路徑」的關鍵。
 - **`mutate` 的自動 discard 語意保留**：使用者把欄位改回全空時，草稿自動消失、卡片標記自動撤掉。
   `isTouched` 判定就是「與 baseline 不同」。
@@ -519,13 +522,26 @@ class SelectionDraftController {
 `committed` 側已經照這條線切好了，`staged` 要自己寫三個對應檔案。
 每一個都比 `committed` 的版本更小，因為不必承載退回標記那條線。
 
-**`staged/body/Fields.svelte`** — 參考 `committed/body/Fields.svelte`
+### 命名規則
+
+面板相關的元件一律以 `Panel` 為共用前綴，**變體類型放在 `Fields` 之前**；
+組裝樞紐用中性的 `Panel.svelte`，不叫 `Inspector`。
+
+| | `committed/body/` | `staged/body/` |
+| --- | --- | --- |
+| 組裝樞紐 | `Panel.svelte` | `Panel.svelte` |
+| 單張欄位 | `PanelFields.svelte` | `PanelFields.svelte` |
+| 批次欄位 | `PanelBatchFields.svelte` | `PanelBatchFields.svelte` |
+| 退回唯讀檢視 | `PanelRevertFields.svelte` | —（無退回概念） |
+| 底部動作列 | `PanelFooter.svelte` | `PanelFooter.svelte` |
+
+**`staged/body/PanelFields.svelte`** — 參考 `committed/body/PanelFields.svelte`
 
 ```ts
 type Props = {
   name: string; rating: number; tags: string[];
   problem: string | null;
-  /** 名稱留空時的提示，由 Inspector 傳 stripExt(filename) */
+  /** 名稱留空時的提示，由 Panel 傳 stripExt(filename) */
   placeholder: string;
   onchangename: (v: string) => void;
   onchangerating: (v: number) => void;
@@ -536,7 +552,7 @@ type Props = {
 提示文字直接寫死「留空則沿用去除副檔名的檔名」。
 （`committed` 版寫死「名稱不可留空」、沒有 `placeholder`。）
 
-**`staged/body/FieldsBatch.svelte`** — 參考 `committed/body/FieldsBatch.svelte`
+**`staged/body/PanelBatchFields.svelte`** — 參考 `committed/body/PanelBatchFields.svelte`
 
 ```ts
 type Field = "rating" | "addTags" | "removeTags";
@@ -593,14 +609,14 @@ type BatchProps = {
 | `body/Rail.svelte` | 同名 | 逐字相同 |
 | `body/Cards.svelte` | 同名 | `items` → `stagedFiles`；移除圖章的斜紋背景與 anchor |
 | `body/Card.svelte` | 同名 | 移除 `reverts.isMarked` 分支 |
-| `body/Inspector.svelte` | 同名 | 組裝樞紐，見下 |
-| `body/Fields*.svelte`、`PanelFooter.svelte` | 同名 | 各自持有，見第四節 |
+| `body/Panel.svelte` | 同名 | 組裝樞紐，見下 |
+| `body/Panel*Fields.svelte`、`PanelFooter.svelte` | 同名 | 各自持有，見第四節 |
 | `body/config.ts` | 同名 | 逐字相同 |
 
-### `body/Inspector.svelte`
+### `body/Panel.svelte`
 
 維持 `committed` 現在的形狀：它是唯一知道「現在是批次還是單張」的地方，
-`Fields*` 與 `PanelFooter` 都只收 props、不碰 context——
+`Panel*Fields` 與 `PanelFooter` 都只收 props、不碰 context——
 這樣型別上的 `pointer !== null` 守衛只寫一次，不會在每個子元件裡重複一遍。
 
 ```svelte
@@ -608,7 +624,7 @@ type BatchProps = {
   <ImageRecordPanel>
     {#snippet upper()}<ImageRecordPanelHeader variant="batch" ... />{/snippet}
     {#snippet lower()}
-      <FieldsBatch ... />
+      <PanelBatchFields ... />
       <PanelFooter variant="batch" ... />
     {/snippet}
   </ImageRecordPanel>
@@ -620,7 +636,7 @@ type BatchProps = {
     {/snippet}
     {#snippet lower()}
       {@const view = drafts.viewOf(pointer.id)}
-      <Fields
+      <PanelFields
         name={view.name} rating={view.rating} tags={view.tags}
         problem={drafts.problemOf(pointer.id)}
         placeholder={stripExt(pointer.id)}
@@ -718,17 +734,17 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 以下需要你在瀏覽器裡確認：
 
 ### 單張編輯
-- [ ] 點卡片開啟 Inspector，名稱欄位為空、placeholder 顯示去副檔名的檔名
+- [ ] 點卡片開啟編輯面板，名稱欄位為空、placeholder 顯示去副檔名的檔名
 - [ ] 填入標籤後卡片右上出現綠色「可提交」標記；只填名稱不填標籤則為黃色「未就緒」
 - [ ] 把所有欄位改回空白，卡片標記自動消失（草稿被自動捨棄）
 - [ ] 「清空草稿」按鈕生效，且卡片標記同步消失
-- [ ] 「刪除此張」跳 confirm，確認後檔案消失、Inspector 自動跳到清單下一張
-- [ ] 刪除清單最後一張時，Inspector 跳到上一張
-- [ ] Inspector 的全螢幕預覽按鈕、左右切換、Esc 關閉
+- [ ] 「刪除此張」跳 confirm，確認後檔案消失、編輯面板自動跳到清單下一張
+- [ ] 刪除清單最後一張時，編輯面板跳到上一張
+- [ ] 編輯面板的全螢幕預覽按鈕、左右切換、Esc 關閉
 
 ### 多選 / 批次
 - [ ] 左側 Rail 切到多選模式，原本編輯中的那張自動被選取
-- [ ] 卡片顯示勾選框，點擊為切換選取而非開啟 Inspector
+- [ ] 卡片顯示勾選框，點擊為切換選取而非開啟編輯面板
 - [ ] 批次表單只有「覆蓋評等 / 增加標籤 / 去除標籤」三欄，**沒有**退回標記欄，也沒有任何欄位會變灰鎖定
 - [ ] 勾選欄位 + 套用後，所有選取卡片的草稿同步更新，表單自動重置
 - [ ] 切回單選模式後選取狀態清空
