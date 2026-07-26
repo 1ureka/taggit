@@ -3,40 +3,48 @@
   import type { PageData } from "./$types";
 
   import { createPageDataContext } from "./logic/page-data.svelte";
-  import { createOperationsContext } from "./logic/operations.svelte";
-  import { createEditorContext } from "./logic/editor.svelte";
-  import { createStampContext } from "./logic/stamp.svelte";
-  import { createLightboxContext } from "./logic/lightbox.svelte";
-  import { createReviewContext } from "./logic/review.svelte";
+  import { createDraftsContext } from "./logic/drafts.svelte";
+  import { createPointersContext } from "./logic/pointers.svelte";
+  import { createSubmitContext } from "./logic/submit.svelte";
+  import { createDeletionContext } from "./logic/deletion.svelte";
+  import { createRefreshContext } from "./logic/refresh.svelte";
   import { createImportContext } from "./logic/import.svelte";
+  import { createReviewContext } from "./logic/review.svelte";
+  import { createGuardContext } from "./logic/guard.svelte";
+  import { createTagImpactContext } from "./logic/tag-impact.svelte";
+  import { createSelectionContext } from "./logic/selection.svelte";
+  import { createSelectionDraftContext } from "./logic/selection-draft.svelte";
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
-  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import Lightbox from "$lib/components/widgets/Lightbox.svelte";
   import SessionProgress from "./header/SessionProgress.svelte";
   import ImportModal from "./header/ImportModal.svelte";
-  import Cards from "./cards/Cards.svelte";
-  import Inspector from "./inspector/Inspector.svelte";
-  import ReviewModal from "./review/ReviewModal.svelte";
+  import ReviewModal from "./header/ReviewModal.svelte";
+  import Panel from "./body/Panel.svelte";
+  import Cards from "./body/Cards.svelte";
+  import Rail from "./body/Rail.svelte";
 
   let { data }: { data: PageData } = $props();
 
   // 依相依順序建立各領域 controller
-  createPageDataContext(() => data);
-  const operations = createOperationsContext();
-  const editor = createEditorContext();
-  const stamp = createStampContext();
-  const lightbox = createLightboxContext();
-  const review = createReviewContext();
+  const pageData = createPageDataContext(() => data);
+  createDraftsContext();
+  const pointers = createPointersContext();
+  createSubmitContext();
+  createDeletionContext();
+  const refresh = createRefreshContext();
   createImportContext();
+  createReviewContext();
+  const guard = createGuardContext();
+  createTagImpactContext();
+  createSelectionContext();
+  createSelectionDraftContext();
 
-  const touchedCount = $derived(editor.touchedFiles.length);
-
-  beforeNavigate(editor.handleBeforeNavigate);
+  beforeNavigate(guard.handleBeforeNavigate);
 </script>
 
-<svelte:window onbeforeunload={editor.handleBeforeUnload} onpointerup={stamp.handleWindowPointerUp} />
+<svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <svelte:head>
   <title>Staged</title>
@@ -45,29 +53,24 @@
 <div class="container">
   <Toolbar>
     <SessionProgress />
-    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} style="margin-left: auto;" />
+    <RefreshButton pending={refresh.pending} onrefresh={refresh.handleRefresh} style="margin-left: auto;" />
     <ImportModal />
-    <ReviewTrigger
-      count={touchedCount}
-      disabled={operations.pending || touchedCount === 0}
-      onclick={review.handleOpen}
-    />
+    <ReviewModal />
   </Toolbar>
 
   <div>
+    <Rail />
     <Cards />
-    <Inspector />
+    <Panel />
   </div>
 </div>
 
-<ReviewModal />
-
 <Lightbox
-  item={lightbox.image}
-  total={lightbox.total}
-  onclose={lightbox.handleClose}
-  onnext={lightbox.handleNext}
-  onprev={lightbox.handlePrev}
+  item={pointers.lightbox}
+  total={pageData.value.stagedFiles.length}
+  onclose={pointers.handleLightboxClose}
+  onnext={pointers.handleLightboxNext}
+  onprev={pointers.handleLightboxPrev}
 />
 
 <style>
@@ -80,6 +83,7 @@
 
   div.container > div {
     display: flex;
+    flex-direction: row;
     flex: 1;
     min-height: 0;
   }

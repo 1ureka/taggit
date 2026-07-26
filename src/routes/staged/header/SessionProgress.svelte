@@ -2,14 +2,14 @@
   import LinearProgress from "$lib/components/display/LinearProgress.svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import { getPageDataContext } from "../logic/page-data.svelte";
-  import { getEditorContext } from "../logic/editor.svelte";
+  import { getDraftsContext } from "../logic/drafts.svelte";
 
   const pageData = getPageDataContext();
-  const editor = getEditorContext();
+  const drafts = getDraftsContext();
 
   const fileCount = $derived(pageData.value.stagedFiles.length);
-  const touchedCount = $derived(editor.touchedFiles.length);
-  const readyCount = $derived(editor.readyCount);
+  const touchedCount = $derived(drafts.touchedFiles.length);
+  const readyCount = $derived(drafts.readyCount);
 
   const blockedCount = $derived(touchedCount - readyCount);
   const untouchedCount = $derived(fileCount - touchedCount);

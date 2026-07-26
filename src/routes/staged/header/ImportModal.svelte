@@ -6,13 +6,11 @@
   import ImportGuide from "./ImportGuide.svelte";
 
   import { getImportContext } from "../logic/import.svelte";
-  import { getOperationsContext } from "../logic/operations.svelte";
 
   const importer = getImportContext();
-  const operations = getOperationsContext();
 </script>
 
-<Button variant="outlined" status={operations.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
+<Button variant="outlined" status={importer.pending ? "disabled" : undefined} onclick={importer.handleOpen}>
   <IconDatabase size={16} />
   <span>匯入紀錄</span>
 </Button>
@@ -34,7 +32,7 @@
       <div>
         <Button variant="primary" onclick={importer.handleClose}>關閉</Button>
       </div>
-    {:else if operations.pending}
+    {:else if importer.pending}
       {@const progress = importer.progress ?? { current: 0, total: 0 }}
       {@const current = progress.current}
       {@const total = progress.total}
