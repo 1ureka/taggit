@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import InverseRadius from "$lib/components/widgets/InverseRadius.svelte";
-  import List from "./List.svelte";
+  import PanelBody from "./PanelBody.svelte";
 
   type Props = {
     /** 面板右側外部的內容 */
@@ -36,7 +36,7 @@
   {@render children()}
 
   <aside>
-    <List />
+    <PanelBody />
 
     <button
       type="button"

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getPageDataContext } from "../logic/page-data.svelte";
   import { Virtualizer } from "$lib/utils/virtualize.svelte";
-  import ListItem from "./ListItem.svelte";
+  import PanelListItem from "./PanelListItem.svelte";
 
   const pageData = getPageDataContext();
 
@@ -26,18 +26,18 @@
   });
 </script>
 
-<div class="viewport" bind:this={list.viewportEl}>
+<div class="container" bind:this={list.viewportEl}>
   <ul style="height: {list.contentHeight}px" aria-label="圖庫列表">
     {#each list.visibleItems as item (item.id)}
       <li style={item.style}>
-        <ListItem {item} />
+        <PanelListItem {item} />
       </li>
     {/each}
   </ul>
 </div>
 
 <style>
-  .viewport {
+  div.container {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
