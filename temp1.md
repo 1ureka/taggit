@@ -140,7 +140,7 @@ class DraftsController {
 
   draftOf(filename): Draft | undefined;              // 實際草稿，無則 undefined（卡片標記用）
   viewOf(filename): Readonly<Draft>;                 // 有草稿用草稿，無則回一份新的 baseline
-  effectiveNameOf(filename): string;                 // viewOf().name.trim() || stripExt(filename)
+  nameOf(filename): string;                 // viewOf().name.trim() || stripExt(filename)
   problemOf(filename): string | null;
 
   handleSetName    = (filenames: string[], name: string) => void;
@@ -165,7 +165,7 @@ class DraftsController {
   差集要算；`staged` 的基準是空的，`tagDiffOf` 永遠等於「草稿的全部標籤」、`toRemove` 恆空，
   `fieldDiffOf` 也只剩一個 `{ before: 0, after: rating }`。留著等於是兩個退化成單一呼叫端的空殼，
   改由 `ReviewBody` 直接從 `viewOf()` 組。
-- **`effectiveNameOf` 取代 name diff**。baseline 的 name 是空字串，硬算會得到「（空）→ 夕陽」，
+- **`nameOf` 取代 name diff**。baseline 的 name 是空字串，硬算會得到「（空）→ 夕陽」，
   審查清單改為只顯示生效名稱。
 - `touchedFiles` 走 `stagedFiles` 交集過濾，是 `staged` 相對 `committed` 唯一多出來的一行：
   匯入紀錄會讓檔案直接離開暫存區，不過濾會在審查清單留下必然失敗的幽靈項目。
@@ -211,7 +211,7 @@ class PointersController {
 
 ```ts
 /** TODO: 原型端點的欄位鍵是 `filename`，committed 端點卻是 `id`；轉正時應統一 */
-type StagedBatchItem = { filename: string; name?: string; tags: string[]; rating: number };
+type StagedBatchItem = { filename: string; name: string; tags: string[]; rating: number };
 
 class SubmitController {
   private drafts = getDraftsContext();
@@ -221,7 +221,7 @@ class SubmitController {
   /** 上一次提交後的失敗匯總（filename -> 原因） */
   lastFailures = $state<Record<string, string>>({});
 
-  /** 名稱留空時不帶 name，交由後端沿用去副檔名的檔名 */
+  /** 名稱留空時由 `nameOf` 補上去副檔名的檔名，後端不再做任何補值 */
   private buildItem(filename: string): StagedBatchItem;
 
   clearFailures = () => void;
@@ -669,7 +669,7 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 
   return {
     filename,
-    name: drafts.effectiveNameOf(filename),                                  // 不做 name diff
+    name: drafts.nameOf(filename),                                  // 不做 name diff
     changeRating: view.rating > 0 ? { before: 0, after: view.rating } : undefined,
     changeTags: { toAdd: view.tags },
     problem,

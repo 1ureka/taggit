@@ -13,7 +13,7 @@ import { addToast } from "$lib/components/floating/toast-events";
 import { getDraftsContext } from "./drafts.svelte";
 
 /** TODO: 原型端點以 `filename` 為鍵，committed 端點卻是 `id`；端點轉正時應統一 */
-type StagedBatchItem = { filename: string; name?: string; tags: string[]; rating: number };
+type StagedBatchItem = { filename: string; name: string; tags: string[]; rating: number };
 
 class SubmitController {
   private drafts = getDraftsContext();
@@ -23,11 +23,10 @@ class SubmitController {
   /** 上一次提交後的失敗匯總（filename -> 原因） */
   lastFailures = $state<Record<string, string>>({});
 
-  /** 名稱留空時不帶 `name`，交由後端沿用去副檔名的檔名 */
+  /** 名稱留空時由 `nameOf` 補上去副檔名的檔名 */
   private buildItem(filename: string): StagedBatchItem {
     const draft = this.drafts.viewOf(filename);
-    const name = draft.name.trim();
-    return { filename, tags: draft.tags, rating: draft.rating, ...(name ? { name } : {}) };
+    return { filename, name: this.drafts.nameOf(filename), tags: draft.tags, rating: draft.rating };
   }
 
   /** 清掉上一輪的失敗匯總 */

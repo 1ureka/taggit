@@ -1,9 +1,6 @@
 /**
  * @file tag-impact.svelte.ts
  * 管理標籤庫影響評估狀態
- *
- * 暫存圖片的基準沒有任何標籤，提交只會新增、不會讓既有標籤變成孤兒，
- * 因此不需要 committed 那套「淨變化 delta」，只要問「這些標籤現在的使用數是不是 0」。
  */
 
 import { getContext, setContext } from "svelte";
