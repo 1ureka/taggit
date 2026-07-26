@@ -1,17 +1,17 @@
 <script lang="ts">
   import { getPageDataContext } from "../logic/page-data.svelte";
-  import ListHeader from "./ListHeader.svelte";
-  import ListItems from "./ListItems.svelte";
+  import PanelHeader from "./PanelHeader.svelte";
+  import PanelList from "./PanelList.svelte";
 
   const pageData = getPageDataContext();
 </script>
 
 <div>
-  <ListHeader />
+  <PanelHeader />
   {#if pageData.value.items.length === 0}
-    <p class="empty">沒有符合條件的圖片</p>
+    <p>沒有符合條件的圖片</p>
   {:else}
-    <ListItems />
+    <PanelList />
   {/if}
 </div>
 
@@ -26,7 +26,7 @@
     overflow: hidden;
   }
 
-  div > p.empty {
+  div > p {
     padding: 1.5rem 0.75rem;
     font: var(--font-body2);
     color: var(--color-text-muted);

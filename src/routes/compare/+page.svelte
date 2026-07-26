@@ -10,7 +10,7 @@
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import QueryControls from "./header/QueryControls.svelte";
   import ShuffleControl from "./header/ShuffleControl.svelte";
-  import Panel from "./panel/Panel.svelte";
+  import Panel from "./body/Panel.svelte";
   import Cards from "./body/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
