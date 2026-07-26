@@ -6,10 +6,20 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 
+import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
 import { formatError, isRecord } from "$lib/utils/shared";
 
-import { importRecords, type ImportProgress, type ImportResult } from "./import-api";
+/** 逐筆串流回傳的即時事件，對應 `/api/committed` 的 SSE 事件 */
+type ImportEvent =
+  | { event: "progress"; current: number; total: number }
+  | { event: "done"; imported: number; skipped: number; errors: string[] };
+
+/** 匯入中的即時進度 */
+type ImportProgress = { current: number; total: number };
+
+/** 匯入完成後的彙總結果 */
+type ImportResult = { imported: number; skipped: number; errors: string[] };
 
 class ImportController {
   /** 匯入對話框是否開啟 */
@@ -56,7 +66,14 @@ class ImportController {
     this.pending = true;
     this.progress = { current: 0, total: Object.keys(payload).length };
     try {
-      this.result = await importRecords(payload, (p) => (this.progress = p));
+      let result: ImportResult | null = null;
+      for await (const event of api.stream<ImportEvent>("/api/committed", payload)) {
+        if (event.event === "progress") this.progress = { current: event.current, total: event.total };
+        else result = event;
+      }
+      if (!result) throw new Error("匯入中斷：未收到完成事件");
+
+      this.result = result;
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {
       this.result = { imported: 0, skipped: 0, errors: [formatError(e)] };

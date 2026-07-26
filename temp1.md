@@ -50,7 +50,6 @@ routes/staged/
     ├── deletion.svelte.ts
     ├── refresh.svelte.ts
     ├── import.svelte.ts
-    ├── import-api.ts             # 唯一保留的非-controller（純 SSE 傳輸解析）
     ├── guard.svelte.ts
     ├── review.svelte.ts
     ├── tag-impact.svelte.ts
@@ -290,9 +289,18 @@ class RefreshController {
 
 ### 7. `import.svelte.ts` — 匯入紀錄
 
-與現有實作相同，唯一改動是 **pending 從 `operations.pending` 改成自帶**：
+`api.stream<T>()`（`$lib/utils/request.ts` 新增的方法）把 SSE 的 fetch、非 2xx 錯誤解析、
+frame 拆解全部收斂成一個 async generator，跟 `get/post/patch/del` 同層級。
+`import-api.ts` 因此整檔消失，SSE 消費邏輯直接寫進 controller，
+與 `committed` 那種「API 呼叫直接寫在 controller 裡」的風格一致，
+唯一改動是 **pending 從 `operations.pending` 改成自帶**：
 
 ```ts
+/** 逐筆串流回傳的即時事件，對應 /api/committed 的 SSE 事件 */
+type ImportEvent =
+  | { event: "progress"; current: number; total: number }
+  | { event: "done"; imported: number; skipped: number; errors: string[] };
+
 class ImportController {
   open = $state(false);
   /** 是否有一次匯入正在進行中 */
@@ -302,12 +310,14 @@ class ImportController {
 
   handleOpen = () => void;
   handleClose = () => void;          // pending 時不允許關閉
-  handleImportFile = async (file: File) => void;
+
+  handleImportFile = async (file: File) => {
+    // 解析 JSON → pending 上鎖 →
+    // for await (const event of api.stream<ImportEvent>("/api/committed", payload)) { ... }
+    // 沒收到 done 事件視為中斷 → goto(location.href, { ...invalidateAll }) → 解鎖
+  };
 }
 ```
-
-`import-api.ts` 保留：SSE 串流解析是純傳輸邏輯、沒有任何狀態，
-留在 controller 裡會讓檔案膨脹到 130 行以上，與 `committed` 那種「一行 `api.post`」的情況不同。
 
 ---
 
