@@ -3,6 +3,8 @@
 目標：讓 `staged` 的架構與 `committed` 幾乎同形，差異只留在「暫存區本來就沒有的東西」上。
 本文件以 **controller 邊界** 為主軸，元件樹只描述對應關係。
 
+> 本次改動同時涉及 `committed`：四個表單元件從 `$lib` 下放到各頁面 `body/`，`committed` 必須一起改。
+
 ---
 
 ## 一、與 `committed` 的本質差異
@@ -14,6 +16,7 @@
 | 樂觀鎖 | `expectedUpdatedAt` | 無（`commitRecord` 是新增） | `submit` 少一個欄位 |
 | 破壞性操作 | 「退回暫存區」＝**標記**，可批次、進審查清單、可取消 | 「永久刪除」＝**即時單張 + confirm** | 沒有 `reverts` controller |
 | 查詢條件 | 搜尋 / 排序 / 評等 / 標籤篩選 | 無 | 沒有 `query` controller，`refresh` 獨立出來 |
+| 標籤影響 | 有新增也有孤兒（退回會移除標籤） | 只會新增 | `tag-impact` 寫成 `staged` 專用的簡化版 |
 | 圖章模式 | 無 | 現有，**本次移除** | 刪除 `stamp` controller 與 `StampBadge` |
 | 匯入紀錄 | 無 | 現有，保留 | 多一個 `import` controller |
 | 進度指示 | 無 | `SessionProgress`，保留 | `drafts` 需多導出 `readyCount` |
@@ -21,6 +24,8 @@
 ---
 
 ## 二、檔案樹
+
+### `routes/staged/`
 
 ```
 routes/staged/
@@ -36,7 +41,10 @@ routes/staged/
 │   ├── Rail.svelte               # 單選 / 多選切換
 │   ├── Cards.svelte              # 虛擬化卡片牆
 │   ├── Card.svelte               # 單張卡片
-│   ├── Inspector.svelte          # 單張表單 + 批次表單
+│   ├── Inspector.svelte          # 組裝：單張表單 / 批次表單
+│   ├── Fields.svelte             # 單張表單欄位（頁面自有）
+│   ├── FieldsBatch.svelte        # 批次表單欄位（頁面自有）
+│   ├── PanelFooter.svelte        # 面板底部動作列（頁面自有）
 │   └── config.ts
 └── logic/
     ├── page-data.svelte.ts
@@ -54,21 +62,41 @@ routes/staged/
     └── selection-draft.svelte.ts
 ```
 
+### `routes/committed/body/`（連帶調整）
+
+```
+routes/committed/body/
+├── Rail.svelte                   # 不動
+├── Cards.svelte                  # 不動
+├── Card.svelte                   # 不動
+├── Inspector.svelte              # 只改 import 路徑
+├── Fields.svelte                 # 新增 ← $lib/…/ImageRecordFields.svelte
+├── FieldsBatch.svelte            # 新增 ← $lib/…/ImageRecordFieldsBatch.svelte
+├── FieldsRevert.svelte           # 新增 ← $lib/…/ImageRecordFieldsRevert.svelte
+├── PanelFooter.svelte            # 新增 ← $lib/…/ImageRecordPanelFooter.svelte
+└── config.ts                     # 不動
+```
+
+`committed` 的四個新檔案是**原樣搬移**，內容一字不改，只有 import 路徑與檔名變。
+`staged` 沒有 `FieldsRevert.svelte`（沒有退回標記這個概念）。
+
 ### 刪除的檔案
 
 | 現有檔案 | 去向 |
 | --- | --- |
-| `logic/editor.svelte.ts` | 拆成 `drafts` + `pointers` + `deletion` + `guard` |
-| `logic/operations.svelte.ts` | 拆成 `refresh`，其餘 pending 各 controller 自帶 |
-| `logic/lightbox.svelte.ts` | 併入 `pointers` |
-| `logic/stamp.svelte.ts` | 移除（圖章模式取消） |
-| `logic/draft.ts` | 型別與驗證進 `drafts`，`commitDrafts` 進 `submit` |
-| `logic/review-entry.ts` | `buildEntry` 回到 `header/ReviewBody.svelte` 內部 |
-| `cards/StampBadge.svelte` | 移除 |
-| `cards/*`、`inspector/*`、`review/*` | 併入 `body/` 與 `header/` |
-| `inspector/InspectorHeader.svelte` | 改用 `ImageRecordPanelHeader variant="single"` |
-| `inspector/InspectorFields.svelte` | 改用 `ImageRecordFields` |
-| `inspector/InspectorFooter.svelte` | 改用 `ImageRecordPanelFooter` 新 variant |
+| `staged/logic/editor.svelte.ts` | 拆成 `drafts` + `pointers` + `deletion` + `guard` |
+| `staged/logic/operations.svelte.ts` | 拆成 `refresh`，其餘 pending 各 controller 自帶 |
+| `staged/logic/lightbox.svelte.ts` | 併入 `pointers` |
+| `staged/logic/stamp.svelte.ts` | 移除（圖章模式取消） |
+| `staged/logic/draft.ts` | 型別與驗證進 `drafts`，`commitDrafts` 進 `submit` |
+| `staged/logic/review-entry.ts` | `buildEntry` 回到 `header/ReviewBody.svelte` 內部 |
+| `staged/cards/StampBadge.svelte` | 移除 |
+| `staged/cards/*`、`inspector/*`、`review/*` | 併入 `body/` 與 `header/` |
+| `staged/inspector/InspectorHeader.svelte` | 改用共用的 `ImageRecordPanelHeader variant="single"` |
+| `$lib/…/ImageRecordFields.svelte` | 下放到兩頁的 `body/Fields.svelte` |
+| `$lib/…/ImageRecordFieldsBatch.svelte` | 下放到兩頁的 `body/FieldsBatch.svelte` |
+| `$lib/…/ImageRecordFieldsRevert.svelte` | 下放到 `committed/body/FieldsRevert.svelte` |
+| `$lib/…/ImageRecordPanelFooter.svelte` | 下放到兩頁的 `body/PanelFooter.svelte` |
 
 ---
 
@@ -115,8 +143,8 @@ type Draft = { name: string; rating: number; tags: string[] };
 /** 所有檔案共用的編輯基準：名稱留空代表沿用去副檔名的檔名 */
 const baseline = (): Draft => ({ name: "", rating: 0, tags: [] });
 
-/** 去掉副檔名的檔名（名稱留空時的生效名稱） */
-const stripExt = (filename: string) => filename.replace(/\.[^.]+$/, "");
+/** 去掉副檔名的檔名（名稱留空時的生效名稱）；Inspector 也要拿去當 placeholder */
+export const stripExt = (filename: string) => filename.replace(/\.[^.]+$/, "");
 
 class DraftsController {
   private pageData = getPageDataContext();
@@ -135,8 +163,6 @@ class DraftsController {
   viewOf(filename): Readonly<Draft>;                 // 有草稿用草稿，無則回一份新的 baseline
   effectiveNameOf(filename): string;                 // viewOf().name.trim() || stripExt(filename)
   problemOf(filename): string | null;
-  tagDiffOf(filename): { toAdd: string[]; toRemove: string[] };
-  fieldDiffOf(filename): { changeRating?: { before: number; after: number } };
 
   handleSetName    = (filenames: string[], name: string) => void;
   handleSetRating  = (filenames: string[], rating: number) => void;
@@ -152,16 +178,18 @@ class DraftsController {
 
 - **所有 handler 一律吃 `string[]`**，與 `committed` 完全一致。單張情境由 `Inspector` 傳 `[pointer.id]`，
   批次情境由 `selection-draft` 傳 `selection.selectedFiles`。這是「單張 / 批次共用同一組寫入路徑」的關鍵。
-- **`mutate` 的自動 discard 語意保留**：使用者把欄位改回全空時，草稿自動消失、卡片標記自動撤掉，
-  不需要另外按「清空草稿」。`isTouched` 判定就是「與 baseline 不同」。
+- **`mutate` 的自動 discard 語意保留**：使用者把欄位改回全空時，草稿自動消失、卡片標記自動撤掉。
+  `isTouched` 判定就是「與 baseline 不同」。
 - **`problemOf` 不檢查名稱為空**（名稱可留空 → 沿用檔名），其餘規則與 `committed` 相同：
   名稱 ≤ 200 字元、至少一個標籤、標籤非空 / ≤ 50 字元 / 不含逗號。
-- **`tagDiffOf` 的 `toRemove` 恆為空陣列**（baseline 沒有任何標籤）。刻意保留這個形狀，
-  好讓 `tag-impact` 能直接共用 `committed` 的 delta 演算法本體。
-- **`fieldDiffOf` 刻意不產出 `changeName`**。baseline 的 name 是空字串，算出來會是「（空）→ 夕陽」，
-  審查清單改為只顯示 `effectiveNameOf()` 的生效名稱。
+- **不提供 `tagDiffOf` / `fieldDiffOf`**。`committed` 需要它們是因為基準值真的會有內容，
+  差集要算；`staged` 的基準是空的，`tagDiffOf` 永遠等於「草稿的全部標籤」、`toRemove` 恆空，
+  `fieldDiffOf` 也只剩一個 `{ before: 0, after: rating }`。留著等於是兩個退化成單一呼叫端的空殼，
+  改由 `ReviewBody` 直接從 `viewOf()` 組。
+- **`effectiveNameOf` 取代 name diff**。baseline 的 name 是空字串，硬算會得到「（空）→ 夕陽」，
+  審查清單改為只顯示生效名稱。
 - `touchedFiles` 走 `stagedFiles` 交集過濾，是 `staged` 相對 `committed` 唯一多出來的一行：
-  匯入紀錄會讓檔案直接離開暫存區，不過濾的話審查清單會有必然提交失敗的幽靈項目。
+  匯入紀錄會讓檔案直接離開暫存區，不過濾會在審查清單留下必然失敗的幽靈項目。
 
 ---
 
@@ -384,28 +412,51 @@ class ReviewController {
 
 ---
 
-### 10. `tag-impact.svelte.ts` — 標籤庫影響評估
+### 10. `tag-impact.svelte.ts` — 標籤庫影響評估（`staged` 專用簡化版）
 
-與 `committed/logic/tag-impact.svelte.ts` **共用同一套 delta 演算法本體**，
-只是少了 `reverts.draftOf()` 那個分支：
+`committed` 需要一整套「淨變化 delta」是因為它同時有標籤新增與退回造成的移除，
+必須算出 `before + delta` 才能判斷一個標籤會不會變孤兒。
+
+`staged` 只會新增標籤，永遠不會讓任何標籤變孤兒，所以整套 delta 拿掉，
+只保留「這些標籤目前在標籤庫的使用數是不是 0」這一個問題：
 
 ```ts
-private deltas = $derived.by(() => {
-  const deltas = new Map<string, number>();
-  const bump = (tag: string, delta: number) => deltas.set(tag, (deltas.get(tag) ?? 0) + delta);
+class TagImpactController {
+  private drafts = getDraftsContext();
+  private review = getReviewContext();
 
-  for (const f of this.review.submittableFiles) {
-    const { toAdd, toRemove } = this.drafts.tagDiffOf(f);
-    for (const t of toAdd) bump(t, 1);
-    for (const t of toRemove) bump(t, -1);
+  private seq = 0;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  /** 目前可送出項目會用到的所有相異標籤 */
+  private names = $derived.by(() => {
+    const set = new Set<string>();
+    for (const f of this.review.submittableFiles) {
+      for (const t of this.drafts.viewOf(f).tags) set.add(t);
+    }
+    return [...set];
+  });
+
+  /** 這些標籤目前在標籤庫的使用數 */
+  private counts = $state(new Map<string, number>());
+
+  /** 是否正在查詢中 */
+  fetching = $state(false);
+
+  /** 提交後會新增的全新標籤 */
+  newTags = $derived(this.names.filter((t) => (this.counts.get(t) ?? 0) === 0));
+
+  constructor() {
+    $effect(() => {
+      // 與 committed 相同的 300ms debounce + seq 作廢機制
+      // GET /api/proto/tags-impact?names=...
+    });
   }
-  return deltas;
-});
+}
 ```
 
-`newTags` / `orphanedTags` / `fetching` 與 debounce + `seq` 作廢機制全部照抄。
-實務上 `staged` 的 `orphanedTags` 恆為空陣列（`toRemove` 恆空），但保留整套演算法，
-`ReviewTagImpact` 照樣接 `tagsToRemove={tagImpact.orphanedTags.length}`，不做特例。
+沒有 `deltas`、沒有 `bump()`、沒有 `orphanedTags`。
+`ReviewModal` 直接傳 `tagsToRemove={0}` 給 `ReviewTagImpact`。
 
 > `committed` 那條「`--max-http-header-size` 16 KB，約 440 個相異標籤就爆」的 TODO 一併帶過來。
 
@@ -486,46 +537,90 @@ class SelectionDraftController {
 
 ---
 
-## 四、共用元件的修改
+## 四、共用元件的重新劃界
 
-三處都是加可選 props / 新 variant，`committed` 的呼叫端不受影響。
+原則：**`$lib` 只留「殼與版面」，「欄位內容與動作文案」歸頁面。**
 
-### 1. `$lib/components/workflow/ImageRecordFields.svelte`
+判準很直接——如果一個元件必須用 `variant` 或旗標來區分「這是 committed 的樣子 / 這是 staged 的樣子」，
+它就不該在 `$lib`。四個表單元件全部踩到這條線。
 
-```ts
-namePlaceholder?: string;   // staged 傳 stripExt(filename)
-nameHint?: string;          // 預設 "名稱不可留空"；staged 傳 "留空則沿用去除副檔名的檔名"
-```
+### 下放（`$lib` → 各頁 `body/`，省略 `ImageRecord` 前綴）
 
-### 2. `$lib/components/workflow/ImageRecordFieldsBatch.svelte`
+| 原檔案 | committed | staged |
+| --- | --- | --- |
+| `ImageRecordFields.svelte` | `body/Fields.svelte` | `body/Fields.svelte` |
+| `ImageRecordFieldsBatch.svelte` | `body/FieldsBatch.svelte` | `body/FieldsBatch.svelte` |
+| `ImageRecordFieldsRevert.svelte` | `body/FieldsRevert.svelte` | —（無退回概念） |
+| `ImageRecordPanelFooter.svelte` | `body/PanelFooter.svelte` | `body/PanelFooter.svelte` |
 
-```ts
-showRevert?: boolean;   // 預設 true；staged 傳 false，整個「退回標記」區塊不渲染
-facetScope?: string;    // 改為可選；staged 沒有查詢條件，不傳，TagInput 走全域標籤建議
-```
+下放後每個頁面的版本都比原本的共用版**更小**，因為不再需要承載另一頁的分支：
 
-`showRevert` 為 `false` 時 `locked` 恆為 `false`（`locked` 本來就只由退回標記造成）。
-
-### 3. `$lib/components/workflow/ImageRecordPanelFooter.svelte`
-
-新增 variant：
+**`staged/body/Fields.svelte`** — 名稱、評等、標籤、問題提示
 
 ```ts
-type StagedSingleProps = {
-  variant: "single-staged";
-  /** 刪除是否進行中 */
-  pending: boolean;
-  /** 清空草稿事件 */
-  ondiscard: () => void;
-  /** 永久刪除事件 */
-  ondelete: () => void;
+type Props = {
+  name: string; rating: number; tags: string[];
+  problem: string | null;
+  /** 名稱留空時的提示，由 Inspector 傳 stripExt(filename) */
+  placeholder: string;
+  onchangename: (v: string) => void;
+  onchangerating: (v: number) => void;
+  onchangetags: (v: string[]) => void;
 };
 ```
 
-渲染成「清空草稿」（`outlined`）＋「刪除此張」（`destructive`，`pending` 時走 `status="pending"`）。
+提示文字直接寫死「留空則沿用去除副檔名的檔名」，不再需要 `nameHint` prop。
+`committed/body/Fields.svelte` 則寫死「名稱不可留空」、沒有 `placeholder`。
 
-> `ImageRecordCardWrapper`、`ImageRecordCardInfo`、`ImageRecordPanel`、`ImageRecordPanelHeader`、
-> `ImageRecordPanelImage` 與所有 `review/*` 元件都可直接沿用，不需修改。
+**`staged/body/FieldsBatch.svelte`** — 只有三個欄位
+
+```ts
+type Field = "rating" | "addTags" | "removeTags";
+type Props = {
+  checked: Set<Field>;
+  rating: number; addTags: string[]; removeTags: string[];
+  oncheck: (field: Field, checked: boolean) => void;
+  onrating: (v: number) => void;
+  onchangetags: (type: "add" | "remove", tags: string[]) => void;
+};
+```
+
+沒有 `revert`、沒有 `locked`（`locked` 本來就只由退回標記造成）、
+沒有 `facetScope`（`staged` 沒有查詢條件，`TagInput` 走全域標籤建議）。
+
+**`staged/body/PanelFooter.svelte`** — 兩個 variant
+
+```ts
+type SingleProps = {
+  variant: "single";
+  /** 刪除是否進行中 */
+  pending: boolean;
+  ondiscard: () => void;   // 清空草稿
+  ondelete: () => void;    // 永久刪除
+};
+type BatchProps = {
+  variant: "batch";
+  applicable: boolean;
+  count: number;
+  onapply: () => void;
+};
+```
+
+`committed/body/PanelFooter.svelte` 保留原本的 `single`（還原草稿 / 退回暫存區）、
+`single-revert`（取消退回）、`batch`（套用）三個 variant，內容原封不動。
+`batch` 那顆「套用」按鈕兩邊各寫一次（約 10 行），是這次劃界唯一的重複代價。
+
+### 留在 `$lib/components/workflow/`（皆不修改）
+
+| 元件 | 為什麼是通用的 |
+| --- | --- |
+| `ImageRecordPanel.svelte` | 純版面：`upper` / `lower` 兩個 snippet 插槽 |
+| `ImageRecordPanelHeader.svelte` | `batch` / `single` 兩個 variant，兩頁用法完全一致 |
+| `ImageRecordPanelImage.svelte` | 純預覽區塊 + 全螢幕按鈕 |
+| `ImageRecordCardWrapper.svelte` | 純卡片外殼 + 可選勾選框 |
+| `ImageRecordCardInfo.svelte` | 卡片上的標記與摘要 |
+
+`$lib/components/review/*` 九個元件全部不動，兩頁共用。
 
 ---
 
@@ -540,21 +635,64 @@ type StagedSingleProps = {
 | `body/Rail.svelte` | 同名 | 逐字相同 |
 | `body/Cards.svelte` | 同名 | `items` → `stagedFiles`；移除圖章的斜紋背景與 anchor |
 | `body/Card.svelte` | 同名 | 移除 `reverts.isMarked` 分支 |
-| `body/Inspector.svelte` | 同名 | 移除退回分支，footer 改用 `single-staged` |
+| `body/Inspector.svelte` | 同名 | 組裝樞紐，見下 |
+| `body/Fields*.svelte`、`PanelFooter.svelte` | 同名 | 各自持有，見第四節 |
 | `body/config.ts` | 同名 | 逐字相同 |
+
+### `body/Inspector.svelte`
+
+維持 `committed` 現在的形狀：它是唯一知道「現在是批次還是單張」的地方，
+`Fields*` 與 `PanelFooter` 都只收 props、不碰 context——
+這樣型別上的 `pointer !== null` 守衛只寫一次，不會在每個子元件裡重複一遍。
+
+```svelte
+{#if selection.active}
+  <ImageRecordPanel>
+    {#snippet upper()}<ImageRecordPanelHeader variant="batch" ... />{/snippet}
+    {#snippet lower()}
+      <FieldsBatch ... />
+      <PanelFooter variant="batch" ... />
+    {/snippet}
+  </ImageRecordPanel>
+{:else if pointer !== null}
+  <ImageRecordPanel>
+    {#snippet upper()}
+      <ImageRecordPanelHeader variant="single" title={pointer.id} index={pointer.index} ... />
+      <ImageRecordPanelImage file={pointer.id} ... />
+    {/snippet}
+    {#snippet lower()}
+      {@const view = drafts.viewOf(pointer.id)}
+      <Fields
+        name={view.name} rating={view.rating} tags={view.tags}
+        problem={drafts.problemOf(pointer.id)}
+        placeholder={stripExt(pointer.id)}
+        onchangename={(v) => drafts.handleSetName([pointer.id], v)}
+        ...
+      />
+      <PanelFooter
+        variant="single"
+        pending={deletion.pending}
+        ondiscard={() => drafts.handleDiscardDraft([pointer.id])}
+        ondelete={() => deletion.handleDelete(pointer.id)}
+      />
+    {/snippet}
+  </ImageRecordPanel>
+{/if}
+```
 
 ### `header/ReviewBody.svelte` 的投影
 
 ```ts
 function buildEntry(filename: string, checked: boolean, failure?: string) {
+  const view = drafts.viewOf(filename);
   const problem = drafts.problemOf(filename) ?? (failure ? `提交失敗：${failure}` : null);
   const checkable = problem === null;
 
   return {
     filename,
-    name: drafts.effectiveNameOf(filename),   // 只顯示生效名稱，不做 name diff
-    changeRating: drafts.fieldDiffOf(filename).changeRating,
-    changeTags: drafts.tagDiffOf(filename),
+    name: drafts.effectiveNameOf(filename),                                  // 不做 name diff
+    changeRating: view.rating > 0 ? { before: 0, after: view.rating } : undefined,
+    changeTags: { toAdd: view.tags },
     problem,
     checkable,
     checked: checkable && checked,
@@ -583,29 +721,55 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
    `staged` 多一層 `stagedFiles` 交集。原因是匯入紀錄會讓檔案直接離開暫存區，
    不過濾會在審查清單留下必然失敗的幽靈項目。這是兩者唯一一行實作差異。
 
-2. **`tag-impact` 的 `orphanedTags` 恆空**：保留完整 delta 演算法而非簡化成「只算新增」，
-   是為了讓兩頁真的共用同一套邏輯形狀，日後任一頁擴充都不必再分岔。
+2. **`tag-impact` 兩頁不共用**：`staged` 版是「一組標籤名 → 使用數是否為 0」，約 35 行；
+   `committed` 版是「淨變化 delta → 新增 / 孤兒」，約 95 行。
+   共通的只有 debounce + `seq` 作廢那個模式，不值得為它抽象。
 
-3. **原型端點的欄位鍵不一致**：`/api/proto/staged-batch` 用 `filename`、
+3. **`batch` footer 兩邊各寫一次**：下放 `PanelFooter` 的代價，約 10 行重複。
+   換到的是 `$lib` 不再有任何「這是哪一頁」的知識。
+
+4. **`ImageRecordCardInfo` 仍留有 `"reverted"`**：這是 `committed` 專屬的值，
+   `staged` 永遠不會傳。它只影響一個圖示與一行文字、不構成 variant 分支，本次不動。
+
+5. **原型端點的欄位鍵不一致**：`/api/proto/staged-batch` 用 `filename`、
    `/api/proto/committed-batch` 用 `id`。不為此扭曲 controller，
-   在 `submit.svelte.ts` 的型別上留 `TODO` 標記，等端點轉正時一併處理。
+   在 `submit.svelte.ts` 的型別上留 `TODO`，等端點轉正時一併處理。
 
-4. **編輯指標不寫入 URL**：`committed` 用 `SvelteShallowParam("currentId")`，`staged` 用純本地 `$state`。
+6. **編輯指標不寫入 URL**：`committed` 用 `SvelteShallowParam("currentId")`，`staged` 用純本地 `$state`。
    代價是重新整理後回不到原本編輯的那張；好處是頁面完全不涉及淺路由，
    所有 `goto` 都可以無條件從 `location` 取值而不必擔心 `page.url` 脫鉤。
 
-5. **圖章模式的功能由多選批次取代**：連續套用同一組標籤 / 評等的情境，
+7. **圖章模式的功能由多選批次取代**：連續套用同一組標籤 / 評等的情境，
    改成「進多選 → 框選多張 → 批次表單勾選欄位 → 套用」。
    失去的是拖曳筆劃的手感，換到的是與 `committed` 完全一致的心智模型與程式碼。
 
 ---
 
-## 七、驗收檢查清單（需人工驗證）
+## 七、實作順序建議
+
+1. **先做共用元件下放**（純搬移，`committed` 行為不變）：
+   四個檔案搬到 `committed/body/`、改 import、`npm run check` + 手動確認 `committed` 沒壞。
+   這一步可以獨立成一個 commit，之後 `staged` 出問題也不會混在一起。
+2. 建 `staged/logic/` 的 12 個 controller。
+3. 建 `staged/body/` 與 `staged/header/`，刪掉舊的 `cards/` `inspector/` `review/`。
+4. 改寫 `+page.svelte`。
+5. 刪除 `stamp.svelte.ts`、`draft.ts`、`review-entry.ts`、`editor.svelte.ts`、`operations.svelte.ts`、`lightbox.svelte.ts`。
+
+---
+
+## 八、驗收檢查清單（需人工驗證）
 
 自動化的部分（`npm run check` / `npm run build` / `npm run test`）我會自己跑完。
 以下需要你在瀏覽器裡確認：
 
-### 單張編輯
+### 第一步：`committed` 回歸（共用元件下放後、動 `staged` 之前）
+- [ ] 單張表單的名稱提示仍為「名稱不可留空」，評等 / 標籤 / 問題提示正常
+- [ ] 單張 footer 仍為「還原草稿 / 退回暫存區」
+- [ ] 標記退回後切到唯讀檢視，footer 變成「取消退回」
+- [ ] 批次表單四個欄位齊全，勾「退回標記」後其餘三欄變灰鎖定
+- [ ] 批次 footer 的「套用」與計數徽章正常
+
+### `staged` 單張編輯
 - [ ] 點卡片開啟 Inspector，名稱欄位為空、placeholder 顯示去副檔名的檔名
 - [ ] 填入標籤後卡片右上出現綠色「可提交」標記；只填名稱不填標籤則為黃色「未就緒」
 - [ ] 把所有欄位改回空白，卡片標記自動消失（草稿被自動捨棄）
@@ -614,30 +778,25 @@ function buildEntry(filename: string, checked: boolean, failure?: string) {
 - [ ] 刪除清單最後一張時，Inspector 跳到上一張
 - [ ] Inspector 的全螢幕預覽按鈕、左右切換、Esc 關閉
 
-### 多選 / 批次
+### `staged` 多選 / 批次
 - [ ] 左側 Rail 切到多選模式，原本編輯中的那張自動被選取
 - [ ] 卡片顯示勾選框，點擊為切換選取而非開啟 Inspector
-- [ ] 批次表單只有「覆蓋評等 / 增加標籤 / 去除標籤」三欄，**沒有**退回標記欄
+- [ ] 批次表單只有「覆蓋評等 / 增加標籤 / 去除標籤」三欄，**沒有**退回標記欄，也沒有任何欄位會變灰鎖定
 - [ ] 勾選欄位 + 套用後，所有選取卡片的草稿同步更新，表單自動重置
 - [ ] 切回單選模式後選取狀態清空
-- [ ] 重新整理 / 提交 / 刪除後選取狀態自動清空
+- [ ] 重新整理 / 提交 / 刪除後選取狀態清空
 
-### 審查與提交
+### `staged` 審查與提交
 - [ ] 「檢視變更」數字等於已填寫的張數（且不超過暫存清單長度）
 - [ ] 審查清單每列顯示生效名稱（未命名時為去副檔名的檔名）、評等、`+標籤`
 - [ ] 超過 25 筆時出現換頁列，換頁後自動全選該批可送出項目
-- [ ] 標籤影響提示顯示「將新增 N 個新標籤」，且不會顯示移除相關文案
+- [ ] 標籤影響提示顯示「將新增 N 個新標籤」，**永遠不會**出現移除 / 孤兒相關文案
 - [ ] 提交部分失敗時，失敗項目留在清單上並顯示原因、成功項目消失
 - [ ] 點清單裡的名稱可跳回該張繼續編輯（同時關閉對話框並退出多選）
 
-### 匯入與守衛
+### `staged` 匯入與守衛
 - [ ] 匯入 JSON 顯示即時進度，完成後暫存清單少掉已匯入的檔案
-- [ ] **匯入前先對某張填草稿，匯入後該檔案離開暫存區 → 「檢視變更」數字要跟著減少**
+- [ ] **匯入前先對某張填草稿，匯入後該檔案離開暫存區 →「檢視變更」數字要跟著減少**
 - [ ] 有未提交草稿時點側欄導航，跳出「尚未提交的變更」確認框
 - [ ] 提交 / 刪除 / 匯入進行中時嘗試導航，顯示「操作進行中，請稍候」
 - [ ] 有未提交草稿時按瀏覽器重新整理，跳出瀏覽器原生離開確認
-
-### 回歸（`committed` 不受共用元件修改影響）
-- [ ] `committed` 單張表單的名稱提示仍為「名稱不可留空」
-- [ ] `committed` 批次表單仍有「退回標記」欄位，且勾選後其餘三欄變灰鎖定
-- [ ] `committed` 單張 footer 仍為「還原草稿 / 退回暫存區」
