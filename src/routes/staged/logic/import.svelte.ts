@@ -6,17 +6,26 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 
+import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
 import { formatError, isRecord } from "$lib/utils/shared";
 
-import { importRecords, type ImportProgress, type ImportResult } from "./import-api";
-import { getOperationsContext } from "./operations.svelte";
+/** 逐筆串流回傳的即時事件，對應 `/api/committed` 的 SSE 事件 */
+type ImportEvent =
+  | { event: "progress"; current: number; total: number }
+  | { event: "done"; imported: number; skipped: number; errors: string[] };
+
+/** 匯入中的即時進度 */
+type ImportProgress = { current: number; total: number };
+
+/** 匯入完成後的彙總結果 */
+type ImportResult = { imported: number; skipped: number; errors: string[] };
 
 class ImportController {
-  private operations = getOperationsContext();
-
   /** 匯入對話框是否開啟 */
   open = $state(false);
+  /** 是否有一次匯入正在進行中 */
+  pending = $state(false);
   /** 匯入中的即時進度，尚未開始或已結束時為 null */
   progress = $state<ImportProgress | null>(null);
   /** 上一次匯入完成後的結果摘要，尚未匯入或已重置時為 null */
@@ -29,9 +38,9 @@ class ImportController {
     this.open = true;
   };
 
-  /** 關閉匯入對話框（匯入進行中時不允許關閉） */
+  /** 關閉匯入對話框，匯入進行中時不允許關閉 */
   handleClose = () => {
-    if (this.operations.pending) return;
+    if (this.pending) return;
     this.open = false;
     this.progress = null;
     this.result = null;
@@ -39,7 +48,7 @@ class ImportController {
 
   /** 解析並匯入所選的 JSON 檔案 */
   handleImportFile = async (file: File) => {
-    if (this.operations.pending) return;
+    if (this.pending) return;
 
     let payload: Record<string, unknown>;
     try {
@@ -54,15 +63,22 @@ class ImportController {
       return;
     }
 
-    this.operations.pending = true;
+    this.pending = true;
     this.progress = { current: 0, total: Object.keys(payload).length };
     try {
-      this.result = await importRecords(payload, (p) => (this.progress = p));
+      let result: ImportResult | null = null;
+      for await (const event of api.stream<ImportEvent>("/api/committed", payload)) {
+        if (event.event === "progress") this.progress = { current: event.current, total: event.total };
+        else result = event;
+      }
+      if (!result) throw new Error("匯入中斷：未收到完成事件");
+
+      this.result = result;
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {
       this.result = { imported: 0, skipped: 0, errors: [formatError(e)] };
     } finally {
-      this.operations.pending = false;
+      this.pending = false;
     }
   };
 }

@@ -1,5 +1,5 @@
-/** Inspector 開啟時佔用的寬度，用來推算可用寬度 */
-export const INSPECTOR_WIDTH = 352;
+/** 編輯面板開啟時佔用的寬度，用來推算可用寬度 */
+export const PANEL_WIDTH = 352;
 
 /** 依可用寬度找欄數的門檻陣列 */
 export const breakpoints = [
