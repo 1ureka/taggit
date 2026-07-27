@@ -29,7 +29,12 @@ class PointersController {
   private editingParam = new SvelteShallowParam("currentId");
 
   /** 目前正在編輯的檔案；篩選/排序改變導致它不在可視範圍時自動回落為 null */
-  editing = $derived(this.locate(this.editingParam.value));
+  editing = $derived.by(() => {
+    const p = this.locate(this.editingParam.value);
+    if (!p) return p;
+    const record = this.pageData.value.items[p.index - 1];
+    return { ...p, record };
+  });
 
   /** 開啟指定檔名的編輯面板 */
   handleSelect = (filename: string) => {

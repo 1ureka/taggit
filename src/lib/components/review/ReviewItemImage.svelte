@@ -1,11 +1,14 @@
 <script lang="ts">
+  import type { ImageWithId } from "$lib/database";
+  import { imgSrc } from "$lib/image/client";
+
   import { IconAlertCircleFilled } from "$lib/icons";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
   import RatingDel from "$lib/components/widgets/RatingDel.svelte";
   import TagsDiff from "$lib/components/widgets/TagsDiff.svelte";
-  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
-  import { imgSrc } from "$lib/image/client";
   import Rating from "$lib/components/inputs/Rating.svelte";
+  import Image from "$lib/components/display/Image.svelte";
 
   type Props = {
     /** 項目是否可勾選 */
@@ -14,10 +17,8 @@
     checked: boolean;
     /** 項目的紀錄名稱 */
     name: string;
-    /** 項目對應的檔案名稱 */
-    filename: string;
-    /** TODO: 項目的模糊預覽 */
-    // blurhash?: string;
+    /** 項目對應的圖片紀錄 */
+    record: string | ImageWithId;
     /** 對項目名稱的改動 */
     changeName?: { before: string; after: string };
     /** 對項目評分的改動 */
@@ -40,7 +41,7 @@
     checkable,
     checked,
     name,
-    filename,
+    record,
     changeName,
     changeRating,
     changeTags,
@@ -52,6 +53,8 @@
   }: Props = $props();
 
   const displayName = $derived(changeName ? changeName.after : name);
+  const filename = $derived(typeof record === "string" ? record : record.id);
+  const preview = $derived(typeof record === "string" ? undefined : record);
 </script>
 
 {#snippet thumbnail()}
@@ -63,7 +66,7 @@
     {@attach tooltip({ content: label })}
     onclick={onclickimage}
   >
-    <img src={imgSrc(filename, "sm")} alt={filename} />
+    <Image src={imgSrc(filename, "sm")} alt={filename} {preview} fit="cover" />
   </button>
 {/snippet}
 
@@ -168,13 +171,6 @@
     overflow: hidden;
     background: var(--color-bg-active);
     cursor: pointer;
-
-    & > img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
   }
 
   button.name {

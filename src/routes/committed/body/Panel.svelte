@@ -72,7 +72,7 @@
         onclose={pointers.handleClose}
       />
 
-      <ImageRecordPanelImage file={pointer.id} onopen={() => pointers.handleLightboxOpen(pointer.id)} />
+      <ImageRecordPanelImage record={pointer.record} onopen={() => pointers.handleLightboxOpen(pointer.id)} />
     {/snippet}
     {#snippet lower()}
       {@const view = drafts.viewOf(pointer.id)}
