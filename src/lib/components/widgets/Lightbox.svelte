@@ -1,14 +1,17 @@
 <script lang="ts">
+  import type { ImageWithId } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
+
   import { IconX, IconChevronDown } from "$lib/icons";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
+  import Image from "$lib/components/display/Image.svelte";
   import Modal from "$lib/components/floating/Modal.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
 
   type Props = {
     /** 要呈現的圖片資料， */
-    item: { id: string; index: number } | null; // TODO: 增加可選的 blurhash
+    item: { id: string; index: number; record?: ImageWithId } | null; // TODO: 增加可選的 blurhash
     /** 總圖片數量 */
     total: number;
     /** 關閉對話框事件 */
@@ -39,7 +42,7 @@
 
     <div class="body">
       <ImageCanvas resetKey={filename}>
-        <img src={imgSrc(filename, "xl")} alt={filename} draggable="false" />
+        <Image src={imgSrc(filename, "xl")} alt={filename} preview={item.record} fit="contain" draggable="false" />
       </ImageCanvas>
 
       <Button
@@ -88,12 +91,5 @@
     min-height: 0;
     display: flex;
     align-items: center;
-  }
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    pointer-events: none;
   }
 </style>

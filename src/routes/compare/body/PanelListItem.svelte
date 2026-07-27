@@ -2,6 +2,7 @@
   import type { ImageWithId } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconPinFilled, IconPinnedOff } from "$lib/icons";
+  import Image from "$lib/components/display/Image.svelte";
   import { getPinnedContext } from "../logic/pinned.svelte";
 
   let { item }: { item: ImageWithId } = $props();
@@ -13,7 +14,9 @@
 </script>
 
 <button type="button" aria-pressed={pinned} title={pinned ? "自畫布移除" : "釘選到畫布"} onclick={handleToggle}>
-  <img src={imgSrc(item.id, "sm")} alt={item.name} loading="lazy" decoding="async" />
+  <span class="image">
+    <Image src={imgSrc(item.id, "sm")} alt={item.name} preview={item} fit="cover" />
+  </span>
 
   <span class="ellipsis">{item.name}</span>
 
@@ -59,13 +62,12 @@
 
   /* --- */
 
-  button > img {
+  button > span.image {
     width: 44px;
     height: 44px;
-    object-fit: cover;
     border-radius: calc(var(--border-radius) / 1.5);
-    background: var(--color-bg);
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   button > span.ellipsis {

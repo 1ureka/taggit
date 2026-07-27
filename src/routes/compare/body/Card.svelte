@@ -2,6 +2,7 @@
   import type { ImageWithId } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
+  import Image from "$lib/components/display/Image.svelte";
   import CardHeader from "./CardHeader.svelte";
   import CardInfo from "./CardInfo.svelte";
 
@@ -15,7 +16,7 @@
   <CardHeader {record} />
 
   <ImageCanvas resetKey={record.id} style={canvasStyle}>
-    <img src={imgSrc(record.id, "xl")} alt={record.name} draggable="false" />
+    <Image src={imgSrc(record.id, "xl")} alt={record.name} preview={record} fit="contain" draggable="false" />
   </ImageCanvas>
 
   <CardInfo {record} />
@@ -28,12 +29,5 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    pointer-events: none;
   }
 </style>
