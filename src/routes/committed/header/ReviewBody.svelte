@@ -66,6 +66,7 @@
   {#each entries as entry (entry.filename)}
     <ReviewItemImage
       {...entry}
+      record={entry.filename}
       onclickimage={() => pointers.handleLightboxOpen(entry.filename)}
       onclickname={() => handleBackToEdit(entry.filename)}
       ontoggle={() => review.handleToggle(entry.filename)}

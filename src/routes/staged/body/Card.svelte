@@ -31,6 +31,6 @@
   };
 </script>
 
-<ImageRecordCardWrapper {filename} {selected} selectable={selection.active} onclick={handleClick}>
+<ImageRecordCardWrapper record={filename} {selected} selectable={selection.active} onclick={handleClick}>
   <ImageRecordCardInfo {filename} {info} />
 </ImageRecordCardWrapper>

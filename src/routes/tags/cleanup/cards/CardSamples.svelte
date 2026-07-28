@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { imgSrc, blurhashStyle } from "$lib/image/client";
+  import { imgSrc } from "$lib/image/client";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
+  import Image from "$lib/components/display/Image.svelte";
+
   import { getSamplesContext } from "../logic/samples.svelte";
   import type { Suggestion } from "../logic/suggestions";
 
@@ -16,31 +18,28 @@
   });
 </script>
 
-<div class="thumbs">
+<div class="container">
   {#if cache === undefined || cache === "loading"}
     {#each { length: 3 }, i (i)}
-      <div class="thumb skeleton"></div>
+      <div class="image skeleton"></div>
     {/each}
   {:else if cache.length > 0}
     {#each cache as img (img.id)}
       {#snippet preview()}
-        <img class="preview" src={imgSrc(img.id, "md")} alt={img.name} loading="lazy" style={blurhashStyle(img)} />
+        <div class="image-md">
+          <Image src={imgSrc(img.id, "md")} alt={img.name} preview={img} fit="contain" />
+        </div>
       {/snippet}
 
-      <img
-        class="thumb"
-        src={imgSrc(img.id, "sm")}
-        alt={img.name}
-        loading="lazy"
-        style={blurhashStyle(img)}
-        {@attach tooltip({ content: preview })}
-      />
+      <div class="image" {@attach tooltip({ content: preview })}>
+        <Image src={imgSrc(img.id, "sm")} alt={img.name} preview={img} fit="cover" />
+      </div>
     {/each}
   {/if}
 </div>
 
 <style>
-  .thumbs {
+  div.container {
     position: relative;
     display: flex;
     flex: 1;
@@ -53,18 +52,18 @@
     overflow: hidden;
   }
 
-  .thumbs > .thumb {
+  div.container > div.image {
     aspect-ratio: 1/1;
     flex-shrink: 0;
-    object-fit: cover;
     border-radius: calc(var(--border-radius) / 1.5);
+    overflow: hidden;
   }
 
-  .preview {
+  div.image-md {
     width: 15rem;
-    height: 15rem;
-    object-fit: cover;
+    height: 20rem;
     border-radius: calc(var(--border-radius) / 1.5);
+    overflow: hidden;
     margin: 0.25rem 0.1rem;
   }
 </style>

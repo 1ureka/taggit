@@ -2,6 +2,7 @@
   import type { ImageWithId, Tag } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import { IconEyeOff } from "$lib/icons";
+  import Image from "$lib/components/display/Image.svelte";
   import { getPreviewsContext } from "../logic/previews.svelte";
 
   let { previews, tag }: { previews: ReturnType<typeof getPreviewsContext>; tag: Tag } = $props();
@@ -37,7 +38,9 @@
 {#snippet thumbnailDisplay(images: ImageWithId[])}
   <div class="thumbs">
     {#each images as img (img.id)}
-      <img class="thumb" src={imgSrc(img.id, "sm")} alt={img.name} decoding="async" />
+      <div class="thumb">
+        <Image src={imgSrc(img.id, "sm")} alt={img.name} preview={img} fit="cover" />
+      </div>
     {/each}
   </div>
 {/snippet}
@@ -106,7 +109,7 @@
     --color-skeleton: color-mix(in srgb, var(--color-bg) 80%, var(--color-text));
     width: 56px;
     height: 56px;
-    object-fit: cover;
     border-radius: calc(var(--border-radius) / 1.5);
+    overflow: hidden;
   }
 </style>

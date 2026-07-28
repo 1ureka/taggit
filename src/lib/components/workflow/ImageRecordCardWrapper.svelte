@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import type { ImageWithId } from "$lib/database";
   import { imgSrc } from "$lib/image/client";
   import Checkbox from "$lib/components/inputs/Checkbox.svelte";
+  import Image from "$lib/components/display/Image.svelte";
 
   type Props = {
-    /** 卡片對應的檔案名稱 */
-    filename: string;
+    /** 卡片對應的圖片 */
+    record: string | ImageWithId;
     /** 是否是選擇中的樣式 */
     selected: boolean;
-    /** TODO: 增加可選的 blurhash */
-    // blurhash?: string;
     /** 是否可選擇 */
     selectable?: boolean;
     /** 點擊卡片事件 */
@@ -18,11 +18,16 @@
     children: Snippet;
   };
 
-  let { filename, selected, selectable, onclick, children }: Props = $props();
+  let { record, selected, selectable, onclick, children }: Props = $props();
+
+  const filename = $derived(typeof record === "string" ? record : record.id);
+  const preview = $derived(typeof record === "string" ? undefined : record);
 </script>
 
 <button type="button" class:selected {onclick}>
-  <img src={imgSrc(filename, "sm")} alt={filename} loading="lazy" />
+  <div class="image">
+    <Image src={imgSrc(filename, "sm")} alt={filename} {preview} fit="cover" />
+  </div>
   {@render children()}
   {#if selectable}
     <div inert><Checkbox checked={selected} /></div>
@@ -51,13 +56,11 @@
     }
   }
 
-  img {
-    display: block;
+  div.image {
     width: 100%;
-    flex: 1;
     min-height: 0;
-    object-fit: cover;
-    background: var(--color-bg);
+    flex: 1;
+    overflow: hidden;
     transition: border-radius 0.15s ease;
   }
 
@@ -67,7 +70,7 @@
     background-color: transparent;
     border-color: transparent;
 
-    & img {
+    & > div.image {
       border-radius: var(--border-radius);
     }
   }
@@ -76,7 +79,7 @@
     background-color: var(--color-bg-hover);
     border-color: var(--color-border-hover);
 
-    & img {
+    & > div.image {
       border-radius: 0px;
     }
   }
@@ -85,7 +88,7 @@
     background-color: hsl(from var(--color-accent) h s l / 0.15);
     border-color: hsl(from var(--color-accent) h s l / 0.35);
 
-    & img {
+    & > div.image {
       border-radius: 0px;
     }
   }
@@ -94,14 +97,14 @@
     background-color: hsl(from var(--color-accent) h s l / 0.25);
     border-color: hsl(from var(--color-accent) h s l / 0.5);
 
-    & img {
+    & > div.image {
       border-radius: 0px;
     }
   }
 
   /* --- */
 
-  div {
+  div[inert] {
     position: absolute;
     top: 0.5rem;
     left: 0.5rem;

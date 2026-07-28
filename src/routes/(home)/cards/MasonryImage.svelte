@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ImageWithId } from "$lib/database";
-  import { imgSrc, blurhashStyle } from "$lib/image/client";
+  import { imgSrc } from "$lib/image/client";
+  import Image from "$lib/components/display/Image.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
   import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
   import { getDetailContext } from "../logic/detail.svelte";
@@ -12,12 +13,9 @@
 
 <button data-theme="dark" type="button" onclick={() => detail.handleSelect(item.id)} aria-label="查看 {item.name} 詳情">
   <figure>
-    <img
-      src={imgSrc(item.id, "md")}
-      style={blurhashStyle({ fit: "cover", blurhash: item.blurhash, width: item.width, height: item.height })}
-      alt={item.name}
-      decoding="async"
-    />
+    <div class="image">
+      <Image src={imgSrc(item.id, "md")} alt={item.name} preview={item} fit="cover" />
+    </div>
 
     <figcaption>
       <h3 class="ellipsis">{item.name}</h3>
@@ -50,7 +48,7 @@
   button > figure {
     min-width: 0;
 
-    & > img {
+    & > div.image {
       position: absolute;
       width: 100%;
       height: 100%;
@@ -82,7 +80,7 @@
   /* hover / focus 時圖片微放大、資訊層淡入 */
 
   button > figure {
-    & > img {
+    & > div.image {
       scale: 1.001;
       transition: scale 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -101,7 +99,7 @@
   }
 
   button:hover > figure {
-    & > img {
+    & > div.image {
       scale: 1.05;
     }
 
@@ -113,7 +111,7 @@
   button:focus-visible {
     outline: none;
 
-    & > figure > img {
+    & > figure > div.image {
       scale: 1.05;
     }
 

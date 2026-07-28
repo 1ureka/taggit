@@ -111,34 +111,30 @@ img {
 
 .skeleton {
   --color-skeleton: color-mix(in srgb, var(--color-bg) 20%, var(--color-text));
-  --shimmer-spread: calc(3ch + 7rem);
-  --skeleton-base: hsl(from var(--color-skeleton) h s l / 15%);
-  --skeleton-highlight: hsl(from var(--color-skeleton) h s l / 50%);
+  --skeleton-base: hsl(from var(--color-skeleton) h s l / 20%);
+  --skeleton-highlight: hsl(from var(--color-skeleton) h s l / 40%);
 
   pointer-events: none;
   color: transparent !important;
-  border-radius: var(--border-radius);
 
   background-repeat: no-repeat;
-  background-size: calc(200% + var(--shimmer-spread)) 100%;
-  background-image: linear-gradient(
-    90deg,
-    var(--skeleton-base) calc(50% - var(--shimmer-spread) / 2),
-    color-mix(in oklch, var(--skeleton-highlight), var(--skeleton-base) 50%) calc(50% - var(--shimmer-spread) / 4),
-    var(--skeleton-highlight) 50%,
-    color-mix(in oklch, var(--skeleton-highlight), var(--skeleton-base) 50%) calc(50% + var(--shimmer-spread) / 4),
-    var(--skeleton-base) calc(50% + var(--shimmer-spread) / 2)
-  );
+  background-color: var(--skeleton-base);
+  background-size: 200% 100%;
+  background-image: linear-gradient(90deg, transparent 15%, var(--skeleton-highlight) 50%, transparent 85%);
 
-  animation: shimmer 2s ease-in-out infinite;
+  animation: shimmer 1.75s ease-out infinite;
+}
+
+.skeleton:nth-child(even) {
+  animation-delay: -0.875s;
 }
 
 @keyframes shimmer {
   0% {
-    background-position: 100% 0;
+    background-position: 165% 0;
   }
   100% {
-    background-position: 0 0;
+    background-position: -65% 0;
   }
 }
 

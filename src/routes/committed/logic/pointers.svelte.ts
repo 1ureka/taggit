@@ -4,11 +4,12 @@
  */
 
 import { getContext, setContext } from "svelte";
+import type { ImageWithId } from "$lib/database";
 import { SvelteShallowParam } from "$lib/utils/search-params.svelte";
 import { getPageDataContext } from "./page-data.svelte";
 
 /** 一個指標指向目前清單裡的哪個檔案，以及它是清單裡的第幾個（1-based） */
-type Pointer = { id: string; index: number } | null;
+type Pointer = { id: string; index: number; record: ImageWithId } | null;
 
 class PointersController {
   private pageData = getPageDataContext();
@@ -21,7 +22,7 @@ class PointersController {
   private locate(id: string | null): Pointer {
     if (id === null) return null;
     const index = this.files.indexOf(id);
-    return index < 0 ? null : { id, index: index + 1 };
+    return index < 0 ? null : { id, index: index + 1, record: this.pageData.value.items[index] };
   }
 
   // ---

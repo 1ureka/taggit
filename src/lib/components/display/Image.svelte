@@ -24,46 +24,48 @@
 
   let { src, alt, fit = "cover", preview, style, ...rest }: Props = $props();
 
-  // src 變更時重置為載入中；利用 derived 可暫時寫入的特性，由 onload 收尾
+  /** 在組件的生命週期中，是否為首次載入 */
+  let empty = $state(true);
+  /** src 變更時重置為載入中，利用 derived 可暫時寫入的特性，由 onload 收尾 */
   let loading = $derived.by(() => {
     src;
     return true;
   });
 
-  const handleLoad = () => (loading = false);
+  /** 圖片載入事件 */
+  const handleLoad = () => {
+    loading = false;
+    empty = false;
+  };
 </script>
 
 {#if preview}
-  <!-- 帶 preview 時透過 key 強制重新 mount，讓 BlurHash 佔位能被看見 -->
   {#key src}
-    <img
-      {src}
-      {alt}
-      style={`object-fit:${fit};${blurhashStyle({ ...preview, fit })};${style ?? ""}`}
-      onload={handleLoad}
-      {...rest}
-    />
+    {@const composed = `object-fit:${fit};${style ?? ""}`}
+    {@const result = loading ? `${blurhashStyle({ ...preview, fit })};${composed}` : composed}
+    <img {src} {alt} style={result} onload={handleLoad} {...rest} />
   {/key}
 {:else}
-  <!-- 無 preview 時保持上一張圖片，載入超過 0.2s 才調暗，避免快速切換時閃爍 -->
-  <img
-    class={{ loading }}
-    {src}
-    {alt}
-    style={`object-fit:${fit};${style ?? ""}`}
-    onload={handleLoad}
-    {...rest}
-  />
+  {@const composed = `object-fit:${fit};${style ?? ""}`}
+  {@const classname = loading && empty ? { skeleton: true } : { loading }}
+  <img class={classname} {src} {alt} style={composed} onload={handleLoad} {...rest} />
 {/if}
 
 <style>
   img {
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     opacity: 1;
-    transition: opacity 0s step-start;
+    transition: opacity 0s;
   }
 
   img.loading {
     opacity: 0.4;
-    transition: opacity 0.2s step-end;
+    transition: opacity 0s 0.15s;
   }
 </style>

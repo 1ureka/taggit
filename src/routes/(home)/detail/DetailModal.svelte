@@ -5,11 +5,12 @@
 
   import { IconX, IconEditFilled } from "$lib/icons";
   import { Modal } from "$lib/components/floating/modal.core.svelte";
+  import Image from "$lib/components/display/Image.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Rating from "$lib/components/inputs/Rating.svelte";
-  import BlurImage from "$lib/components/widgets/BlurImage.svelte";
   import TagsWithMask from "$lib/components/widgets/TagsWithMask.svelte";
+
   import { getDetailContext } from "../logic/detail.svelte";
   import { getFilterContext } from "../logic/filter.svelte";
 
@@ -66,11 +67,12 @@
         </header>
 
         <div class="image-wrapper">
-          <BlurImage
+          <Image
             src={imgSrc(shown.id, "xl")}
             alt={shown.name}
-            preview={{ blurhash: shown.blurhash, width: shown.width, height: shown.height }}
-            decoding="async"
+            preview={shown}
+            fit="cover"
+            style="width: auto; height: auto;"
           />
 
           <img class="blur-spread" aria-hidden="true" src={imgSrc(shown.id, "md")} alt="" decoding="async" />
