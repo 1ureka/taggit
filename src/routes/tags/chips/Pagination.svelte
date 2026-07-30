@@ -4,46 +4,25 @@
   import { getQueryContext } from "../logic/query.svelte";
 
   const query = getQueryContext();
+
+  const backward = $derived(query.navigating || query.atFirst ? "disabled" : undefined);
+  const forward = $derived(query.navigating || query.atLast ? "disabled" : undefined);
 </script>
 
 <div>
-  <Button
-    variant="ghost"
-    padding="icon"
-    aria-label="第一頁"
-    status={query.disabledFirst ? "disabled" : undefined}
-    onclick={query.handleFirstPage}
-  >
+  <Button variant="ghost" padding="icon" aria-label="第一頁" status={backward} onclick={query.handleFirstPage}>
     <IconChevronRightPipe size={16} style="transform: rotate(180deg);" />
   </Button>
-  <Button
-    variant="ghost"
-    padding="icon"
-    aria-label="上一頁"
-    status={query.disabledPrev ? "disabled" : undefined}
-    onclick={query.handlePrevPage}
-  >
+  <Button variant="ghost" padding="icon" aria-label="上一頁" status={backward} onclick={query.handlePrevPage}>
     <IconChevronDown size={16} style="transform: rotate(90deg);" />
   </Button>
 
-  <span>第 {query.currentPage} / {query.totalPages} 頁 · 共 {query.total} 個</span>
+  <span>第 {query.page} / {query.pages} 頁 · 共 {query.total} 個</span>
 
-  <Button
-    variant="ghost"
-    padding="icon"
-    aria-label="下一頁"
-    status={query.disabledNext ? "disabled" : undefined}
-    onclick={query.handleNextPage}
-  >
+  <Button variant="ghost" padding="icon" aria-label="下一頁" status={forward} onclick={query.handleNextPage}>
     <IconChevronDown size={16} style="transform: rotate(-90deg);" />
   </Button>
-  <Button
-    variant="ghost"
-    padding="icon"
-    aria-label="最後一頁"
-    status={query.disabledLast ? "disabled" : undefined}
-    onclick={query.handleLastPage}
-  >
+  <Button variant="ghost" padding="icon" aria-label="最後一頁" status={forward} onclick={query.handleLastPage}>
     <IconChevronRightPipe size={16} />
   </Button>
 </div>

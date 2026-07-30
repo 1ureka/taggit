@@ -6,7 +6,7 @@
   const board = getBoardContext();
   const selection = getSelectionContext();
 
-  const oncreate = () => board.createGroup(selection.consume());
+  const oncreate = () => board.handleAssign({ kind: "new-group" }, selection.consume());
 </script>
 
 <p>拖曳到這裡建立<b>合併區</b></p>

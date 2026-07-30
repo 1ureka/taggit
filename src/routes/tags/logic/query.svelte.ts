@@ -1,7 +1,6 @@
 /**
  * @file query.svelte.ts
- * 管理標籤篩選（搜尋/排序/隱藏）與分頁——統一成同一個 SvelteSearchParams，只有一個 set 點，
- * 篩選條件改變一律連帶把頁碼重置為 1；目前頁/總頁數以伺服器回傳（page-data）為準，不在前端重算。
+ * 管理標籤池的查詢條件與 URL 同步
  */
 
 import { getContext, setContext } from "svelte";
@@ -22,16 +21,18 @@ class QueryController {
     return this.params.value;
   }
 
-  /** 以下三者一律以伺服器回傳為準，不在前端重算 */
-  currentPage = $derived(this.pageData.value.page);
-  totalPages = $derived(this.pageData.value.pages);
+  /** 目前所在頁面 */
+  page = $derived(this.pageData.value.page);
+  /** 目前頁面總數 */
+  pages = $derived(this.pageData.value.pages);
+  /** 目前項目總數 */
   total = $derived(this.pageData.value.total);
-
-  private navigatingAway = $derived(!!navigating.to);
-  disabledFirst = $derived(this.navigatingAway || this.currentPage <= 1);
-  disabledPrev = $derived(this.navigatingAway || this.currentPage <= 1);
-  disabledNext = $derived(this.navigatingAway || this.currentPage >= this.totalPages);
-  disabledLast = $derived(this.navigatingAway || this.currentPage >= this.totalPages);
+  /** 是否有導航在途，換頁控制項據此避免連點 */
+  navigating = $derived(!!navigating.to);
+  /** 是否已在首頁 */
+  atFirst = $derived(this.page <= 1);
+  /** 是否已在末頁 */
+  atLast = $derived(this.page >= this.pages);
 
   private commit(next: TagQuery) {
     this.params.set(next);
@@ -55,21 +56,27 @@ class QueryController {
     this.commit(new TagQuery(this.query.where.with({ hidden }), this.query.list.with({ page: 1 })));
   };
 
+  /** 換到指定頁，超出範圍由內部夾住 */
   private gotoPage(p: number) {
-    this.commit(new TagQuery(this.query.where, this.query.list.with({ page: p })));
+    const next = Math.min(Math.max(1, p), this.pages);
+    if (next === this.page) return;
+    this.commit(new TagQuery(this.query.where, this.query.list.with({ page: next })));
   }
 
   handleFirstPage = () => {
-    if (!this.disabledFirst) this.gotoPage(1);
+    this.gotoPage(1);
   };
+
   handlePrevPage = () => {
-    if (!this.disabledPrev) this.gotoPage(this.currentPage - 1);
+    this.gotoPage(this.page - 1);
   };
+
   handleNextPage = () => {
-    if (!this.disabledNext) this.gotoPage(this.currentPage + 1);
+    this.gotoPage(this.page + 1);
   };
+
   handleLastPage = () => {
-    if (!this.disabledLast) this.gotoPage(this.totalPages);
+    this.gotoPage(this.pages);
   };
 }
 

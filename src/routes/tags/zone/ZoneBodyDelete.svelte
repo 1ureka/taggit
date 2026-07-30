@@ -3,14 +3,15 @@
   import Chip from "$lib/components/display/Chip.svelte";
   import { getBoardContext } from "../logic/board.svelte";
 
+  let { tags }: { tags: Tag[] } = $props();
+
   const board = getBoardContext();
-  const tags = $derived(board.deleteZone.tags);
 </script>
 
 <p>拖進來的標籤會自所有圖片移除</p>
 
 {#snippet chip({ name, count }: Tag)}
-  <Chip variant="outlined" removable onclick={() => board.detachTag(name)}>
+  <Chip variant="outlined" removable onclick={() => board.handleDetach([name])}>
     <span class="chip-name ellipsis">{name}</span>
     <span class="chip-count">{count}</span>
   </Chip>

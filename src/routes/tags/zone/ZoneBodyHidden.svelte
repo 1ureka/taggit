@@ -3,14 +3,15 @@
   import Chip from "$lib/components/display/Chip.svelte";
   import { getBoardContext } from "../logic/board.svelte";
 
+  let { tags }: { tags: Tag[] } = $props();
+
   const board = getBoardContext();
-  const tags = $derived(board.hiddenZone.tags);
 </script>
 
 <p>可見的變隱藏、隱藏的恢復可見</p>
 
 {#snippet chip({ name, meta: { hidden } }: Tag)}
-  <Chip variant="outlined" removable onclick={() => board.detachTag(name)}>
+  <Chip variant="outlined" removable onclick={() => board.handleDetach([name])}>
     <span class="chip-name ellipsis">{name}</span>
     <span class="chip-note">{hidden ? "→ 可見" : "→ 隱藏"}</span>
   </Chip>
