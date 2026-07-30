@@ -1,109 +1,135 @@
 /**
  * @file review.svelte.ts
- * 審查清單：勾選狀態、投影出的清單、提交流程，以及提交失敗匯總
+ * 審查清單的狀態管理，包括開闔、分批、勾選、可送出判斷、觸發送出
  */
 
 import { getContext, setContext } from "svelte";
-import { SvelteSet } from "svelte/reactivity";
-import { goto } from "$app/navigation";
+import { SveltePagination } from "$lib/utils/pagination.svelte";
 
-import { formatError } from "$lib/utils/shared";
-import { addToast } from "$lib/components/floating/toast-events";
-
-import { submitChangeset } from "./changeset";
-import { buildReviewEntries } from "./review-entry";
 import { getBoardContext } from "./board.svelte";
-import { getOperationsContext } from "./operations.svelte";
-import { getPreviewsContext } from "./previews.svelte";
+import { getSubmitContext } from "./submit.svelte";
 
 class ReviewController {
   private board = getBoardContext();
-  private operationsCtx = getOperationsContext();
-  private previews = getPreviewsContext();
+  private submit = getSubmitContext();
+
+  /** 全部有畫布異動的標籤，維持插入順序，**不應加入任何過濾** */
+  private names = $derived(this.board.operations.map((op) => op.name));
+  /** 一輪能承擔的審查量設為 25 ，與 staged/committed 一致 */
+  // TODO: 標籤應該可以調整的更高
+  private pagination = new SveltePagination(() => this.names, 25);
+  /** 目前審查清單的勾選狀態；每次開始新的一批時重新全選可送出項目 */
+  private checked = $state<Record<string, true>>({});
+
+  /** 指定標籤目前是否可以被送出 */
+  checkableOf(name: string): boolean {
+    return this.board.problemOf(name) === null;
+  }
+  /** 指定標籤目前是否已勾選 */
+  isChecked(name: string): boolean {
+    return !!this.checked[name];
+  }
 
   /** 審查對話框是否開啟 */
   open = $state(false);
-  /** 上一次提交後的失敗匯總（name -> 原因） */
-  private failures = $state<Record<string, string>>({});
-  /** 目前審查清單的勾選狀態；每次打開時重新全選可送出項目 */
-  private checked = new SvelteSet<string>();
-
-  /** 審查清單 */
-  entries = $derived(buildReviewEntries(this.board.operations, this.checked, this.failures));
-  /** 已勾選的數量（只從 entries 衍生，不是原始 checked 集合的大小） */
-  checkedCount = $derived(this.entries.filter((e) => e.checked).length);
-  /** 可勾選的數量 */
-  checkableCount = $derived(this.entries.filter((e) => e.checkable).length);
+  /** 全部待送出的標籤數，不受分批截斷 */
+  totalCount = $derived(this.pagination.total);
+  /** 目前批次（1-based） */
+  batch = $derived(this.pagination.page);
+  /** 總批次數 */
+  batches = $derived(this.pagination.pages);
+  /** 本批負責的標籤，以下所有衍生值都以它為事實來源 */
+  batchNames = $derived(this.pagination.items);
+  /** 可送出的標籤 */
+  checkableNames = $derived(this.batchNames.filter((n) => this.checkableOf(n)));
+  /** 可送出的數量 */
+  checkableCount = $derived(this.checkableNames.length);
+  /** 已勾選且可送出的標籤 */
+  submittableNames = $derived(this.batchNames.filter((n) => this.checked[n] && this.checkableOf(n)));
+  /** 已勾選且可送出的數量 */
+  submittableCount = $derived(this.submittableNames.length);
   /** 全選框的三態 */
   bulkSelectionState = $derived.by(() => {
-    if (this.checkableCount === 0 || this.checkedCount === 0) return "unchecked";
-    if (this.checkableCount === this.checkedCount) return "checked";
-    return "indeterminate";
+    if (this.checkableCount === 0 || this.submittableCount === 0) return "unchecked" as const;
+    if (this.checkableCount === this.submittableCount) return "checked" as const;
+    return "indeterminate" as const;
   });
 
-  /** 開啟審查清單，並全選所有目前可送出的項目 */
+  /** 換到指定批次，超出範圍由分頁自行夾住，呼叫端不需要判斷邊界 */
+  private moveTo(batch: number) {
+    if (this.submit.pending) return;
+
+    this.pagination.set(batch);
+
+    const checked: Record<string, true> = {};
+    for (const n of this.pagination.items) {
+      if (this.checkableOf(n)) checked[n] = true;
+    }
+
+    this.checked = checked;
+  }
+
+  /** 開啟審查清單，從第一批開始 */
   handleOpen = () => {
-    this.failures = {};
-    this.checked.clear();
-    // 用空的 checked 集合先跑一次，只為了讀 checkable，不用另外重寫一次「什麼情況下不可勾選」的判斷
-    const draft = buildReviewEntries(this.board.operations, new Set(), {});
-    for (const e of draft) if (e.checkable) this.checked.add(e.name);
+    this.submit.clearFailures();
+    this.moveTo(1);
     this.open = true;
   };
 
-  /** 關閉審查清單（操作進行中時不允許關閉） */
+  /** 關閉審查清單（送出進行中時不允許關閉） */
   handleClose = () => {
-    if (!this.operationsCtx.pending) this.open = false;
+    if (!this.submit.pending) this.open = false;
+  };
+
+  /** 回到首批 */
+  handleFirstBatch = () => {
+    this.moveTo(1);
+  };
+
+  /** 前往上一批 */
+  handlePrevBatch = () => {
+    this.moveTo(this.batch - 1);
+  };
+
+  /** 前往下一批 */
+  handleNextBatch = () => {
+    this.moveTo(this.batch + 1);
+  };
+
+  /** 前往最後一批 */
+  handleLastBatch = () => {
+    this.moveTo(this.batches);
   };
 
   /** 切換單一項目的勾選狀態 */
   handleToggle = (name: string) => {
-    if (this.checked.has(name)) this.checked.delete(name);
-    else this.checked.add(name);
+    if (this.checked[name]) delete this.checked[name];
+    else this.checked[name] = true;
   };
 
-  /** 全選／全不選目前可勾選的項目 */
+  /** 全選／全不選本批目前可勾選的項目 */
   handleToggleAll = () => {
-    const eligible = this.entries.filter((e) => e.checkable);
-    const allSelected = eligible.length > 0 && eligible.every((e) => e.checked);
-    for (const e of eligible) {
-      if (allSelected) this.checked.delete(e.name);
-      else this.checked.add(e.name);
+    const eligible = this.checkableNames;
+    const allSelected = eligible.length > 0 && eligible.every((n) => this.checked[n]);
+    for (const n of eligible) {
+      if (allSelected) delete this.checked[n];
+      else this.checked[n] = true;
     }
   };
 
-  /** 捨棄單筆操作（自畫布移除）——不需要特別處理 checked，board 不認識審查層的勾選狀態 */
+  /** 捨棄單筆異動，也就是把該標籤移回標籤池 */
   handleDiscard = (name: string) => {
-    this.board.detachTag(name);
+    this.board.handleDetach([name]);
   };
 
-  /** 提交目前勾選的操作 */
+  /** 送出本批可送出的項目；成功的會被 submit 自己自畫布移除，這裡只負責同步 checked 狀態 */
   handleSubmit = async () => {
-    const names = this.entries.filter((e) => e.checked).map((e) => e.name);
-    if (names.length === 0 || this.operationsCtx.pending) return;
+    const names = this.submittableNames;
+    await this.submit.handleSubmit(names);
 
-    this.operationsCtx.pending = true;
-    try {
-      const result = await submitChangeset(this.board.operations, names);
-      this.failures = Object.fromEntries(result);
-
-      const okNames = names.filter((n) => !result.has(n));
-      for (const n of okNames) {
-        this.board.detachTag(n);
-        this.checked.delete(n);
-      }
-
-      if (okNames.length > 0) addToast({ message: `已套用 ${okNames.length} 筆標籤操作`, variant: "success" });
-      if (result.size > 0) addToast({ message: `${result.size} 筆操作失敗`, variant: "error" });
-      if (result.size === 0) this.open = false;
-
-      this.previews.clear(); // 標籤內容已變，懸停預覽快取失效
-      await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
-    } catch (e) {
-      addToast({ message: formatError(e), variant: "error" });
-    } finally {
-      this.operationsCtx.pending = false;
-    }
+    const failures = this.submit.lastFailures;
+    for (const n of names) if (!(n in failures)) delete this.checked[n];
+    if (Object.keys(failures).length === 0) this.open = false;
   };
 }
 
