@@ -1,24 +1,13 @@
 /**
  * @file drag.svelte.ts
- * 拖曳中狀態，以及各 zone 的拖放事件工廠（統一用 ZoneTarget 判別，
- * 取代舊版三個各自 `zone.startsWith("group:")` 解析同一個字串協議的工廠函式）
+ * 追蹤目前拖曳中的標籤與懸停中的放置目標
  */
 
 import { getContext, setContext } from "svelte";
 import type { Tag } from "$lib/database";
-import { getBoardContext } from "./board.svelte";
+
+import { getBoardContext, type ZoneTarget } from "./board.svelte";
 import { getSelectionContext } from "./selection.svelte";
-
-export type ZoneTarget =
-  | { kind: "pool" }
-  | { kind: "new-group" }
-  | { kind: "delete" }
-  | { kind: "hidden" }
-  | { kind: "group"; id: string };
-
-function keyOf(target: ZoneTarget): string {
-  return target.kind === "group" ? `group:${target.id}` : target.kind;
-}
 
 class DragController {
   private board = getBoardContext();
@@ -27,6 +16,14 @@ class DragController {
   /** 目前正在拖曳的標籤 */
   dragging = $state<Tag | null>(null);
   private overKey = $state<string | null>(null);
+
+  /** 把放置目標壓成可比對的字串鍵；合併區以外的種類本身就唯一，直接拿 kind 當鍵 */
+  private keyOf(target: ZoneTarget): string {
+    return target.kind === "group" ? `group:${target.id}` : target.kind;
+  }
+
+  /** 指定位置目前是否為懸停中的放置目標 */
+  isOver = (target: ZoneTarget): boolean => this.overKey === this.keyOf(target);
 
   handleDragStart = (tag: Tag) => {
     this.dragging = tag;
@@ -37,52 +34,24 @@ class DragController {
     this.overKey = null;
   };
 
-  /** 供 ZoneContainer / Pool 直接 spread 的一組拖放事件處理器 */
-  zoneHandlers = (target: ZoneTarget) => {
-    const key = keyOf(target);
+  handleDragOver = (target: ZoneTarget) => {
+    this.overKey = this.keyOf(target);
+  };
 
-    const ondragover = (e: DragEvent) => {
-      e.preventDefault();
-      this.overKey = key;
-    };
+  handleDragLeave = (target: ZoneTarget) => {
+    if (this.isOver(target)) this.overKey = null;
+  };
 
-    const ondragleave = (e: DragEvent) => {
-      // 冒泡到子元素（按鈕、輸入框、chip）時 relatedTarget 仍在目前元素內，不算真的離開，避免 dropping 樣式閃爍
-      const related = e.relatedTarget;
-      const current = e.currentTarget;
-      if (related instanceof Node && current instanceof HTMLElement && current.contains(related)) return;
-      if (this.overKey === key) this.overKey = null;
-    };
+  /** 放下：被拖的標籤在選取中就整組放，否則只放它自己 */
+  handleDrop = (target: ZoneTarget) => {
+    this.overKey = null;
 
-    const ondrop = (e: DragEvent) => {
-      e.preventDefault();
-      this.overKey = null;
+    const dragged = this.dragging;
+    if (dragged === null) return;
+    this.dragging = null;
 
-      const dragged = this.dragging;
-      if (!dragged) return;
-      this.dragging = null;
-
-      const tags = this.selection.isSelected(dragged.name) ? this.selection.consume() : [dragged];
-      switch (target.kind) {
-        case "new-group":
-          this.board.createGroup(tags);
-          break;
-        case "delete":
-          this.board.addToZone("delete", tags);
-          break;
-        case "hidden":
-          this.board.addToZone("hidden", tags);
-          break;
-        case "group":
-          this.board.addToGroup(target.id, tags);
-          break;
-        case "pool":
-          for (const t of tags) this.board.detachTag(t.name);
-          break;
-      }
-    };
-
-    return { ondragover, ondragleave, ondrop, dropping: this.overKey === key };
+    const tags = this.selection.isSelected(dragged.name) ? this.selection.consume() : [dragged];
+    this.board.handleAssign(target, tags);
   };
 }
 
