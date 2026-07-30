@@ -19,7 +19,7 @@ type TagsBatchPayload = {
   hidden: { name: string; hidden: boolean }[];
 };
 
-/** 由畫布上的異動組出端點要的請求內容 */
+/** 由異動集組出端點要的請求內容 */
 function toPayload(ops: TagOperation[]): TagsBatchPayload {
   const payload: TagsBatchPayload = { deletes: [], renames: [], hidden: [] };
 

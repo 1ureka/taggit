@@ -69,32 +69,33 @@ private removeGroup(id: string) { ... }
 
 ---
 
-## 二、目標：11 個 controller
+## 二、目標：10 個 controller
 
 `logic/` 底下全部是 controller，**沒有例外**。
 
 | 檔案 | 一句話（不含「以及」） |
 | --- | --- |
 | `page-data.svelte.ts` | 以 context 包裝 `load` 回傳的 `data`。 |
-| `query.svelte.ts` | 管理標籤池的查詢條件與 URL 同步。 |
+| `query.svelte.ts` | 管理標籤池的查詢：條件、分頁、URL 同步、重新查詢。 |
 | `selection.svelte.ts` | 管理標籤池內的多選狀態。 |
 | `board.svelte.ts` | 管理畫布上每個標籤被排入哪一個異動區。 |
 | `merge-count.svelte.ts` | 查詢每個合併區合併後的預估圖片張數。 |
 | `drag.svelte.ts` | 追蹤目前拖曳中的標籤與懸停中的放置目標。 |
 | `submit.svelte.ts` | 把指定的標籤操作送出並回報結果。 |
 | `review.svelte.ts` | 管理審查清單。 |
-| `refresh.svelte.ts` | 重新整理標籤列表。 |
 | `previews.svelte.ts` | 標籤懸停預覽圖的查詢與快取。 |
 | `guard.svelte.ts` | 管理離頁守衛。 |
 
-檔案從 8 個變 11 個、總行數大致持平或略增——這是重新分配職責的正常結果，不用行數衡量。
+檔案從 8 個變 10 個、總行數大致持平或略增——這是重新分配職責的正常結果，不用行數衡量。
+
+**重新整理歸 `query` 而不是獨立 controller。** `staged` 有獨立的 `refresh.svelte.ts` 是因為它沒有 query controller（暫存清單沒有篩選條件）；`committed` 有 query，`handleRefresh` 就在 query 裡。`/tags` 有 query，所以跟 `committed` 一致。這也不是「以及」——query 管的是「要查什麼、什麼時候重查」，篩選與換頁改的是前者，重新整理是「條件不變再查一次」，同一個職責。
 
 ### 依賴圖（即 `+page.svelte` 的建立順序）
 
 ```
 page-data
-  ├── query
-  └── (previews 見下)
+  ├── query          （並提供 refreshing）
+  └── previews
 
 selection            （無依賴）
 board                （無依賴——Tag 物件一律由呼叫端傳入）
@@ -104,29 +105,25 @@ board                （無依賴——Tag 物件一律由呼叫端傳入）
   │     └── review ← board
   └── (guard 見下)
 
-refresh              （無依賴）
-
-previews  ← submit, refresh
-guard     ← board, submit, refresh, review
+guard     ← board, submit, query, review
 ```
 
 線性排序：
 
 ```ts
-const pageData = createPageDataContext(() => data);
-const query    = createQueryContext();
+createPageDataContext(() => data);
+const query  = createQueryContext();
+createPreviewsContext();
 createSelectionContext();
 createBoardContext();
 createMergeCountContext();
 createDragContext();
-const submit   = createSubmitContext();
-const review   = createReviewContext();
-const refresh  = createRefreshContext();
-createPreviewsContext();
-const guard    = createGuardContext();
+const submit = createSubmitContext();
+const review = createReviewContext();
+const guard  = createGuardContext();
 ```
 
-每一行的依賴都在它之前，無循環。
+每一行的依賴都在它之前，無循環。`guard` 是唯一需要跨四個 controller 讀取的節點，因為離頁決策本來就要同時知道「有沒有未送出的操作」與「有沒有操作進行中」。
 
 ---
 
@@ -138,11 +135,11 @@ const guard    = createGuardContext();
 
 ### 3.2 `query.svelte.ts`
 
-保留現有的 `SvelteSearchParams<TagQuery>` 單一 `set` 點設計，只修一處重複權威來源。
+保留現有的 `SvelteSearchParams<TagQuery>` 單一 `set` 點設計，修兩處，並吸收重新整理。
 
-現況把「能不能往前／往後」算了兩份：`disabledFirst` 等四個 `$derived`，加上 `handleFirstPage` 等四個 handler 內部再判斷一次。
+**(a) 「能不能往前／往後」原本算了兩份**：`disabledFirst` 等四個 `$derived`，加上 `handleFirstPage` 等四個 handler 內部再判斷一次。改後 controller 只提供事實，禁用與否是投影，由 `Pagination.svelte` 自己組 `disabled={query.atFirst}`。
 
-改後 controller 只提供事實，禁用與否是投影：
+**(b) 換頁改成樂觀更新，不再於導航在途時禁用。** `page` / `pages` / `total` 一律以伺服器回傳為準（「不在前端重算」），代價是導航在途時 `page` 還是舊值——連按三次「下一頁」會三次都基於第 1 頁換算、卡在第 2 頁。原本靠 `navigating` 禁用迴避，現在改成覆寫 `$derived`（`SvelteShallowParam.local` 已是同一手法）：
 
 ```ts
 class QueryController {
@@ -151,15 +148,12 @@ class QueryController {
 
   get query(): TagQuery { return this.params.value; }
 
-  /** 以下三者一律以伺服器回傳為準，不在前端重算 */
-  currentPage = $derived(this.pageData.value.page);
-  totalPages  = $derived(this.pageData.value.pages);
-  total       = $derived(this.pageData.value.total);
-
-  /** 是否有導航在途；換頁按鈕據此避免連點 */
-  navigating = $derived(!!navigating.to);
-  atFirst    = $derived(this.currentPage <= 1);
-  atLast     = $derived(this.currentPage >= this.totalPages);
+  /** 目前所在頁面；換頁時由 gotoPage 樂觀覆寫，導航完成後回落為伺服器值 */
+  page    = $derived(this.pageData.value.page);
+  pages   = $derived(this.pageData.value.pages);
+  total   = $derived(this.pageData.value.total);
+  atFirst = $derived(this.page <= 1);
+  atLast  = $derived(this.page >= this.pages);
 
   handleSearch            = (name: string) => { /* 同現況，page 重置為 1 */ };
   handleSortChange        = (key: string)  => { /* 同現況 */ };
@@ -167,19 +161,27 @@ class QueryController {
 
   /** 超出範圍由內部夾住，呼叫端不需要判斷邊界 */
   private gotoPage(p: number) {
-    const next = Math.min(Math.max(1, p), this.totalPages);
-    if (next === this.currentPage) return;
+    const next = Math.min(Math.max(1, p), this.pages);  // 夾制先於覆寫
+    if (next === this.page) return;
+    this.page = next;                                   // 下一次點擊基於它換算
     this.commit(new TagQuery(this.query.where, this.query.list.with({ page: next })));
   }
 
-  handleFirstPage = () => this.gotoPage(1);
-  handlePrevPage  = () => this.gotoPage(this.currentPage - 1);
-  handleNextPage  = () => this.gotoPage(this.currentPage + 1);
-  handleLastPage  = () => this.gotoPage(this.totalPages);
+  handleFirstPage = () => { this.gotoPage(1); };
+  handlePrevPage  = () => { this.gotoPage(this.page - 1); };
+  handleNextPage  = () => { this.gotoPage(this.page + 1); };
+  handleLastPage  = () => { this.gotoPage(this.pages); };
+
+  // --- 重新整理（歸 query 的理由見第二節）
+
+  refreshing = $state(false);
+  handleRefresh = async () => { /* 300ms 延遲 + goto invalidateAll + toast */ };
 }
 ```
 
-`Pagination.svelte` 自己組 `disabled={query.navigating || query.atFirst}`。
+夾制先於覆寫，所以覆寫值永遠落在伺服器實際會回傳的範圍內；使用者直接貼 `?page=99` 時 `page` 仍由伺服器夾回真值顯示。
+
+這裡不需要 `SvelteSearchParams` 的 echo 緩衝來解——echo 防的是「**尚未送出**的意圖被較早完成的導航蓋掉」（debounce 輸入的情境），而換頁每次點擊都立刻 `goto`，後一次導航會讓前一次作廢。兩者最壞情況的性質也不同：搜尋框會吃掉打到一半的字（資料遺失），分頁只會讓指示器閃一下然後收斂（純視覺）。這就是 `svelte_kit_routes.md` 那條警告適用於前者、不適用於後者的原因。
 
 ### 3.3 `selection.svelte.ts`
 
@@ -478,48 +480,41 @@ class ReviewController {
 
 `handleOpen` 裡「用空的 checked 集合先跑一次 builder 只為了讀 checkable」的 hack 自然消失——`moveTo(1)` 本來就會用 `checkableOf` 重新全選。
 
-### 3.9 `refresh.svelte.ts`（新增，從 `operations` 拆出）
+### 3.9 重新整理（併入 `query`，見 3.2）
 
-與 staged 的 `refresh` 逐字相同，只多一個 `revision`：
-
-```ts
-class RefreshController {
-  pending  = $state(false);
-  /** 每次重新整理完成後 +1，供依賴標籤庫內容的快取失效 */
-  revision = $state(0);
-
-  handleRefresh = async () => { /* 300ms 延遲 + goto invalidateAll + toast；成功後 revision++ */ };
-}
-```
-
-不再呼叫 `previews.clear()`。`operations.svelte.ts` 至此整檔刪除。
+`operations.svelte.ts` 的兩件事分別歸位：`pending` 拆給各操作自己持有，`handleRefresh` 併入 `query`（對標 `committed`）。該檔整檔刪除，也不再有任何人呼叫 `previews.clear()`。
 
 ### 3.10 `previews.svelte.ts`
 
-查詢與快取邏輯不變，但失效規則從兩個呼叫端搬回快取自己身上：
+查詢邏輯不變，但失效規則從兩個呼叫端搬回快取自己身上，不變式收成一句話：**快取只在建立它的那份 `page-data` 快照內有效。**
 
 ```ts
 class PreviewsController {
-  private submit  = getSubmitContext();
-  private refresh = getRefreshContext();
+  private pageData = getPageDataContext();
   private cache = new SvelteMap<string, CacheEntry>();
 
   constructor() {
-    // 標籤庫可能已被改動，先前查到的預覽圖失效
     $effect(() => {
-      this.submit.revision;
-      this.refresh.revision;
+      this.pageData.value.items;
       this.cache.clear();
     });
   }
 
-  get     = (tag: string) => this.cache.get(tag);
+  get = (tag: string) => this.cache.get(tag);
   request = async (tag: string) => { /* 同現況 */ };
   // clear() 不再公開
 }
 ```
 
-沒有選擇「監看 `pageData.value` 變動就清空」，是因為換頁與換篩選也會讓 `load` 重跑，那會讓來回翻頁一直重查預覽圖；`revision` 精準對應「資料真的可能變了」。代價是新增第四種會改動標籤庫的操作時，要來這裡加一行依賴——但改的地方在擁有快取的人身上，而不是散在各操作裡各記一次。
+原本的設計是讓 `submit` 與 `query` 各自維護一個 `revision` 計數，`previews` 監看它們。**放棄的理由是 `revision` 是這個條件的子集，而不是更精準的版本**——`query.commit()`（換篩選、換排序、換頁）也會重跑 `load`、也一樣可能撈到已被外部改動的標籤庫，但不會 bump `revision`。要讓 `revision` 準確就得在每次 `goto` 都 bump，那與直接綁 `page-data` 完全等價，卻多兩個欄位與兩條跨 controller 依賴。
+
+`revision` 一併消失後，`previews` 的依賴從 `submit` + `query` 收成只有 `page-data`，`submit` 與 `query` 也不再有為別人準備的欄位。
+
+代價是換頁來回會讓已看過的預覽重查一次——但那是一支本機記憶體查詢、又是 hover 300ms 後才懶載入；而且若資料真的變了，呈現最新內容本來就是對的。
+
+**`request()` 刻意不做「在途回應是否已過期」的檢查。** 曾經加過一版快照 identity 比對，用來擋「在途查詢完成時快取已被清掉、舊資料被寫進新快取」這個窄縫，但那是錯的：比對對象（`pageData.value` 的物件 identity）與 `$effect` 的依賴（`pageData.value.items`）不是同一個東西，兩者只要有一次不同步就會讓 `cache[tag]` 永遠停在 `"loading"`，而 `request()` 開頭的 `if (this.cache.has(tag)) return` 會使它再也不重試——fail closed 的骨架屏。
+
+這裡的取捨很清楚：寬鬆的代價是偶爾顯示上一次導航的四張縮圖（且只在那幾張圖真的有變時才算錯），嚴謹的代價是永久卡在載入。這種等級的資料不值得為它承擔第二種風險。`merge-count` 的 seq 作廢機制之所以正當，是因為它擋的是「顯示錯誤的合併張數」，那會直接誤導送出決策。
 
 ### 3.11 `guard.svelte.ts`（新增，從 `board` 拆出）
 
@@ -527,13 +522,13 @@ class PreviewsController {
 
 ```ts
 class GuardController {
-  private board   = getBoardContext();
-  private submit  = getSubmitContext();
-  private refresh = getRefreshContext();
-  private review  = getReviewContext();
+  private board  = getBoardContext();
+  private submit = getSubmitContext();
+  private query  = getQueryContext();
+  private review = getReviewContext();
 
-  /** 會真的改動資料的操作是否進行中。只讀，不寫 */
-  private get busy() { return this.submit.pending || this.refresh.pending; }
+  /** 會真的改動資料或重跑查詢的操作是否進行中。只讀，不寫 */
+  private get busy() { return this.submit.pending || this.query.refreshing; }
 
   handleBeforeNavigate = (nav: BeforeNavigate) => {
     if (nav.type === "leave") return;
@@ -607,16 +602,15 @@ class GuardController {
 routes/tags/
 ├── +page.server.ts             不變
 ├── +page.svelte                只呼叫 create*Context() + 掛 window 事件 + 版面骨架
-├── logic/                      11 個檔案，全部是 controller
+├── logic/                      10 個檔案，全部是 controller
 │   ├── page-data.svelte.ts     不變
-│   ├── query.svelte.ts         改（disabled 四項下放）
+│   ├── query.svelte.ts         改（disabled 下放、換頁樂觀更新、吸收 handleRefresh）
 │   ├── selection.svelte.ts     不變
 │   ├── board.svelte.ts         大改（瘦身 + problemOf + 單一寫入入口）
 │   ├── merge-count.svelte.ts   新增
 │   ├── drag.svelte.ts          改（不再回傳 DOM handler，不再繞過 handleAssign）
 │   ├── submit.svelte.ts        新增（吸收 changeset.ts）
 │   ├── review.svelte.ts        大改（拆掉送出，導入分批）
-│   ├── refresh.svelte.ts       新增（自 operations 拆出）
 │   ├── previews.svelte.ts      改（自行失效）
 │   └── guard.svelte.ts         新增（自 board 拆出）
 ├── header/
@@ -626,7 +620,7 @@ routes/tags/
 │   ├── Pool.svelte             改（自行處理 DOM 事件）
 │   ├── Chips.svelte            不變
 │   ├── Chip.svelte             不變
-│   ├── ChipTooltip.svelte      小改（previews 改由 getContext 取，不再走 prop）
+│   ├── ChipTooltip.svelte      不變（previews 維持走 prop）
 │   └── Pagination.svelte       改（自行組 disabled）
 ├── zone/
 │   ├── Zones.svelte            新增（自 +page.svelte 的 aside snippet 搬出）
@@ -647,7 +641,7 @@ routes/tags/
 
 ```svelte
 <script lang="ts">
-  // …11 行 create*Context()…
+  // …10 行 create*Context()…
   beforeNavigate(guard.handleBeforeNavigate);
 </script>
 
@@ -657,7 +651,7 @@ routes/tags/
 <div class="container">
   <Toolbar>
     <Filters />
-    <RefreshButton pending={refresh.pending} onrefresh={refresh.handleRefresh} style="margin-left: auto;" />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
     <CleanLink />
     <ReviewTrigger
       count={review.totalCount}
@@ -671,8 +665,6 @@ routes/tags/
 <ReviewModal />
 ```
 
-`ChipTooltip.svelte` 目前透過 prop 收 `previews`（`previews: ReturnType<typeof getPreviewsContext>`），但它的父層 `Chip.svelte` 也是自己 `getContext` 拿的。改成 `ChipTooltip` 直接 `getPreviewsContext()`，`Chip` 少傳一個 prop。
-
 ---
 
 ## 六、使用者可見的行為變更
@@ -681,25 +673,53 @@ routes/tags/
 | --- | --- | --- |
 | 1 | 審查清單改為一批 25 筆，超過時出現與 staged/committed 相同的翻頁列；「送出」只送本批已勾選的項目 | 已定案 |
 | 2 | 重新整理進行中時，「檢視變更」按鈕不再被禁用（改只看 `submit.pending`） | 全頁鎖拆開的必然結果。畫布是純本地狀態，重新整理不影響它，維持禁用沒有理由 |
-| 3 | 換頁／換篩選不再清空標籤預覽圖快取；只有送出成功或按重新整理才清 | 失效規則搬進 `previews` 的必然結果，且是改善 |
-| 4 | 合併區的重新命名輸入框在名稱不合法時，當下就顯示問題 | **選配**。`problemOf` 上移是架構需求，但要不要在 `ZoneBodyGroup` 顯示是獨立決定。不做的話行為與現況完全相同 |
-| 5 | 送出時 toast 文案與計數不變，但失敗項目的原因改由投影合成（`送出失敗：…`），與現況顯示一致 | 等價 |
+| 3 | 換頁／換篩選現在也會清空標籤預覽圖快取（原本只有送出與重新整理才清），已看過的預覽在換頁後會重查一次 | 失效條件收斂成「綁 page-data 快照」的必然結果。若資料真的變了，呈現最新內容是對的；成本是一支本機查詢且只在 hover 300ms 後才發 |
+| 4 | 換頁按鈕在導航在途時不再被禁用，連續點擊會累積（連按三次「下一頁」到第 4 頁）；代價是導航期間頁碼指示器可能領先下方 chips 的內容 | 樂觀更新的標準取捨，見 3.2(b) |
+| 5 | ~~合併區的重新命名輸入框在名稱不合法時，當下就顯示問題~~ | **未實作**。`problemOf` 已上移到 `board` 成為事實，但 `ZoneBodyGroup` 維持不顯示，此項行為與現況完全相同 |
+| 6 | 送出時 toast 文案與計數不變，但失敗項目的原因改由投影合成（`送出失敗：…`），與現況顯示一致 | 等價 |
 
 不變的部分：拖放互動、選取語意（含跨頁保留）、四種區的視覺與文案、合併後張數的 300ms debounce 與骨架佔位、離頁確認的文案與時機、URL 查詢參數格式。
 
 ---
 
-## 七、實作階段（建議的 commit 切分）
+## 七、實作狀態
 
-每一階段結束都應能通過 `npm run check` 與 `npm run build`。
+已一次性完成，未分階段。自動驗證結果：
 
-1. **拆掉全頁鎖。** 新增 `refresh.svelte.ts` 與 `submit.svelte.ts`（先原樣搬運 `changeset.ts` 的呼叫），刪 `operations.svelte.ts`。`review.handleSubmit` 改成呼叫 `submit.handleSubmit`。此步驟消除原則 3(b) 的違反，改動面最大但最機械。
-2. **拆出 `guard.svelte.ts`。** 從 `board` 搬離頁守衛，計數改讀 `review.totalCount`。
-3. **拆出 `merge-count.svelte.ts`。** `Zone` 去掉 `mergeCount`，`board` 去掉 `timers` / `queryMergeCount` / `removeGroup` 的 timer 清理。
-4. **收斂 board 的寫入入口。** 六個入口收成 `handleAssign` / `handleDetach` / `handleRename` / `handleDissolve` / `handleClearAll`；`ZoneTarget` 統一；`drag` 改呼叫 `handleAssign`。
-5. **`problemOf` 上移，`review-entry.ts` 消失。** 新增 `review/ReviewBody.svelte` 承接投影；`review.handleOpen` 拿掉 builder hack。
-6. **導入分批。** `review` 接上 `SveltePagination`，`ReviewModal` 加 `ReviewListFooter`。
-7. **元件層收尾。** `drag` 停止回傳 DOM handler；`ZoneBodyGroup` 拿掉 `bind:value`；新增 `zone/Zones.svelte`；`query` 的 disabled 下放到 `Pagination.svelte`；`ChipTooltip` 改 `getContext`；`previews` 自行失效。
+- `npm run check` — 680 files, 0 errors, 0 warnings
+- `npm run build` — 成功
+- `npm test` — 576 passed, 0 failed（皆為 repo／image／utils 領域測試，不涵蓋本頁）
+
+實際檔案異動：
+
+```
+M  src/lib/utils/dom.ts                      新增 isLeavingSelf()
+M  src/routes/tags/+page.svelte
+M  src/routes/tags/chips/Pagination.svelte
+M  src/routes/tags/chips/Pool.svelte
+M  src/routes/tags/logic/board.svelte.ts
+D  src/routes/tags/logic/changeset.ts
+M  src/routes/tags/logic/drag.svelte.ts
+A  src/routes/tags/logic/guard.svelte.ts
+A  src/routes/tags/logic/merge-count.svelte.ts
+M  src/routes/tags/logic/previews.svelte.ts
+M  src/routes/tags/logic/query.svelte.ts
+D  src/routes/tags/logic/operations.svelte.ts
+D  src/routes/tags/logic/review-entry.ts
+M  src/routes/tags/logic/review.svelte.ts
+A  src/routes/tags/logic/submit.svelte.ts
+A  src/routes/tags/review/ReviewBody.svelte
+M  src/routes/tags/review/ReviewModal.svelte
+M  src/routes/tags/zone/ZoneBodyCreate.svelte
+M  src/routes/tags/zone/ZoneBodyDelete.svelte
+M  src/routes/tags/zone/ZoneBodyGroup.svelte
+M  src/routes/tags/zone/ZoneBodyHidden.svelte
+M  src/routes/tags/zone/ZoneContainer.svelte
+M  src/routes/tags/zone/ZoneHeader.svelte
+A  src/routes/tags/zone/Zones.svelte
+```
+
+`isLeavingSelf()` 是設計時沒預見的一項：`Pool` 與 `ZoneContainer` 都需要「這次 `dragleave` 是不是只冒泡到子元素」的判斷。它是純 DOM 工具，依文件第五節歸 `$lib/utils/dom.ts`，而不是留在任一元件內重複兩份。
 
 ---
 
@@ -740,8 +760,12 @@ routes/tags/
 
 **標籤池**
 - [ ] 搜尋／排序／隱藏篩選改變後頁碼重置為 1，且清單捲回頂端
-- [ ] 翻頁按鈕在首頁/末頁正確禁用，導航在途時全部禁用
+- [ ] 翻頁按鈕在首頁/末頁正確禁用；導航在途時**不**禁用（本次行為變更 #4）
+- [ ] 在第 1 頁連按三次「下一頁」，最後停在第 4 頁而不是卡在第 2 頁（本次行為變更 #4）
+- [ ] 連續換頁期間頁碼指示器可能短暫領先下方 chips，導航結束後兩者一致
+- [ ] 直接在網址列貼上超出範圍的 `?page=99`，指示器顯示伺服器夾回的真實頁碼
 - [ ] 跨頁選取的標籤在翻頁後仍保持選取，「清空選取 (n)」計數正確
 - [ ] 懸停標籤 300ms 後出現預覽縮圖；`count === 0` 的標籤顯示「沒有已提交的圖片使用此標籤」
-- [ ] 翻頁來回後，先前看過的標籤預覽**不**重新查詢（本次行為變更 #3）
+- [ ] 翻頁來回後，先前看過的標籤預覽會**重新**查詢（本次行為變更 #3）
 - [ ] 送出成功或按重新整理後，預覽快取被清空、下次懸停重查
+- [ ] 懸停某標籤觸發預覽查詢後立刻換頁，回來再懸停同一標籤時**不**會永久停在骨架

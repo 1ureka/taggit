@@ -22,7 +22,6 @@
     const problem = boardProblem ?? (failure ? `送出失敗：${failure}` : null);
     const checkable = problem === null;
 
-    // 合併後的預估張數由 merge-count 依合併區提供，畫布本身不持有查詢結果
     const target = op.kind === "rename" || op.kind === "merge" ? op.to : undefined;
     const mergedCount = op.kind === "rename" || op.kind === "merge" ? mergeCount.countOf(op.groupId) : undefined;
 

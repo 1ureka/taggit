@@ -122,7 +122,7 @@ class ReviewController {
     this.board.handleDetach([name]);
   };
 
-  /** 送出本批可送出的項目；成功的會被 submit 自己自畫布移除，這裡只負責同步 checked 狀態 */
+  /** 送出本批可送出的項目；成功的會被 submit 自己自異動區移除，這裡只負責同步 checked 狀態 */
   handleSubmit = async () => {
     const names = this.submittableNames;
     await this.submit.handleSubmit(names);
