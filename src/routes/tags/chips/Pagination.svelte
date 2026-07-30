@@ -5,8 +5,8 @@
 
   const query = getQueryContext();
 
-  const backward = $derived(query.navigating || query.atFirst ? "disabled" : undefined);
-  const forward = $derived(query.navigating || query.atLast ? "disabled" : undefined);
+  const backward = $derived(query.atFirst ? "disabled" : undefined);
+  const forward = $derived(query.atLast ? "disabled" : undefined);
 </script>
 
 <div>

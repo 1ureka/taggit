@@ -90,8 +90,6 @@ class QueryController {
 
   /** 是否有一次重新整理正在進行中 */
   refreshing = $state(false);
-  /** 每次重新整理後遞增，供依賴標籤庫內容的快取判斷是否失效 */
-  revision = $state(0);
 
   /** 重新整理，條件不變再次查詢 */
   handleRefresh = async () => {
@@ -102,7 +100,6 @@ class QueryController {
 
     try {
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
-      this.revision++;
       addToast({ message: "標籤列表已更新", variant: "success" });
     } catch (e) {
       addToast({ message: "重新整理失敗" + (e instanceof Error ? `: ${e.message}` : ""), variant: "error" });

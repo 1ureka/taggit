@@ -1,16 +1,14 @@
 <script lang="ts">
   import Modal from "$lib/components/floating/Modal.svelte";
-  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
   import ReviewHeader from "$lib/components/review/ReviewHeader.svelte";
-  import ReviewList from "$lib/components/review/ReviewList.svelte";
-  import ReviewListHeader from "$lib/components/review/ReviewListHeader.svelte";
-  import ReviewItemTag from "$lib/components/review/ReviewItemTag.svelte";
+  import ReviewFooter from "$lib/components/review/ReviewFooter.svelte";
+  import ReviewBody from "./ReviewBody.svelte";
 
   import { getReviewContext } from "../logic/review.svelte";
-  import { getOperationsContext } from "../logic/operations.svelte";
+  import { getSubmitContext } from "../logic/submit.svelte";
 
   const review = getReviewContext();
-  const operations = getOperationsContext();
+  const submit = getSubmitContext();
 
   const containerStyle = "width: 42rem; max-width: min(90dvw, 42rem); display: flex; flex-direction: column;";
 </script>
@@ -22,38 +20,10 @@
   containerProps={{ style: containerStyle }}
 >
   <ReviewHeader />
-
-  <ReviewList pending={operations.pending} listCount={review.entries.length}>
-    {#snippet header()}
-      <ReviewListHeader
-        checkedAll={review.bulkSelectionState}
-        checkableCount={review.checkableCount}
-        checkedCount={review.checkedCount}
-        ontoggleall={review.handleToggleAll}
-      />
-    {/snippet}
-
-    {#each review.entries as entry (entry.name)}
-      {@const kind = entry.kind}
-      {@const withExtraProps = kind === "merge" || kind === "rename"}
-      {@const extraProps = withExtraProps ? { target: entry.to, mergedCount: entry.mergedCount } : undefined}
-      <ReviewItemTag
-        {kind}
-        checkable={entry.checkable}
-        checked={entry.checked}
-        tag={entry.name}
-        count={entry.count}
-        problem={entry.problem}
-        ontoggle={() => review.handleToggle(entry.name)}
-        ondiscard={() => review.handleDiscard(entry.name)}
-        {...extraProps}
-      />
-    {/each}
-  </ReviewList>
-
+  <ReviewBody />
   <ReviewFooter
-    pending={operations.pending}
-    count={review.checkedCount}
+    pending={submit.pending}
+    count={review.submittableCount}
     oncancel={review.handleClose}
     onsubmit={review.handleSubmit}
   />

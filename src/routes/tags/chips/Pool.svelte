@@ -1,19 +1,34 @@
 <script lang="ts">
+  import { isLeavingSelf } from "$lib/utils/dom";
   import { getDragContext } from "../logic/drag.svelte";
   import Chips from "./Chips.svelte";
   import Pagination from "./Pagination.svelte";
 
   const drag = getDragContext();
-  const handlers = $derived(drag.zoneHandlers({ kind: "pool" }));
+  const target = { kind: "pool" } as const;
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    drag.handleDragOver(target);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    if (isLeavingSelf(e)) drag.handleDragLeave(target);
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    drag.handleDrop(target);
+  };
 </script>
 
 <section
-  class:dropping={handlers.dropping}
+  class:dropping={drag.isOver(target)}
   role="list"
   aria-label="標籤池"
-  ondragover={handlers.ondragover}
-  ondragleave={handlers.ondragleave}
-  ondrop={handlers.ondrop}
+  ondragover={handleDragOver}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
 >
   <Chips />
   <Pagination />
