@@ -5,13 +5,16 @@
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
   import { getBoardContext, type Zone } from "../logic/board.svelte";
+  import { getMergeCountContext } from "../logic/merge-count.svelte";
 
   let { group }: { group: Extract<Zone, { kind: "group" }> } = $props();
 
   const board = getBoardContext();
+  const mergeCount = getMergeCountContext();
 
-  const setActive = (name: string) => board.renameGroup(group.id, name);
-  const handleRenameInput = () => board.renameGroup(group.id, group.canonical);
+  const count = $derived(mergeCount.countOf(group.id));
+
+  const setActive = (name: string) => board.handleRename(group.id, name);
 </script>
 
 <div class="rename">
@@ -19,18 +22,18 @@
     label="合併後的名稱"
     labelHidden
     maxlength={50}
-    bind:value={group.canonical}
-    oninput={handleRenameInput}
+    value={group.canonical}
+    oninput={(e) => board.handleRename(group.id, e.currentTarget.value)}
     style="flex: 1; min-width: 0;"
     {@attach tooltip({ content: "合併後的名稱", placement: "left" })}
   />
 
   <span class="rename-count">
     →
-    {#if group.mergeCount === null}
+    {#if count === null}
       <span class="skeleton" aria-label="計算中">000</span>
     {:else}
-      {group.mergeCount}
+      {count}
     {/if}
     張
   </span>
@@ -57,7 +60,7 @@
     <span class="chip-count">{count}</span>
 
     <span class="chip-action">
-      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => board.detachTag(name)}>
+      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => board.handleDetach([name])}>
         <IconX size={14} />
       </button>
     </span>

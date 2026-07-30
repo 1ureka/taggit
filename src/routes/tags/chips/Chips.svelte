@@ -32,6 +32,7 @@
     padding: 0.75rem;
     min-height: 0;
     overflow-y: auto;
+    background-color: var(--color-bg);
   }
 
   p {
