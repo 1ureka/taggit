@@ -2,7 +2,7 @@
   import { isLeavingSelf } from "$lib/utils/dom";
   import { getDragContext } from "../logic/drag.svelte";
   import Chips from "./Chips.svelte";
-  import Pagination from "./Pagination.svelte";
+  import Pagination from "./PoolPagination.svelte";
 
   const drag = getDragContext();
   const target = { kind: "pool" } as const;
