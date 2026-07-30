@@ -14,7 +14,7 @@
   const board = getBoardContext();
   const mergeCount = getMergeCountContext();
 
-  /** 把一個標籤目前的畫布異動與審查資訊投影成一列審查紀錄 */
+  /** 把一個標籤目前的異動與審查資訊投影成一列審查紀錄 */
   function buildEntry(name: string, checked: boolean, failure?: string) {
     const op = board.operationOf(name)!;
 

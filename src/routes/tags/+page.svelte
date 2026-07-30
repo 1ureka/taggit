@@ -13,14 +13,14 @@
   import { createReviewContext } from "./logic/review.svelte";
   import { createGuardContext } from "./logic/guard.svelte";
 
+  import { IconArrowRight } from "$lib/icons";
+  import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
-  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Filters from "./header/Filters.svelte";
-  import CleanLink from "./header/CleanLink.svelte";
   import Pool from "./chips/Pool.svelte";
   import Zones from "./zone/Zones.svelte";
-  import ReviewModal from "./review/ReviewModal.svelte";
+  import ReviewModal from "./header/ReviewModal.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -32,8 +32,8 @@
   createBoardContext();
   createMergeCountContext();
   createDragContext();
-  const submit = createSubmitContext();
-  const review = createReviewContext();
+  createSubmitContext();
+  createReviewContext();
   const guard = createGuardContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
@@ -49,12 +49,11 @@
   <Toolbar>
     <Filters />
     <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
-    <CleanLink />
-    <ReviewTrigger
-      count={review.totalCount}
-      disabled={review.totalCount === 0 || submit.pending}
-      onclick={review.handleOpen}
-    />
+    <ButtonLink variant="outlined" href="/tags/cleanup">
+      <span>清理工具</span>
+      <IconArrowRight size={16} />
+    </ButtonLink>
+    <ReviewModal />
   </Toolbar>
 
   <div>
@@ -62,8 +61,6 @@
     <Zones />
   </div>
 </div>
-
-<ReviewModal />
 
 <style>
   div.container {

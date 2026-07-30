@@ -13,7 +13,7 @@ class ReviewController {
   private board = getBoardContext();
   private submit = getSubmitContext();
 
-  /** 全部有畫布異動的標籤，維持插入順序，**不應加入任何過濾** */
+  /** 全部有異動的標籤，維持插入順序，**不應加入任何過濾** */
   private names = $derived(this.board.operations.map((op) => op.name));
   /** 一輪能承擔的審查量設為 25 ，與 staged/committed 一致 */
   // TODO: 標籤應該可以調整的更高

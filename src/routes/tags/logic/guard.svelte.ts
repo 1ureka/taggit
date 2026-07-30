@@ -46,7 +46,7 @@ class GuardController {
     nav.cancel();
     if (to === null) return;
 
-    const msg = `畫布上還有 ${this.review.totalCount} 筆標籤操作尚未送出，離開將會遺失這些排程。確定要離開？`;
+    const msg = `還有 ${this.review.totalCount} 筆標籤操作尚未送出，離開將會遺失這些排程。確定要離開？`;
     requestConfirm(msg, { title: "尚未送出的標籤操作", action: "離開" }).then((confirmed) => {
       if (!confirmed) return;
       this.board.handleClearAll();
