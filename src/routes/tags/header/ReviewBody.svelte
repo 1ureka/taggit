@@ -6,26 +6,29 @@
 
   import { getReviewContext } from "../logic/review.svelte";
   import { getSubmitContext } from "../logic/submit.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
+  import { getChangesetContext } from "../logic/changeset.svelte";
   import { getMergeCountContext } from "../logic/merge-count.svelte";
 
   const review = getReviewContext();
   const submit = getSubmitContext();
-  const board = getBoardContext();
+  const zones = getZonesContext();
+  const changeset = getChangesetContext();
   const mergeCount = getMergeCountContext();
 
   /** 把一個標籤目前的異動與審查資訊投影成一列審查紀錄 */
   function buildEntry(name: string, checked: boolean, failure?: string) {
-    const op = board.operationOf(name)!;
+    const change = changeset.changeOf(name)!;
 
-    const boardProblem = board.problemOf(name);
-    const problem = boardProblem ?? (failure ? `送出失敗：${failure}` : null);
+    const changeProblem = changeset.problemOf(name);
+    const problem = changeProblem ?? (failure ? `送出失敗：${failure}` : null);
     const checkable = problem === null;
 
-    const target = op.kind === "rename" || op.kind === "merge" ? op.to : undefined;
-    const mergedCount = op.kind === "rename" || op.kind === "merge" ? mergeCount.countOf(op.groupId) : undefined;
+    const merging = change.kind === "rename" || change.kind === "merge";
+    const target = merging ? change.to : undefined;
+    const mergedCount = merging ? mergeCount.countOf(change.groupId) : undefined;
 
-    return { ...op, target, mergedCount, problem, checkable, checked: checkable && checked };
+    return { ...change, target, mergedCount, problem, checkable, checked: checkable && checked };
   }
 
   const entries = $derived(review.batchNames.map((n) => buildEntry(n, review.isChecked(n), submit.lastFailures[n])));
@@ -54,7 +57,7 @@
       mergedCount={entry.mergedCount}
       problem={entry.problem}
       ontoggle={() => review.handleToggle(entry.name)}
-      ondiscard={() => review.handleDiscard(entry.name)}
+      ondiscard={() => zones.handleDetach([entry.name])}
     />
   {/each}
 

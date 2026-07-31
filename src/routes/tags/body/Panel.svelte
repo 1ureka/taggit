@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
 
   import ZoneContainer from "./ZoneContainer.svelte";
   import ZoneHeader from "./ZoneHeader.svelte";
@@ -8,12 +8,7 @@
   import ZoneBodyDelete from "./ZoneBodyDelete.svelte";
   import ZoneBodyHidden from "./ZoneBodyHidden.svelte";
 
-  const board = getBoardContext();
-
-  // 每個區的成員在這裡取一次後往下傳，避免子元件各自回頭去 board 撈同一份清單
-  // TODO: 沒必要吧，撈清單又沒計算
-  const deleteTags = $derived(board.deleteZone.tags);
-  const hiddenTags = $derived(board.hiddenZone.tags);
+  const zones = getZonesContext();
 </script>
 
 <aside>
@@ -25,7 +20,7 @@
     <ZoneBodyCreate />
   </ZoneContainer>
 
-  {#each board.groupZones as group (group.id)}
+  {#each zones.groups as group (group.id)}
     {@const target = { kind: "group", id: group.id } as const}
     <ZoneContainer {target} aria-label={`合併區 ${group.canonical.trim()}`}>
       <ZoneHeader {target} tags={group.tags} label="合併或重新命名" />
@@ -34,13 +29,13 @@
   {/each}
 
   <ZoneContainer target={{ kind: "delete" }} aria-label="刪除區">
-    <ZoneHeader target={{ kind: "delete" }} tags={deleteTags} label="刪除區" />
-    <ZoneBodyDelete tags={deleteTags} />
+    <ZoneHeader target={{ kind: "delete" }} tags={zones.delete.tags} label="刪除區" />
+    <ZoneBodyDelete />
   </ZoneContainer>
 
   <ZoneContainer target={{ kind: "hidden" }} aria-label="切換隱藏區">
-    <ZoneHeader target={{ kind: "hidden" }} tags={hiddenTags} label="切換隱藏區" />
-    <ZoneBodyHidden tags={hiddenTags} />
+    <ZoneHeader target={{ kind: "hidden" }} tags={zones.hidden.tags} label="切換隱藏區" />
+    <ZoneBodyHidden />
   </ZoneContainer>
 </aside>
 

@@ -1,24 +1,22 @@
 <script lang="ts">
   import type { Tag } from "$lib/database";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
 
-  let { tags }: { tags: Tag[] } = $props();
-
-  const board = getBoardContext();
+  const zones = getZonesContext();
 </script>
 
 <p>可見的變隱藏、隱藏的恢復可見</p>
 
 {#snippet chip({ name, meta: { hidden } }: Tag)}
-  <Chip variant="outlined" removable onclick={() => board.handleDetach([name])}>
+  <Chip variant="outlined" removable onclick={() => zones.handleDetach([name])}>
     <span class="chip-name ellipsis">{name}</span>
     <span class="chip-note">{hidden ? "→ 可見" : "→ 隱藏"}</span>
   </Chip>
 {/snippet}
 
 <div class="chips">
-  {#each tags as tag (tag.name)}
+  {#each zones.hidden.tags as tag (tag.name)}
     {@render chip(tag)}
   {:else}
     <span class="empty">（空）</span>

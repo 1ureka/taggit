@@ -4,17 +4,17 @@
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import TextInput from "$lib/components/inputs/TextInput.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getBoardContext, type Zone } from "../logic/board.svelte";
+  import { getZonesContext, type Zone } from "../logic/zones.svelte";
   import { getMergeCountContext } from "../logic/merge-count.svelte";
 
   let { group }: { group: Extract<Zone, { kind: "group" }> } = $props();
 
-  const board = getBoardContext();
+  const zones = getZonesContext();
   const mergeCount = getMergeCountContext();
 
   const count = $derived(mergeCount.countOf(group.id));
 
-  const setActive = (name: string) => board.handleRename(group.id, name);
+  const setActive = (name: string) => zones.handleRename(group.id, name);
 </script>
 
 <div class="rename">
@@ -23,7 +23,7 @@
     labelHidden
     maxlength={50}
     value={group.canonical}
-    oninput={(e) => board.handleRename(group.id, e.currentTarget.value)}
+    oninput={(e) => zones.handleRename(group.id, e.currentTarget.value)}
     style="flex: 1; min-width: 0;"
     {@attach tooltip({ content: "合併後的名稱", placement: "left" })}
   />
@@ -60,7 +60,7 @@
     <span class="chip-count">{count}</span>
 
     <span class="chip-action">
-      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => board.handleDetach([name])}>
+      <button type="button" title={removeLabel} aria-label={removeLabel} onclick={() => zones.handleDetach([name])}>
         <IconX size={14} />
       </button>
     </span>

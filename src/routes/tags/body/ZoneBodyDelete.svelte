@@ -1,24 +1,22 @@
 <script lang="ts">
   import type { Tag } from "$lib/database";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
 
-  let { tags }: { tags: Tag[] } = $props();
-
-  const board = getBoardContext();
+  const zones = getZonesContext();
 </script>
 
 <p>拖進來的標籤會自所有圖片移除</p>
 
 {#snippet chip({ name, count }: Tag)}
-  <Chip variant="outlined" removable onclick={() => board.handleDetach([name])}>
+  <Chip variant="outlined" removable onclick={() => zones.handleDetach([name])}>
     <span class="chip-name ellipsis">{name}</span>
     <span class="chip-count">{count}</span>
   </Chip>
 {/snippet}
 
 <div class="chips">
-  {#each tags as tag (tag.name)}
+  {#each zones.delete.tags as tag (tag.name)}
     {@render chip(tag)}
   {:else}
     <span class="empty">（空）</span>

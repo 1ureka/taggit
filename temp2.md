@@ -189,10 +189,14 @@ let { tag, status }: { tag: Tag; status: "idle" | "group" | "delete" | "hidden" 
 | `merge-count.svelte.ts` | `getBoardContext` → `getZonesContext`；`private board` → `private zones`；`this.board.groupZones` → `this.zones.groups`；註解「把張數查詢與畫布分開」→「與異動區分開」 |
 | `drag.svelte.ts` | import 來源改 `./zones.svelte`；`private board` → `private zones`；`this.board.handleAssign` → `this.zones.handleAssign` |
 | `submit.svelte.ts` | 改依賴 `changeset` **與** `zones`（讀異動用前者、成功後 detach 用後者）；`toPayload(ops: TagOperation[])` → `toPayload(changes: TagChange[])`；`this.board.operations.filter` → `this.changeset.changes.filter`；`this.board.handleDetach` → `this.zones.handleDetach`；TODO 註解裡的 `board.operations` → `changeset.changes` |
-| `review.svelte.ts` | 新增 `private changeset` 與 `private zones`，移除 `private board`；`this.board.operations.map((op) => op.name)` → `this.changeset.changes.map((c) => c.name)`；`this.board.problemOf` → `this.changeset.problemOf`；`this.board.handleDetach([name])` → `this.zones.handleDetach([name])` |
+| `review.svelte.ts` | `private board` → `private changeset`；`this.board.operations.map((op) => op.name)` → `this.changeset.changes.map((c) => c.name)`；`this.board.problemOf` → `this.changeset.problemOf`；**刪除 `handleDiscard`**（見下） |
 | `guard.svelte.ts` | `getBoardContext` → `getZonesContext`；`this.board.handleClearAll()` → `this.zones.handleClearAll()` |
 
-`submit` 與 `review` 各自多一個依賴（同時讀 `changeset` 與 `zones`）。這是刻意的：「讀異動清單」與「把標籤移出所在區」本來就是兩件事，讓 `changeset` 開一個 `handleDiscard` 去轉呼叫 `zones.handleDetach` 只會多一個單一呼叫端的空殼方法（原則 4）。controller 之間互相呼叫公開 `handle*` 是文件允許的。
+`submit` 同時讀 `changeset`（組 payload）與 `zones`（成功後把標籤移出所在區）。這是刻意的：讓 `changeset` 開一個 `handleDiscard` 去轉呼叫 `zones.handleDetach` 只會多一個單一呼叫端的空殼方法（原則 4）。controller 之間互相呼叫公開 `handle*` 是文件允許的。
+
+**`review.handleDiscard` 一併刪除，同理。** 它原本是 `this.zones.handleDetach([name])` 的純轉呼叫——沒有狀態變更、沒有驗證、沒有協調，且只有 `ReviewBody` 一個呼叫端。標籤被 detach 後就離開 `changeset.changes` → `names` → `batchNames`，而 `submittableNames` 是從 `batchNames` 過濾的，所以殘留的 `checked[name]` 不影響任何結果，不需要清理；送出中也不必擋，`ReviewList` 已對整個 `<ul>` 下 `inert={pending}`。
+
+改由 `ReviewBody` 直接 `ondiscard={() => zones.handleDetach([entry.name])}`，這正是文件說的「拿 A 上下文的狀態投影，但事件傳給 B 上下文」。**`review` 因此完全不再依賴 `zones`**，相依從三個降為兩個。
 
 ### `body/`（9）
 
@@ -212,7 +216,7 @@ let { tag, status }: { tag: Tag; status: "idle" | "group" | "delete" | "hidden" 
 
 | 檔案 | 改動 |
 | --- | --- |
-| `ReviewBody.svelte` | `getBoardContext` → `getChangesetContext`；`board.operationOf(name)!` → `changeset.changeOf(name)!`；`board.problemOf` → `changeset.problemOf`；區域變數 `op` → `change`、`boardProblem` → `changeProblem` |
+| `ReviewBody.svelte` | `getBoardContext` → `getChangesetContext` **與** `getZonesContext`；`board.operationOf(name)!` → `changeset.changeOf(name)!`；`board.problemOf` → `changeset.problemOf`；區域變數 `op` → `change`、`boardProblem` → `changeProblem`；`ondiscard` 改直接呼叫 `zones.handleDetach([entry.name])` |
 | `+page.svelte` | `createBoardContext()` → `createZonesContext()`，其後插入 `createChangesetContext()` |
 
 ---
@@ -222,11 +226,11 @@ let { tag, status }: { tag: Tag; status: "idle" | "group" | "delete" | "hidden" 
 ```
 zones           （無依賴）
   ├── changeset
+  │     ├── submit ← zones
+  │     └── review ← submit
   ├── merge-count
   ├── drag  ←──── selection
-  ├── submit ←─── changeset
-  │     └── review ← changeset, submit
-  └── guard  ←──── submit, query, review
+  └── guard ←──── submit, query, review
 ```
 
 `+page.svelte` 的建立順序（11 個）：

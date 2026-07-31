@@ -6,24 +6,24 @@
 import { getContext, setContext } from "svelte";
 import { SveltePagination } from "$lib/utils/pagination.svelte";
 
-import { getBoardContext } from "./board.svelte";
+import { getChangesetContext } from "./changeset.svelte";
 import { getSubmitContext } from "./submit.svelte";
 
 class ReviewController {
-  private board = getBoardContext();
+  private changeset = getChangesetContext();
   private submit = getSubmitContext();
 
   /** 全部有異動的標籤，維持插入順序，**不應加入任何過濾** */
-  private names = $derived(this.board.operations.map((op) => op.name));
-  /** 一輪能承擔的審查量設為 25 ，與 staged/committed 一致 */
+  private names = $derived(this.changeset.changes.map((c) => c.name));
+  /** 一輪能承擔的審查量 */
   // TODO: 標籤應該可以調整的更高
   private pagination = new SveltePagination(() => this.names, 25);
-  /** 目前審查清單的勾選狀態；每次開始新的一批時重新全選可送出項目 */
+  /** 目前審查清單的勾選狀態 */
   private checked = $state<Record<string, true>>({});
 
   /** 指定標籤目前是否可以被送出 */
   checkableOf(name: string): boolean {
-    return this.board.problemOf(name) === null;
+    return this.changeset.problemOf(name) === null;
   }
   /** 指定標籤目前是否已勾選 */
   isChecked(name: string): boolean {
@@ -38,7 +38,7 @@ class ReviewController {
   batch = $derived(this.pagination.page);
   /** 總批次數 */
   batches = $derived(this.pagination.pages);
-  /** 本批負責的標籤，以下所有衍生值都以它為事實來源 */
+  /** 本批負責的標籤 */
   batchNames = $derived(this.pagination.items);
   /** 可送出的標籤 */
   checkableNames = $derived(this.batchNames.filter((n) => this.checkableOf(n)));
@@ -115,11 +115,6 @@ class ReviewController {
       if (allSelected) delete this.checked[n];
       else this.checked[n] = true;
     }
-  };
-
-  /** 捨棄單筆異動，也就是把該標籤移回標籤池 */
-  handleDiscard = (name: string) => {
-    this.board.handleDetach([name]);
   };
 
   /** 送出本批可送出的項目；成功的會被 submit 自己自異動區移除，這裡只負責同步 checked 狀態 */
