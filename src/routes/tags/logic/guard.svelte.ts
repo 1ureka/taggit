@@ -11,13 +11,13 @@ import { page } from "$app/state";
 import { addToast } from "$lib/components/floating/toast-events";
 import { requestConfirm } from "$lib/components/widgets/confirm-events";
 
-import { getBoardContext } from "./board.svelte";
+import { getZonesContext } from "./zones.svelte";
 import { getSubmitContext } from "./submit.svelte";
 import { getQueryContext } from "./query.svelte";
 import { getReviewContext } from "./review.svelte";
 
 class GuardController {
-  private board = getBoardContext();
+  private zones = getZonesContext();
   private submit = getSubmitContext();
   private query = getQueryContext();
   private review = getReviewContext();
@@ -49,7 +49,7 @@ class GuardController {
     const msg = `還有 ${this.review.totalCount} 筆標籤操作尚未送出，離開將會遺失這些排程。確定要離開？`;
     requestConfirm(msg, { title: "尚未送出的標籤操作", action: "離開" }).then((confirmed) => {
       if (!confirmed) return;
-      this.board.handleClearAll();
+      this.zones.handleClearAll();
       goto(to.url.href);
     });
   };

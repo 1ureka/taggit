@@ -261,10 +261,19 @@ const guard = createGuardContext();
 
 ---
 
-## 八、驗證
+## 八、驗證（已完成）
 
-- `npm run check`、`npm run build`、`npm test` 全綠。
-- `grep -rn "board\|Board\|畫布\|operation\|Operation\|chipStatus" src/routes/tags` 在 `cleanup/` 以外應無殘留。
+- `npm run check` — 680 files, 0 errors, 0 warnings
+- `npm run build` — 成功
+- `npm test` — 576 passed, 0 failed
+- `git grep -nE "board|Board|畫布|[Oo]peration|chipStatus" -- src/routes/tags ":!src/routes/tags/cleanup"` — 無殘留
+
+`logic/` 最終 11 個檔案，全部是 controller：
+
+```
+changeset  drag  guard  merge-count  page-data
+previews   query review  selection   submit  zones
+```
 
 `temp1.md` 第八節的驗收清單完全沿用，其中與本次相關的是這幾條：
 

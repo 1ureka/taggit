@@ -6,11 +6,11 @@
 import { getContext, setContext } from "svelte";
 import type { Tag } from "$lib/database";
 
-import { getBoardContext, type ZoneTarget } from "./board.svelte";
+import { getZonesContext, type ZoneTarget } from "./zones.svelte";
 import { getSelectionContext } from "./selection.svelte";
 
 class DragController {
-  private board = getBoardContext();
+  private zones = getZonesContext();
   private selection = getSelectionContext();
 
   /** 目前正在拖曳的標籤 */
@@ -51,7 +51,7 @@ class DragController {
     this.dragging = null;
 
     const tags = this.selection.isSelected(dragged.name) ? this.selection.consume() : [dragged];
-    this.board.handleAssign(target, tags);
+    this.zones.handleAssign(target, tags);
   };
 }
 

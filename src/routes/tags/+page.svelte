@@ -5,7 +5,8 @@
   import { createPageDataContext } from "./logic/page-data.svelte";
   import { createQueryContext } from "./logic/query.svelte";
   import { createSelectionContext } from "./logic/selection.svelte";
-  import { createBoardContext } from "./logic/board.svelte";
+  import { createZonesContext } from "./logic/zones.svelte";
+  import { createChangesetContext } from "./logic/changeset.svelte";
   import { createMergeCountContext } from "./logic/merge-count.svelte";
   import { createDragContext } from "./logic/drag.svelte";
   import { createPreviewsContext } from "./logic/previews.svelte";
@@ -29,7 +30,8 @@
   const query = createQueryContext();
   createPreviewsContext();
   createSelectionContext();
-  createBoardContext();
+  createZonesContext();
+  createChangesetContext();
   createMergeCountContext();
   createDragContext();
   createSubmitContext();

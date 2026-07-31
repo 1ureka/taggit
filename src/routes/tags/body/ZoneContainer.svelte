@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
   import { isLeavingSelf } from "$lib/utils/dom";
   import { getDragContext } from "../logic/drag.svelte";
-  import type { ZoneTarget } from "../logic/board.svelte";
+  import type { ZoneTarget } from "../logic/zones.svelte";
 
   type Props = {
     /** 這個容器代表的拖放目標 */

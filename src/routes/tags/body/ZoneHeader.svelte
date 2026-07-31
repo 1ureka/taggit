@@ -5,18 +5,18 @@
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import { getBoardContext, type ZoneTarget } from "../logic/board.svelte";
+  import { getZonesContext, type ZoneTarget } from "../logic/zones.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
 
   let { target, tags, label }: { target: ZoneTarget; tags: Tag[]; label: string } = $props();
 
-  const board = getBoardContext();
+  const zones = getZonesContext();
   const selection = getSelectionContext();
 
   const href = $derived(`/?${new ImageWhere({ includedTags: tags.map((t) => t.name) }).toSearchParams()}`);
 
-  const onadd = () => board.handleAssign(target, selection.consume());
-  const ondissolve = () => board.handleDissolve(target);
+  const onadd = () => zones.handleAssign(target, selection.consume());
+  const ondissolve = () => zones.handleDissolve(target);
 </script>
 
 <div>
