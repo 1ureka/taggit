@@ -1,23 +1,22 @@
 <script lang="ts">
   import type { Tag } from "$lib/database";
   import Chip from "$lib/components/display/Chip.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
 
-  const board = getBoardContext();
-  const tags = $derived(board.deleteZone.tags);
+  const zones = getZonesContext();
 </script>
 
-<p>拖進來的標籤會自所有圖片移除</p>
+<p>可見的變隱藏、隱藏的恢復可見</p>
 
-{#snippet chip({ name, count }: Tag)}
-  <Chip variant="outlined" removable onclick={() => board.detachTag(name)}>
+{#snippet chip({ name, meta: { hidden } }: Tag)}
+  <Chip variant="outlined" removable onclick={() => zones.handleDetach([name])}>
     <span class="chip-name ellipsis">{name}</span>
-    <span class="chip-count">{count}</span>
+    <span class="chip-note">{hidden ? "→ 可見" : "→ 隱藏"}</span>
   </Chip>
 {/snippet}
 
 <div class="chips">
-  {#each tags as tag (tag.name)}
+  {#each zones.hidden.tags as tag (tag.name)}
     {@render chip(tag)}
   {:else}
     <span class="empty">（空）</span>
@@ -43,7 +42,7 @@
     gap: 0.375rem;
   }
 
-  span.chip-count {
+  span.chip-note {
     font-family: var(--font-family-mono);
     color: var(--color-text-muted);
   }

@@ -19,7 +19,7 @@ class ReviewController {
   private files = $derived([...new Set([...this.drafts.touchedFiles, ...this.reverts.markedFiles])]);
   /** 一輪能承擔的審查量設為 25 ，因圖片的差異比對繁複，更高的量等於沒審查 */
   private pagination = new SveltePagination(() => this.files, 25);
-  /** 目前審查清單的勾選狀態；每次開始新的一批時重新全選可提交項目 */
+  /** 目前審查清單的勾選狀態 */
   private checked = $state<Record<string, true>>({});
 
   /** 指定檔名目前是否可以被送出 */

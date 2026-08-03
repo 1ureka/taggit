@@ -1,27 +1,23 @@
 <script lang="ts">
+  import type { Tag } from "$lib/database";
   import { ImageWhere } from "$lib/query-spec";
   import { IconExternalLink, IconTagPlus, IconX } from "$lib/icons";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import Button from "$lib/components/actions/Button.svelte";
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
-  import { getBoardContext, type GroupTarget } from "../logic/board.svelte";
+
+  import { getZonesContext, type ZoneTarget } from "../logic/zones.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
 
-  let { target, label }: { target: GroupTarget; label: string } = $props();
+  let { target, tags, label }: { target: ZoneTarget; tags: Tag[]; label: string } = $props();
 
-  const board = getBoardContext();
+  const zones = getZonesContext();
   const selection = getSelectionContext();
 
-  const tags = $derived(
-    target.kind === "group"
-      ? (board.groups.find((g) => g.id === target.id)?.tags ?? [])
-      : target.kind === "delete"
-        ? board.deleteZone.tags
-        : board.hiddenZone.tags,
-  );
+  const href = $derived(`/?${new ImageWhere({ includedTags: tags.map((t) => t.name) }).toSearchParams()}`);
 
-  const onadd = () => board.addTags(target, selection.consume());
-  const ondissolve = () => (target.kind === "group" ? board.dissolveGroup(target.id) : board.dissolveZone(target.kind));
+  const onadd = () => zones.handleAssign(target, selection.consume());
+  const ondissolve = () => zones.handleDissolve(target);
 </script>
 
 <div>
@@ -31,7 +27,7 @@
     <ButtonLink
       variant="ghost"
       padding="icon"
-      href={`/?${new ImageWhere({ includedTags: tags.map((t) => t.name) }).toSearchParams()}`}
+      {href}
       status={tags.length < 1 ? "disabled" : undefined}
       target="_blank"
       rel="noopener"

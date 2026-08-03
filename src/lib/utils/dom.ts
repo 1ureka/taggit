@@ -11,3 +11,13 @@ export function isInEditable(el: EventTarget | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
   return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.contentEditable === "true";
 }
+
+/**
+ * 判斷一次 `dragleave`／`mouseleave` 是不是只冒泡到子元素，而非真的離開目前元素。
+ * 游標移到區塊內的按鈕或輸入框時 `relatedTarget` 仍在區塊內，據此可避免懸停樣式閃爍。
+ */
+export function isLeavingSelf(e: { relatedTarget: EventTarget | null; currentTarget: EventTarget | null }): boolean {
+  const { relatedTarget: related, currentTarget: current } = e;
+  if (related instanceof Node && current instanceof HTMLElement && current.contains(related)) return false;
+  return true;
+}

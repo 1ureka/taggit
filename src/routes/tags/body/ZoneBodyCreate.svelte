@@ -1,12 +1,12 @@
 <script lang="ts">
   import Button from "$lib/components/actions/Button.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
 
-  const board = getBoardContext();
+  const zones = getZonesContext();
   const selection = getSelectionContext();
 
-  const oncreate = () => board.createGroup(selection.consume());
+  const oncreate = () => zones.handleAssign({ kind: "new-group" }, selection.consume());
 </script>
 
 <p>拖曳到這裡建立<b>合併區</b></p>

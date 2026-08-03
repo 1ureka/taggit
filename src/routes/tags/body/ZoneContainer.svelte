@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { getDragContext, type ZoneTarget } from "../logic/drag.svelte";
+  import { isLeavingSelf } from "$lib/utils/dom";
+  import { getDragContext } from "../logic/drag.svelte";
+  import type { ZoneTarget } from "../logic/zones.svelte";
 
   type Props = {
     /** 這個容器代表的拖放目標 */
@@ -16,17 +18,30 @@
   let { target, children, ...rest }: Props = $props();
 
   const drag = getDragContext();
-  const handlers = $derived(drag.zoneHandlers(target));
 
   const variant = $derived(target.kind === "new-group" ? "create" : target.kind === "group" ? "group" : target.kind);
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    drag.handleDragOver(target);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    if (isLeavingSelf(e)) drag.handleDragLeave(target);
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    drag.handleDrop(target);
+  };
 </script>
 
 <div
-  class={{ dropping: handlers.dropping, [variant]: true }}
+  class={{ dropping: drag.isOver(target), [variant]: true }}
   role="group"
-  ondragover={handlers.ondragover}
-  ondragleave={handlers.ondragleave}
-  ondrop={handlers.ondrop}
+  ondragover={handleDragOver}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
   {...rest}
 >
   {@render children()}

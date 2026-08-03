@@ -1,6 +1,6 @@
 /**
  * @file previews.svelte.ts
- * 標籤懸停預覽圖的查詢與快取，同一次掛載期間同標籤不重查，送出成功後整個清空。
+ * 標籤懸停預覽圖的查詢與快取
  */
 
 import { getContext, setContext } from "svelte";
@@ -9,16 +9,25 @@ import { api } from "$lib/utils/request";
 import { ImageQuery, ImageWhere, ListOptions, type ImageSort } from "$lib/query-spec";
 import type { ImageWithId } from "$lib/database";
 
+import { getPageDataContext } from "./page-data.svelte";
+
 type CacheEntry = "loading" | ImageWithId[];
 
 class PreviewsController {
+  private pageData = getPageDataContext();
+
   private cache = new SvelteMap<string, CacheEntry>();
+
+  constructor() {
+    // SSR 資料更新後讓快取失效
+    $effect(() => {
+      this.pageData.value.items;
+      this.cache.clear();
+    });
+  }
 
   /** 指定標籤目前的快取狀態；`undefined` = 尚未查詢過 */
   get = (tag: string) => this.cache.get(tag);
-
-  /** 清空快取（tags-batch 送出成功後標籤內容已變） */
-  clear = () => this.cache.clear();
 
   /** 查詢指定標籤的預覽圖（評等最高 N 張）；已有快取或載入中則不重查 */
   request = async (tag: string) => {

@@ -1,9 +1,19 @@
 <script lang="ts">
   import { getPageDataContext } from "../logic/page-data.svelte";
+  import { getZonesContext } from "../logic/zones.svelte";
   import Chip from "./Chip.svelte";
 
   const pageData = getPageDataContext();
+  const zones = getZonesContext();
+
   const items = $derived(pageData.value.items);
+
+  /** 每個標籤目前所在的區域種類 */
+  const statusOf = $derived.by(() => {
+    const m = new Map<string, "group" | "delete" | "hidden">();
+    for (const zone of zones.all) for (const t of zone.tags) m.set(t.name, zone.kind);
+    return m;
+  });
 
   let scrollerEl = $state<HTMLElement>();
 
@@ -15,7 +25,7 @@
 
 <div bind:this={scrollerEl}>
   {#each items as tag (tag.name)}
-    <Chip {tag} />
+    <Chip {tag} status={statusOf.get(tag.name) ?? "idle"} />
   {:else}
     <p>沒有符合的標籤</p>
   {/each}
@@ -32,6 +42,7 @@
     padding: 0.75rem;
     min-height: 0;
     overflow-y: auto;
+    background-color: var(--color-bg);
   }
 
   p {

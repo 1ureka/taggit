@@ -5,18 +5,22 @@
   import ChipTooltip from "./ChipTooltip.svelte";
 
   import { getPreviewsContext } from "../logic/previews.svelte";
-  import { getBoardContext } from "../logic/board.svelte";
   import { getSelectionContext } from "../logic/selection.svelte";
   import { getDragContext } from "../logic/drag.svelte";
 
-  let { tag }: { tag: Tag } = $props();
+  type Props = {
+    /** 這個 chip 對應的標籤 */
+    tag: Tag;
+    /** 標籤目前所在的異動區種類，未排入任何區時為 `idle` */
+    status: "idle" | "group" | "delete" | "hidden";
+  };
+
+  let { tag, status }: Props = $props();
 
   const previews = getPreviewsContext();
-  const board = getBoardContext();
   const selection = getSelectionContext();
   const drag = getDragContext();
 
-  const status = $derived(board.chipStatus.get(tag.name) ?? "idle");
   const selected = $derived(selection.isSelected(tag.name));
 
   const titleMap = {
