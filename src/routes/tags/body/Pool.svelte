@@ -24,7 +24,6 @@
 
 <section
   class:dropping={drag.isOver(target)}
-  role="list"
   aria-label="標籤池"
   ondragover={handleDragOver}
   ondragleave={handleDragLeave}
@@ -35,7 +34,7 @@
 </section>
 
 <style>
-  section[role="list"] {
+  section {
     display: flex;
     flex-direction: column;
     flex: 1;
