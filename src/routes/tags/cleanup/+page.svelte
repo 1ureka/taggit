@@ -14,7 +14,7 @@
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
   import Tabs from "./header/Tabs.svelte";
   import ReviewModal from "./header/ReviewModal.svelte";
-  import Cards from "./cards/Cards.svelte";
+  import Cards from "./body/Cards.svelte";
 
   let { data }: { data: PageData } = $props();
 
