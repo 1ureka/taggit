@@ -1,19 +1,17 @@
 <script lang="ts">
   import { IconX } from "$lib/icons";
   import Button from "$lib/components/actions/Button.svelte";
-  import type { Suggestion } from "../logic/suggestions";
+  import type { Suggestion } from "../logic/page-data.svelte";
   import { getScheduleContext } from "../logic/schedule.svelte";
-  import { getFilterContext, KIND_LABELS } from "../logic/filter.svelte";
+  import { getQueryContext, KIND_LABELS } from "../logic/query.svelte";
   import Chip from "$lib/components/display/Chip.svelte";
 
   let { suggestion: s }: { suggestion: Suggestion } = $props();
 
   const schedule = getScheduleContext();
-  const filter = getFilterContext();
+  const query = getQueryContext();
 
-  /** 這張卡片涉及的標籤名稱，用來判斷是否已有排入的操作 */
-  const names = $derived(s.kind === "similar" || s.kind === "cooccur" ? [s.a.name, s.b.name] : [s.tag.name]);
-  const scheduledName = $derived(names.find((n) => schedule.statusOf(n) !== null));
+  const scheduled = $derived(schedule.scheduledNameOf(s) !== undefined);
 
   const chipBaseStyle =
     "font: var(--font-caption); color: var(--kind-color); border-color: hsl(from var(--kind-color) h s l / 0.5);";
@@ -25,13 +23,13 @@
     scheduled: "--kind-color: var(--color-success);",
   };
 
-  const kind = $derived(scheduledName !== undefined ? "scheduled" : s.kind);
-  const label = $derived(scheduledName !== undefined ? "已排入" : KIND_LABELS[s.kind]);
+  const kind = $derived(scheduled ? "scheduled" : s.kind);
+  const label = $derived(scheduled ? "已排入" : KIND_LABELS[s.kind]);
 </script>
 
 <header>
   <Chip variant="outlined" style={chipStyles[kind] + chipBaseStyle}>{label}</Chip>
-  <Button variant="ghost" padding="icon" aria-label="忽略這個建議" onclick={() => filter.handleDismiss(s.id)}>
+  <Button variant="ghost" padding="icon" aria-label="忽略這個建議" onclick={() => query.handleDismiss(s.id)}>
     <IconX size={13} />
   </Button>
 </header>

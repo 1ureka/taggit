@@ -2,18 +2,16 @@
   import { beforeNavigate } from "$app/navigation";
   import type { PageData } from "./$types";
 
-  import { isInEditable } from "$lib/utils/dom";
-
   import { createPageDataContext } from "./logic/page-data.svelte";
   import { createSamplesContext } from "./logic/samples.svelte";
-  import { createOperationsContext } from "./logic/operations.svelte";
+  import { createQueryContext } from "./logic/query.svelte";
   import { createScheduleContext } from "./logic/schedule.svelte";
-  import { createFilterContext } from "./logic/filter.svelte";
+  import { createSubmitContext } from "./logic/submit.svelte";
   import { createReviewContext } from "./logic/review.svelte";
+  import { createGuardContext } from "./logic/guard.svelte";
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
-  import ReviewTrigger from "$lib/components/review/ReviewTrigger.svelte";
   import Filters from "./header/Filters.svelte";
   import Cards from "./cards/Cards.svelte";
   import ReviewModal from "./review/ReviewModal.svelte";
@@ -23,23 +21,16 @@
   // 依相依順序建立各領域 controller
   createPageDataContext(() => data);
   createSamplesContext();
-  const operations = createOperationsContext();
-  const schedule = createScheduleContext();
-  createFilterContext();
-  const review = createReviewContext();
+  const query = createQueryContext();
+  createScheduleContext();
+  createSubmitContext();
+  createReviewContext();
+  const guard = createGuardContext();
 
-  beforeNavigate(schedule.handleBeforeNavigate);
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (isInEditable(e.target)) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      if (schedule.touchedCount > 0) review.handleOpen();
-    }
-  }
+  beforeNavigate(guard.handleBeforeNavigate);
 </script>
 
-<svelte:window onkeydown={handleKeydown} onbeforeunload={schedule.handleBeforeUnload} />
+<svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <svelte:head>
   <title>標籤清理工具</title>
@@ -48,17 +39,11 @@
 <div class="container">
   <Toolbar>
     <Filters />
-    <RefreshButton pending={operations.pending} onrefresh={operations.handleRefresh} style="margin-left: auto;" />
-    <ReviewTrigger
-      count={schedule.touchedCount}
-      disabled={schedule.touchedCount === 0 || operations.pending}
-      onclick={review.handleOpen}
-    />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
+    <ReviewModal />
   </Toolbar>
   <Cards />
 </div>
-
-<ReviewModal />
 
 <style>
   div.container {

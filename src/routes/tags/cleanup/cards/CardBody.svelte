@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Suggestion } from "../logic/suggestions";
+  import type { Suggestion } from "../logic/page-data.svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
 
   let { suggestion: s }: { suggestion: Suggestion } = $props();

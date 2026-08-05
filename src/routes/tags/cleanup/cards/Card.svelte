@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Suggestion } from "../logic/suggestions";
+  import type { Suggestion } from "../logic/page-data.svelte";
   import { getScheduleContext } from "../logic/schedule.svelte";
   import CardSamples from "./CardSamples.svelte";
   import CardHeader from "./CardHeader.svelte";
@@ -10,12 +10,10 @@
 
   const schedule = getScheduleContext();
 
-  /** 這張卡片涉及的標籤名稱，用來判斷是否已有排入的操作 */
-  const names = $derived(s.kind === "similar" || s.kind === "cooccur" ? [s.a.name, s.b.name] : [s.tag.name]);
-  const scheduledName = $derived(names.find((n) => schedule.statusOf(n) !== null));
+  const scheduled = $derived(schedule.scheduledNameOf(s) !== undefined);
 </script>
 
-<article class:scheduled={scheduledName !== undefined}>
+<article class:scheduled>
   <CardHeader suggestion={s} />
   <CardBody suggestion={s} />
   {#if s.kind !== "unused"}
