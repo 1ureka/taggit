@@ -4,7 +4,7 @@
   import Image from "$lib/components/display/Image.svelte";
 
   import { getSamplesContext } from "../logic/samples.svelte";
-  import type { Suggestion } from "../logic/suggestions";
+  import type { Suggestion } from "../logic/page-data.svelte";
 
   let { suggestion }: { suggestion: Suggestion } = $props();
 

@@ -1,15 +1,15 @@
 <script lang="ts">
   import { innerWidth } from "svelte/reactivity/window";
   import { Virtualizer } from "$lib/utils/virtualize.svelte";
-  import { getFilterContext } from "../logic/filter.svelte";
+  import { getQueryContext } from "../logic/query.svelte";
   import { breakpoints, CARD_SIZE } from "./config";
   import Card from "./Card.svelte";
 
-  const filter = getFilterContext();
+  const query = getQueryContext();
 
   const availableWidth = $derived(innerWidth.current ?? 1000);
   const layout = $derived(breakpoints.find((b) => availableWidth >= b.width)!);
-  const layoutItems = $derived(filter.visible.map((s) => ({ ...s, width: CARD_SIZE.width, height: CARD_SIZE.height })));
+  const layoutItems = $derived(query.visible.map((s) => ({ ...s, width: CARD_SIZE.width, height: CARD_SIZE.height })));
 
   const masonry = Virtualizer.masonry({
     get items() {
@@ -31,9 +31,9 @@
 </script>
 
 <section aria-label="標籤清理建議" bind:this={masonry.viewportEl}>
-  {#if filter.visible.length === 0}
+  {#if query.visible.length === 0}
     <div class="empty">
-      <p>沒有{filter.tab === "all" ? "" : "這個分類的"}建議了，標籤庫看起來很乾淨。</p>
+      <p>沒有{query.tab === "all" ? "" : "這個分類的"}建議了，標籤庫看起來很乾淨。</p>
     </div>
   {:else}
     <ul style:height="{masonry.contentHeight}px">

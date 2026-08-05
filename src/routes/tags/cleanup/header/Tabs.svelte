@@ -2,9 +2,9 @@
   import ButtonLink from "$lib/components/actions/ButtonLink.svelte";
   import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import { IconArrowLeft } from "$lib/icons";
-  import { getFilterContext, KIND_LABELS, type Tab } from "../logic/filter.svelte";
+  import { getQueryContext, KIND_LABELS, type Tab } from "../logic/query.svelte";
 
-  const filter = getFilterContext();
+  const query = getQueryContext();
 
   const tabs: { value: Tab; label: string }[] = [
     { value: "all", label: "全部" },
@@ -27,9 +27,9 @@
   </ButtonLink>
 
   {#each tabs as t (t.value)}
-    <button type="button" class:active={filter.tab === t.value} onclick={() => filter.handleTabChange(t.value)}>
+    <button type="button" class:active={query.tab === t.value} onclick={() => query.handleTabChange(t.value)}>
       <span>{t.label}</span>
-      <span class="count">{t.value === "all" ? filter.total : (filter.kindCounts.get(t.value) ?? 0)}</span>
+      <span class="count">{t.value === "all" ? query.total : (query.kindCounts.get(t.value) ?? 0)}</span>
     </button>
   {/each}
 </div>

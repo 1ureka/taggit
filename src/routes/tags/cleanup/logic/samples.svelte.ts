@@ -8,13 +8,17 @@ import { SvelteMap } from "svelte/reactivity";
 import { api } from "$lib/utils/request";
 import { ImageQuery, ImageWhere, ListOptions, type ImageSort } from "$lib/query-spec";
 import type { ImageWithId } from "$lib/database";
-import type { Suggestion } from "./suggestions";
+import { getPageDataContext, type Suggestion } from "./page-data.svelte";
 
 type CacheEntry = "loading" | ImageWithId[];
 
 const SAMPLE_LIMIT = 3;
 
-/** 這則建議涉及的標籤名稱，決定要查哪些標籤的樣本圖 */
+/**
+ * 這則建議有樣本圖可查的標籤名稱。
+ * 與 `schedule` 的「這則建議涉及的標籤」語意不同：`unused` 的 count 恆為 0，
+ * 沒有任何圖片可查，因此在這裡回傳空陣列，兩者刻意不共用。
+ */
 function tagsOf(s: Suggestion): string[] {
   switch (s.kind) {
     case "similar":
@@ -40,13 +44,20 @@ async function fetchByTags(tags: string[], limit: number): Promise<ImageWithId[]
 }
 
 class SamplesController {
+  private pageData = getPageDataContext();
+
   private cache = new SvelteMap<string, CacheEntry>();
+
+  constructor() {
+    // 建議清單重算後標籤內容已變，快取一律失效；重新整理與送出成功都會走到這裡
+    $effect(() => {
+      this.pageData.value.suggestions;
+      this.cache.clear();
+    });
+  }
 
   /** 指定建議目前的快取狀態；`undefined` = 尚未查詢過 */
   get = (id: string) => this.cache.get(id);
-
-  /** 清空快取（tags-batch 送出成功後標籤內容已變） */
-  clear = () => this.cache.clear();
 
   /** 查詢指定建議的樣本圖；已有快取或載入中則不重查 */
   request = async (s: Suggestion) => {

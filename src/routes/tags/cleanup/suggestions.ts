@@ -5,7 +5,7 @@
 
 import type { ImageWithId, Tag } from "$lib/database";
 
-export type Suggestion =
+type Suggestion =
   /** 名稱近似：正規化後相同、或編輯距離 1 */
   | { id: string; kind: "similar"; a: Tag; b: Tag; reason: string; both: number }
   /** 高度共現：幾乎總是一起出現的兩個標籤（同義候選） */
