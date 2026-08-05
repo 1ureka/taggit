@@ -42,8 +42,8 @@
 | `logic/suggestions.ts` | **搬到 `cleanup/suggestions.ts`** | 伺服器端演算法，內容不動，只改路徑與 import |
 | `logic/page-data.svelte.ts` | 保留，加一行型別出口 | 讓 `Suggestion` 由 `PageData` 推導，元件不再 import 伺服器模組 |
 | `logic/samples.svelte.ts` | 保留，改為自動失效 | 現行靠 `operations` 與 `review` 兩處手動 `clear()`，是兩條純為了清快取而存在的依賴 |
-| `logic/filter.svelte.ts` | 幾乎不動 | 只改型別來源 |
-| `logic/operations.svelte.ts` | **拆解後刪除** | 「全頁操作鎖」把 refresh 與 submit 兩件事綁在同一個 `pending`，還被 `review` 從外部直接賦值 |
+| `logic/filter.svelte.ts` | **併入 `query.svelte.ts`** | 「決定這頁看到哪些項目」與「重取一次」是另外兩頁 `query` 的同一個角色；另補失效 effect |
+| `logic/operations.svelte.ts` | **拆解後刪除** | 「全頁操作鎖」把重新整理與送出兩件事綁在同一個 `pending`，還被 `review` 從外部直接賦值 |
 | `logic/schedule.svelte.ts` | **瘦身 + 吸收驗證** | 一個 controller 同時做排程、扁平化、離頁守衛三件事；三個 `Record` + 扁平化函式可壓成一個 `SvelteMap` |
 | `logic/changeset.ts` | **併入 `submit.svelte.ts`** | 純 `.ts`，且檔頭自己就寫著 `TODO: 重新思考職責與正確位置` |
 | `logic/review-entry.ts` | **拆進 `schedule` 與 `ReviewBody.svelte`** | 純 `.ts`；驗證屬於 controller、投影屬於元件 |
@@ -72,11 +72,10 @@ routes/tags/cleanup/
 ├── logic/                       # 全部 *.svelte.ts，無例外
 │   ├── page-data.svelte.ts      # SSR 資料 + Suggestion 型別出口
 │   ├── samples.svelte.ts        # 證據縮圖快取（自動失效）
-│   ├── filter.svelte.ts         # 分類頁籤 + 忽略清單
+│   ├── query.svelte.ts          # 分類頁籤 + 忽略清單 + 重新整理
 │   ├── schedule.svelte.ts       # 排程狀態 + 操作投影 + 結構驗證
 │   ├── submit.svelte.ts         # payload 組裝 + 送出 + 失敗匯總
 │   ├── review.svelte.ts         # 審查開闔 + 分批 + 勾選
-│   ├── refresh.svelte.ts        # 重新整理
 │   └── guard.svelte.ts          # 離頁守衛
 ├── header/
 │   └── Filters.svelte
@@ -93,7 +92,9 @@ routes/tags/cleanup/
     └── ReviewBody.svelte        # 新增：清單投影，對齊 tags/committed
 ```
 
-**命名說明**：`tags` 與 `committed` 對應的檔案叫 `query.svelte.ts`，但那兩頁的 controller 真的在管 URL 查詢條件；`cleanup` 的 `load` 不吃任何 `searchParams`，只有「重跑一次」這件事，因此誠實命名為 `refresh.svelte.ts` / `RefreshController`，與 `RefreshButton` 對應。
+**`query.svelte.ts` 的角色**：`tags` 與 `committed` 的 `query.svelte.ts` 本來就是兩段式——前半段決定「這一頁看到哪些項目」，`// ---` 之後是「重取一次」。本頁的 `filter` 與重新整理正好是同樣的兩段，因此合併成同一個 `query.svelte.ts`，三頁的 `query` 是同一個角色。
+
+唯一的不同在前半段的實作手段：另外兩頁的篩選條件會寫進 URL 並重跑 `load`（`SvelteSearchParams` + `goto`），本頁的分類頁籤與忽略清單是**純前端**，對同一份 SSR 資料做本地過濾，不碰 URL 也不重跑 `load`（依你的決議）。這個差異只影響前半段怎麼寫，不影響它在架構裡的位置。
 
 **目錄說明**：`tags`/`committed` 把 `ReviewModal.svelte` 放在 `header/`，`cleanup` 保留現行的 `review/` 資料夾——本頁 `header/` 只有 `Filters.svelte`，審查是自成一格的領域。這是刻意保留的差異，若你希望三頁連資料夾都一致，改放 `header/` 即可，設計其餘部分不受影響。
 
@@ -140,16 +141,64 @@ constructor() {
 }
 ```
 
-收穫：`submit` 與 `refresh` 都不需要認識 `samples`，而且涵蓋比手動呼叫更完整——任何導致 `load` 重跑的路徑都會失效，不會有人新增第三條送出路徑時忘記補 `clear()`。
+收穫：`submit` 與 `query` 都不需要認識 `samples`，而且涵蓋比手動呼叫更完整——任何導致 `load` 重跑的路徑都會失效，不會有人新增第三條送出路徑時忘記補 `clear()`。
 
 模組私有函式 `tagsOf(s)` 與 `fetchByTags()` 留在本檔內。注意 `tagsOf` 對 `unused` 回傳 `[]`（沒有圖片可查），與 `schedule` 內「這張卡涉及哪些標籤」語意不同，**兩者刻意不共用**，避免又生出一個共用純 `.ts`。
 
-### 4.3 `filter.svelte.ts`
+### 4.3 `query.svelte.ts`
 
-**職責**：分類頁籤與忽略清單，純前端篩選（依決議**不進 URL**）。
+**職責**：這一頁看到哪些建議（分類頁籤 + 忽略清單，純前端），以及重新整理。
 **依賴**：`page-data`。
+**範本**：`tags/logic/query.svelte.ts` 的兩段式結構。
 
-介面維持不變：`tab`、`kindCounts`、`total`、`visible`、`handleTabChange`、`handleDismiss`，連同 `KIND_LABELS`、`Tab` 一起 export。唯一改動是 `type Kind = Suggestion["kind"]` 的 `Suggestion` 改自 `./page-data.svelte` 取得。
+```ts
+export const KIND_LABELS: Record<Kind, string> = { ... };
+export type Tab = "all" | Kind;
+
+class QueryController {
+  private pageData = getPageDataContext();
+  /** 使用者忽略、暫時不想再看到的建議 id */
+  private dismissed = new SvelteSet<string>();
+  private remaining = $derived(this.pageData.value.suggestions.filter((s) => !this.dismissed.has(s.id)));
+
+  /** 目前選取的分類頁籤 */
+  tab = $state<Tab>("all");
+  /** 各分類（扣除已忽略）目前的建議數量 */
+  kindCounts = $derived.by(() => { ... });
+  /** 扣除已忽略後的建議總數 */
+  total = $derived(this.remaining.length);
+  /** 目前頁籤篩選後可見的建議清單 */
+  visible = $derived(this.remaining.filter((s) => this.tab === "all" || s.kind === this.tab));
+
+  constructor() {
+    // 建議清單重算後，上一輪的忽略不再適用
+    $effect(() => {
+      this.pageData.value.suggestions;
+      this.dismissed.clear();
+    });
+  }
+
+  handleTabChange = (tab: Tab) => { ... };
+  /** 忽略這則建議（純 UI 層級，不影響任何資料） */
+  handleDismiss = (id: string) => { ... };
+
+  // ---
+
+  /** 是否有一次重新整理正在進行中 */
+  refreshing = $state(false);
+
+  /** 重新整理，重算建議清單 */
+  handleRefresh = async () => { ... };  // 300ms → goto(location.href, { ..., invalidateAll: true }) → toast
+}
+```
+
+前半段是現行 `filter.svelte.ts` 原樣搬入，`type Kind = Suggestion["kind"]` 的 `Suggestion` 改自 `./page-data.svelte` 取得。後半段是現行 `operations.svelte.ts` 的 `handleRefresh` 原樣搬入，扣掉 `this.samples.clear()`（改由 samples 自己的 effect 負責）；`pending` 更名為 `refreshing`，與另外兩頁的欄位名一致，並且**只代表重新整理**——送出的進行中狀態是 `submit.pending`，兩者不再共用一個旗標。
+
+一項實質修正：**忽略清單改為隨重新整理重置**。現行 `dismissed` 的註解寫「重新整理後會隨建議清單重算而自然清空」，但 id 是 `similar:a,b` 這種穩定鍵，重算後同一則建議仍被過濾掉，註解與行為不符。
+
+重置刻意**不寫在 `handleRefresh` 裡**，而是掛在監聽 `pageData` 的 `$effect` 上——送出成功後 `submit` 也會重跑 `load`，那條路徑不經過 `handleRefresh`；改用 effect 才能兩條路徑都涵蓋，與 `samples` 的失效機制同一套。
+
+`tab` 不在重置範圍內——它是使用者當下的視角，不是對某一輪建議的判斷。
 
 ### 4.4 `schedule.svelte.ts`
 
@@ -307,41 +356,26 @@ class ReviewController {
 三點與 `tags` 的刻意差異：
 
 1. **`problemOf` 上移到 controller**。`tags` 的 `ReviewBody.svelte` 自己把「結構問題」與「上次失敗」合成 `problem`，於是元件算出來的 `checkable` 與 controller 的 `checkableOf` 不同步——上次送出失敗的項目在畫面上顯示為不可勾選，但 `submittableNames` 仍把它算進去。本頁把合併放進 controller，畫面與實際送出的集合永遠是同一個判斷，也保住了現行 `review-entry.ts`「失敗後該筆需重開審查才能重試」的語意。
-2. **`handleOpen` 自帶守衛**：`totalCount === 0 || submit.pending` 時直接 return。因為本頁有 Ctrl+S 快捷鍵，開啟不是只有 `ReviewTrigger` 一條路，守衛放在 controller 才涵蓋得完整。
+2. **`handleOpen` 不加額外守衛**，與 `tags` 一致。移除快捷鍵後，開啟審查只剩 `ReviewTrigger` 一條路，而它在 `totalCount === 0 || submit.pending` 時本來就是 disabled。
 3. **不提供 `handleDiscard`**。捨棄單筆由 `ReviewBody.svelte` 直接呼叫 `schedule.handleUndo(name)`——「拿 A 上下文的狀態投影，事件傳給 B 上下文」，與 `tags/header/ReviewBody.svelte` 的 `ondiscard={() => zones.handleDetach([entry.name])}` 同形。
 
-### 4.7 `refresh.svelte.ts`
-
-**職責**：重新整理，重算建議清單。
-**依賴**：無。
-
-```ts
-class RefreshController {
-  /** 是否有一次重新整理正在進行中 */
-  refreshing = $state(false);
-  handleRefresh = async () => { ... };  // 300ms → goto(location.href, { ..., invalidateAll: true }) → toast
-}
-```
-
-現行 `operations.svelte.ts` 的 `handleRefresh` 內容直接搬過來，扣掉 `this.samples.clear()`（改由 samples 自己的 effect 負責），`pending` 更名為 `refreshing` 並且**只代表重新整理**。
-
-### 4.8 `guard.svelte.ts`
+### 4.7 `guard.svelte.ts`
 
 **職責**：離頁守衛。
-**依賴**：`schedule`、`submit`、`refresh`、`review`。
+**依賴**：`schedule`、`submit`、`query`、`review`。
 **範本**：`tags/logic/guard.svelte.ts`（近乎一字不差）。
 
 ```ts
 class GuardController {
   /** 會真的改動資料或重跑查詢的操作是否進行中 */
-  private get busy() { return this.submit.pending || this.refresh.refreshing; }
+  private get busy() { return this.submit.pending || this.query.refreshing; }
 
   handleBeforeNavigate = (nav: BeforeNavigate) => { ... };  // 判斷來源頁一律用 page.url.pathname
   handleBeforeUnload = (e: BeforeUnloadEvent) => { ... };
 }
 ```
 
-自 `schedule.svelte.ts` 整段搬出，並補上現行缺少的 `busy` 組合——現行只看 `operations.pending`，拆開後 refresh 與 submit 各自的進行中狀態都要涵蓋。確認離開後呼叫 `schedule.handleClearAll()`。
+自 `schedule.svelte.ts` 整段搬出，並補上 `busy` 組合——現行只看單一的 `operations.pending`，拆開後重新整理與送出兩邊的進行中狀態都要涵蓋。確認離開後呼叫 `schedule.handleClearAll()`。
 
 `page.url` 而非 `location` 的理由見 `docs/svelte_kit_routes.md`「不是所有地方都該換 `location`」，原註解保留。
 
@@ -351,12 +385,11 @@ class GuardController {
 
 ```
 page-data ──┬─→ samples
-            └─→ filter
-
+            └─→ query ─────────────────┐
+                                       ↓
 schedule ──┬─→ submit ──┬─→ review ──→ guard
            │            │              ↑
-           └────────────┴──────────────┤
-                          refresh ─────┘
+           └────────────┴──────────────┘
 ```
 
 `+page.svelte` 的建立順序（無循環）：
@@ -368,37 +401,32 @@ schedule ──┬─→ submit ──┬─→ review ──→ guard
   // 依相依順序建立各領域 controller
   createPageDataContext(() => data);
   createSamplesContext();
-  createFilterContext();
+  const query = createQueryContext();
   createScheduleContext();
   createSubmitContext();
-  const review = createReviewContext();
-  const refresh = createRefreshContext();
+  createReviewContext();
   const guard = createGuardContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (isInEditable(e.target)) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      review.handleOpen();   // 能不能開由 controller 自己判斷
-    }
-  }
 </script>
 
-<svelte:window onkeydown={handleKeydown} onbeforeunload={guard.handleBeforeUnload} />
+<svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <div class="container">
   <Toolbar>
     <Filters />
-    <RefreshButton pending={refresh.refreshing} onrefresh={refresh.handleRefresh} style="margin-left: auto;" />
+    <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
     <ReviewModal />
   </Toolbar>
   <Cards />
 </div>
 ```
 
-`+page.svelte` 因此只剩三件事：建 context、掛 window 事件、排版。目前它還要讀 `schedule.touchedCount` 與 `operations.pending` 去餵 `ReviewTrigger` 的 props，那段連同 `<ReviewModal />` 一起收進 `review/ReviewModal.svelte`（`<dialog>` 走 top layer，放在 `Toolbar` 內不影響呈現，與 `tags`/`committed` 相同）。
+`+page.svelte` 因此只剩三件事：建 context、掛離頁守衛、排版，與 `tags/+page.svelte`、`committed/+page.svelte` 逐行對應。三處縮減：
+
+- **Ctrl/Cmd + S 快捷鍵移除**，連同 `handleKeydown`、`isInEditable` 的 import 與 `<svelte:window onkeydown>` 一起刪掉。移除後本頁沒有任何鍵盤快捷鍵，`docs/svelte_kit_routes.md`「window 事件的註冊位置」那一節的限制在本頁自然不會被違反。
+- `ReviewTrigger` 連同它需要的 `schedule.touchedCount` / `operations.pending` 收進 `review/ReviewModal.svelte`（`<dialog>` 走 top layer，放在 `Toolbar` 內不影響呈現，與另外兩頁相同）。
+- 只有 `query` 與 `guard` 需要留下回傳值，其餘 `create*Context()` 都是純建立。
 
 ---
 
@@ -407,12 +435,12 @@ schedule ──┬─→ submit ──┬─→ review ──→ guard
 | 元件 | 改動 |
 | --- | --- |
 | `cards/Card.svelte` | 三行 `names` / `scheduledName` 運算 → `schedule.scheduledNameOf(s) !== undefined` |
-| `cards/CardHeader.svelte` | 同上；其餘不動 |
+| `cards/CardHeader.svelte` | 同上；`getFilterContext()` → `getQueryContext()`（`KIND_LABELS` 與 `handleDismiss` 一起換來源） |
 | `cards/CardFooter.svelte` | 同上；三個 `handleSchedule*` 改傳 `Tag` 物件 |
 | `cards/CardBody.svelte` | 只改 `Suggestion` 的 import 來源 |
 | `cards/CardSamples.svelte` | 只改 import 來源，`samples.get/request` 介面不變 |
-| `cards/Cards.svelte` | 不動（`filter.visible` 介面不變） |
-| `header/Filters.svelte` | 不動 |
+| `cards/Cards.svelte` | `getFilterContext()` → `getQueryContext()`；`visible` / `tab` 的形狀不變 |
+| `header/Filters.svelte` | `getFilterContext()` → `getQueryContext()`；`KIND_LABELS`、`Tab` 改自 `../logic/query.svelte` import |
 | `review/ReviewModal.svelte` | 併入 `ReviewTrigger`；清單內容抽到 `ReviewBody.svelte`；`pending` 來源改 `submit.pending` |
 | `review/ReviewBody.svelte` | **新增**，對齊 `tags/header/ReviewBody.svelte` |
 
@@ -491,26 +519,29 @@ schedule ──┬─→ submit ──┬─→ review ──→ guard
 | --- | --- |
 | `logic/changeset.ts`（整檔） | `toPayload` → `submit.svelte.ts` 模組私有；`submitChangeset` → `submit.handleSubmit` |
 | `logic/review-entry.ts`（整檔） | 驗證 → `schedule.problemOf`；`ReviewEntry` 型別與投影 → `ReviewBody.svelte` |
-| `logic/operations.svelte.ts`（整檔） | `handleRefresh` → `refresh.svelte.ts`；`pending` 拆成 `submit.pending` 與 `refresh.refreshing` |
+| `logic/operations.svelte.ts`（整檔） | `handleRefresh` → `query.svelte.ts` 後半段；`pending` 拆成 `submit.pending` 與 `query.refreshing` |
+| `logic/filter.svelte.ts`（整檔） | 原樣搬進 `query.svelte.ts` 前半段，連同 `KIND_LABELS`、`Tab` 一起 |
 | `ScheduleState`、`operationsFromSchedule()`、`snapshot()` | 併成一個 `SvelteMap<string, CleanupOperation>` |
 | `samples.clear()` 與兩處呼叫端 | `samples` 自己的失效 `$effect` |
 | `schedule.handleBeforeNavigate/handleBeforeUnload` | `guard.svelte.ts` |
 | `schedule.touchedCount` | `review.totalCount` |
 | 三個元件裡重複的 `names`/`scheduledName` | `schedule.scheduledNameOf(s)` |
+| `+page.svelte` 的 `handleKeydown`（Ctrl/Cmd + S） | 直接移除，不轉往任何地方 |
 
-結果：`logic/` 由 8 檔（3 純 ts）變成 **8 檔（0 純 ts）**，`cleanup/` 全域只剩 `suggestions.ts` 與 `cards/config.ts` 兩個純 `.ts`，兩者都在 §1 的允許清單內。
+結果：`logic/` 由 8 檔（其中 3 個純 ts）變成 **7 檔（0 個純 ts）**，`cleanup/` 全域只剩 `suggestions.ts` 與 `cards/config.ts` 兩個純 `.ts`，兩者都在 §1 的允許清單內。
 
 ---
 
-## 8. 行為變化（需要你確認）
+## 8. 行為變化
 
 | # | 變化 | 說明 |
 | --- | --- | --- |
 | 1 | 審查清單改為 25 筆一批 | 依決議對齊另外兩頁；超過 25 筆時出現批次導覽列，換批會重新全選該批可送出項目 |
 | 2 | 審查清單排序改為「排入的先後」 | 現行是 `合併全部 → 刪除全部 → 隱藏全部`；改用單一 Map 後變成使用者操作順序。若想保留分組，在 `operations` 加一段 kind 權重排序即可 |
-| 3 | 重新整理期間審查按鈕不再 disabled | 現行共用一個 `operations.pending`；拆開後 `ReviewTrigger` 只被 `submit.pending` 鎖住，與 `tags`/`committed` 相同。離頁守衛仍同時涵蓋兩者 |
-| 4 | 送出成功後樣本圖快取的失效時機 | 由「送出流程主動清」改為「`load` 資料一變就清」，涵蓋範圍更大，實際觀感應無差異 |
-| 5 | **（建議，待你拍板）** 忽略清單是否隨重新整理清空 | 現行 `dismissed` 的註解寫「會隨建議清單重算而自然清空」，但 id 是 `similar:a,b` 這種穩定鍵，重算後同一則建議仍被忽略——註解與行為不符。建議比照 `samples` 加一個失效 `$effect` 讓註解成真；若你希望忽略是跨重新整理持續的，那就改註解 |
+| 3 | Ctrl/Cmd + S 快捷鍵移除 | 開啟審查只剩 `ReviewTrigger` 一條路 |
+| 4 | 忽略清單隨重新整理重置 | 被忽略的建議在重新整理（或送出後的重算）之後會重新出現。現行行為是「一旦忽略就不再出現」，與 `filter.svelte.ts` 既有的註解不符，此次一併校正 |
+| 5 | 重新整理期間審查按鈕不再 disabled | 現行共用一個 `operations.pending`；拆開後 `ReviewTrigger` 只被 `submit.pending` 鎖住，與 `tags`/`committed` 相同。離頁守衛仍同時涵蓋兩者 |
+| 6 | 送出成功後樣本圖快取的失效時機 | 由「送出流程主動清」改為「`load` 資料一變就清」，涵蓋範圍更大，實際觀感應無差異 |
 
 ---
 
@@ -533,8 +564,9 @@ schedule ──┬─→ submit ──┬─→ review ──→ guard
 - [ ] 重新整理期間 `RefreshButton` 顯示進行中，此時嘗試離開頁面會被擋下並提示「操作進行中，請稍候」
 - [ ] 有未送出排程時點「返回標籤管理」→ 出現確認對話框；確認離開後排程被清空
 - [ ] 有未送出排程時重新整理整頁 → 出現瀏覽器的離開確認
-- [ ] Ctrl/Cmd + S 在沒有任何排程時不會開啟審查；在輸入框內按不會被攔截
 - [ ] 忽略某則建議後，該分類的計數同步減少；切換分類頁籤計數正確
+- [ ] 忽略幾則建議後按重新整理，被忽略的建議重新出現，且目前所在的分類頁籤不變
+- [ ] Ctrl/Cmd + S 不再有任何反應（且未觸發瀏覽器的「儲存網頁」以外的行為）
 - [ ] 卡片捲出再捲回可視範圍，樣本縮圖不重新查詢（快取生效）
 
 自動化驗證（實作後由我執行）：`npm run check`、`npm run build`、`npm run test`。
