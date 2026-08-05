@@ -33,14 +33,22 @@
   createRevertMarkContext();
   createSubmitContext();
   const pointers = createPointersContext();
-  createReviewContext();
+  const review = createReviewContext();
   const guard = createGuardContext();
   const query = createQueryContext();
   createTagImpactContext();
-  createSelectionContext();
+  const selection = createSelectionContext();
   createSelectionDraftContext();
 
   beforeNavigate(guard.handleBeforeNavigate);
+
+  /** 從大圖預覽回到該檔案的編輯面板，沿途收掉預覽、審查清單與多選模式 */
+  const handleBackToEdit = (filename: string) => {
+    pointers.handleLightboxClose();
+    review.handleClose();
+    selection.handleExit();
+    pointers.handleSelect(filename);
+  };
 </script>
 
 <svelte:window onbeforeunload={guard.handleBeforeUnload} />
@@ -69,6 +77,7 @@
   onclose={pointers.handleLightboxClose}
   onnext={pointers.handleLightboxNext}
   onprev={pointers.handleLightboxPrev}
+  onclickname={handleBackToEdit}
 />
 
 <style>

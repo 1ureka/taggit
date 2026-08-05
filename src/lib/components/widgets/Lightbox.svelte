@@ -3,6 +3,7 @@
   import { imgSrc } from "$lib/image/client";
 
   import { IconX, IconChevronDown } from "$lib/icons";
+  import { tooltip } from "$lib/components/floating/tooltip.core.svelte";
   import ImageCanvas from "$lib/components/display/ImageCanvas.svelte";
   import Image from "$lib/components/display/Image.svelte";
   import Modal from "$lib/components/floating/Modal.svelte";
@@ -20,9 +21,11 @@
     onnext: () => void;
     /** 上一張事件 */
     onprev: () => void;
+    /** 點擊檔名事件，未提供時檔名維持純文字 */
+    onclickname?: (filename: string) => void;
   };
 
-  const { item, total, onclose, onnext, onprev }: Props = $props();
+  const { item, total, onclose, onnext, onprev, onclickname }: Props = $props();
 
   const containerStyle =
     "width: 90vw; max-width: 90vw; height: 85vh; padding: 0.75rem; display: flex; flex-direction: column;";
@@ -33,7 +36,20 @@
     {@const filename = item.id}
     {@const index = item.index}
     <header>
-      <span class="ellipsis" title={filename}>{filename}</span>
+      {#if onclickname}
+        {@const label = `繼續編輯 ${filename}`}
+        <button
+          type="button"
+          class="name ellipsis"
+          aria-label={label}
+          {@attach tooltip({ content: label, placement: "bottom-start" })}
+          onclick={() => onclickname(filename)}
+        >
+          {filename}
+        </button>
+      {:else}
+        <span class="name ellipsis" title={filename}>{filename}</span>
+      {/if}
       <Chip variant="outlined" style="font: var(--font-caption);">{`${index} / ${total}`}</Chip>
       <Button variant="ghost" padding="icon" aria-label="關閉大圖預覽" onclick={onclose}>
         <IconX size={16} />
@@ -78,11 +94,23 @@
     padding-bottom: 0.5rem;
   }
 
-  header > span.ellipsis {
+  header > .name {
     flex: 1;
     font: var(--font-body2);
     font-family: var(--font-family-mono);
     color: var(--color-text-muted);
+  }
+
+  header > button.name {
+    text-align: left;
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 2px;
+    transition: text-decoration-color 0.15s ease;
+
+    &:hover {
+      text-decoration-color: var(--color-text-muted);
+    }
   }
 
   div.body {
