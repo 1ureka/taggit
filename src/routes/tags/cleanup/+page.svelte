@@ -12,9 +12,9 @@
 
   import Toolbar from "$lib/components/toolbar/Toolbar.svelte";
   import RefreshButton from "$lib/components/toolbar/RefreshButton.svelte";
-  import Filters from "./header/Filters.svelte";
+  import Tabs from "./header/Tabs.svelte";
+  import ReviewModal from "./header/ReviewModal.svelte";
   import Cards from "./cards/Cards.svelte";
-  import ReviewModal from "./review/ReviewModal.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -38,7 +38,7 @@
 
 <div class="container">
   <Toolbar>
-    <Filters />
+    <Tabs />
     <RefreshButton pending={query.refreshing} onrefresh={query.handleRefresh} style="margin-left: auto;" />
     <ReviewModal />
   </Toolbar>
