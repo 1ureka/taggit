@@ -6,14 +6,14 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 
-import { api } from "$lib/utils/request";
+import { api, type BatchResults } from "$lib/utils/request";
 import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
 import { getDraftsContext } from "./drafts.svelte";
 
-/** TODO: 原型端點以 `filename` 為鍵，committed 端點卻是 `id`；端點轉正時應統一 */
-type StagedBatchItem = { filename: string; name: string; tags: string[]; rating: number };
+/** 端點以檔名為鍵，值就是這一筆要建立的紀錄內容 */
+type CommitEntry = { name: string; tags: string[]; rating: number };
 
 class SubmitController {
   private drafts = getDraftsContext();
@@ -24,9 +24,9 @@ class SubmitController {
   lastFailures = $state<Record<string, string>>({});
 
   /** 名稱留空時由 `nameOf` 補上去副檔名的檔名 */
-  private buildItem(filename: string): StagedBatchItem {
+  private buildEntry(filename: string): CommitEntry {
     const draft = this.drafts.viewOf(filename);
-    return { filename, name: this.drafts.nameOf(filename), tags: draft.tags, rating: draft.rating };
+    return { name: this.drafts.nameOf(filename), tags: draft.tags, rating: draft.rating };
   }
 
   /** 清掉上一輪的失敗匯總 */
@@ -40,22 +40,20 @@ class SubmitController {
 
     this.pending = true;
     try {
-      const items = filenames.map((f) => this.buildItem(f));
-      const res = await api.post<{ results: { filename: string; ok: boolean; error?: string }[] }>(
-        "/api/proto/staged-batch",
-        { items },
-      );
+      const payload = Object.fromEntries(filenames.map((f) => [f, this.buildEntry(f)]));
+      const res = await api.post<BatchResults>("/api/records", payload);
       if (!res.ok) throw new Error(res.error);
 
-      const failures = new Map<string, string>();
-      for (const r of res.data.results) if (!r.ok) failures.set(r.filename, r.error ?? "未知錯誤");
-      this.lastFailures = Object.fromEntries(failures);
+      const failures: Record<string, string> = {};
+      for (const [id, r] of Object.entries(res.data)) if (!r.ok) failures[id] = r.message;
+      this.lastFailures = failures;
 
-      const succeeded = filenames.filter((f) => !failures.has(f));
+      const failedCount = Object.keys(failures).length;
+      const succeeded = filenames.filter((f) => !(f in failures));
       this.drafts.handleDiscardDraft(succeeded);
 
       if (succeeded.length > 0) addToast({ message: `已提交 ${succeeded.length} 張圖片`, variant: "success" });
-      if (failures.size > 0) addToast({ message: `${failures.size} 張提交失敗`, variant: "error" });
+      if (failedCount > 0) addToast({ message: `${failedCount} 張提交失敗`, variant: "error" });
 
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {

@@ -47,12 +47,10 @@ class TagImpactController {
       this.fetching = true;
       const seq = ++this.seq;
       this.timer = setTimeout(async () => {
-        // TODO: Node 的 `--max-http-header-size` 預設 16 KB 且請求行計入，中文標籤約 37 bytes/個，約 440 個相異標籤就爆
-        const res = await api.get<{ counts: { name: string; count: number }[] }>(
-          `/api/proto/tags-impact?names=${encodeURIComponent(current.join(","))}`,
-        );
+        // 走 POST：名稱可能上百個，塞進 URL 會先撞上 Node 的 header 長度上限
+        const res = await api.post<{ counts: Record<string, number> }>("/api/tags/counts", { names: current });
         if (seq !== this.seq) return; // 已有更新的查詢在路上，這次回應作廢
-        if (res.ok) this.counts = new Map(res.data.counts.map((c) => [c.name, c.count]));
+        if (res.ok) this.counts = new Map(Object.entries(res.data.counts));
         this.fetching = false;
       }, 300);
     });

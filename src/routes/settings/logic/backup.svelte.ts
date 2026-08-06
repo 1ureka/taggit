@@ -32,11 +32,11 @@ class BackupController {
 
     try {
       // 此請求回傳 ZIP 檔案的 Blob，非 JSON，故不透過 $lib/utils/request 統一工具
-      const res = await fetch("/api/settings/backup", { method: "POST" });
+      const res = await fetch("/api/collection/backup");
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        addToast({ message: `備份失敗：${data?.error ?? "未知錯誤"}`, variant: "error" });
+        addToast({ message: `備份失敗：${data?.message ?? "未知錯誤"}`, variant: "error" });
         return;
       }
 

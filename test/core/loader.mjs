@@ -6,7 +6,7 @@
  *   - load(p)：用 Vite 的 ssrLoadModule 直接載入 src 下的 TypeScript 原始碼
  *              （$lib alias、.ts 解析、server-only 的 fs import 皆與正式環境一致）。
  *   - tmpRoot：一個一次性暫存目錄，供各領域的 fixtures 隔離落地檔用，dispose() 時清乾淨。
- *   - dispose()：關閉 server、清暫存、還原 console。
+ *   - dispose()：關閉 server、清暫存與 server.json、還原 console。
  *
  * 領域專屬的 fixtures（例如 repo/fixtures.mjs）建立在這層之上。
  */
@@ -57,6 +57,10 @@ export async function createLoader() {
   const dispose = async () => {
     await server.close();
     try {
+      // api 領域測 /api/collection 時，Collection 會把根目錄持久化到專案根的 server.json
+      // ——那條路徑寫死在 collection/config.ts，是唯一逃出 tmpRoot 的落地檔，因此一併刪掉。
+      // 擺在 tmpRoot 之前：清暫存在 Windows 上可能因檔案被佔用而擲出，不該連累這一行。
+      fs.rmSync(path.join(root, "server.json"), { force: true });
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     } catch {
       /* best-effort */

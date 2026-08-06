@@ -109,7 +109,7 @@ class CollectionController {
 
     try {
       const root = this.value.trim();
-      const res = await api.post("/api/settings/setup", { collectionRoot: root });
+      const res = await api.put("/api/collection", { root });
 
       if (!res.ok) {
         this.error = res.error;

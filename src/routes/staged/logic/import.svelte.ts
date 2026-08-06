@@ -10,7 +10,7 @@ import { api } from "$lib/utils/request";
 import { addToast } from "$lib/components/floating/toast-events";
 import { formatError, isRecord } from "$lib/utils/shared";
 
-/** 逐筆串流回傳的即時事件，對應 `/api/committed` 的 SSE 事件 */
+/** 逐筆串流回傳的即時事件，對應 `PUT /api/records` 的 SSE 事件 */
 type ImportEvent =
   | { event: "progress"; current: number; total: number }
   | { event: "done"; imported: number; skipped: number; errors: string[] };
@@ -67,7 +67,7 @@ class ImportController {
     this.progress = { current: 0, total: Object.keys(payload).length };
     try {
       let result: ImportResult | null = null;
-      for await (const event of api.stream<ImportEvent>("/api/committed", payload)) {
+      for await (const event of api.stream<ImportEvent>("PUT", "/api/records", payload)) {
         if (event.event === "progress") this.progress = { current: event.current, total: event.total };
         else result = event;
       }
