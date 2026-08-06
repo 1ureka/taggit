@@ -6,7 +6,7 @@
   import { Modal } from "$lib/components/floating/modal.core.svelte";
   import { ToastList } from "$lib/components/floating/toastList.core.svelte";
   import { hideToasts } from "$lib/components/floating/toast-events";
-  import { toastCard } from "$lib/components/floating/Toast.svelte";
+  import Toast from "$lib/components/floating/Toast.svelte";
   import Button from "$lib/components/actions/Button.svelte";
 
   const toastList = new ToastList();
@@ -39,15 +39,15 @@
         out:scale|global={{ duration: 150, start: 0.95, delay: delay.toastOut(i) }}
         animate:flip={{ delay: 150, duration: 250 }}
       >
-        {@render toastCard({
-          message: item.message,
-          variant: item.variant,
-          progress: item.progress,
-          onDismiss: () => toastList.dismiss(item.id),
-          dismissLabel: "從歷史移除",
-          alwaysShowClose: true,
-          role: "listitem",
-        })}
+        <Toast
+          message={item.message}
+          variant={item.variant}
+          progress={item.progress}
+          ondismiss={() => toastList.dismiss(item.id)}
+          dismissLabel="從歷史移除"
+          alwaysShowClose
+          role="listitem"
+        />
       </div>
     {/each}
   </div>
