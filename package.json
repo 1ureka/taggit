@@ -1,7 +1,7 @@
 {
   "name": "taggit",
   "private": true,
-  "version": "3.0.0-dev",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -13,13 +13,13 @@
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.7",
-    "@sveltejs/kit": "^2.69.3",
+    "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@types/node": "^25.9.5",
-    "svelte": "^5.56.4",
-    "svelte-check": "^4.7.2",
+    "svelte": "^5.56.8",
+    "svelte-check": "^4.7.4",
     "typescript": "^6.0.3",
-    "vite": "^8.1.4"
+    "vite": "^8.2.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
