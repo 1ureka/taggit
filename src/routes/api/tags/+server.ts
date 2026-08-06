@@ -1,23 +1,28 @@
-import { json, type RequestHandler } from "@sveltejs/kit";
+import { error, json, type RequestHandler } from "@sveltejs/kit";
 
 import { Database } from "$lib/database";
 import { Mutation } from "$lib/mutation";
 import { Query } from "$lib/query";
 import { ImageWhere, TagQuery, TagFacetQuery } from "$lib/query-spec";
 
-import { parseBody, errorJson, log } from "$lib/utils/server";
+import { parseJsonObject, mutationMessage, log } from "$lib/utils/server";
+
+/** 批次操作中單筆的結果。集合層回應一律是 `{ "<name>": ItemResult }`，鍵與請求完全對齊。 */
+type ItemResult = { ok: true } | { ok: false; message: string };
 
 /**
  * `GET /api/tags`
  *
- * 分面標籤查詢：標籤側條件（名稱子字串、universe、排序與分頁）語意見 {@link TagQuery}，
- * 並可同時帶 {@link ImageWhere} 的圖片篩選參數作為 scope——count 為該篩選範圍內
- * 經 hidden 遮蔽後的可見數；不帶 scope 參數時即為全集的分面計數。
+ * 分面標籤查詢。同時吃兩組互不衝突的查詢鍵：
+ * - {@link ImageWhere}（search / includedTags / excludedTags / rating / ratingOp）作為 scope，
+ *   count 即為該篩選範圍內經 hidden 遮蔽後的可見數；不帶時就是全集的分面計數。
+ * - {@link TagQuery}（name / hidden / universe + sort / order / page / limit）篩選與排序標籤本身。
+ *
+ * 這支一律回分面計數。「全域原始使用數」的語意由 `POST /api/tags/counts` 涵蓋，
+ * 不為此再發明查詢參數。
  */
 export const GET: RequestHandler = ({ url }) => {
-  if (!Database.isLoaded()) {
-    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
-  }
+  if (!Database.isLoaded()) error(503, "尚未載入圖片集");
 
   const spec = new TagFacetQuery(
     ImageWhere.fromSearchParams(url.searchParams),
@@ -25,29 +30,40 @@ export const GET: RequestHandler = ({ url }) => {
   );
 
   const query = new Query(Database.requireLoaded());
-  const result = query.facets(spec);
-  return json({ ok: true, data: result });
+  return json(query.facets(spec));
 };
 
 /**
- * `POST /api/tags`
+ * `PATCH /api/tags`
  *
- * 全域重新命名標籤。
+ * 批次標籤異動。Body 以標籤名為鍵，因此「同一標籤同時只能有一種操作」由結構保證。
+ *
+ * Body: `{ "<name>": { name?: string, hidden?: boolean } | null }`
+ * - `{ name }` = 改名（指向既有標籤即為合併）
+ * - `{ hidden }` = 覆寫顯隱
+ * - `null` = 刪除，等同對該成員 `DELETE`
+ *
+ * 回應: `{ "<name>": { ok } }`
+ *
+ * 執行順序與集合層規則（改名目標若同時被刪除或改名則該筆失敗）都在
+ * {@link Mutation.applyTagChanges} 內，端點只做形狀轉換。
  */
-export const POST: RequestHandler = async ({ request }) => {
-  if (!Database.isLoaded()) {
-    return json({ ok: false, error: "尚未載入資料庫" }, { status: 503 });
-  }
+export const PATCH: RequestHandler = async ({ request }) => {
+  if (!Database.isLoaded()) error(503, "尚未載入圖片集");
 
-  const [body, parseErr] = await parseBody(request);
-  if (parseErr) {
-    return parseErr;
-  }
+  const changes = await parseJsonObject(request);
+  if (Object.keys(changes).length === 0) error(400, "請求內容不得為空");
 
   const mutation = new Mutation(Database.requireLoaded());
-  const r = mutation.renameTag(body.oldName, body.newName);
-  if (!r.ok) return errorJson(r.error);
+  const applied = mutation.applyTagChanges(changes);
 
-  log({ level: "info", module: "tags", message: `重命名標籤: "${body.oldName}" → "${body.newName}"`, data: r.data });
-  return json({ ok: true, data: r.data });
+  const results: Record<string, ItemResult> = {};
+  for (const [name, r] of Object.entries(applied)) {
+    results[name] = r.ok ? { ok: true } : { ok: false, message: mutationMessage(r.error) };
+  }
+
+  const okCount = Object.values(results).filter((r) => r.ok).length;
+  log({ level: "info", module: "tags", message: `批次標籤操作: 成功 ${okCount}/${Object.keys(results).length}` });
+
+  return json(results);
 };
