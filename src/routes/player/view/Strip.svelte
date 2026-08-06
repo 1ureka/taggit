@@ -8,9 +8,11 @@
 
   import { getPlaybackContext } from "../logic/playback.svelte";
   import { getGestureContext } from "../logic/gesture.svelte";
+  import { getPickContext } from "../logic/pick.svelte";
 
   const playback = getPlaybackContext();
   const gesture = getGestureContext();
+  const pick = getPickContext();
 
   const matchesGif = (item: ImageWithId) => item.id.toLowerCase().endsWith(".gif");
 
@@ -42,7 +44,11 @@
     class="strip"
     role="presentation"
     style:transform={playback.stripTransform}
+    style:cursor={pick.active ? "pointer" : undefined}
     onpointerdown={gesture.handlePointerDown}
+    onmousemove={pick.handleMove}
+    onmouseleave={pick.handleLeave}
+    onclick={pick.handleClick}
   >
     {#each playback.visibleItems as item, i (item.key)}
       <img

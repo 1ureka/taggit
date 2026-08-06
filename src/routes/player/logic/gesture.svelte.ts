@@ -5,9 +5,11 @@
 
 import { tick, getContext, setContext } from "svelte";
 import { getPlaybackContext } from "./playback.svelte";
+import { getPickContext } from "./pick.svelte";
 
 class GestureController {
   private playback = getPlaybackContext();
+  private pick = getPickContext();
 
   /** 播放/暫停反饋的瞬間信號 */
   feedback = $state(false);
@@ -44,6 +46,8 @@ class GestureController {
 
   /** 按下播放區域：開始判定長按，超過閾值則進入加速狀態 */
   handlePointerDown = (e: PointerEvent) => {
+    if (this.pick.active) return; // 挑選模式的按壓歸「前往編輯」，不啟動長按加速
+
     const direction = e.clientX < window.innerWidth / 2 ? -1 : 1;
 
     this.pressActive = true;
@@ -67,7 +71,8 @@ class GestureController {
     if (this.longPressEngaged) {
       this.longPressEngaged = false;
       this.playback.handleBoostEnd();
-    } else {
+    } else if (!this.pick.active) {
+      // 按壓期間才按下 Ctrl：這一次點擊歸挑選模式，不切換播放
       this.playback.handleTogglePlay();
     }
   };
