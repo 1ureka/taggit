@@ -6,11 +6,12 @@
 import type { Database, ImageRecord, ImageWithId } from "$lib/database";
 
 import { ImageCommands } from "./image";
-import { TagCommands } from "./tag";
+import { TagCommands, type TagChangeResult } from "./tag";
 import type { FileInfo, FileMetaPatch } from "./commands";
-import type { AlreadyExists, LastTag, NotFound, Result, StaleUpdate, Validation } from "./result";
+import type { AlreadyExists, LastTag, MutationError, NotFound, Result, StaleUpdate, Validation } from "./result";
 
 export type { FileInfo, FileMetaPatch } from "./commands";
+export type { TagChangeResult } from "./tag";
 export type { Result, MutationError, NotFound, AlreadyExists, StaleUpdate, LastTag, Validation } from "./result";
 
 export class Mutation {
@@ -60,5 +61,10 @@ export class Mutation {
   /** 覆寫標籤元資料 */
   setTagMeta(name: unknown, meta: unknown): Result<void, Validation> {
     return this.tags.setMeta(name, meta);
+  }
+
+  /** 套用一組以標籤名為鍵的異動 */
+  applyTagChanges(changes: Record<string, unknown>): Record<string, Result<TagChangeResult, MutationError>> {
+    return this.tags.applyChanges(changes);
   }
 }
