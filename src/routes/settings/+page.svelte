@@ -26,7 +26,7 @@
 </script>
 
 <svelte:head>
-  <title>設定 — Taggit</title>
+  <title>設定 · Taggit</title>
 </svelte:head>
 
 <div class="container">

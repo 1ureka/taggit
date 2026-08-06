@@ -33,7 +33,7 @@
 <svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <svelte:head>
-  <title>標籤清理工具</title>
+  <title>清理標籤 · Taggit</title>
 </svelte:head>
 
 <div class="container">

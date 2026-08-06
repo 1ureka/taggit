@@ -44,7 +44,7 @@
 <svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <svelte:head>
-  <title>Tags</title>
+  <title>管理標籤 · Taggit</title>
 </svelte:head>
 
 <div class="container">

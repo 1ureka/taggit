@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-  <title>播放器 — Taggit</title>
+  <title>播放圖片 · Taggit</title>
 </svelte:head>
 
 <svelte:window

@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-  <title>Compare</title>
+  <title>比較圖片 · Taggit</title>
 </svelte:head>
 
 <div class="container">

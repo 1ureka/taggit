@@ -55,7 +55,7 @@
 <svelte:window onbeforeunload={guard.handleBeforeUnload} />
 
 <svelte:head>
-  <title>Staged</title>
+  <title>新增圖片 · Taggit</title>
 </svelte:head>
 
 <div class="container">

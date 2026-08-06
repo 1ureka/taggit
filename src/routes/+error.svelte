@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>{page.status} — Taggit</title>
+  <title>{page.status} · Taggit</title>
 </svelte:head>
 
 <main class="slide-up">
