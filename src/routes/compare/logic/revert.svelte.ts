@@ -25,7 +25,7 @@ class RevertController {
 
     this.pending = true;
     try {
-      const res = await api.del(`/api/committed/${encodeURIComponent(id)}`);
+      const res = await api.del(`/api/records/${encodeURIComponent(id)}`);
       if (!res.ok) {
         addToast({ message: `取消提交失敗: ${res.error}`, variant: "error" });
         return;

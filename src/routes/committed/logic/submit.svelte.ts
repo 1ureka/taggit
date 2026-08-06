@@ -6,7 +6,7 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 
-import { api } from "$lib/utils/request";
+import { api, type BatchResults } from "$lib/utils/request";
 import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
@@ -14,9 +14,8 @@ import { getDraftsContext } from "./drafts.svelte";
 import { getRevertMarkContext } from "./reverts.svelte";
 import { getSnapshotsContext } from "./snapshots.svelte";
 
-type CommittedBatchItem =
-  | { id: string; op?: "update"; name?: string; tags?: string[]; rating?: number; expectedUpdatedAt: number }
-  | { id: string; op: "revert" };
+/** 端點以檔名為鍵：物件是更新內容，`null` 是退回 */
+type RecordChange = { name: string; tags: string[]; rating: number; expectedUpdatedAt: number } | null;
 
 class SubmitController {
   private drafts = getDraftsContext();
@@ -29,13 +28,12 @@ class SubmitController {
   lastFailures = $state<Record<string, string>>({});
 
   /** 標記為退回的優先於編輯草稿——即使兩者剛好同時存在，送出時以退回為準 */
-  private buildItem(filename: string): CommittedBatchItem {
-    if (this.reverts.isMarked(filename)) return { id: filename, op: "revert" };
+  private buildChange(filename: string): RecordChange {
+    if (this.reverts.isMarked(filename)) return null;
 
     const draft = this.drafts.viewOf(filename);
     const snapshot = this.snapshots.peek(filename);
     return {
-      id: filename,
       name: draft.name.trim(),
       tags: draft.tags,
       rating: draft.rating,
@@ -54,23 +52,21 @@ class SubmitController {
 
     this.pending = true;
     try {
-      const items = filenames.map((f) => this.buildItem(f));
-      const res = await api.post<{ results: { id: string; ok: boolean; error?: string }[] }>(
-        "/api/proto/committed-batch",
-        { items },
-      );
+      const payload = Object.fromEntries(filenames.map((f) => [f, this.buildChange(f)]));
+      const res = await api.patch<BatchResults>("/api/records", payload);
       if (!res.ok) throw new Error(res.error);
 
-      const failures = new Map<string, string>();
-      for (const r of res.data.results) if (!r.ok) failures.set(r.id, r.error ?? "未知錯誤");
-      this.lastFailures = Object.fromEntries(failures);
+      const failures: Record<string, string> = {};
+      for (const [id, r] of Object.entries(res.data)) if (!r.ok) failures[id] = r.message;
+      this.lastFailures = failures;
 
-      const succeeded = filenames.filter((f) => !failures.has(f));
+      const failedCount = Object.keys(failures).length;
+      const succeeded = filenames.filter((f) => !(f in failures));
       this.drafts.handleDiscardDraft(succeeded);
       this.reverts.handleUnmark(succeeded);
 
       if (succeeded.length > 0) addToast({ message: `已提交 ${succeeded.length} 張圖片`, variant: "success" });
-      if (failures.size > 0) addToast({ message: `${failures.size} 張提交失敗`, variant: "error" });
+      if (failedCount > 0) addToast({ message: `${failedCount} 張提交失敗`, variant: "error" });
 
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {

@@ -68,15 +68,13 @@ class MergeCountController {
     const seq = (prev?.seq ?? 0) + 1;
 
     const timer = setTimeout(async () => {
-      // TODO: 端點一次只能查一組，多個合併區同時變動會發 N 個請求；
-      //       `/api/proto/tags-union-count` 轉正時應提供批次版本
-      const params = new URLSearchParams({ tags: names.join(",") });
-      const res = await api.get<{ count: number }>(`/api/proto/tags-union-count?${params}`);
+      // 一個合併區一次請求：每區的組成各自獨立變動，合併成一次反而要自己處理誰過期
+      const res = await api.post<{ union: number }>("/api/tags/counts", { names });
 
       if (this.timers.get(groupId)?.seq !== seq) return; // 在途回應已過期
       if (!res.ok) return; // 查詢失敗不打擾操作，下次變動再試
 
-      this.counts.set(groupId, res.data.count);
+      this.counts.set(groupId, res.data.union);
     }, 300);
 
     this.timers.set(groupId, { timer, seq });

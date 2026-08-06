@@ -6,28 +6,24 @@
 import { getContext, setContext } from "svelte";
 import { goto } from "$app/navigation";
 
-import { api } from "$lib/utils/request";
+import { api, type BatchResults } from "$lib/utils/request";
 import { formatError } from "$lib/utils/shared";
 import { addToast } from "$lib/components/floating/toast-events";
 
 import { getZonesContext } from "./zones.svelte";
 import { getChangesetContext, type TagChange } from "./changeset.svelte";
 
-/** TODO: 端點把刪除／重新命名／顯隱三件事塞進同一組請求，轉正時應拆開 */
-type TagsBatchPayload = {
-  deletes: string[];
-  renames: { from: string; to: string }[];
-  hidden: { name: string; hidden: boolean }[];
-};
-
-/** 由異動集組出端點要的請求內容 */
-function toPayload(changes: TagChange[]): TagsBatchPayload {
-  const payload: TagsBatchPayload = { deletes: [], renames: [], hidden: [] };
+/**
+ * 由異動集組出端點要的請求內容：以標籤名為鍵，`null` 是刪除。
+ * 執行順序（刪除 → 改名 → 顯隱）與集合層衝突檢查都在後端，前端只描述「要變成什麼」。
+ */
+function toPayload(changes: TagChange[]): Record<string, { name: string } | { hidden: boolean } | null> {
+  const payload: Record<string, { name: string } | { hidden: boolean } | null> = {};
 
   for (const c of changes) {
-    if (c.kind === "rename" || c.kind === "merge") payload.renames.push({ from: c.name, to: c.to });
-    else if (c.kind === "delete") payload.deletes.push(c.name);
-    else payload.hidden.push({ name: c.name, hidden: c.kind === "hidden" });
+    if (c.kind === "rename" || c.kind === "merge") payload[c.name] = { name: c.to };
+    else if (c.kind === "delete") payload[c.name] = null;
+    else payload[c.name] = { hidden: c.kind === "hidden" };
   }
 
   return payload;
@@ -56,23 +52,19 @@ class SubmitController {
       const wanted = new Set(names);
       const changes = this.changeset.changes.filter((c) => wanted.has(c.name));
 
-      // TODO: 回傳的 `key` 是裸標籤名，能對回請求是靠 `changeset.changes` 的 name 唯一性，
-      //       端點自己並不知道也沒有驗證；`/api/proto` 轉正時應回三個各自獨立的結果集
-      const res = await api.post<{ results: { key: string; ok: boolean; error?: string }[] }>(
-        "/api/proto/tags-batch",
-        toPayload(changes),
-      );
+      const res = await api.patch<BatchResults>("/api/tags", toPayload(changes));
       if (!res.ok) throw new Error(res.error);
 
-      const failures = new Map<string, string>();
-      for (const r of res.data.results) if (!r.ok) failures.set(r.key, r.error ?? "未知錯誤");
-      this.lastFailures = Object.fromEntries(failures);
+      const failures: Record<string, string> = {};
+      for (const [name, r] of Object.entries(res.data)) if (!r.ok) failures[name] = r.message;
+      this.lastFailures = failures;
 
-      const succeeded = names.filter((n) => !failures.has(n));
+      const failedCount = Object.keys(failures).length;
+      const succeeded = names.filter((n) => !(n in failures));
       this.zones.handleDetach(succeeded);
 
       if (succeeded.length > 0) addToast({ message: `已套用 ${succeeded.length} 筆標籤操作`, variant: "success" });
-      if (failures.size > 0) addToast({ message: `${failures.size} 筆操作失敗`, variant: "error" });
+      if (failedCount > 0) addToast({ message: `${failedCount} 筆操作失敗`, variant: "error" });
 
       await goto(location.href, { replaceState: true, noScroll: true, keepFocus: true, invalidateAll: true });
     } catch (e) {

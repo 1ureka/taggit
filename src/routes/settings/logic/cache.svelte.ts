@@ -25,7 +25,7 @@ class CacheController {
     this.pending = true;
 
     try {
-      const res = await api.del<{ cleared: number }>("/api/settings/cache");
+      const res = await api.del<{ cleared: number }>("/api/cache");
 
       if (!res.ok) {
         addToast({ message: "清空快取失敗：" + res.error, variant: "error" });

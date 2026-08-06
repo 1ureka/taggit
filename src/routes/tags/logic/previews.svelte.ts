@@ -39,9 +39,7 @@ class PreviewsController {
       new ListOptions<ImageSort>({ sort: "rating", order: "desc", limit: 4 }),
     );
 
-    const res = await api.get<{ items: ImageWithId[]; total: number }>(
-      `/api/proto/committed-query?${query.toSearchParams()}`,
-    );
+    const res = await api.get<{ items: ImageWithId[]; total: number }>(`/api/records?${query.toSearchParams()}`);
 
     if (!res.ok) {
       this.cache.delete(tag); // 失敗時移除，下次懸停重試

@@ -37,7 +37,7 @@ class DeletionController {
 
     this.pending = true;
     try {
-      const res = await api.del(`/api/staged/${encodeURIComponent(filename)}`);
+      const res = await api.del(`/api/files/${encodeURIComponent(filename)}`);
       if (!res.ok) {
         addToast({ message: `刪除失敗: ${res.error}`, variant: "error" });
         return;

@@ -37,9 +37,7 @@ async function fetchByTags(tags: string[], limit: number): Promise<ImageWithId[]
     new ImageWhere({ includedTags: tags }),
     new ListOptions<ImageSort>({ sort: "rating", order: "desc", limit }),
   );
-  const res = await api.get<{ items: ImageWithId[]; total: number }>(
-    `/api/proto/committed-query?${query.toSearchParams()}`,
-  );
+  const res = await api.get<{ items: ImageWithId[]; total: number }>(`/api/records?${query.toSearchParams()}`);
   return res.ok ? res.data.items : null;
 }
 

@@ -30,14 +30,14 @@ class MissingController {
     this.pending = true;
 
     try {
-      const res = await api.get<{ missing: string[] }>("/api/settings/missing");
+      const res = await api.get<{ items: string[]; total: number }>("/api/maintenance/orphans");
 
       if (!res.ok) {
         addToast({ message: `檢查失敗：${res.error}`, variant: "error" });
         return;
       }
 
-      this.records = res.data.missing;
+      this.records = res.data.items;
     } catch (err) {
       addToast({ message: "檢查失敗：" + formatError(err), variant: "error" });
     } finally {
@@ -60,7 +60,7 @@ class MissingController {
 
     this.pending = true;
     try {
-      const res = await api.del<{ removed: string[] }>("/api/settings/missing");
+      const res = await api.del<{ removed: string[] }>("/api/maintenance/orphans");
 
       if (!res.ok) {
         addToast({ message: `刪除失敗：${res.error}`, variant: "error" });
