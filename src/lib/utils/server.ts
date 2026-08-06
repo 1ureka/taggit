@@ -5,7 +5,8 @@
 
 import fs from "fs";
 import path from "path";
-import { json } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
+import { isRecord } from "$lib/utils/shared";
 import type { MutationError } from "$lib/mutation";
 
 /**
@@ -34,29 +35,56 @@ export function uniqueFilename(dir: string, name: string): string {
 }
 
 /**
- * 從 Request 解析 JSON body。
- * 成功時回傳 `[body, null]`，失敗時回傳 `[null, errorResponse]`。
+ * 從 Request 解析 JSON body，失敗直接擲出 400。
  */
-export async function parseBody<T = Record<string, unknown>>(request: Request): Promise<[T, null] | [null, Response]> {
+export async function parseJson(request: Request): Promise<unknown> {
   try {
-    const body = (await request.json()) as T;
-    return [body, null];
+    return await request.json();
   } catch {
-    return [null, json({ ok: false, error: "無效的 JSON body" }, { status: 400 })];
+    error(400, "無效的 JSON body");
   }
+}
+
+/**
+ * 從 Request 解析 JSON body 並確認它是純物件，失敗直接擲出 400。
+ * 批次端點一律以 id 為鍵的物件當請求內容，共用這一道。
+ */
+export async function parseJsonObject(request: Request): Promise<Record<string, unknown>> {
+  const body = await parseJson(request);
+  if (!isRecord(body)) error(400, "請求內容必須是物件");
+  return body;
 }
 
 // ---
 
+/**
+ * 把失敗的 mutation 結果轉成人類可讀訊息。
+ *
+ * 這份對映的權威只有 `$lib/mutation` 的錯誤型別一個來源，因此收斂在此唯一一份；
+ * 逐筆回報的批次端點直接用它填 `message`，單筆端點則走 {@link throwMutationError}。
+ */
+export function mutationMessage(e: MutationError): string {
+  switch (e.kind) {
+    case "not_found":
+      return "找不到目標紀錄";
+    case "already_exists":
+      return "目標已存在，請重新整理後再試";
+    case "stale_update":
+      return "紀錄已被其他操作更新，請重新整理後再試";
+    case "last_tag":
+      return `有 ${e.images.length} 張圖片會因此失去最後一個標籤`;
+    case "validation":
+      return `${e.message}（欄位：${e.fields.join("、")}）`;
+  }
+}
+
 /** 把失敗的 mutation 結果對應到 HTTP 狀態碼。 */
-function errorToHttp(error: MutationError): number {
-  switch (error.kind) {
+function mutationStatus(e: MutationError): number {
+  switch (e.kind) {
     case "not_found":
       return 404;
     case "already_exists":
-      return 409;
     case "stale_update":
-      return 409;
     case "last_tag":
       return 409;
     case "validation":
@@ -64,9 +92,9 @@ function errorToHttp(error: MutationError): number {
   }
 }
 
-/** 把失敗的 mutation 結果組成統一的 JSON 錯誤回應 */
-export function errorJson(error: MutationError): Response {
-  return json({ ok: false, error }, { status: errorToHttp(error) });
+/** 把失敗的 mutation 結果轉成 HTTP 錯誤並擲出，body 恆為 `{ message }`。 */
+export function throwMutationError(e: MutationError): never {
+  error(mutationStatus(e), mutationMessage(e));
 }
 
 // ---
