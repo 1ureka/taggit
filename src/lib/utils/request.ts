@@ -1,89 +1,63 @@
 /**
  * @file request.ts
  * 前端統一的 HTTP 請求工具。
+ *
+ * 後端的回應契約很窄，所以這裡幾乎沒有轉換邏輯可寫：
+ * - 成功時 body 就是資源本身，沒有 `{ ok, data }` 封包要拆。
+ * - 失敗時 body 恆為 `{ message }`（與 SvelteKit 自己的 404 / 500 同形），訊息在伺服器端就
+ *   已經是人類可讀的中文，這裡不需要認得任何錯誤種類。
  */
 
 import { hasKey } from "$lib/utils/shared";
 
 /**
- * 所有 API 端點的統一回應格式。
- * 以 `ok` 為判別欄位的聯集型別，讓呼叫端在 `if (!res.ok)` 分支後
- * 能直接窄化取得必要的 `data` 或 `error`，不必再自行防禦性判斷。
+ * 所有 API 呼叫的統一結果。
+ * 以 `ok` 為判別欄位，呼叫端在 `if (!res.ok)` 分支後即可直接取得 `data` 或 `error`。
  */
-type ApiResponse<T = unknown> = { ok: true; data: T; status: number } | { ok: false; error: string; status: number };
+export type ApiResult<T = unknown> = { ok: true; data: T } | { ok: false; error: string };
 
 /**
- * 將 API 回應的 `error` 欄位轉為人類可讀訊息。
- * 字串原樣使用；mutation 的結構化錯誤（帶 `kind` 的可辨識聯集）依種類對映。
+ * 集合層批次端點的回應：以請求送出的那組鍵逐筆回報成敗。
+ * 鍵與請求完全對齊，因此呼叫端不需要自己想辦法把結果對回請求。
  */
-function formatApiError(error: unknown): string {
-  if (typeof error === "string") return error;
+export type BatchResults = Record<string, { ok: true } | { ok: false; message: string }>;
 
-  if (hasKey(error, "kind")) {
-    switch (error.kind) {
-      case "not_found":
-        return "找不到目標紀錄";
-      case "already_exists":
-        return "該圖片已提交過，請重新整理後再試";
-      case "stale_update":
-        return "紀錄已被其他操作更新，請重新整理後再試";
-      case "last_tag":
-        return "有圖片會因此失去最後一個標籤";
-      case "validation":
-        return hasKey(error, "message") ? String(error.message) : "欄位驗證失敗";
-    }
-  }
-
-  return String(error);
+/** 讀出回應的錯誤訊息；body 不是預期形狀時退回 HTTP 狀態文字。 */
+function errorOf(json: unknown, res: Response): string {
+  return hasKey(json, "message") ? String(json.message) : res.statusText;
 }
 
-/** 內部共用的請求函式，統一處理回應格式。 */
-async function request<T>(method: string, url: string, body?: unknown): Promise<ApiResponse<T>> {
-  const opts: RequestInit = { method };
+/** 內部共用的請求函式。 */
+async function request<T>(method: string, url: string, body?: unknown): Promise<ApiResult<T>> {
+  const init: RequestInit = { method };
 
   if (body instanceof FormData) {
-    opts.body = body;
-  } else if (body !== undefined && body !== null) {
-    opts.headers = { "Content-Type": "application/json" };
-    opts.body = JSON.stringify(body);
+    init.body = body;
+  } else if (body !== undefined) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(body);
   }
 
-  const res = await fetch(url, opts);
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch {
-    json = null;
-  }
+  const res = await fetch(url, init);
+  const json: unknown = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    const error = hasKey(json, "error") ? formatApiError(json.error) : res.statusText;
-    return { ok: false, error, status: res.status };
-  }
-
-  // 拆開伺服器的 { ok, data } 封包，讓呼叫端直接取得內層資料
-  if (hasKey(json, "data")) {
-    return { ok: true, data: json.data as T, status: res.status };
-  } else {
-    return { ok: true, data: json as T, status: res.status };
-  }
+  return res.ok ? { ok: true, data: json as T } : { ok: false, error: errorOf(json, res) };
 }
 
 /**
- * 以 SSE (Server-Sent Events) 呼叫 POST 端點，逐一 yield 解析後的事件。
+ * 以 SSE (Server-Sent Events) 呼叫端點，逐一 yield 解析後的事件。
  * 非 2xx 回應或串流未建立直接 throw；呼叫端只需要在意事件本身，不必處理傳輸細節。
  */
-async function* stream<T>(url: string, body?: unknown): AsyncGenerator<T> {
+async function* stream<T>(method: string, url: string, body?: unknown): AsyncGenerator<T> {
   const res = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
   if (!res.ok || !res.body) {
-    const json = await res.json().catch(() => null);
-    const error = hasKey(json, "error") ? formatApiError(json.error) : res.statusText;
-    throw new Error(error);
+    const json: unknown = await res.json().catch(() => null);
+    throw new Error(errorOf(json, res));
   }
 
   const reader = res.body.getReader();
@@ -111,8 +85,8 @@ async function* stream<T>(url: string, body?: unknown): AsyncGenerator<T> {
  *
  * @example
  * ```ts
- * const res = await api.get<{ images: ImageWithId[] }>("/api/committed?limit=20");
- * if (res.ok) console.log(res.data);
+ * const res = await api.get<Paginated<ImageWithId>>("/api/records?limit=20");
+ * if (res.ok) console.log(res.data.items);
  * ```
  */
 export const api = {
@@ -122,12 +96,15 @@ export const api = {
   /** 發送 POST 請求，可附帶 JSON 或 FormData。 */
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body),
 
+  /** 發送 PUT 請求，可附帶 JSON body。 */
+  put: <T>(url: string, body?: unknown) => request<T>("PUT", url, body),
+
   /** 發送 PATCH 請求，可附帶 JSON body。 */
   patch: <T>(url: string, body?: unknown) => request<T>("PATCH", url, body),
 
   /** 發送 DELETE 請求，可附帶 JSON body。 */
   del: <T>(url: string, body?: unknown) => request<T>("DELETE", url, body),
 
-  /** 以 SSE 呼叫 POST 端點，回傳逐一 yield 事件的 async generator。 */
-  stream: <T>(url: string, body?: unknown) => stream<T>(url, body),
+  /** 以 SSE 呼叫端點，回傳逐一 yield 事件的 async generator。 */
+  stream: <T>(method: string, url: string, body?: unknown) => stream<T>(method, url, body),
 };
