@@ -28,6 +28,7 @@ import queryUnion from "./repo/query/query-union.suite.mjs";
 import queryTagCounts from "./repo/query/query-tag-counts.suite.mjs";
 import mutation from "./repo/mutation/mutation.suite.mjs";
 import mutationValidation from "./repo/mutation/mutation-validation.suite.mjs";
+import mutationTagChanges from "./repo/mutation/tag-changes.suite.mjs";
 import hidden from "./repo/scenario/hidden.suite.mjs";
 
 import { createImageFixtures } from "./image/fixtures.mjs";
@@ -41,15 +42,29 @@ import imageServer from "./image/server.suite.mjs";
 import { createUtilsFixtures } from "./utils/fixtures.mjs";
 import utilsVirtualize from "./utils/virtualize.suite.mjs";
 
+import { createApiFixtures } from "./api/fixtures.mjs";
+import apiGuards from "./api/guards.suite.mjs";
+import apiCollection from "./api/collection.suite.mjs";
+import apiFiles from "./api/files.suite.mjs";
+import apiRecordsRead from "./api/records-read.suite.mjs";
+import apiRecordsWrite from "./api/records-write.suite.mjs";
+import apiRecordsBatch from "./api/records-batch.suite.mjs";
+import apiTags from "./api/tags.suite.mjs";
+import apiTagCounts from "./api/tags-counts.suite.mjs";
+import apiMaintenance from "./api/maintenance.suite.mjs";
+
 /**
  * 後端各領域。每個領域有自己的 fixtures 工廠（setup）與 suite 清單。
- * 目前有 repo、image 與 utils；未來 collection 等後端模組可各加一筆。
+ * 目前有 repo、image、utils 與 api；未來 collection 等後端模組可各加一筆。
+ *
+ * api 領域直接載入 `+server.ts` 並呼叫裡頭的 GET / POST / …，因此擺在最後：
+ * 它會重設 Database / ImageLibrary 的單例來測未就緒的守衛，不該影響其他領域。
  */
 const DOMAINS = [
   {
     name: "repo",
     setup: createRepoFixtures,
-    suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, queryImages, queryTags, queryUnion, queryTagCounts, mutation, mutationValidation, hidden],
+    suites: [bitmap, ordinal, facetIndex, serialization, database, querySpec, queryImages, queryTags, queryUnion, queryTagCounts, mutation, mutationValidation, mutationTagChanges, hidden],
   },
   {
     name: "image",
@@ -60,6 +75,11 @@ const DOMAINS = [
     name: "utils",
     setup: createUtilsFixtures,
     suites: [utilsVirtualize],
+  },
+  {
+    name: "api",
+    setup: createApiFixtures,
+    suites: [apiGuards, apiCollection, apiFiles, apiRecordsRead, apiRecordsWrite, apiRecordsBatch, apiTags, apiTagCounts, apiMaintenance],
   },
 ];
 

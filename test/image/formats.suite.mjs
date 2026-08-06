@@ -54,11 +54,11 @@ export async function run(t, h) {
 
   // ── imgSrc：URL 組裝 + 編碼 ──
   {
-    t.eq("無 size 無 animated", imgSrc("a.jpg"), "/api/images/a.jpg");
-    t.eq("帶 size", imgSrc("a.jpg", "md"), "/api/images/a.jpg?size=md");
-    t.eq("帶 size 與 animated", imgSrc("a.gif", "md", true), "/api/images/a.gif?size=md&animated=1");
-    t.eq("animated 為 false 不附旗標", imgSrc("a.gif", "md", false), "/api/images/a.gif?size=md");
-    t.eq("非 ASCII 檔名被 URL 編碼", imgSrc("一張圖片.jpg", "md"), "/api/images/%E4%B8%80%E5%BC%B5%E5%9C%96%E7%89%87.jpg?size=md");
+    t.eq("無 size 無 animated", imgSrc("a.jpg"), "/api/files/a.jpg");
+    t.eq("帶 size", imgSrc("a.jpg", "md"), "/api/files/a.jpg?size=md");
+    t.eq("帶 size 與 animated", imgSrc("a.gif", "md", true), "/api/files/a.gif?size=md&animated=1");
+    t.eq("animated 為 false 不附旗標", imgSrc("a.gif", "md", false), "/api/files/a.gif?size=md");
+    t.eq("非 ASCII 檔名被 URL 編碼", imgSrc("一張圖片.jpg", "md"), "/api/files/%E4%B8%80%E5%BC%B5%E5%9C%96%E7%89%87.jpg?size=md");
   }
 }
 
