@@ -22,7 +22,7 @@
   <title>Taggit</title>
 </svelte:head>
 
-<main class="slide-up">
+<main>
   <ExplorePanel>
     <MasonryWall />
   </ExplorePanel>

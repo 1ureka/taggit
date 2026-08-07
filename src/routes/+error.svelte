@@ -8,8 +8,8 @@
   <title>{page.status} · Taggit</title>
 </svelte:head>
 
-<main class="slide-up">
-  <div class="error-icon">
+<main>
+  <div>
     <IconAlertTriangleFilled size={48} />
   </div>
 
@@ -36,12 +36,12 @@
     gap: 0.75rem;
   }
 
-  .error-icon {
+  main > div {
     color: var(--color-text-muted);
     margin-bottom: 0.5rem;
   }
 
-  h2 {
+  main > h2 {
     font-size: 3rem;
     font-weight: normal;
     letter-spacing: -0.03em;
@@ -49,7 +49,7 @@
     color: var(--color-text);
   }
 
-  p {
+  main > p {
     font: var(--font-body1);
     color: var(--color-text-muted);
     max-width: 320px;
