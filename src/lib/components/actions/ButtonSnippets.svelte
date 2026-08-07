@@ -1,4 +1,4 @@
-<script lang="ts" module>
+<script lang="ts">
   import type { Snippet } from "svelte";
   import type { HTMLAnchorAttributes, HTMLButtonAttributes } from "svelte/elements";
   import CircularProgress from "$lib/components/display/CircularProgress.svelte";
@@ -10,9 +10,13 @@
     children?: Snippet;
   };
 
-  type ButtonProps = BasicProps & HTMLButtonAttributes;
+  export type ButtonProps = BasicProps & HTMLButtonAttributes;
 
-  type LinkProps = BasicProps & HTMLAnchorAttributes & { href: string };
+  export type LinkProps = BasicProps & HTMLAnchorAttributes & { href: string };
+
+  type Props = { button?: ButtonProps; link?: LinkProps };
+
+  const props: Props = $props();
 
   const getSpinnerColor = (variant: BasicProps["variant"]) => {
     if (variant === "destructive") {
@@ -24,26 +28,17 @@
     }
   };
 
-  export { button, link, type ButtonProps, type LinkProps };
+  const getClass = ({ variant = "outlined", padding = "sm", status }: BasicProps) => ({
+    btn: true,
+    pending: status === "pending",
+    [variant]: true,
+    [`p-${padding}`]: true,
+  });
 </script>
 
 {#snippet button({ type, variant, status, padding, children, ...rest }: ButtonProps)}
-  <button
-    type={type ?? "button"}
-    disabled={status === "disabled" || status === "pending"}
-    class={{
-      btn: true,
-      primary: variant === "primary",
-      outlined: variant === "outlined" || !variant,
-      ghost: variant === "ghost",
-      destructive: variant === "destructive",
-      pending: status === "pending",
-      "p-icon": padding === "icon",
-      "p-sm": padding === "sm" || !padding,
-      "p-md": padding === "md",
-    }}
-    {...rest}
-  >
+  {@const disabled = status === "disabled" || status === "pending"}
+  <button type={type ?? "button"} {disabled} class={getClass({ variant, padding, status })} {...rest}>
     {@render children?.()}
     {#if status === "pending"}
       <span class="spinner">
@@ -56,23 +51,7 @@
 {#snippet link({ href, variant, status, padding, children, onclick, ...rest }: LinkProps)}
   {@const disabled = status === "disabled" || status === "pending"}
   {@const handleClick = disabled ? (e: MouseEvent) => e.preventDefault() : onclick}
-  <a
-    {href}
-    aria-disabled={disabled}
-    onclick={handleClick}
-    class={{
-      btn: true,
-      primary: variant === "primary",
-      outlined: variant === "outlined" || !variant,
-      ghost: variant === "ghost",
-      destructive: variant === "destructive",
-      pending: status === "pending",
-      "p-icon": padding === "icon",
-      "p-sm": padding === "sm" || !padding,
-      "p-md": padding === "md",
-    }}
-    {...rest}
-  >
+  <a {href} aria-disabled={disabled} onclick={handleClick} class={getClass({ variant, padding, status })} {...rest}>
     {@render children?.()}
     {#if status === "pending"}
       <span class="spinner">
@@ -82,18 +61,13 @@
   </a>
 {/snippet}
 
+{#if props.button}
+  {@render button(props.button)}
+{:else if props.link}
+  {@render link(props.link)}
+{/if}
+
 <style>
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* --- */
-
   .btn {
     position: relative;
     display: inline-flex;

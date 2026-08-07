@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { ToastStage } from "$lib/components/floating/toastStage.core.svelte";
-  import { toastCard } from "$lib/components/floating/Toast.svelte";
+  import Toast from "$lib/components/floating/Toast.svelte";
 
   const stage = new ToastStage();
 
@@ -40,15 +40,15 @@
       use:stage.layout.measureEl={item.id}
     >
       <div in:fly={{ y: -16, duration: 200 }} out:fly={{ y: -16, duration: 200 }} onoutroend={handleItemOutroEnd}>
-        {@render toastCard({
-          message: item.message,
-          variant: item.variant,
-          progress: item.progress,
-          onDismiss: item.progress === undefined ? () => stage.dismiss(item.id) : undefined,
-          dismissLabel: "關閉通知",
-          role: "status",
-          "aria-live": "polite",
-        })}
+        <Toast
+          message={item.message}
+          variant={item.variant}
+          progress={item.progress}
+          ondismiss={item.progress === undefined ? () => stage.dismiss(item.id) : undefined}
+          dismissLabel="關閉通知"
+          role="status"
+          aria-live="polite"
+        />
       </div>
     </div>
   {/each}

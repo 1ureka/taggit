@@ -33,7 +33,7 @@
   <SectionNavigation />
 
   <main>
-    <div class="slide-up">
+    <div>
       <section id="section-collection" {@attach nav.observe}>
         <h2>圖片集路徑</h2>
         <SectionCollection />
@@ -71,15 +71,15 @@
     scroll-behavior: smooth;
     min-height: 0;
     background-color: var(--color-bg);
+  }
 
-    & > div.slide-up {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 2rem 2rem 6rem;
+  main > div {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
 
-      @media (max-width: 768px) {
-        padding: 1.5rem 1rem 4rem;
-      }
+    @media (max-width: 768px) {
+      padding: 1.5rem 1rem 4rem;
     }
   }
 

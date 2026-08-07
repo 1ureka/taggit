@@ -1,4 +1,4 @@
-<script lang="ts" module>
+<script lang="ts">
   import type { HTMLAttributes } from "svelte/elements";
 
   import { IconX, IconCheckFilled, IconAlertCircleFilled, IconInfoCircleFilled } from "$lib/icons";
@@ -7,7 +7,7 @@
   import Button from "$lib/components/actions/Button.svelte";
   import type { ToastVariant } from "$lib/components/floating/toast-events";
 
-  export interface ToastCardProps extends HTMLAttributes<HTMLDivElement> {
+  interface Props extends HTMLAttributes<HTMLDivElement> {
     /** 支援與 `MarkupText` 相同的輕量 markup 語法 */
     message: string;
     /** 通知類型 */
@@ -15,44 +15,42 @@
     /** 通知的進度，`undefined` 表示非進度類型 */
     progress?: number;
     /** 提供則顯示關閉按鈕 */
-    onDismiss?: () => void;
+    ondismiss?: () => void;
     /** 關閉按鈕的 aria label */
     dismissLabel: string;
     /** 是否恆定顯示關閉按鈕；省略則只在 hover 與 focus-within 才顯示 */
     alwaysShowClose?: boolean;
   }
 
-  export { toastCard };
+  const { message, variant, progress, ondismiss, dismissLabel, alwaysShowClose, ...rest }: Props = $props();
 </script>
 
-{#snippet toastCard({ message, variant, progress, onDismiss, dismissLabel, alwaysShowClose, ...rest }: ToastCardProps)}
-  <div class="container" {...rest}>
-    <span class="icon {variant}">
-      {#if variant === "success"}
-        <IconCheckFilled size={18} />
-      {:else if variant === "error"}
-        <IconAlertCircleFilled size={18} />
-      {:else}
-        <IconInfoCircleFilled size={18} />
-      {/if}
-    </span>
+<div class="container" {...rest}>
+  <span class="icon {variant}">
+    {#if variant === "success"}
+      <IconCheckFilled size={18} />
+    {:else if variant === "error"}
+      <IconAlertCircleFilled size={18} />
+    {:else}
+      <IconInfoCircleFilled size={18} />
+    {/if}
+  </span>
 
-    <div class="body">
-      <MarkupText markup={message} style="font: var(--font-body2); margin: 0; word-break: break-word;" />
-      {#if progress !== undefined}
-        <LinearProgress value={progress * 100} size="sm" color="var(--color-text)" />
-      {/if}
-    </div>
-
-    {#if onDismiss}
-      <span class="close" class:always={alwaysShowClose}>
-        <Button variant="ghost" padding="icon" aria-label={dismissLabel} onclick={onDismiss}>
-          <IconX size={14} />
-        </Button>
-      </span>
+  <div class="body">
+    <MarkupText markup={message} style="font: var(--font-body2); margin: 0; word-break: break-word;" />
+    {#if progress !== undefined}
+      <LinearProgress value={progress * 100} size="sm" color="var(--color-text)" />
     {/if}
   </div>
-{/snippet}
+
+  {#if ondismiss}
+    <span class="close" class:always={alwaysShowClose}>
+      <Button variant="ghost" padding="icon" aria-label={dismissLabel} onclick={ondismiss}>
+        <IconX size={14} />
+      </Button>
+    </span>
+  {/if}
+</div>
 
 <style>
   .container {
